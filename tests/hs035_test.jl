@@ -1,4 +1,5 @@
 using Knitro
+using Base.Test
 
 #    min  9 - 8x1 - 6x2 - 4x3
 #         + 2(x1^2) + 2(x2^2) + (x3^2) + 2(x1*x2) + 2(x1*x3)
@@ -12,116 +13,42 @@ using Knitro
 #
 #  The problem comes from Hock and Schittkowski, HS35.
 
-function evaluate_fc(evalRequestCode::Cint,
-                     n::Cint,
-                     m::Cint,
-                     nnzJ::Cint,
-                     nnzH::Cint,
-                     x_::Ptr{Cdouble},
-                     lambda_::Ptr{Cdouble},
-                     obj_::Ptr{Cdouble},
-                     c_::Ptr{Cdouble},
-                     g_::Ptr{Cdouble},
-                     J_::Ptr{Cdouble},
-                     H_::Ptr{Cdouble},
-                     HV_::Ptr{Cdouble},
-                     userParams_::Ptr{Void})
-  if evalRequestCode != KTR_RC_EVALFC
-    return KTR_RC_CALLBACK_ERR
-  end
-  x = pointer_to_array(x_,n,false)::Vector{Float64}
-
+function eval_f(x::Vector{Float64})
   linear_terms = 9.0 - 8.0*x[1] - 6.0*x[2] - 4.0*x[3]
-  quad_terms = 2.0*x[1]*x[1] + 2.0*x[2]*x[2] + x[3]*x[3]
-  quad_terms2 = 2.0*x[1]*x[2] + 2.0*x[1]*x[3]
-  obj_value = linear_terms + quad_terms + quad_terms2
-  cons = x[1] + x[2] + 2.0 * x[3]
-
-  unsafe_store!(obj_::Ptr{Cdouble}, obj_value::Cdouble)
-  unsafe_store!(c_::Ptr{Cdouble}, cons::Cdouble, 1)
-
-  int32(0)::Int32
+  quad_terms = 2.0*x[1]^2 + 2.0*x[2]^2 + x[3]^2 + 2.0*x[1]*x[2] + 2.0*x[1]*x[3]
+  return linear_terms + quad_terms
 end
 
-function evaluate_ga(evalRequestCode::Cint,
-                     n::Cint,
-                     m::Cint,
-                     nnzJ::Cint,
-                     nnzH::Cint,
-                     x_::Ptr{Cdouble},
-                     lambda_::Ptr{Cdouble},
-                     obj_::Ptr{Cdouble},
-                     c_::Ptr{Cdouble},
-                     g_::Ptr{Cdouble},
-                     J_::Ptr{Cdouble},
-                     H_::Ptr{Cdouble},
-                     HV_::Ptr{Cdouble},
-                     userParams_::Ptr{Void})
-  if evalRequestCode != KTR_RC_EVALGA
-    return KTR_RC_CALLBACK_ERR
-  end
-  x = pointer_to_array(x_,n,false)::Vector{Float64}
-
-  g0 = -8.0 + 4.0*x[1] + 2.0*x[2] + 2.0*x[3]
-  g1 = -6.0 + 2.0*x[1] + 4.0*x[2]
-  g2 = -4.0 + 2.0*x[1] + 2.0*x[3]
-  j0 = 1.0; j1 = 1.0; j2 = 2.0
-
-  unsafe_store!(g_::Ptr{Cdouble}, g0::Cdouble, 1)
-  unsafe_store!(g_::Ptr{Cdouble}, g1::Cdouble, 2)
-  unsafe_store!(g_::Ptr{Cdouble}, g2::Cdouble, 3)
-  unsafe_store!(J_::Ptr{Cdouble}, j0::Cdouble, 1)
-  unsafe_store!(J_::Ptr{Cdouble}, j1::Cdouble, 2)
-  unsafe_store!(J_::Ptr{Cdouble}, j2::Cdouble, 3)
-  
-  int32(0)::Int32
+function eval_g(x::Vector{Float64}, cons::Vector{Float64})
+  cons[1] = x[1] + x[2] + 2.0*x[3]
 end
 
-function evaluate_hess(evalRequestCode::Cint,
-                       n::Cint,
-                       m::Cint,
-                       nnzJ::Cint,
-                       nnzH::Cint,
-                       x_::Ptr{Cdouble},
-                       lambda_::Ptr{Cdouble},
-                       obj_::Ptr{Cdouble},
-                       c_::Ptr{Cdouble},
-                       g_::Ptr{Cdouble},
-                       J_::Ptr{Cdouble},
-                       H_::Ptr{Cdouble},
-                       HV_::Ptr{Cdouble},
-                       userParams_::Ptr{Void})
-  if evalRequestCode == KTR_RC_EVALH
-    unsafe_store!(H_::Ptr{Cdouble}, 4.0::Cdouble, 1)
-    unsafe_store!(H_::Ptr{Cdouble}, 2.0::Cdouble, 2)
-    unsafe_store!(H_::Ptr{Cdouble}, 2.0::Cdouble, 3)
-    unsafe_store!(H_::Ptr{Cdouble}, 4.0::Cdouble, 4)
-    unsafe_store!(H_::Ptr{Cdouble}, 2.0::Cdouble, 5)
-    return int32(0)::Int32
-  elseif evalRequestCode == KTR_RC_EVALH_NO_F
-    unsafe_store!(H_::Ptr{Cdouble}, 0.0::Cdouble, 1)
-    unsafe_store!(H_::Ptr{Cdouble}, 0.0::Cdouble, 2)
-    unsafe_store!(H_::Ptr{Cdouble}, 0.0::Cdouble, 3)
-    unsafe_store!(H_::Ptr{Cdouble}, 0.0::Cdouble, 4)
-    unsafe_store!(H_::Ptr{Cdouble}, 0.0::Cdouble, 5)
-    return int32(0)::Int32
-  elseif evalRequestCode == KTR_RC_EVALHV
-    HV = pointer_to_array(HV_,3,false)::Vector{Float64}
-    hv0 = 4.0*HV[1] + 2.0*HV[2] + 2.0*HV[3]
-    hv1 = 2.0*HV[1] + 4.0*HV[2]
-    hv2 = 2.0*HV[1] + 2.0*HV[3]
-    unsafe_store!(HV_::Ptr{Cdouble}, hv0::Cdouble, 1)
-    unsafe_store!(HV_::Ptr{Cdouble}, hv1::Cdouble, 2)
-    unsafe_store!(HV_::Ptr{Cdouble}, hv2::Cdouble, 3)
-    return int32(0)::Int32
-  elseif evalRequestCode == KTR_RC_EVALHV_NO_F
-    unsafe_store!(HV_::Ptr{Cdouble}, 0.0::Cdouble, 1)
-    unsafe_store!(HV_::Ptr{Cdouble}, 0.0::Cdouble, 2)
-    unsafe_store!(HV_::Ptr{Cdouble}, 0.0::Cdouble, 3)
-    return int32(0)::Int32
-  else
-    return KTR_RC_CALLBACK_ERR
-  end
+function eval_grad_f(x::Vector{Float64}, grad::Vector{Float64})
+  grad[1] = -8.0 + 4.0*x[1] + 2.0*x[2] + 2.0*x[3]
+  grad[2] = -6.0 + 2.0*x[1] + 4.0*x[2]
+  grad[3] = -4.0 + 2.0*x[1]            + 2.0*x[3]
+end
+
+function eval_jac_g(x::Vector{Float64}, jac::Vector{Float64})
+  jac[1] = 1.0
+  jac[2] = 1.0
+  jac[3] = 2.0
+end
+
+function eval_h(x::Vector{Float64}, lambda::Vector{Float64},
+                sigma::Float64, hess::Vector{Float64})
+  hess[1] = sigma*4.0
+  hess[2] = sigma*2.0
+  hess[3] = sigma*2.0
+  hess[4] = sigma*4.0
+  hess[5] = sigma*2.0
+end
+
+function eval_hv(x::Vector{Float64}, lambda::Vector{Float64},
+                 sigma::Float64, hv::Vector{Float64})
+  hv[1] = sigma*4.0*hv[1] + sigma*2.0*hv[2] + sigma*2.0*hv[3]
+  hv[2] = sigma*2.0*hv[1] + sigma*4.0*hv[2]
+  hv[3] = sigma*2.0*hv[1]                   + sigma*2.0*hv[3]
 end
 
 objGoal = KTR_OBJGOAL_MINIMIZE
@@ -141,25 +68,19 @@ jac_var = Int32[0,1,2]
 hess_row = Int32[0,0,0,1,2]
 hess_col = Int32[0,1,2,1,2]
 
-x0 = [0.5,0.5,0.5]
-lambda0 = zeros(n+m)
-
-kc = newcontext()
-loadparamfile(kc,"knitro.opt")
-ret = initialize_problem(kc, objGoal, objType,
-                         x_L, x_U,
-                         c_Type, c_L, c_U,
-                         jac_var, jac_con,
-                         hess_row, hess_col,
-                         initial_x=x0,
-                         initial_lambda=lambda0)
-
-set_func_callback(kc,evaluate_fc)
-set_grad_callback(kc,evaluate_ga)
-set_hess_callback(kc,evaluate_hess)
-
 x       = [0.5,0.5,0.5]
-lambda  = zeros(m + n)
+lambda  = zeros(n+m)
 obj     = [0.0]
-nStatus = solve_problem(kc, x, lambda, int32(0), obj)
-print(nStatus)
+
+kc = createProblem()
+loadparamfile(kc,"knitro.opt")
+ret = initializeproblem(kc, objGoal, objType,
+                        x_L, x_U, c_Type, c_L, c_U,
+                        jac_var, jac_con, hess_row, hess_col)
+setCallbacks(kc, eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h, eval_hv)
+nStatus = solveproblem(kc, x, lambda, int32(0), obj)
+
+@test_approx_eq_eps x[1] 1.3333333 1e-5
+@test_approx_eq_eps x[2] 0.7777777 1e-5
+@test_approx_eq_eps x[3] 0.4444444 1e-5
+@test_approx_eq_eps obj[1] 0.1111111 1e-5

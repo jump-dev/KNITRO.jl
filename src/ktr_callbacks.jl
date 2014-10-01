@@ -75,6 +75,11 @@ export
 #                                 double * const  hessVector,
 #                                 void   *        userParams);
 
+callback_params = (Cint, Cint, Cint, Cint, Cint, Ptr{Cdouble},
+                   Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble},
+                   Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble},
+                   Ptr{Cdouble}, Ptr{Void})
+
 # /** Set the callback function that evaluates "obj" and "c" at x.
 #  *  It may also evaluate "objGrad" and "jac" if EVALFC and EVALGA are
 #  *  combined into a single call.
@@ -83,26 +88,10 @@ export
 # int  KNITRO_API KTR_set_func_callback (KTR_context_ptr       kc,
 #                                        KTR_callback * const  fnPtr);
 
-# function setfunc_callback(kc::KTRcontext, f::Ptr{Void})
-#   cb = unsafe_pointer_to_objref(f)::Function
-#   cbfunc = cfunction(cb,Int32,(Cint,Cint,Cint,Cint,Cint,
-#                      Ptr{Cdouble},Ptr{Cdouble},Ptr{Cdouble},
-#                      Ptr{Cdouble},Ptr{Cdouble},Ptr{Cdouble},Ptr{Cdouble},
-#                      Ptr{Cdouble},Ptr{Void}))
-#   return_code = @ktr_ccall(set_func_callback, Int32,(Ptr{Void},
-#                            Ptr{Void}),kc.context,cbfunc)
-#   if return_code != 0
-#     error("KNITRO: Error setting function callback")
-#   end
-# end
-
-function set_func_callback(kc::KTRcontext, cb::Function)
-  cbfunc = cfunction(cb,Int32,(Cint,Cint,Cint,Cint,Cint,
-                     Ptr{Cdouble},Ptr{Cdouble},Ptr{Cdouble},
-                     Ptr{Cdouble},Ptr{Cdouble},Ptr{Cdouble},Ptr{Cdouble},
-                     Ptr{Cdouble},Ptr{Void}))
-  return_code = @ktr_ccall(set_func_callback, Int32,(Ptr{Void},
-                           Ptr{Void}),kc.context,cbfunc)
+function set_func_callback(kp::KnitroProblem, f::Function)
+  cb = cfunction(f, Cint, callback_params)
+  return_code = @ktr_ccall(set_func_callback, Int32, (Ptr{Void},
+                           Ptr{Void}), kp.env, cb)
   if return_code != 0
     error("KNITRO: Error setting function callback")
   end
@@ -115,28 +104,12 @@ end
 # int  KNITRO_API KTR_set_grad_callback (KTR_context_ptr       kc,
 #                                        KTR_callback * const  fnPtr);
 
-# function setgrad_callback(kc::KTRcontext, f::Ptr{Void})
-#   cb = unsafe_pointer_to_objref(f)::Function
-#   cbfunc = cfunction(cb,Int32,(Cint,Cint,Cint,Cint,Cint,
-#                      Ptr{Cdouble},Ptr{Cdouble},Ptr{Cdouble},
-#                      Ptr{Cdouble},Ptr{Cdouble},Ptr{Cdouble},Ptr{Cdouble},
-#                      Ptr{Cdouble},Ptr{Void}))
-#   return_code = @ktr_ccall(set_grad_callback, Int32,(Ptr{Void},
-#                            Ptr{Void}),kc.context,cbfunc)
-#   if return_code != 0
-#     error("KNITRO: Error setting function callback")
-#   end
-# end
-
-function set_grad_callback(kc::KTRcontext, cb::Function)
-  cbfunc = cfunction(cb,Int32,(Cint,Cint,Cint,Cint,Cint,
-                     Ptr{Cdouble},Ptr{Cdouble},Ptr{Cdouble},
-                     Ptr{Cdouble},Ptr{Cdouble},Ptr{Cdouble},Ptr{Cdouble},
-                     Ptr{Cdouble},Ptr{Void}))
+function set_grad_callback(kp::KnitroProblem, f::Function)
+  cb = cfunction(f, Cint, callback_params)
   return_code = @ktr_ccall(set_grad_callback, Int32,(Ptr{Void},
-                           Ptr{Void}),kc.context,cbfunc)
+                           Ptr{Void}), kp.env, cb)
   if return_code != 0
-    error("KNITRO: Error setting function callback")
+    error("KNITRO: Error setting gradient callback")
   end
 end
 
@@ -150,28 +123,12 @@ end
 # int  KNITRO_API KTR_set_hess_callback (KTR_context_ptr       kc,
 #                                        KTR_callback * const  fnPtr);
 
-# function sethess_callback(kc::KTRcontext, f::Ptr{Void})
-#   cb = unsafe_pointer_to_objref(f)::Function
-#   cbfunc = cfunction(cb,Int32,(Cint,Cint,Cint,Cint,Cint,
-#                      Ptr{Cdouble},Ptr{Cdouble},Ptr{Cdouble},
-#                      Ptr{Cdouble},Ptr{Cdouble},Ptr{Cdouble},Ptr{Cdouble},
-#                      Ptr{Cdouble},Ptr{Void}))
-#   return_code = @ktr_ccall(set_hess_callback, Int32,(Ptr{Void},
-#                            Ptr{Void}),kc.context,cbfunc)
-#   if return_code != 0
-#     error("KNITRO: Error setting function callback")
-#   end
-# end
-
-function set_hess_callback(kc::KTRcontext, cb::Function)
-  cbfunc = cfunction(cb,Int32,(Cint,Cint,Cint,Cint,Cint,
-                     Ptr{Cdouble},Ptr{Cdouble},Ptr{Cdouble},
-                     Ptr{Cdouble},Ptr{Cdouble},Ptr{Cdouble},Ptr{Cdouble},
-                     Ptr{Cdouble},Ptr{Void}))
-  return_code = @ktr_ccall(set_hess_callback, Int32,(Ptr{Void},
-                           Ptr{Void}),kc.context,cbfunc)
+function set_hess_callback(kp::KnitroProblem, f::Function)
+  cb = cfunction(f, Cint, callback_params)
+  return_code = @ktr_ccall(set_hess_callback, Int32, (Ptr{Void},
+                           Ptr{Void}), kp.env, cb)
   if return_code != 0
-    error("KNITRO: Error setting function callback")
+    error("KNITRO: Error setting hessian callback")
   end
 end
 
