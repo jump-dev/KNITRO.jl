@@ -6,7 +6,7 @@ module Knitro
   end
 
   export
-    KnitroProblem, createProblem, freeProblem, setCallbacks
+    KnitroProblem, createProblem, setCallbacks #, freeProblem
 
   # A macro to make calling C API a little cleaner
   macro ktr_ccall(func, args...)
@@ -33,8 +33,10 @@ module Knitro
                   C_NULL,C_NULL,C_NULL)
   end
   
+  # doesn't work
   function freeProblem(kp::KnitroProblem)
     freecontext(kp.env)
+    kp.env = C_NULL
   end
 
   function eval_fc_wrapper(evalRequestCode::Cint,

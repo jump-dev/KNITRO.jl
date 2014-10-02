@@ -1,7 +1,13 @@
 export
   newcontext, freecontext,
-  resetparams, loadparamfile, writeparamfile,
-  initializeproblem, solveproblem
+  load_param_file, save_param_file,
+  init_problem, solve_problem, restart_problem,
+  set_param, get_param,
+  get_number_FC_evals, get_number_GA_evals,
+  get_number_H_evals, get_number_HV_evals,
+  get_number_iters, get_number_cg_iters,
+  get_abs_feas_error, get_rel_feas_error,
+  get_abs_opt_error, get_rel_opt_error
 
 # /* -----  Creating and destroying solver objects ----- */
 
@@ -12,12 +18,13 @@ export
 #  *  Returns NULL on error.
 #  */
 # KTR_context_ptr  KNITRO_API KTR_new (void);
+
 function newcontext()
   ptr = @ktr_ccall(new,Ptr{Void},())
   if ptr == C_NULL
     error("KNITRO: Error creating solver")
   end
-  return ptr
+  ptr
 end
 
 # /** Call KTR_new or KTR_new_puts first.  Either returns a pointer to the
@@ -31,15 +38,18 @@ end
 #  *  Returns NULL on error.
 #  */
 
-# /** Type declaration for the callback that allows applications to handle
-#  *  output.  The function should return the number of characters that
-#  *  were printed.  See KTR_set_puts_callback for more information.
-#  */
-# typedef int  KTR_puts (const char * const  str,
-#                              void * const  userParams);
-
 # KTR_context_ptr  KNITRO_API KTR_new_puts (KTR_puts * const  fnPtr,
 #                                           void     * const  userParams);
+
+function newcontext_puts(f::Function, userParams=C_NULL)
+  cb = cfunction(f, Cint, (Ptr{Cchar}, Ptr{Void}))
+  ptr = @ktr_ccall(new,Ptr{Void},(Ptr{Void}, Ptr{Void}),
+                   cb, userParams)
+  if ptr == C_NULL
+    error("KNITRO: Error creating solver with put-string")
+  end
+  ptr
+end  
 
 # /** Free all memory and release any KNITRO license acquired by calling
 #  *  KTR_new or KTR_new_puts.  The address of the pointer is set to NULL
@@ -54,7 +64,6 @@ function freecontext(kp_env::Ptr{Void})
     if return_code != 0
       error("KNITRO: Error freeing memory")
     end
-    kp_env = C_NULL
   end
 end
 
@@ -142,8 +151,8 @@ end
 #  */
 # int  KNITRO_API KTR_reset_params_to_defaults (KTR_context_ptr  kc);
 
-function resetparams(kp::KnitroProblem)
-  return_code = @ktr_ccall(reset_params_to_defaults, Int32, (Ptr{Void},), kc)
+function reset_params_to_defaults(kp::KnitroProblem)
+  return_code = @ktr_ccall(reset_params_to_defaults, Int32, (Ptr{Void},), kp.env)
   if return_code != 0
     error("KNITRO: Error resetting parameters")
   end
@@ -153,7 +162,7 @@ end
 # int  KNITRO_API KTR_load_param_file
 #     (KTR_context_ptr  kc, const char * const  filename);
 
-function loadparamfile(kp::KnitroProblem, filename::String)
+function load_param_file(kp::KnitroProblem, filename::String)
   return_code = @ktr_ccall(load_param_file, Int32,
                            (Ptr{Void},Ptr{Cchar}),
                            kp.env, filename)
@@ -166,8 +175,9 @@ end
 # int  KNITRO_API KTR_save_param_file
 #     (KTR_context_ptr  kc, const char * const  filename);
 
-function writeparamfile(kp::KnitroProblem, filename::String)
-  return_code = @ktr_ccall(save_param_file, Int32, (Ptr{Void},Ptr{Cchar}), kc)
+function save_param_file(kp::KnitroProblem, filename::String)
+  return_code = @ktr_ccall(save_param_file, Int32, (Ptr{Void},Ptr{Cchar}),
+                           kp.env, filename)
   if return_code != 0
     error("KNITRO: Error writing parameters to $(filename)")
   end
@@ -177,7 +187,7 @@ end
 # int  KNITRO_API KTR_set_int_param_by_name
 #     (KTR_context_ptr  kc, const char * const  name, const int  value);
 
-function setparam(kp::KnitroProblem, name::String, value::Int32)
+function set_param(kp::KnitroProblem, name::String, value::Int32)
   return_code = @ktr_ccall(set_int_param_by_name, Int32, (Ptr{Void},Ptr{Cchar},Cint),
                            kp.env, name, value)
   if return_code != 0
@@ -187,8 +197,8 @@ end
 
 # int  KNITRO_API KTR_set_char_param_by_name
 #     (KTR_context_ptr  kc, const char * const  name, const char * const  value);
-function setparam(kp::KnitroProblem, name::String, value::Char)
-  return_code = @ktr_ccall(set_char_param_by_name, Int32, (Ptr{Void},Ptr{Cchar},Cchar),
+function set_param(kp::KnitroProblem, name::String, value::String)
+  return_code = @ktr_ccall(set_char_param_by_name, Int32, (Ptr{Void},Ptr{Cchar},Ptr{Cchar}),
                            kp.env, name, value)
   if return_code != 0
     error("KNITRO: Error setting char parameter by name")
@@ -197,7 +207,7 @@ end
 
 # int  KNITRO_API KTR_set_double_param_by_name
 #     (KTR_context_ptr  kc, const char * const  name, const double  value);
-function setparam(kp::KnitroProblem, name::String, value::Float64)
+function set_param(kp::KnitroProblem, name::String, value::Float64)
   return_code = @ktr_ccall(set_char_param_by_name, Int32, (Ptr{Void},Ptr{Cchar},Cdouble),
                            kp.env, name, value)
   if return_code != 0
@@ -208,8 +218,8 @@ end
 # /** Set a parameter using its integer identifier KTR_PARAM_x (defined below). */
 # int  KNITRO_API KTR_set_int_param
 #     (KTR_context_ptr  kc, const int  param_id, const int  value);
-function setparam(kp::KnitroProblem, id::Int32, value::Int32)
-  return_code = @ktr_ccall(set_int_param, Int32, (Ptr{Void},Ptr{Cint},Cint),
+function set_param(kp::KnitroProblem, id::Int32, value::Int32)
+  return_code = @ktr_ccall(set_int_param, Int32, (Ptr{Void},Cint,Cint),
                            kp.env, name, value)
   if return_code != 0
     error("KNITRO: Error setting int parameter by id")
@@ -218,8 +228,8 @@ end
 
 # int  KNITRO_API KTR_set_char_param
 #     (KTR_context_ptr  kc, const int  param_id, const char * const  value);
-function setparam(kp::KnitroProblem, id::Int32, value::Char)
-  return_code = @ktr_ccall(set_char_param, Int32, (Ptr{Void},Ptr{Cint},Cchar),
+function set_param(kp::KnitroProblem, id::Int32, value::String)
+  return_code = @ktr_ccall(set_char_param, Int32, (Ptr{Void},Cint,Ptr{Cchar}),
                            kp.env, name, value)
   if return_code != 0
     error("KNITRO: Error setting char parameter by id")
@@ -228,8 +238,8 @@ end
 
 # int  KNITRO_API KTR_set_double_param
 #     (KTR_context_ptr  kc, const int  param_id, const double  value);
-function setparam(kp::KnitroProblem, id::Int32, value::Float64)
-  return_code = @ktr_ccall(set_double_param, Int32, (Ptr{Void},Ptr{Cint},Cdouble),
+function set_param(kp::KnitroProblem, id::Int32, value::Float64)
+  return_code = @ktr_ccall(set_double_param, Int32, (Ptr{Void},Cint,Cdouble),
                            kp.env, name, value)
   if return_code != 0
     error("KNITRO: Error setting float parameter by id")
@@ -240,15 +250,43 @@ end
 # int  KNITRO_API KTR_get_int_param_by_name
 #     (KTR_context_ptr  kc, const char * const  name, int * const  value);
 
+function get_param(kp::KnitroProblem,
+                  name::String,
+                  value::Vector{Int32})
+  @ktr_ccall(get_int_param_by_name, Int32, (Ptr{Void}, Ptr{Cchar}, Ptr{Cint}),
+             kp.env, name, value)
+end
+
 # int  KNITRO_API KTR_get_double_param_by_name
 #     (KTR_context_ptr  kc, const char * const  name, double * const  value);
+
+function get_param(kp::KnitroProblem,
+                  name::String,
+                  value::Vector{Float64})
+  @ktr_ccall(get_double_param_by_name, Int32, (Ptr{Void}, Ptr{Cchar}, Ptr{Cdouble}),
+             kp.env, name, value)
+end
 
 # /** Get a parameter using its integer identifier KTR_PARAM_x (defined below). */
 # int  KNITRO_API KTR_get_int_param
 #     (KTR_context_ptr  kc, const int  param_id, int * const  value);
 
+function get_param(kp::KnitroProblem,
+                  id::Int32,
+                  value::Vector{Int32})
+  @ktr_ccall(get_double_param_by_name, Int32, (Ptr{Void}, Cint, Ptr{Cint}),
+             kp.env, id, value)
+end
+
 # int  KNITRO_API KTR_get_double_param
 #     (KTR_context_ptr  kc, const int  param_id, double * const  value);
+
+function get_param(kp::KnitroProblem,
+                  id::Int32,
+                  value::Vector{Float64})
+  @ktr_ccall(get_double_param, Int32, (Ptr{Void}, Cint, Ptr{Cdouble}),
+             kp.env, id, value)
+end
 
 # /** Similar to KTR_load_param_file but specifically allows user to
 #  *  specify a file of options (and option values) to explore for
@@ -256,13 +294,28 @@ end
 #  */
 # int  KNITRO_API KTR_load_tuner_file
 #     (KTR_context_ptr  kc, const char * const  filename);
-    
+
+function load_tuner_file(kp::KnitroProblem,
+                         filename::String)
+  return_code = @ktr_ccall(load_tuner_file, Int32, (Ptr{Void}, Ptr{Cchar}),
+                           kp.env, filename)
+  if return_code != 0
+    error("KNITRO: Error loading tuner file")
+  end
+end
+
 # /** Copy the KNITRO release name into "release".  This variable must be
 #  *  preallocated to have "length" elements, including the string termination
 #  *  character.  For compatibility with future releases, please allocate at
 #  *  least 15 characters. */
 # void  KNITRO_API KTR_get_release
 #     (const int  length, char * const  release);
+
+function get_release(kp::KnitroProblem,
+                     release::String)
+  @ktr_ccall(get_release, Any, (Ptr{Void}, Ptr{Cchar}),
+             kp.env, release)
+end
 
 # /** Set an array of absolute feasibility tolerances (one for each
 #  *  constraint and variable) to use for the termination tests.
@@ -303,8 +356,8 @@ end
 #      const double * const  xFeasTols,
 #      const double * const  ccFeasTols);
 
-function setfeastols(kp::KnitroProblem, c_tol::Vector{Float64}, x_tol::Vector{Float64},
-                      cc_tol::Vector{Float64})
+function set_feastols(kp::KnitroProblem, c_tol::Vector{Float64}, x_tol::Vector{Float64},
+                     cc_tol::Vector{Float64})
   return_code = @ktr_ccall(set_feastols, Int32, (Ptr{Void}, Ptr{Cdouble}, Ptr{Cdouble},
                            Ptr{Cdouble}), kp.env, c_tol, x_tol, cc_tol)
   if return_code != 0
@@ -326,11 +379,11 @@ end
 #            char   * const  varNames[],
 #            char   * const  conNames[]);
 
-function setnames(kp::KnitroProblem, objName::String, varNames::Vector{String},
+function set_names(kp::KnitroProblem, objName::String, varNames::Vector{String},
                    conNames::Vector{String})
   return_code = @ktr_ccall(set_names, Int32, (Ptr{Void}, Ptr{Cchar},
                            Ptr{Ptr{Cchar}}, Ptr{Ptr{Cchar}}),
-                           kc, objName, varNames, conNames)
+                           kp.env, objName, varNames, conNames)
   if return_code != 0
     error("KNITRO: Error setting names for model components")
   end
@@ -353,10 +406,10 @@ end
 #                                  const int * const  indexList1,
 #                                  const int * const  indexList2);
 
-function addcontraints(kp::KnitroProblem,
-                       ncons::Int32,
-                       index1::Vector{Int32},
-                       index2::Vector{Int32})
+function add_contraints(kp::KnitroProblem,
+                        ncons::Int32,
+                        index1::Vector{Int32},
+                        index2::Vector{Int32})
   return_code = @ktr_ccall(add_compcons, Int32, (Ptr{Void},Cint,Ptr{Cint},
                            Ptr{Cint}), kp.env,ncons,index1,index2)
   if return_code != 0
@@ -474,20 +527,20 @@ end
 #                                   const double * const  xInitial,
 #                                   const double * const  lambdaInitial);
 
-function initializeproblem(kp::KnitroProblem,
-                           objGoal::Int32,
-                           objType::Int32,
-                           x_L::Vector{Float64},
-                           x_U::Vector{Float64},
-                           c_Type::Vector{Int32},
-                           c_L::Vector{Float64},
-                           c_U::Vector{Float64},
-                           jac_var::Vector{Int32},
-                           jac_cons::Vector{Int32},
-                           hess_rows::Vector{Int32},
-                           hess_cols::Vector{Int32};
-                           initial_x = C_NULL,
-                           initial_lambda = C_NULL)
+function init_problem(kp::KnitroProblem,
+                      objGoal::Int32,
+                      objType::Int32,
+                      x_L::Vector{Float64},
+                      x_U::Vector{Float64},
+                      c_Type::Vector{Int32},
+                      c_L::Vector{Float64},
+                      c_U::Vector{Float64},
+                      jac_var::Vector{Int32},
+                      jac_cons::Vector{Int32},
+                      hess_rows::Vector{Int32},
+                      hess_cols::Vector{Int32};
+                      initial_x = C_NULL,
+                      initial_lambda = C_NULL)
   n = length(x_L)
   m = length(c_Type)
   nnzJ = length(jac_var)
@@ -554,29 +607,31 @@ end
 #                                  double * const  hessVector,
 #                                  void   * const  userParams);
 
-function solveproblem(kp::KnitroProblem, x::Vector{Float64}, lambda::Vector{Float64},
-                      evalStatus::Int32, obj::Vector{Float64}, cons::Vector{Float64},
-                      objGrad::Vector{Float64}, jac::Vector{Float64}, hess::Vector{Float64},
-                      hessVector::Vector{Float64})
+function solve_problem(kp::KnitroProblem, x::Vector{Float64}, lambda::Vector{Float64},
+                       evalStatus::Int32, obj::Vector{Float64}, cons::Vector{Float64},
+                       objGrad::Vector{Float64}, jac::Vector{Float64}, hess::Vector{Float64},
+                       hessVector::Vector{Float64})
   return_code = @ktr_ccall(solve, Int32, (Ptr{Void},Ptr{Cdouble},Ptr{Cdouble},
                            Int32,Ptr{Cdouble},Ptr{Cdouble},Ptr{Cdouble},Ptr{Cdouble},
                            Ptr{Cdouble},Ptr{Cdouble}, Any), kp.env, x, lambda, evalStatus,
                            obj, cons, objGrad, jac, hess, hessVector, kp)
-  if return_code != 0
+  if return_code < 0
     error("KNITRO: Error solving problem")
   end
+  return_code
 end
 
-function solveproblem(kp::KnitroProblem, x::Vector{Float64}, lambda::Vector{Float64},
-                      evalStatus::Int32, obj::Vector{Float64})
+function solve_problem(kp::KnitroProblem, x::Vector{Float64}, lambda::Vector{Float64},
+                       evalStatus::Int32, obj::Vector{Float64})
   # For callback mode
   return_code = @ktr_ccall(solve, Int32, (Ptr{Void},Ptr{Cdouble},Ptr{Cdouble},
                            Int32,Ptr{Cdouble},Ptr{Void},Ptr{Void},Ptr{Void},
                            Ptr{Void},Ptr{Void}, Any), kp.env, x, lambda, evalStatus,
                            obj, C_NULL, C_NULL, C_NULL, C_NULL, C_NULL, kp)
-  if return_code != 0
+  if return_code < 0
     error("KNITRO: Error solving problem (in callback mode")
   end
+  return_code
 end
 
 # /** Prepare KNITRO to restart the current problem at a new start point.
@@ -590,7 +645,7 @@ end
 
 function restart_problem(kp::KnitroProblem, x_0::Vector{Cdouble}, lambda_0::Vector{Cdouble})
   return_code = @ktr_ccall(restart, Int32, (Ptr{Void},Ptr{Cdouble},Ptr{Cdouble}),
-                           kc, x_0, lambda_0)
+                           kp.env, x_0, lambda_0)
   if return_code != 0
     error("KNITRO: Error restarting problem")
   end
@@ -664,6 +719,39 @@ end
 #      const double * const  xInitial,
 #      const double * const  lambdaInitial);
 
+function mip_init_problem(kp::KnitroProblem,
+                          objGoal::Int32,
+                          objType::Int32,
+                          objFnType::Int32,
+                          x_Type::Vector{Int32},
+                          x_L::Vector{Float64},
+                          x_U::Vector{Float64},
+                          c_Type::Vector{Int32},
+                          c_FnType::Vector{Int32},
+                          c_L::Vector{Float64},
+                          c_U::Vector{Float64},
+                          jac_var::Vector{Int32},
+                          jac_cons::Vector{Int32},
+                          hess_rows::Vector{Int32},
+                          hess_cols::Vector{Int32};
+                          initial_x = C_NULL,
+                          initial_lambda = C_NULL)
+  n = length(x_L)
+  m = length(c_Type)
+  nnzJ = length(jac_var)
+  nnzH = length(hess_rows)
+  return_code = @ktr_ccall(mip_init_problem, Int32, (Ptr{Void},Cint,Cint,Cint,
+                           Cint,Ptr{Cint},Ptr{Cdouble},Ptr{Cdouble},Cint,Ptr{Cint},
+                           Ptr{Cint},Ptr{Cdouble},Ptr{Cdouble},Cint,Ptr{Cint},
+                           Ptr{Cint},Cint,Ptr{Cint},Ptr{Cint}, Ptr{Void},
+                           Ptr{Void}), kp.env, n, objGoal, objType, objFnType,
+                           x_Type, x_L, x_U, m, c_Type, c_FnType, c_L, c_U,
+                           nnzJ, jac_var, jac_cons, nnzH, hess_rows, hess_cols,
+                           initial_x, initial_lambda)
+  if return_code != 0
+    error("KNITRO: Error initializing MIP problem")
+  end
+end
 
 # /** Set the branching priorities for integer variables.
 #  *  Priorities must be positive numbers (variables with non-positive values
@@ -682,6 +770,14 @@ end
 #     (      KTR_context_ptr kc,
 #      const int * const     xPriorities);
 
+function set_branching_priorities(kp::KnitroProblem,
+                                  xPriorities::Vector{Int})
+  return_code = @ktr_ccall(mip_set_branching_priorities, Int32, (Ptr{Void},
+                           Ptr{Cint}), kp.env, xPriorities)
+  if return_code != 0
+    error("KNITRO: Error setting MIP branching priorities")
+  end
+end  
 
 # /** Call KNITRO to solve the MIP problem.  If the application provides callback
 #  *  functions for evaluating the function, constraints, and derivatives,
@@ -734,7 +830,33 @@ end
 #            double * const  hessVector,
 #            void   * const  userParams);
 
-    
+function mip_solve_problem(kp::KnitroProblem, x::Vector{Float64}, lambda::Vector{Float64},
+                           evalStatus::Int32, obj::Vector{Float64}, cons::Vector{Float64},
+                           objGrad::Vector{Float64}, jac::Vector{Float64}, hess::Vector{Float64},
+                           hessVector::Vector{Float64})
+  return_code = @ktr_ccall(mip_solve, Int32, (Ptr{Void},Ptr{Cdouble},Ptr{Cdouble},
+                           Int32,Ptr{Cdouble},Ptr{Cdouble},Ptr{Cdouble},Ptr{Cdouble},
+                           Ptr{Cdouble},Ptr{Cdouble}, Any), kp.env, x, lambda, evalStatus,
+                           obj, cons, objGrad, jac, hess, hessVector, kp)
+  if return_code < 0
+    error("KNITRO: Error solving MIP problem")
+  end
+  return_code
+end
+
+function mip_solve_problem(kp::KnitroProblem, x::Vector{Float64}, lambda::Vector{Float64},
+                           evalStatus::Int32, obj::Vector{Float64})
+  # For callback mode
+  return_code = @ktr_ccall(mip_solve, Int32, (Ptr{Void},Ptr{Cdouble},Ptr{Cdouble},
+                           Int32,Ptr{Cdouble},Ptr{Void},Ptr{Void},Ptr{Void},
+                           Ptr{Void},Ptr{Void}, Any), kp.env, x, lambda, evalStatus,
+                           obj, C_NULL, C_NULL, C_NULL, C_NULL, C_NULL, kp)
+  if return_code != 0
+    error("KNITRO: Error solving MIP problem (in callback mode")
+  end
+  return_code
+end
+
 # /** Set an array of relative stepsizes to use for the finite-difference
 #  *  gradient/Jacobian computations when using finite-difference
 #  *  first derivatives.  Finite-difference step sizes "delta" in KNITRO are
@@ -754,6 +876,14 @@ end
 #     (      KTR_context_ptr kc,
 #      const double * const  relStepSizes);
 
+function set_findiff_relstepsizes(kp::KnitroProblem,
+                                  relStepSizes::Vector{Float64})
+  return_code = @ktr_ccall(set_findiff_relstepsizes, Int32, (Ptr{Void},
+                           Ptr{Cdouble}), kp.env, relStepSizes)
+  if return_code != 0
+    error("KNITRO: Error setting relative stepsizes for the finite-difference gradient/Jacobian computations")
+  end
+end
 
 # /* ----- Reading solution properties ----- */
 
@@ -763,12 +893,28 @@ end
 #  */
 # int  KNITRO_API KTR_get_number_FC_evals (const KTR_context_ptr  kc);
 
+function get_number_FC_evals(kp::KnitroProblem)
+  n = @ktr_ccall(get_number_FC_evals, Int32, (Ptr{Void},), kp.env)
+  if n < 0
+    error("KNITRO: Error returning number of function evaluations")
+  end
+  n
+end
+
 # /** Return the number of gradient evaluations requested by KTR_solve.
 #  *  A single request evaluates first derivatives of the objective and
 #  *  all constraint functions.
 #  *  Returns a negative number if there is a problem with kc.
 #  */
 # int  KNITRO_API KTR_get_number_GA_evals (const KTR_context_ptr  kc);
+
+function get_number_GA_evals(kp::KnitroProblem)
+  n = @ktr_ccall(get_number_GA_evals, Int32, (Ptr{Void},), kp.env)
+  if n < 0
+    error("KNITRO: Error returning number of gradient evaluations")
+  end
+  n
+end
 
 # /** Return the number of Hessian evaluations requested by KTR_solve.
 #  *  A single request evaluates second derivatives of the objective and
@@ -777,6 +923,14 @@ end
 #  */
 # int  KNITRO_API KTR_get_number_H_evals (const KTR_context_ptr  kc);
 
+function get_number_H_evals(kp::KnitroProblem)
+  n = @ktr_ccall(get_number_H_evals, Int32, (Ptr{Void},), kp.env)
+  if n < 0
+    error("KNITRO: Error returning number of hessian evaluations")
+  end
+  n
+end
+
 # /** Return the number of Hessian-vector products requested by KTR_solve.
 #  *  A single request evaluates the product of the Hessian of the
 #  *  Lagrangian with a vector submitted by KNITRO.
@@ -784,6 +938,13 @@ end
 #  */
 # int  KNITRO_API KTR_get_number_HV_evals (const KTR_context_ptr  kc);
 
+function get_number_HV_evals(kp::KnitroProblem)
+  n = @ktr_ccall(get_number_HV_evals, Int32, (Ptr{Void},), kp.env)
+  if n < 0
+    error("KNITRO: Error returning number of hessian-vector evaluations")
+  end
+  n
+end
 
 # /* ----- Solution properties for continuous problems only ----- */
     
@@ -792,23 +953,27 @@ end
 #  */
 # int  KNITRO_API KTR_get_number_iters (const KTR_context_ptr  kc);
 
+function get_number_iters(kp::KnitroProblem)
+  n = @ktr_ccall(get_number_iters, Int32, (Ptr{Void},), kp.env)
+  if n < 0
+    error("KNITRO: Error returning number of iterations")
+  end
+  n
+end
+
 # /** Return the number of conjugate gradient (CG) iterations made by
 #  *  KTR_solve.
 #  *  Returns a negative number if there is a problem with kc.
 #  */
 # int  KNITRO_API KTR_get_number_cg_iters (const KTR_context_ptr  kc);
-    
-# /** Return the number of major iterations made by KTR_solve.
-#  *  Returns a negative number if there is a problem with kc.
-#  *  (DEPRECATED, BUT KEPT FOR NOW FOR BACKWARDS COMPATIBILITY)
-#  */
-# int  KNITRO_API KTR_get_number_major_iters (const KTR_context_ptr  kc);
 
-# /** Return the number of minor iterations made by KTR_solve.
-#  *  Returns a negative number if there is a problem with kc.
-#  *  (DEPRECATED, BUT KEPT FOR NOW FOR BACKWARDS COMPATIBILITY)
-#  */
-# int  KNITRO_API KTR_get_number_minor_iters (const KTR_context_ptr  kc);
+function get_number_cg_iters(kp::KnitroProblem)
+  n = @ktr_ccall(get_number_cg_iters, Int32, (Ptr{Void},), kp.env)
+  if n < 0
+    error("KNITRO: Error returning number of conjugate gradient iterations")
+  end
+  n
+end
 
 # /** Return the absolute feasibility error at the solution.
 #  *  Refer to the KNITRO manual section on Termination Tests for a
@@ -817,13 +982,29 @@ end
 #  */
 # double  KNITRO_API KTR_get_abs_feas_error (const KTR_context_ptr  kc);
 
+function get_abs_feas_error(kp::KnitroProblem)
+  n = @ktr_ccall(get_abs_feas_error, Float64, (Ptr{Void},), kp.env)
+  if n < 0
+    error("KNITRO: Error getting absolute feasibility error at solution")
+  end
+  n
+end
+
 # /** Return the relative feasibility error at the solution.
 #  *  Refer to the KNITRO manual section on Termination Tests for a
 #  *  detailed definition of this quantity.
 #  *  Returns a negative number if there is a problem with kc.
 #  */
 # double  KNITRO_API KTR_get_rel_feas_error (const KTR_context_ptr  kc);
-    
+
+function get_rel_feas_error(kp::KnitroProblem)
+  n = @ktr_ccall(get_rel_feas_error, Float64, (Ptr{Void},), kp.env)
+  if n < 0
+    error("KNITRO: Error getting relative feasibility error at solution")
+  end
+  n
+end
+
 # /** Return the absolute optimality error at the solution.
 #  *  Refer to the KNITRO manual section on Termination Tests for a
 #  *  detailed definition of this quantity.
@@ -831,12 +1012,28 @@ end
 #  */
 # double  KNITRO_API KTR_get_abs_opt_error (const KTR_context_ptr  kc);
 
+function get_abs_opt_error(kp::KnitroProblem)
+  n = @ktr_ccall(get_abs_opt_error, Float64, (Ptr{Void},), kp.env)
+  if n < 0
+    error("KNITRO: Error getting absolute optimality error at solution")
+  end
+  n
+end
+
 # /** Return the relative optimality error at the solution.
 #  *  Refer to the KNITRO manual section on Termination Tests for a
 #  *  detailed definition of this quantity.
 #  *  Returns a negative number if there is a problem with kc.
 #  */
 # double  KNITRO_API KTR_get_rel_opt_error (const KTR_context_ptr  kc);
+
+function get_rel_opt_error(kp::KnitroProblem)
+  n = @ktr_ccall(get_rel_opt_error, Float64, (Ptr{Void},), kp.env)
+  if n < 0
+    error("KNITRO: Error getting relative optimality error at solution")
+  end
+  n
+end
 
 # /** Return the solution status, objective, primal and dual variables.
 #  *  The status and objective value scalars are returned as pointers
@@ -851,6 +1048,19 @@ end
 #                                         double  * const x,
 #                                         double  * const lambda);
 
+function get_solution(kp::KnitroProblem,
+                      status::Vector{Int32},
+                      obj::Vector{Float64},
+                      x::Vector{Float64},
+                      lambda::Vector{Float64})
+  return_code = @ktr_ccall(get_solution, Int32, (Ptr{Void}, Ptr{Cint},
+                           Ptr{Cdouble},Ptr{Cdouble},Ptr{Cdouble}), kp.env,
+                           status, obj, x, lambda)
+  if return_code < 0
+    error("KNITRO: Error getting the solution status, objective, primal and dual variables")
+  end
+end
+
 # /** Return the values of the constraint vector c(x) in "c".
 #  *  The array "c" must be allocated by the user.
 #  *  Returns 0 if call is successful;
@@ -858,6 +1068,15 @@ end
 #  */
 # int  KNITRO_API KTR_get_constraint_values (const KTR_context_ptr kc,
 #                                                  double  * const c);
+
+function get_constraint_values(kp::KnitroProblem,
+                               cons::Vector{Float64})
+  return_code = @ktr_ccall(get_constraint_values, Int32, (Ptr{Void},
+                           Ptr{Cdouble}), kp.env, cons)
+  if return_code < 0
+    error("KNITRO: Error getting the values of the constraint vector c(x)")
+  end
+end
 
 # /** Return the values of the objective gradient vector in "objGrad".
 #  *  The array "objGrad" must be allocated by the user.  It is a
@@ -869,6 +1088,15 @@ end
 # int  KNITRO_API KTR_get_objgrad_values (const KTR_context_ptr kc,
 #                                               double  * const objGrad);
 
+function get_objgrad_values(kp::KnitroProblem,
+                            objGrad::Vector{Float64})
+  return_code = @ktr_ccall(get_objgrad_values, Int32, (Ptr{Void},
+                           Ptr{Cdouble}), kp.env, objGrad)
+  if return_code < 0
+    error("KNITRO: Error getting the values of the objective gradient vector")
+  end
+end
+
 # /** Return the values of the constraint Jacobian in "jac".
 #  *  The Jacobian values returned correspond to the non-zero sparse
 #  *  Jacobian indices provided by the user in KTR_init_problem().
@@ -878,7 +1106,16 @@ end
 #  */
 # int  KNITRO_API KTR_get_jacobian_values (const KTR_context_ptr kc,
 #                                                double  * const jac);
-    
+
+function get_jacobian_values(kp::KnitroProblem,
+                             jac::Vector{Float64})
+  return_code = @ktr_ccall(get_jacobian_values, Int32, (Ptr{Void},
+                           Ptr{Cdouble}), kp.env, jac)
+  if return_code < 0
+    error("KNITRO: Error getting the values of the constraint Jacobian")
+  end
+end
+
 # /** Return the values of the Hessian (or possibly Hessian
 #  *  approximation) in "hess".  This routine is currently only valid
 #  *  if 1 of the 2 following cases holds:
@@ -913,6 +1150,15 @@ end
 # int  KNITRO_API KTR_get_hessian_values (const KTR_context_ptr kc,
 #                                               double  * const hess);    
 
+function get_hessian_values(kp::KnitroProblem,
+                            hess::Vector{Float64})
+  return_code = @ktr_ccall(get_hessian_values, Int32, (Ptr{Void},
+                           Ptr{Cdouble}), kp.env, hess)
+  if return_code < 0
+    error("KNITRO: Error getting the values of the Hessian")
+  end
+end
+
     
 # /* ----- Solution properties for MIP problems only ----- */
     
@@ -920,13 +1166,27 @@ end
 #  *  Returns a negative number if there is a problem with kc.    
 #  */
 # int  KNITRO_API KTR_get_mip_num_nodes (const KTR_context_ptr kc);
-    
+
+function get_mip_num_nodes(kp::KnitroProblem)
+  n = @ktr_ccall(get_mip_num_nodes, Int32, (Ptr{Void},), kp.env)
+  if n < 0
+    error("KNITRO: Error getting the number of nodes processed in the MIP solve")
+  end
+end
+
 # /** Return the number of continuous subproblems processed in the
 #  *  MIP solve.
 #  *  Returns a negative number if there is a problem with kc.
 #  */
 # int  KNITRO_API KTR_get_mip_num_solves (const KTR_context_ptr kc);
-    
+
+function get_mip_num_solves(kp::KnitroProblem)
+  n = @ktr_ccall(get_mip_num_solves, Int32, (Ptr{Void},), kp.env)
+  if n < 0
+    error("KNITRO: Error getting the number of continuous subproblems processed in the MIP solve")
+  end
+end
+
 # /** Return the final absolute integrality gap in the MIP solve.
 #  *  Refer to the KNITRO manual section on Termination Tests for
 #  *  a detailed definition of this quantity. Returns KTR_INFBOUND
@@ -934,6 +1194,10 @@ end
 #  *  Returns KTR_RC_BAD_KCPTR if there is a problem with kc.
 #  */
 # double  KNITRO_API KTR_get_mip_abs_gap (const KTR_context_ptr kc);    
+
+function get_mip_abs_gap(kp::KnitroProblem)
+  @ktr_ccall(get_mip_abs_gap, Float64, (Ptr{Void},), kp.env)
+end
 
 # /** Return the final absolute integrality gap in the MIP solve.
 #  *  Refer to the KNITRO manual section on Termination Tests for
@@ -943,6 +1207,10 @@ end
 #  */
 # double  KNITRO_API KTR_get_mip_rel_gap (const KTR_context_ptr kc); 
 
+function get_mip_rel_gap(kp::KnitroProblem)
+  @ktr_ccall(get_mip_rel_gap, Float64, (Ptr{Void},), kp.env)
+end
+
 # /** Return the objective value of the MIP incumbent solution.
 #  *  Returns KTR_INFBOUND if no incumbent (i.e., integer feasible)
 #  *  point found.
@@ -950,16 +1218,28 @@ end
 #  */
 # double  KNITRO_API KTR_get_mip_incumbent_obj (const KTR_context_ptr kc);
 
+function get_mip_incumbent_obj(kp::KnitroProblem)
+  @ktr_ccall(get_mip_incumbent_obj, Float64, (Ptr{Void},), kp.env)
+end
+
 # /** Return the value of the current MIP relaxation bound.
 #  *  Returns KTR_RC_BAD_KCPTR if there is a problem with kc.
 #  */
 # double  KNITRO_API KTR_get_mip_relaxation_bnd (const KTR_context_ptr kc);
+
+function get_mip_relaxation_bnd(kp::KnitroProblem)
+  @ktr_ccall(get_mip_relaxation_bnd, Float64, (Ptr{Void},), kp.env)
+end
 
 # /** Return the objective value of the most recently solved MIP
 #  *  node subproblem.
 #  *  Returns KTR_RC_BAD_KCPTR if there is a problem with kc.
 #  */
 # double  KNITRO_API KTR_get_mip_lastnode_obj (const KTR_context_ptr kc);
+
+function get_mip_lastnode_obj(kp::KnitroProblem)
+  @ktr_ccall(get_mip_lastnode_obj, Float64, (Ptr{Void},), kp.env)
+end
 
 # /** Return the MIP incumbent solution in "x" if one exists.
 #  *  Returns 1 if incumbent solution exists and call is successful;
@@ -969,7 +1249,11 @@ end
 #  */
 # int  KNITRO_API KTR_get_mip_incumbent_x (const KTR_context_ptr kc,
 #                                          double * const x);
-    
+
+function get_mip_incumbent_x(kp::KnitroProblem, x::Vector{Float64})
+  @ktr_ccall(get_mip_incumbent_x, Int32, (Ptr{Void}, Ptr{Cdouble}), kp.env, x)
+end
+
 # /* ----- Checking derivatives ----- */
 
 # /** Compare the application's analytic first derivatives to a finite
@@ -1011,3 +1295,23 @@ end
 #                                       const double * const   objGrad,
 #                                       const double * const   jac,
 #                                             void   *         userParams);
+
+function check_first_ders(kp::KnitroProblem,
+                          x::Vector{Float64},
+                          finiteDiffMethod::Int32,
+                          absThreshold::Float64,
+                          relThreshold::Float64,
+                          evalStatus::Int32,
+                          obj::Float64,
+                          cons::Vector{Float64},
+                          objGrad::Vector{Float64},
+                          jac::Vector{Float64})
+  return_code = @ktr_ccall(check_first_ders, Int32, (Ptr{Void}, Ptr{Cdouble}, Cint,
+                           Cdouble, Cdouble, Cint, Cdouble, Ptr{Cdouble},
+                           Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Void}), kp.env, x,
+                           finiteDiffMethod, absThreshold, relThreshold, evalStatus,
+                           obj, cons, objGrad, jac, C_NULL)
+  if return_code < 0
+    error("KNITRO: Error comparing the application's analytic first derivatives to a finite difference approximation at x")
+  end
+end
