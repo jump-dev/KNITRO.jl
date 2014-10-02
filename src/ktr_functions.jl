@@ -1,6 +1,6 @@
 export
   newcontext, freecontext,
-  load_param_file, save_param_file,
+  load_param_file, save_param_file, load_tuner_file,
   init_problem, solve_problem, restart_problem,
   mip_init_problem, mip_solve_problem,
   set_param, get_param,
@@ -213,7 +213,7 @@ end
 # int  KNITRO_API KTR_set_double_param_by_name
 #     (KTR_context_ptr  kc, const char * const  name, const double  value);
 function set_param(kp::KnitroProblem, name::String, value::Float64)
-  return_code = @ktr_ccall(set_char_param_by_name, Int32, (Ptr{Void},Ptr{Cchar},Cdouble),
+  return_code = @ktr_ccall(set_double_param_by_name, Int32, (Ptr{Void},Ptr{Cchar},Cdouble),
                            kp.env, name, value)
   if return_code != 0
     error("KNITRO: Error setting float parameter by name")
