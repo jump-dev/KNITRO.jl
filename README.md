@@ -9,7 +9,7 @@ Setting up Knitro on OS X
 -------------------------
 Knitro isn't a listed package (yet). Here's what you need to do to install it
 
-1. First, you must obtain a copy of the KNITRO software and a license; trial versions and academic licenses are available [here](www.ziena.com/download.htm).
+1. First, you must obtain a copy of the KNITRO software and a license; trial versions and academic licenses are available [here](http://www.ziena.com/download.htm).
 
 2. Once KNITRO is installed on your machine (in your home directory), point the `PATH` and `DYLD_LIBRARY_PATH` variable to the KNITRO library by adding
 
