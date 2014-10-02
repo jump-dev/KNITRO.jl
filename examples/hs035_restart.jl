@@ -73,7 +73,7 @@ lambda  = zeros(n+m)
 obj     = [0.0]
 
 kp = createProblem()
-load_param_file(kp,"knitro.opt")
+load_param_file(kp,"$(Pkg.dir())/Knitro.jl/examples/knitro.opt")
 
 # --- test getters and setters ---
 hessopt = int32(zeros(1))

@@ -73,9 +73,9 @@ hess_row = Int32[0,0,1]
 hess_col = Int32[0,1,1]
 
 kp = createProblem()
-load_param_file(kp, "tuner-fixed.opt")
+load_param_file(kp, "$(Pkg.dir())/Knitro.jl/examples/tuner-fixed.opt")
 set_param(kp, KTR_PARAM_TUNER, KTR_TUNER_ON)
-load_tuner_file(kp, "tuner-explore.opt")
+load_tuner_file(kp, "$(Pkg.dir())/Knitro.jl/examples/tuner-explore.opt")
 
 ret = init_problem(kp, objGoal, objType,
                    x_L, x_U, c_Type, c_L, c_U,
