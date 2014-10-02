@@ -26,11 +26,12 @@ module Knitro
     eval_jac_g
     eval_h
     eval_hv
+    eval_mip_node
   end
 
   function createProblem()
     KnitroProblem(newcontext(),C_NULL,C_NULL,C_NULL,
-                  C_NULL,C_NULL,C_NULL)
+                  C_NULL,C_NULL,C_NULL,C_NULL)
   end
   
   # doesn't work

@@ -2,12 +2,17 @@ export
   newcontext, freecontext,
   load_param_file, save_param_file,
   init_problem, solve_problem, restart_problem,
+  mip_init_problem, mip_solve_problem,
   set_param, get_param,
   get_number_FC_evals, get_number_GA_evals,
   get_number_H_evals, get_number_HV_evals,
   get_number_iters, get_number_cg_iters,
   get_abs_feas_error, get_rel_feas_error,
-  get_abs_opt_error, get_rel_opt_error
+  get_abs_opt_error, get_rel_opt_error,
+  get_mip_num_nodes, get_mip_num_solves,
+  get_mip_abs_gap, get_mip_rel_gap,
+  get_mip_incumbent_obj, get_mip_relaxation_bnd,
+  get_mip_lastnode_obj, get_mip_incumbent_x
 
 # /* -----  Creating and destroying solver objects ----- */
 
@@ -220,7 +225,7 @@ end
 #     (KTR_context_ptr  kc, const int  param_id, const int  value);
 function set_param(kp::KnitroProblem, id::Int32, value::Int32)
   return_code = @ktr_ccall(set_int_param, Int32, (Ptr{Void},Cint,Cint),
-                           kp.env, name, value)
+                           kp.env, id, value)
   if return_code != 0
     error("KNITRO: Error setting int parameter by id")
   end
@@ -230,7 +235,7 @@ end
 #     (KTR_context_ptr  kc, const int  param_id, const char * const  value);
 function set_param(kp::KnitroProblem, id::Int32, value::String)
   return_code = @ktr_ccall(set_char_param, Int32, (Ptr{Void},Cint,Ptr{Cchar}),
-                           kp.env, name, value)
+                           kp.env, id, value)
   if return_code != 0
     error("KNITRO: Error setting char parameter by id")
   end
@@ -240,7 +245,7 @@ end
 #     (KTR_context_ptr  kc, const int  param_id, const double  value);
 function set_param(kp::KnitroProblem, id::Int32, value::Float64)
   return_code = @ktr_ccall(set_double_param, Int32, (Ptr{Void},Cint,Cdouble),
-                           kp.env, name, value)
+                           kp.env, id, value)
   if return_code != 0
     error("KNITRO: Error setting float parameter by id")
   end

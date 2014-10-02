@@ -1,7 +1,8 @@
 export
   set_func_callback,
   set_grad_callback,
-  set_hess_callback
+  set_hess_callback,
+  set_mip_node_callback
 
 # /** Applications may define functions for evaluating problem elements
 #  *  at a trial point.  The functions must match the prototype defined
