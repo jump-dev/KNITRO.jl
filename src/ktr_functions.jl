@@ -226,6 +226,34 @@ end
 @doc """
 Set an array of absolute feasibility tolerances (one for each 
 constraint and variable) to use for the termination tests.
+
+The user options KTR_PARAM_FEASTOL/KTR_PARAM_FEASTOLABS define
+a single tolerance that is applied equally to every constraint
+and variable.  This API function allows the user to specify
+separate feasibility termination tolerances for each constraint
+and variable.  Values specified through this function will override
+the value determined by KTR_PARAM_FEASTOL/KTR_PARAM_FEASTOLABS. The
+tolerances should be positive values.  If a non-positive value is
+specified, that constraint or variable will use the standard tolerances
+based on  KTR_PARAM_FEASTOL/KTR_PARAM_FEASTOLABS.
+    `c_tol` has length m,
+    `x_tol` has length n, and
+    `cc_tol` has length ncc, where
+`ncc` is the number of complementarity constraints added (through `add_contraints`)
+
+The regular constraints are considered to be satisfied when
+    c[i] - cUpBnds[i] <= cFeasTols[i]  for all i=1..m, and
+    cLoBnds[i] - c[i] <= cFeasTols[i]  for all i=1..m
+The variables are considered to be satisfied when
+    x[i] - xUpBnds[i] <= xFeasTols[i]  for all i=1..n, and
+    xLoBnds[i] - x[i] <= xFeasTols[i]  for all i=1..n
+The complementarity constraints are considered to be satisfied when
+    min(x1_i, x2_i) <= ccFeasTols[i]  for all i=1..ncc,
+where x1 and x2 are the arrays of complementary pairs.
+
+If there are no regular (or complementarity) constraints set
+cFeasTols=NULL (or ccFeasTols=NULL).  If cFeasTols/xFeasTols/ccFeasTols=NULL,
+then the standard tolerances will be used.
 """ ->
 function set_feastols(kp::KnitroProblem, c_tol::Vector{Float64}, x_tol::Vector{Float64},
                      cc_tol::Vector{Float64})
@@ -297,24 +325,24 @@ end
 
 # /* ----- Solving ----- */
 
-@doc """
+@doc* """
 Initialize KNITRO with a new problem.  KNITRO makes a local copy of
 all inputs, so the application may free memory after the call completes.
 """ ->
 function init_problem(kp::KnitroProblem,
                       objGoal::Int32,
                       objType::Int32,
-                      x_L::Vector{Float64},
-                      x_U::Vector{Float64},
-                      c_Type::Vector{Int32},
-                      c_L::Vector{Float64},
-                      c_U::Vector{Float64},
-                      jac_var::Vector{Int32},
-                      jac_cons::Vector{Int32},
-                      hess_rows::Vector{Int32},
-                      hess_cols::Vector{Int32};
-                      initial_x = C_NULL,
-                      initial_lambda = C_NULL)
+                      x_L::Vector{Float64},     # length n
+                      x_U::Vector{Float64},     # length n
+                      c_Type::Vector{Int32},    # length m
+                      c_L::Vector{Float64},     # length m
+                      c_U::Vector{Float64},     # length m
+                      jac_var::Vector{Int32},   # length nnzJ
+                      jac_cons::Vector{Int32},  # length nnzJ
+                      hess_rows::Vector{Int32}, # length nnzH
+                      hess_cols::Vector{Int32}; # length nnzH
+                      initial_x = C_NULL,       # length n
+                      initial_lambda = C_NULL)  # length m+n
   n = length(x_L)
   m = length(c_Type)
   nnzJ = length(jac_var)
@@ -331,25 +359,70 @@ function init_problem(kp::KnitroProblem,
     error("KNITRO: Error initializing problem")
   end
 end
+
+function init_problem(kp::KnitroProblem,
+                      objGoal::Int32,
+                      objType::Int32,
+                      x_L::Vector{Float64},     # length n
+                      x_U::Vector{Float64},     # length n
+                      c_Type::Vector{Int32},    # length m
+                      c_L::Vector{Float64},     # length m
+                      c_U::Vector{Float64},     # length m
+                      jac_var::Vector{Int32},   # length nnzJ
+                      jac_cons::Vector{Int32};  # length nnzJ
+                      initial_x = C_NULL,       # length n
+                      initial_lambda = C_NULL)  # length m+n
+  n = length(x_L)
+  m = length(c_Type)
+  nnzJ = length(jac_var)
+  return_code = @ktr_ccall(init_problem, Int32, (Ptr{Void},Int32,Int32,Int32,
+                           Ptr{Cdouble},Ptr{Cdouble},Int32,Ptr{Int32},
+                           Ptr{Cdouble},Ptr{Cdouble},Int32,Ptr{Int32},
+                           Ptr{Int32},Int32,Ptr{Void},Ptr{Void}, Ptr{Void},
+                           Ptr{Void}), kp.env, n, objGoal, objType,
+                           x_L, x_U, m, c_Type, c_L, c_U, nnzJ, jac_var,
+                           jac_cons, int32(0), C_NULL, C_NULL,
+                           initial_x, initial_lambda)
+  if return_code != 0
+    error("KNITRO: Error initializing problem without exact hessians")
+  end
+end
         
 @doc* """
 Call KNITRO to solve the problem.
 
 If the application provides callback functions for evaluating the function,
-constraints, and derivatives, then a single call to KTR_solve returns
+constraints, and derivatives, then a single call to `solve_problem` returns
 the solution.  Otherwise, KNITRO operates in reverse communications mode and 
 returns a status code that may request another call.
 
 Returns one of the status codes KTR_RC_*. In particular:
 0 - KNITRO is finished: x, lambda, and obj contain the optimal solution
-1 - call KTR_solve again (reverse comm) with obj and c containing
+1 - call `solve_problem` again (reverse comm) with obj and c containing
     the objective and constraints evaluated at x
-2 - call KTR_solve again (reverse comm) with objGrad and jac containing
+2 - call `solve_problem` again (reverse comm) with objGrad and jac containing
     the objective and constraint first derivatives evaluated at x
-3 - call KTR_solve again (reverse comm) with hess containing
+3 - call `solve_problem` again (reverse comm) with hess containing
     H(x,lambda), the Hessian of the Lagrangian evaluated at x and lambda
-7 - call KTR_solve again (reverse comm) with hessVector containing
+7 - call `solve_problem` again (reverse comm) with hessVector containing
     the result of H(x,lambda) * hessVector
+
+Brief description of the arguments (consult the KNITRO manual for details):
+x          - output (length n) solution point estimate
+lambda     - output (length m+n) Lagrange multiplier estimate
+evalStatus - input  evaluation status (0=OK)
+obj        - input  (length 1) objective at x
+             output            optimal objective when finished
+cons       - input  (length m) constraints at x
+objGrad    - input  (length n) objective gradient at x
+jac        - input  (length nnzJ) sparse constraint gradient at x
+hess       - input  (length nnzH) sparse Hessian at x and lambda
+hessVector - input  (length n) result of H(x,lambda) * hessVector
+             output            vector to multiply Hessian by
+
+If `gradopt` is set to compute finite differences for first derivatives,
+then `solve_problem` will modify `objGrad` and `jac`; otherwise, these arguments
+are not modified.
 """ ->
 function solve_problem(kp::KnitroProblem, x::Vector{Float64}, lambda::Vector{Float64},
                        evalStatus::Int32, obj::Vector{Float64}, cons::Vector{Float64},
@@ -396,23 +469,24 @@ end
 Initialize KNITRO with a new MIP problem.  KNITRO makes a local copy of
 all inputs, so the application may free memory after the call completes.
 """ ->
+
 function mip_init_problem(kp::KnitroProblem,
                           objGoal::Int32,
                           objType::Int32,
                           objFnType::Int32,
-                          x_Type::Vector{Int32},
-                          x_L::Vector{Float64},
-                          x_U::Vector{Float64},
-                          c_Type::Vector{Int32},
-                          c_FnType::Vector{Int32},
-                          c_L::Vector{Float64},
-                          c_U::Vector{Float64},
-                          jac_var::Vector{Int32},
-                          jac_cons::Vector{Int32},
-                          hess_rows::Vector{Int32},
-                          hess_cols::Vector{Int32};
-                          initial_x = C_NULL,
-                          initial_lambda = C_NULL)
+                          x_Type::Vector{Int32},    # length n
+                          x_L::Vector{Float64},     # length n
+                          x_U::Vector{Float64},     # length n
+                          c_Type::Vector{Int32},    # length m
+                          c_FnType::Vector{Int32},  # length m
+                          c_L::Vector{Float64},     # length m
+                          c_U::Vector{Float64},     # length m
+                          jac_var::Vector{Int32},   # length nnzJ
+                          jac_cons::Vector{Int32},  # length nnzJ
+                          hess_rows::Vector{Int32}, # length nnzH
+                          hess_cols::Vector{Int32}; # length nnzH
+                          initial_x = C_NULL,       # length n
+                          initial_lambda = C_NULL)  # length m+n
   n = length(x_L)
   m = length(c_Type)
   nnzJ = length(jac_var)
@@ -427,6 +501,37 @@ function mip_init_problem(kp::KnitroProblem,
                            initial_x, initial_lambda)
   if return_code != 0
     error("KNITRO: Error initializing MIP problem")
+  end
+end
+
+function mip_init_problem(kp::KnitroProblem,
+                          objGoal::Int32,
+                          objType::Int32,
+                          objFnType::Int32,
+                          x_Type::Vector{Int32},    # length n
+                          x_L::Vector{Float64},     # length n
+                          x_U::Vector{Float64},     # length n
+                          c_Type::Vector{Int32},    # length m
+                          c_FnType::Vector{Int32},  # length m
+                          c_L::Vector{Float64},     # length m
+                          c_U::Vector{Float64},     # length m
+                          jac_var::Vector{Int32},   # length nnzJ
+                          jac_cons::Vector{Int32};  # length nnzJ
+                          initial_x = C_NULL,       # length n
+                          initial_lambda = C_NULL)  # length m+n
+  n = length(x_L)
+  m = length(c_Type)
+  nnzJ = length(jac_var)
+  return_code = @ktr_ccall(mip_init_problem, Int32, (Ptr{Void},Cint,Cint,Cint,
+                           Cint,Ptr{Cint},Ptr{Cdouble},Ptr{Cdouble},Cint,Ptr{Cint},
+                           Ptr{Cint},Ptr{Cdouble},Ptr{Cdouble},Cint,Ptr{Cint},
+                           Ptr{Cint},Cint,Ptr{Void},Ptr{Void}, Ptr{Void},
+                           Ptr{Void}), kp.env, n, objGoal, objType, objFnType,
+                           x_Type, x_L, x_U, m, c_Type, c_FnType, c_L, c_U,
+                           nnzJ, jac_var, jac_cons, int32(0), C_NULL, C_NULL,
+                           initial_x, initial_lambda)
+  if return_code != 0
+    error("KNITRO: Error initializing MIP problem without exact hessians")
   end
 end
 
@@ -493,7 +598,7 @@ function mip_solve_problem(kp::KnitroProblem, x::Vector{Float64}, lambda::Vector
                            Ptr{Void},Ptr{Void}, Any), kp.env, x, lambda, evalStatus,
                            obj, C_NULL, C_NULL, C_NULL, C_NULL, C_NULL, kp)
   if return_code != 0
-    error("KNITRO: Error solving MIP problem (in callback mode")
+    error("KNITRO: Error solving MIP problem (in callback mode)")
   end
   return_code
 end
@@ -713,6 +818,28 @@ if 1 of the 2 following cases holds:
   1) KTR_HESSOPT_EXACT (presolver on or off), or;
   2) KTR_HESSOPT_BFGS or KTR_HESSOPT_SR1, but only with the
      KNITRO presolver off (i.e. KTR_PRESOLVE_NONE).
+
+In all other cases, either KNITRO does not have an internal
+representation of the Hessian (or Hessian approximation),
+or the internal Hessian approximation corresponds only to
+the presolved problem form and may not be valid for the
+original problem form.  In these cases `hess` is left
+unmodified, and the routine has return code 1.
+
+Note that in case 2 above (KTR_HESSOPT_BFGS or KTR_HESSOPT_SR1)
+the values returned in `hess` are the upper triangular values
+of the dense quasi-Newton Hessian approximation stored row-wise.
+There are ((n*n - n)/2 + n) such values (where `n` is the number
+of variables in the problem. These values may be quite different
+from the values of the exact Hessian.
+
+When KTR_HESSOPT_EXACT (case 1 above) the Hessian values
+returned correspond to the non-zero sparse Hessian indices
+provided by the user in `init_problem()`.
+
+Returns 0 if call is successful;
+        1 if `hess` was not set because KNITRO does not
+        have a valid Hessian for the model stored.
 """ ->
 function get_hessian_values(kp::KnitroProblem,
                             hess::Vector{Float64})
@@ -721,6 +848,7 @@ function get_hessian_values(kp::KnitroProblem,
   if return_code < 0
     error("KNITRO: Error getting the values of the Hessian")
   end
+  return_code
 end
 
     
@@ -744,6 +872,8 @@ end
 
 @doc """
 Return the final absolute integrality gap in the MIP solve.
+
+Returns KTR_INFBOUND if no incumbent (i.e., integer feasible) point found.
 
 Refer to the KNITRO manual section on Termination Tests for
 a detailed definition of this quantity.
@@ -822,6 +952,19 @@ Returns one of the status codes KTR_RC_*. In particular:
     the objective and constraints evaluated at x
 2 - call routine again (reverse comm) with objGrad and jac containing
     the objective and constraint first derivatives evaluated at x
+
+Description of the arguments:
+x                - input  (length n) point at which to check derivatives
+                   output            point at which to evaluate obj and c
+finiteDiffMethod - 1 = forward differences, 2 = central differences
+absThreshold     - print when |estimate - analytic| > threshold
+relThreshold     - print when |estimate - analytic| > threshold * scale
+                   where scale = max{1, |analytic|}
+evalStatus       - input            evaluation status (0=OK)
+obj              - input            objective at x
+c                - input (length m) constraints at x
+objGrad          - input (length n) analytic gradient at x
+jac              - input (length nnzJ) analytic constraint Jacobian at x
 """ ->
 function check_first_ders(kp::KnitroProblem,
                           x::Vector{Float64},
