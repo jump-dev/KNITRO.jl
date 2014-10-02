@@ -1,4 +1,8 @@
 module Knitro
+
+using Docile
+@docstrings
+
   if isfile(joinpath(Pkg.dir("Knitro.jl"),"deps","deps.jl"))
     include("../deps/deps.jl")
   else
@@ -8,7 +12,7 @@ module Knitro
   export
     KnitroProblem, createProblem, setCallbacks #, freeProblem
 
-  # A macro to make calling C API a little cleaner
+  @doc "A macro to make calling KNITRO's C API a little cleaner" ->
   macro ktr_ccall(func, args...)
     f = Base.Meta.quot(symbol("KTR_$(func)"))
     args = [esc(a) for a in args]
