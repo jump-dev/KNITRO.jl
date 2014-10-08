@@ -18,7 +18,8 @@ using Docile
     setCallbacks,
     loadOptionsFile,
     loadTunerFile,
-    setOption, getOption
+    setOption, getOption,
+    applicationReturnStatus
 
   @doc "A macro to make calling KNITRO's C API a little cleaner" ->
   macro ktr_ccall(func, args...)
@@ -241,6 +242,24 @@ using Docile
   loadTunerFile(kp, filename) = load_tuner_file(kp, filename)
   setOption(args...) = set_param(args...)
   getOption(args...) = get_param(args...)
+
+  function applicationReturnStatus(kp::KnitroProblem)
+    # based on https://www.artelys.com/tools/knitro_doc/3_referenceManual/callableLibrary/returnCodes.html#returncodes
+    @assert int32(-599) <= kp.status <= int32(0)
+    if kp.status == int32(0)
+      return :Optimal
+    elseif int32(-199) <= kp.status <= int32(-100)
+      return :FeasibleApproximate
+    elseif int32(-299) <= kp.status <= int32(-200)
+      return :Infeasible
+    elseif status == int32(-300)
+      return :Unbounded
+    elseif int32(-499) <= kp.status <= int32(-400)
+      return :PredefinedLimit
+    else #int32(-599) <= kp.status <= int32(-500)
+      return :Error
+    end
+  end
 
   include("ktr_callbacks.jl")
   include("ktr_functions.jl")

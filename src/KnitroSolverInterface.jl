@@ -142,13 +142,8 @@ numvar(m::KnitroMathProgModel) = int32(m.inner.n)
 numconstr(m::KnitroMathProgModel) = int32(m.inner.m)
 optimize!(m::KnitroMathProgModel) = solveProblem(m.inner)
 
-# TODO: untested
-# replace with https://www.artelys.com/tools/knitro_doc/3_referenceManual/callableLibrary/returnCodes.html#returncodes
 function status(m::KnitroMathProgModel)
-  if m.inner.status == KTR_RC_OPTIMAL || m.inner.status == KTR_RC_NEAR_OPT
-    return :Optimal
-  end
-  return :Infeasible
+  applicationReturnStatus(m.inner)
 end
 
 getobjval(m::KnitroMathProgModel) = m.inner.obj_val[1] * (m.inner.sense == :Max ? -1 : +1)
