@@ -73,31 +73,31 @@ lambda  = zeros(n+m)
 obj     = [0.0]
 
 kp = createProblem()
-load_param_file(kp,"$(Pkg.dir())/Knitro.jl/examples/knitro.opt")
+loadOptionsFile(kp,"$(Pkg.dir())/Knitro.jl/examples/knitro.opt")
 
 # --- test getters and setters ---
 hessopt = int32(zeros(1))
-get_param(kp,"hessopt",hessopt)
+getOption(kp,"hessopt",hessopt)
 @test hessopt[1] == 1
-set_param(kp,"hessopt",int32(0))
-get_param(kp,"hessopt",hessopt)
+setOption(kp,"hessopt",int32(0))
+getOption(kp,"hessopt",hessopt)
 @test hessopt[1] == 0
-set_param(kp,"hessopt",int32(1))
-get_param(kp,"hessopt",hessopt)
+setOption(kp,"hessopt",int32(1))
+getOption(kp,"hessopt",hessopt)
 @test hessopt[1] == 1
 # ---------------------------------
 
-ret = init_problem(kp, objGoal, objType,
+ret = initializeProblem(kp, objGoal, objType,
                    x_L, x_U, c_Type, c_L, c_U,
                    jac_var, jac_con, hess_row, hess_col)
 setCallbacks(kp, eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h, eval_hv)
-nStatus = solve_problem(kp, x, lambda, int32(0), obj)
+solveProblem(kp)
 
 # --- test optimal solutions ---
-@test_approx_eq_eps x[1] 1.3333333 1e-5
-@test_approx_eq_eps x[2] 0.7777777 1e-5
-@test_approx_eq_eps x[3] 0.4444444 1e-5
-@test_approx_eq_eps obj[1] 0.1111111 1e-5
+@test_approx_eq_eps kp.x[1] 1.3333333 1e-5
+@test_approx_eq_eps kp.x[2] 0.7777777 1e-5
+@test_approx_eq_eps kp.x[3] 0.4444444 1e-5
+@test_approx_eq_eps kp.obj_val[1] 0.1111111 1e-5
 # ------------------------------
 @test get_number_FC_evals(kp) == 7
 @test get_number_GA_evals(kp) == 7
@@ -114,12 +114,11 @@ nStatus = solve_problem(kp, x, lambda, int32(0), obj)
 # start at a different starting point
 x = [2.0,2.0,2.0]
 lambda = ones(n+m)
-restart_problem(kp, x, lambda)
-
-nStatus = solve_problem(kp, x, lambda, int32(0), obj)
+restartProblem(kp, x, lambda)
+solveProblem(kp)
 # --- test optimal solutions ---
-@test_approx_eq_eps x[1] 1.3333333 1e-5
-@test_approx_eq_eps x[2] 0.7777777 1e-5
-@test_approx_eq_eps x[3] 0.4444444 1e-5
-@test_approx_eq_eps obj[1] 0.1111111 1e-5
+@test_approx_eq_eps kp.x[1] 1.3333333 1e-5
+@test_approx_eq_eps kp.x[2] 0.7777777 1e-5
+@test_approx_eq_eps kp.x[3] 0.4444444 1e-5
+@test_approx_eq_eps kp.obj_val[1] 0.1111111 1e-5
 # ------------------------------

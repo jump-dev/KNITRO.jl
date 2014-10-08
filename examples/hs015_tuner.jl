@@ -73,20 +73,16 @@ hess_row = Int32[0,0,1]
 hess_col = Int32[0,1,1]
 
 kp = createProblem()
-load_param_file(kp, "$(Pkg.dir())/Knitro.jl/examples/tuner-fixed.opt")
-set_param(kp, KTR_PARAM_TUNER, KTR_TUNER_ON)
-load_tuner_file(kp, "$(Pkg.dir())/Knitro.jl/examples/tuner-explore.opt")
+loadOptionsFile(kp, "$(Pkg.dir())/Knitro.jl/examples/tuner-fixed.opt")
+setOption(kp, KTR_PARAM_TUNER, KTR_TUNER_ON)
+loadTunerFile(kp, "$(Pkg.dir())/Knitro.jl/examples/tuner-explore.opt")
 
-ret = init_problem(kp, objGoal, objType,
-                   x_L, x_U, c_Type, c_L, c_U,
-                   jac_var, jac_con, hess_row, hess_col; initial_x=x)
+initializeProblem(kp, objGoal, objType, x_L, x_U, c_Type, c_L, c_U,
+                  jac_var, jac_con, hess_row, hess_col, x)
 setCallbacks(kp, eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h, eval_hv)
-
-lambda = Array(Float64, n+m)
-obj = Array(Float64, 1)
-solve_problem(kp, x, lambda, int32(0), obj)
+solveProblem(kp)
 
 # --- test optimal solutions ---
-@test_approx_eq_eps x[1] 0.5 1e-4
-@test_approx_eq_eps x[2] 2.0 1e-4
-@test_approx_eq_eps obj[1] 306.5 0.02
+@test_approx_eq_eps kp.x[1] 0.5 1e-4
+@test_approx_eq_eps kp.x[2] 2.0 1e-4
+@test_approx_eq_eps kp.obj_val[1] 306.5 0.02

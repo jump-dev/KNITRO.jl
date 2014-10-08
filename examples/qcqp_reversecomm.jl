@@ -82,20 +82,16 @@ hess_col = Int32[0,1,2,1,2]
 x = [2.0,2.0,2.0] # initial guess
 
 kp = createProblem()
-set_param(kp, "outlev", "all")
-set_param(kp, "hessopt", int32(1))
-set_param(kp, "hessian_no_f", int32(1))
-set_param(kp, "feastol", 1.0e-10)
+setOption(kp, "outlev", "all")
+setOption(kp, "hessopt", int32(1))
+setOption(kp, "hessian_no_f", int32(1))
+setOption(kp, "feastol", 1.0e-10)
 
-ret = init_problem(kp, objGoal, objType,
-                   x_L, x_U, c_Type, c_L, c_U,
-                   jac_var, jac_con, hess_row, hess_col; initial_x=x)
-
+ret = initializeProblem(kp, objGoal, objType, x_L, x_U, c_Type, c_L, c_U,
+                        jac_var, jac_con, hess_row, hess_col, x)
 # setCallbacks(kp, eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h, eval_hv)
 
 #---- ALLOCATE ARRAYS FOR REVERSE COMMUNICATIONS OPERATION.
-lambda = Array(Float64, m+n)
-obj = Array(Float64, 1)
 cons = Array(Float64, m)
 objGrad = Array(Float64, n)
 jac = Array(Float64, length(jac_con))
@@ -106,38 +102,37 @@ hessVector = Array(Float64, n)
 #---- RETURNS WHENEVER IT NEEDS MORE PROBLEM INFORMATION.  THE CALLING
 #---- PROGRAM MUST INTERPRET KNITRO'S RETURN STATUS AND CONTINUE
 #---- SUPPLYING PROBLEM INFORMATION UNTIL KNITRO IS COMPLETE.
-nEvalStatus = int32(0)
+# nEvalStatus = int32(0)
 nKnStatus = int32(1)
 while nKnStatus > 0
-  nKnStatus = solve_problem(kp, x, lambda, nEvalStatus, obj, cons, objGrad,
-                            jac, hess, hessVector)
+  nKnStatus = solveProblem(kp, cons, objGrad, jac, hess, hessVector)
   if nKnStatus == KTR_RC_EVALFC
     #---- KNITRO WANTS obj AND c EVALUATED AT THE POINT x.
-    obj[1] = eval_f(x)
-    eval_g(x,cons)
+    kp.obj_val[1] = eval_f(kp.x)
+    eval_g(kp.x,cons)
   elseif nKnStatus == KTR_RC_EVALGA
     #---- KNITRO WANTS objGrad AND jac EVALUATED AT THE POINT x.
-    eval_grad_f(x, objGrad)
-    eval_jac_g(x, jac)
+    eval_grad_f(kp.x, objGrad)
+    eval_jac_g(kp.x, jac)
   elseif nKnStatus == KTR_RC_EVALH
     #---- KNITRO WANTS hess EVALUATED AT THE POINT x.
-    eval_h(x, lambda, 1.0, hess)
+    eval_h(kp.x, kp.lambda, 1.0, hess)
   elseif nKnStatus == KTR_RC_EVALH_NO_F
     #---- KNITRO WANTS hess EVALUATED AT THE POINT x
     #---- WITHOUT OBJECTIVE COMPONENT.
-    eval_h(x, lambda, 0.0, hess)
+    eval_h(kp.x, kp.lambda, 0.0, hess)
   end
   #---- ASSUME THAT PROBLEM EVALUATION IS ALWAYS SUCCESSFUL.
   #---- IF A FUNCTION OR ITS DERIVATIVE COULD NOT BE EVALUATED
   #---- AT THE GIVEN (x, lambda), THEN SET nEvalStatus = 1 BEFORE
   #---- CALLING solve AGAIN.
-  nEvalStatus = int32(0)
+  # kp.status = int32(0)
 end
 
 #  The start point (2, 2, 2) converges to the minimum at (0, 0, 8),
  #  with final objective = 936.0.  From a different start point,
 # --- test optimal solutions ---
-@test_approx_eq_eps x[1] 0.0 1e-5
-@test_approx_eq_eps x[2] 0.0 1e-5
-@test_approx_eq_eps x[3] 8.0 1e-5
-@test_approx_eq_eps obj[1] 936.0 1e-5
+@test_approx_eq_eps kp.x[1] 0.0 1e-5
+@test_approx_eq_eps kp.x[2] 0.0 1e-5
+@test_approx_eq_eps kp.x[3] 8.0 1e-5
+@test_approx_eq_eps kp.obj_val[1] 936.0 1e-5
