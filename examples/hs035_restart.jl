@@ -87,9 +87,8 @@ getOption(kp,"hessopt",hessopt)
 @test hessopt[1] == 1
 # ---------------------------------
 
-ret = initializeProblem(kp, objGoal, objType,
-                   x_L, x_U, c_Type, c_L, c_U,
-                   jac_var, jac_con, hess_row, hess_col)
+initializeProblem(kp, objGoal, objType, x_L, x_U, c_Type, c_L, c_U,
+                  jac_var, jac_con, hess_row, hess_col)
 setCallbacks(kp, eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h, eval_hv)
 solveProblem(kp)
 

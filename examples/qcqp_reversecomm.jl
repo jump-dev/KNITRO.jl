@@ -87,9 +87,8 @@ setOption(kp, "hessopt", int32(1))
 setOption(kp, "hessian_no_f", int32(1))
 setOption(kp, "feastol", 1.0e-10)
 
-ret = initializeProblem(kp, objGoal, objType, x_L, x_U, c_Type, c_L, c_U,
-                        jac_var, jac_con, hess_row, hess_col, x)
-# setCallbacks(kp, eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h, eval_hv)
+initializeProblem(kp, objGoal, objType, x_L, x_U, c_Type, c_L, c_U,
+                  jac_var, jac_con, hess_row, hess_col, x)
 
 #---- ALLOCATE ARRAYS FOR REVERSE COMMUNICATIONS OPERATION.
 cons = Array(Float64, m)
@@ -124,13 +123,11 @@ while nKnStatus > 0
   end
   #---- ASSUME THAT PROBLEM EVALUATION IS ALWAYS SUCCESSFUL.
   #---- IF A FUNCTION OR ITS DERIVATIVE COULD NOT BE EVALUATED
-  #---- AT THE GIVEN (x, lambda), THEN SET nEvalStatus = 1 BEFORE
+  #---- AT THE GIVEN (x, lambda), THEN SET kp.status = 1 BEFORE
   #---- CALLING solve AGAIN.
   # kp.status = int32(0)
 end
 
-#  The start point (2, 2, 2) converges to the minimum at (0, 0, 8),
- #  with final objective = 936.0.  From a different start point,
 # --- test optimal solutions ---
 @test_approx_eq_eps kp.x[1] 0.0 1e-5
 @test_approx_eq_eps kp.x[2] 0.0 1e-5

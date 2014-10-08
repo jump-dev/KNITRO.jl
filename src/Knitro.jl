@@ -69,28 +69,34 @@ using Docile
 
   function initializeProblem(kp, objGoal, objType, x_l, x_u,
                              c_Type, g_lb, g_ub, jac_var, jac_con,
-                             hess_row, hess_col, initial_x = C_NULL,
-                             initial_lambda = C_NULL)
+                             hess_row, hess_col, x0 = C_NULL,
+                             lambda0 = C_NULL)
     # TODO: check return code?
-    rc = init_problem(kp, objGoal, objType,
-                      x_l, x_u,
-                      c_Type, g_lb, g_ub,
-                      jac_var, jac_con,
-                      hess_row, hess_col,
-                      initial_x, initial_lambda)
+    init_problem(kp, objGoal, objType, x_l, x_u, c_Type, g_lb, g_ub,
+                 jac_var, jac_con, hess_row, hess_col, x0,
+                 lambda0)
     if objGoal == KTR_OBJGOAL_MINIMIZE
-      sense = :Min 
+      kp.sense = :Min 
     else
-      sense = :Max 
+      kp.sense = :Max 
     end
-
-    kp.sense = sense
     kp.n = length(x_l)
     kp.m = length(g_lb)
-    kp.x = zeros(Float64, kp.n)
-    kp.lambda = zeros(Float64, kp.n+kp.m)
-    kp.g = zeros(Float64, kp.m)
-    kp.obj_val = [0.0]
+
+    if x0 != C_NULL
+      kp.x = x0
+    else
+      kp.x = zeros(Float64, kp.n)
+    end
+
+    if lambda0 != C_NULL
+      kp.lambda = lambda0
+    else
+      kp.lambda = zeros(Float64, kp.n+kp.m)
+    end
+
+    kp.g = Array(Float64, kp.m)
+    kp.obj_val = Array(Float64, 1)
     kp.status = int32(0)
   end
 
