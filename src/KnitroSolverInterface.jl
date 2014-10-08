@@ -21,15 +21,19 @@ export model
 ###############################################################################
 # Begin interface implementation
 
-function sparse_merge_duplicates(I,J, m, n)
+function sparse_merge_hess_duplicates(I,J, m, n)
   V = [Int[i] for i in 1:length(I)]
   for i in 1:length(I) # make upper triangular
     if I[i] > J[i]
       I[i],J[i] = J[i],I[i]
     end
   end
-  S = sparse(I,J,V,m,n,vcat)
-  return findnz(S)
+  findnz(sparse(I,J,V,m,n,vcat))
+end
+
+function sparse_merge_jac_duplicates(I,J, m, n)
+  V = [Int[i] for i in 1:length(I)]
+  findnz(sparse(I,J,V,m,n,vcat))
 end
 
 # generic nonlinear interface
@@ -45,10 +49,12 @@ function loadnonlinearproblem!(m::KnitroMathProgModel,
   Ihess, Jhess = hesslag_structure(d)
   nnzJ = length(Ijac)
   nnzH = length(Ihess)
+  jac_tmp = Array(Float64, nnzJ)
+  hess_tmp = Array(Float64, nnzH)
   @assert length(Ijac) == length(Jjac)
   @assert length(Ihess) == length(Jhess)
-  jac_con, jac_var, jac_indices = sparse_merge_duplicates(Ijac, Jjac, numConstr, numVar)
-  hess_row, hess_col, hess_indices = sparse_merge_duplicates(Ihess, Jhess, numVar, numVar)
+  jac_con, jac_var, jac_indices = sparse_merge_jac_duplicates(Ijac, Jjac, numConstr, numVar)
+  hess_row, hess_col, hess_indices = sparse_merge_hess_duplicates(Ihess, Jhess, numVar, numVar)
   n_jac_indices = length(jac_indices)
   n_hess_indices = length(hess_indices)
 
@@ -104,19 +110,17 @@ function loadnonlinearproblem!(m::KnitroMathProgModel,
 
   # Jacobian callback
   function eval_jac_g_cb(x, jac)
-    tmp = Array(Float64, nnzJ)
-    eval_jac_g(d, tmp, x)
+    eval_jac_g(d, jac_tmp, x)
     for i in 1:n_jac_indices
-      jac[i] = sum(tmp[jac_indices[i]])
+      jac[i] = sum(jac_tmp[jac_indices[i]])
     end
   end
 
   # Hessian callback
   function eval_h_cb(x, lambda, sigma, hess)
-    tmp = Array(Float64, nnzH)
-    eval_hesslag(d, tmp, x, sigma, lambda)
+    eval_hesslag(d, hess_tmp, x, sigma, lambda)
     for i in 1:n_hess_indices
-      hess[i] = sum(tmp[hess_indices[i]])
+      hess[i] = sum(hess_tmp[hess_indices[i]])
     end
   end
 
