@@ -1,25 +1,92 @@
 ---------
 Callbacks
 ---------
-Applications may define functions for evaluating problem elements at a trial point.  The functions must match the prototype defined below, and passed to KNITRO with the appropriate ``set_func_x`` call.
+Applications may define functions for evaluating problem elements given a current solution. This section of the documentation details the function signatures expected for the callbacks.
 
-KNITRO may request four different types of evaluation information, as specified in `evalRequestCode`:
+eval_f
+^^^^^^
 
-.. code-block:: julia
+Returns the value of the objective function at the current solution ``x``::
 
-    KTR_RC_EVALFC - return objective and constraint function values
-    KTR_RC_EVALGA - return first derivative values in "objGrad" and "jac"
-    KTR_RC_EVALH  - return second derivative values in "hessian"
-    KTR_RC_EVALH_NO_F  (this version exclude the objective term)
-    KTR_RC_EVALHV - return a Hessian-vector product in "hessVector"
-    KTR_RC_EVALHV_NO_F (this version exclude the objective term)
+  function eval_f(x::Vector{Float64})   # (length n) Current Solution
+    # ...
+    return obj_value
+  end
 
-The argument ``lambda`` is not defined when requesting EVALFC or EVALGA.
+eval_g
+^^^^^^
 
-Usually, applications define 3 callback functions, one for EVALFC, one for EVALGA, and one for EVALH / EVALHV.  The last function evaluates H or HV depending on the value of ``evalRequestCode``.
+Sets the value of the constraint functions ``g`` at the current solution ``x``::
 
-It is possible (but ``Knitro.jl`` doesn't yet provide the convenience functions) to combine EVALFC and EVALGA into a single function, because "x" changes only for an EVALFC request.  This is advantageous if the application evaluates functions and their derivatives at the same time.
+  function eval_g(x::Vector{Float64},           # (length n) Current Solution
+                    cons::Vector{Float64})      # (length m) Constraint values g(x)
+    # ...
+    # cons[1] = ...
+    # ...
+    # cons[prob.m] = ...
+  end
 
-Pass the same callback function in ``set_func_callback`` and ``set_grad_callback``, have it populate ``obj``, ``c``, ``objGrad``, and ``jac`` for an EVALFC request, and do nothing for an EVALGA request.
+Note that the values of ``cons`` must be set "in-place", i.e. the statement
+``cons = zeros(prob.m)`` musn't be done. If you do want to create a new vector
+and allocate it to ``cons`` use ``cons[:]``, e.g. ``cons[:] = zeros(prob.m)``.
 
-Do not combine EVALFC and EVALGA if ``hessopt = KTR_HESSOPT_FINITE_DIFF``, because the finite difference Hessian changes ``x`` and calls EVALGA without calling EVALFC first. It is not possible to combine EVALH / EVALHV because ``lambda`` changes after the EVALFC call.
+eval_grad_f
+^^^^^^^^^^^
+
+Sets the value of the gradient of the objective function at the current solution ``x``::
+
+  function eval_grad_f(x::Vector{Float64},          # (length n) Current Solution
+                         grad::Vector{Float64})     # (length n) The gradient of the objective function
+    # ...
+    # grad[1] = ...
+    # ...
+    # grad[prob.n] = ...
+  end
+
+As with ``eval_g``, you must set the values "in-place" for ``eval_grad_f``.
+
+eval_jac_g
+^^^^^^^^^^
+
+This function returns the values of the Jacobian, evaluated at the non-negative indices, based on the sparsity structure passed to KNITRO through ``initializeProblem``. Julia is 1-based, in the sense that indexing always starts at 1 (unlike C, which starts at 0).::
+
+  function eval_jac_g(x::Vector{Float64},       # (length n) Current Solution
+                        jac::Vector{Float64})   # (length nnzJ) The values of the Jacobian
+    # ...
+    # jac[1] = ...
+    # ...
+    # jac[nnzJ] = ... # where nnzJ = length(jac)
+  end
+
+As for the previous two callbacks, all values must be set "in-place". See the Ipopt documentation for a further description of the sparsity format followed by Ipopt ((row,column,value) triples).
+
+eval_h
+^^^^^^
+
+Similar to the Jacobian, except for the Hessian of the Lagrangian. See documentation for full details of the meaning of everything.::
+
+  function eval_h(x::Vector{Float64},        # (length n) Current solution
+                    lambda::Vector{Float64},   # (length n+m) Multipliers for each constraint
+                    sigma::Float64,            # Lagrangian multiplier for objective
+                    hess::Vector{Float64})     # (length nnzH) The values of the Hessian
+    # ...
+    # hess[1] = ...
+    # ...
+    # hess[nnzH] = ... # where nnzH = length(hess)
+  end
+
+eval_hv
+^^^^^^^
+
+Computes the Hessian-of-the-Lagrangian-vector product, storing the result in the vector ``hv``.::
+
+  function eval_hv(x::Vector{Float64},        # (length n) Current solution
+                     lambda::Vector{Float64},   # (length n+m) Multipliers for each constraint
+                     sigma::Float64,            # Lagrangian multiplier for objective
+                     hess::Vector{Float64})     # (length n) Hessian-of-the-Lagrangian-vector product
+    # ...
+    # hv[1] = ...
+    # ...
+    # hv[end] = ...
+  end
+

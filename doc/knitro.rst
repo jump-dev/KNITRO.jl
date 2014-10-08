@@ -16,7 +16,6 @@ Contents
 
    installation.rst
    example.rst
-   solverparams.rst
    solving.rst
+   solverparams.rst
    callbacks.rst
-   callbackparams.rst

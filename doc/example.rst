@@ -8,7 +8,6 @@ We begin with an example to motivate the various interfaces. Here is what that p
   using Knitro
   using Base.Test
 
-  #  The problem comes from Hock and Schittkowski, HS35.
   #    min  9 - 8x1 - 6x2 - 4x3
   #         + 2(x1^2) + 2(x2^2) + (x3^2) + 2(x1*x2) + 2(x1*x3)
   #    subject to  c[0]:  x1 + x2 + 2x3 <= 3
@@ -18,6 +17,8 @@ We begin with an example to motivate the various interfaces. Here is what that p
   #    initpt (0.5, 0.5, 0.5)
   #
   #    Solution is x1=4/3, x2=7/9, x3=4/9, lambda=2/9  (f* = 1/9)
+  #
+  #  The problem comes from Hock and Schittkowski, HS35.
 
   function eval_f(x::Vector{Float64})
     linear_terms = 9.0 - 8.0*x[1] - 6.0*x[2] - 4.0*x[3]
@@ -79,12 +80,11 @@ We begin with an example to motivate the various interfaces. Here is what that p
   obj     = [0.0]
 
   kp = createProblem()
-  load_param_file(kp,"knitro.opt")
-  init_problem(kp, objGoal, objType,
-               x_L, x_U, c_Type, c_L, c_U,
-               jac_var, jac_con, hess_row, hess_col)
+  loadOptionsFile(kp, "knitro.opt")
+  initializeProblem(kp, objGoal, objType, x_L, x_U, c_Type, c_L, c_U,
+                    jac_var, jac_con, hess_row, hess_col)
   setCallbacks(kp, eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h, eval_hv)
-  solve_problem(kp, x, lambda, int32(0), obj)
+  solveProblem(kp)
 
 As you can see, the code mirrors the C interface fairly closely, with some C-specific
 features abstracted such as replacing the various callback-adding functions with one
