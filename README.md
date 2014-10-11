@@ -5,19 +5,22 @@ The KNITRO.jl package provides an interface for using the [KNITRO solver](http:/
 
 KNITRO functionality is extensive, so coverage is incomplete, but the basic functionality for solving linear, nonlinear, and mixed-integer programs is provided. Documentation is available on [ReadTheDocs](http://knitrojl.readthedocs.org/en/latest/knitro.html).
 
-Setting up KNITRO on OS X
--------------------------
+Setting up KNITRO on Linux and OS X
+-----------------------------------
 KNITRO isn't a listed package (yet). Here's what you need to do to install it
 
 1. First, you must obtain a copy of the KNITRO software and a license; trial versions and academic licenses are available [here](http://www.ziena.com/download.htm).
 
-2. Once KNITRO is installed on your machine (in your home directory), point the `PATH` and `DYLD_LIBRARY_PATH` variable to the KNITRO library by adding
+2. Once KNITRO is installed on your machine, point the `LD_LIBRARY_PATH` (Linux) or `DYLD_LIBRARY_PATH` (OS X) variable to the KNITRO library by adding, e.g.,
 
   ```bash
-  export PATH="$HOME/knitro-9.0.1-z/knitroampl:$PATH"
+  export LD_LIBRARY_PATH="$HOME/knitro-9.0.1-z/lib:$LD_LIBRARY_PATH"
+  ```
+
+  ```bash
   export DYLD_LIBRARY_PATH="$HOME/knitro-9.0.1-z/lib:$DYLD_LIBRARY_PATH"
   ```
-  to your start-up file (e.g. ``.bash_profile``).
+to your start-up file (e.g. ``.bash_profile``).
 
 3. At the Julia prompt, run 
   ```julia
@@ -25,9 +28,7 @@ KNITRO isn't a listed package (yet). Here's what you need to do to install it
   ```
 (or manually clone this module to your ``.julia`` directory).
 
-4. Copy the dynamic libraries from `$HOME/knitro-<version-number>/lib` to `$(Pkg.dir())/KNITRO.jl/deps/usr/lib`.
-
-5. Test that KNITRO works by runnning
+4. Test that KNITRO works by runnning
   ```julia
-  julia> Pkg.test("KNITRO.jl")
+  julia> Pkg.test("KNITRO")
   ```

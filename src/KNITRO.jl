@@ -3,11 +3,12 @@ module KNITRO
     using Docile
     @docstrings
 
-    if isfile(joinpath(Pkg.dir("Knitro.jl"),"deps","deps.jl"))
-        include("../deps/deps.jl")
-    else
-        error("Knitro not properly installed.")
+    @linux_only begin
+        # fixes missing symbols in libknitro.so
+        dlopen("libdl", RTLD_GLOBAL)
+        dlopen("libgomp", RTLD_GLOBAL)
     end
+    const libknitro = "libknitro"
 
     export
         KnitroProblem,
