@@ -73,9 +73,9 @@ hess_row = Int32[0,0,1]
 hess_col = Int32[0,1,1]
 
 kp = createProblem()
-loadOptionsFile(kp, "$(Pkg.dir())/Knitro.jl/examples/tuner-fixed.opt")
+loadOptionsFile(kp, joinpath(dirname(@__FILE__),"tuner-fixed.opt"))
 setOption(kp, KTR_PARAM_TUNER, KTR_TUNER_ON)
-loadTunerFile(kp, "$(Pkg.dir())/Knitro.jl/examples/tuner-explore.opt")
+loadTunerFile(kp, joinpath(dirname(@__FILE__), "tuner-explore.opt"))
 
 initializeProblem(kp, objGoal, objType, x_L, x_U, c_Type, c_L, c_U,
                   jac_var, jac_con, hess_row, hess_col, x)
