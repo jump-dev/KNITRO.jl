@@ -1,4 +1,4 @@
-using Knitro
+using KNITRO
 using Base.Test
 
  ## Solve test problem 1 (Synthesis of processing system) in

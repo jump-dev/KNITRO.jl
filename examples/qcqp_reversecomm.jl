@@ -1,4 +1,4 @@
-using Knitro
+using KNITRO
 using Base.Test
 
  ## Solve a small QCQP (quadratically constrained quadratic programming)

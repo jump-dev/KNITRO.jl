@@ -51,7 +51,7 @@ source_suffix = '.rst'
 master_doc = 'knitro'
 
 # General information about the project.
-project = u'Knitro.jl - Julia interface to the KNITRO solver'
+project = u'KNITRO.jl - Julia interface to the KNITRO solver'
 AUTHORS = u'Ng Yee Sian'
 copyright = u'2014, '+AUTHORS
 
@@ -207,7 +207,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('knitro', 'knitro.tex', u'Knitro.jl Documentation',
+  ('knitro', 'knitro.tex', u'KNITRO.jl Documentation',
    AUTHORS, 'manual'),
 ]
 
@@ -237,7 +237,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('knitro', 'Knitro', u'Knitro.jl Documentation',
+    ('knitro', 'Knitro', u'KNITRO.jl Documentation',
      [AUTHORS], 1)
 ]
 
@@ -251,8 +251,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('knitro', 'Knitro', u'Knitro.jl Documentation',
-   AUTHORS, 'Knitro', 'Knitro.jl - Julia interface to the Knitro solver',
+  ('knitro', 'Knitro', u'KNITRO.jl Documentation',
+   AUTHORS, 'Knitro', 'KNITRO.jl - Julia interface to the Knitro solver',
    'Miscellaneous'),
 ]
 

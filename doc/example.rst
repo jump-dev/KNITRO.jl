@@ -1,11 +1,11 @@
 -------
 Example
 -------
-We begin with an example to motivate the various interfaces. Here is what that problem looks like in Julia with the ``Knitro.jl`` interface:
+We begin with an example to motivate the various interfaces. Here is what that problem looks like in Julia with the ``KNITRO.jl`` interface:
 
 .. code-block:: julia
 
-  using Knitro
+  using KNITRO
   using Base.Test
 
   #    min  9 - 8x1 - 6x2 - 4x3

@@ -1,4 +1,4 @@
-module Knitro
+module KNITRO
 
     using Docile
     @docstrings

@@ -1,4 +1,4 @@
-using Knitro
+using KNITRO
 using Base.Test
 
  ## Solve test problem HS15 from the Hock & Schittkowski collection.

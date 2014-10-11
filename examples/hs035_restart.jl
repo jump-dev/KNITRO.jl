@@ -1,4 +1,4 @@
-using Knitro
+using KNITRO
 using Base.Test
 
 #    min  9 - 8x1 - 6x2 - 4x3
