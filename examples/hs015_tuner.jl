@@ -15,43 +15,43 @@ using Base.Test
  ##
 
 function eval_f(x::Vector{Float64})
-  tmp = x[2] - x[1]^2
-  100.0*tmp*tmp + (1.0-x[1])^2
+    tmp = x[2] - x[1]^2
+    100.0*tmp*tmp + (1.0-x[1])^2
 end
 
 function eval_g(x::Vector{Float64}, cons::Vector{Float64})
-  cons[1] = x[1] * x[2]
-  cons[2] = x[1] + x[2]^2
+    cons[1] = x[1] * x[2]
+    cons[2] = x[1] + x[2]^2
 end
 
 function eval_grad_f(x::Vector{Float64}, grad::Vector{Float64})
-  tmp = x[2] - x[1]^2
-  grad[1] = (-400.0 * tmp * x[1]) - (2.0 * (1.0 - x[1]))
-  grad[2] = 200.0 * tmp
+    tmp = x[2] - x[1]^2
+    grad[1] = (-400.0 * tmp * x[1]) - (2.0 * (1.0 - x[1]))
+    grad[2] = 200.0 * tmp
 end
 
 function eval_jac_g(x::Vector{Float64}, jac::Vector{Float64})
-  jac[1] = x[2]
-  jac[2] = x[1]
-  jac[3] = 1.0
-  jac[4] = 2.0 * x[2]
+    jac[1] = x[2]
+    jac[2] = x[1]
+    jac[3] = 1.0
+    jac[4] = 2.0 * x[2]
 end
 
 function eval_h(x::Vector{Float64}, lambda::Vector{Float64},
                 sigma::Float64, hess::Vector{Float64})
-  hess[1] = sigma * ( (-400.0 * x[2]) + (1200.0 * x[1]*x[1]) + 2.0)
-  hess[2] = (sigma * (-400.0 * x[1])) + lambda[1]
-  hess[3] = (sigma * 200.0) + (lambda[2] * 2.0)
+    hess[1] = sigma * ( (-400.0 * x[2]) + (1200.0 * x[1]*x[1]) + 2.0)
+    hess[2] = (sigma * (-400.0 * x[1])) + lambda[1]
+    hess[3] = (sigma * 200.0) + (lambda[2] * 2.0)
 end
 
 function eval_hv(x::Vector{Float64}, lambda::Vector{Float64},
                  sigma::Float64, hv::Vector{Float64})
-  # H[0,0]*v[0] + H[0,1]*v[1]
-  hv1 = (sigma*(((-400.0*x[2])+(1200.0*x[1]*x[1])+2.0)))*hv[1]+(sigma*(-400.0*x[1])+lambda[1])*hv[2]
-  # H[1,0]*v[0] + H[1,1]*v[1]
-  hv2 = (sigma*(-400.0*x[1])+lambda[1])*hv[1]+(sigma*200.0+(lambda[2]*2.0))*hv[2]
-  hv[1] = hv1
-  hv[2] = hv2
+    # H[0,0]*v[0] + H[0,1]*v[1]
+    hv1 = (sigma*(((-400.0*x[2])+(1200.0*x[1]*x[1])+2.0)))*hv[1]+(sigma*(-400.0*x[1])+lambda[1])*hv[2]
+    # H[1,0]*v[0] + H[1,1]*v[1]
+    hv2 = (sigma*(-400.0*x[1])+lambda[1])*hv[1]+(sigma*200.0+(lambda[2]*2.0))*hv[2]
+    hv[1] = hv1
+    hv[2] = hv2
 end
 
 objGoal = KTR_OBJGOAL_MINIMIZE

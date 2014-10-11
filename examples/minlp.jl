@@ -26,102 +26,102 @@ using Base.Test
  ##
 
 function eval_f(x::Vector{Float64})
-  tmp1 = x[1] - x[2] + 1.0
-  tmp2 = x[2] + 1.0
-  linear_terms = 10.0 + 10.0*x[1] - 7.0*x[3] + 5.0*x[4] + 6.0*x[5] + 8.0*x[6]
-  nonlinear_terms = - 18.0*log(tmp2) - 19.2*log(tmp1)
-  linear_terms + nonlinear_terms
+    tmp1 = x[1] - x[2] + 1.0
+    tmp2 = x[2] + 1.0
+    linear_terms = 10.0 + 10.0*x[1] - 7.0*x[3] + 5.0*x[4] + 6.0*x[5] + 8.0*x[6]
+    nonlinear_terms = - 18.0*log(tmp2) - 19.2*log(tmp1)
+    linear_terms + nonlinear_terms
 end
 
 function eval_g(x::Vector{Float64}, cons::Vector{Float64})
-  tmp1 = x[1] - x[2] + 1.0
-  tmp2 = x[2] + 1.0
-  cons[1] = 0.8*log(tmp2) + 0.96*log(tmp1) - 0.8*x[3]
-  cons[2] = log(tmp2) + 1.2*log(tmp1) - x[3] - 2*x[6]
-  cons[3] = x[2] - x[1]
-  cons[4] = x[2] - 2*x[4]
-  cons[5] = x[1] - x[2] - 2*x[5]
-  cons[6] = x[4] + x[5]
+    tmp1 = x[1] - x[2] + 1.0
+    tmp2 = x[2] + 1.0
+    cons[1] = 0.8*log(tmp2) + 0.96*log(tmp1) - 0.8*x[3]
+    cons[2] = log(tmp2) + 1.2*log(tmp1) - x[3] - 2*x[6]
+    cons[3] = x[2] - x[1]
+    cons[4] = x[2] - 2*x[4]
+    cons[5] = x[1] - x[2] - 2*x[5]
+    cons[6] = x[4] + x[5]
 end
 
 function eval_grad_f(x::Vector{Float64}, grad::Vector{Float64})
-  tmp1 = x[1] - x[2] + 1.0
-  tmp2 = x[2] + 1.0
-  grad[1] = 10.0 - (19.2 / tmp1)
-  grad[2] = (-18.0 / tmp2) + (19.2 / tmp1)
-  grad[3] = -7.0
-  grad[4] = 5.0
-  grad[5] = 6.0
-  grad[6] = 8.0
+    tmp1 = x[1] - x[2] + 1.0
+    tmp2 = x[2] + 1.0
+    grad[1] = 10.0 - (19.2 / tmp1)
+    grad[2] = (-18.0 / tmp2) + (19.2 / tmp1)
+    grad[3] = -7.0
+    grad[4] = 5.0
+    grad[5] = 6.0
+    grad[6] = 8.0
 end
 
 function eval_jac_g(x::Vector{Float64}, jac::Vector{Float64})
-  tmp1 = x[1] - x[2] + 1.0
-  tmp2 = x[2] + 1.0
-  #---- GRADIENT OF CONSTRAINT 0.
-  jac[1] = 0.96 / tmp1
-  jac[2] = (-0.96 / tmp1) + (0.8 / tmp2) 
-  jac[3] = -0.8
-  #---- GRADIENT OF CONSTRAINT 1.
-  jac[4] = 1.2 / tmp1
-  jac[5] = (-1.2 / tmp1) + (1.0 / tmp2) 
-  jac[6] = -1.0
-  jac[7] = -2.0
-  #---- GRADIENT OF CONSTRAINT 2.
-  jac[8] = -1.0
-  jac[9] = 1.0
-  #---- GRADIENT OF CONSTRAINT 3.
-  jac[10] = 1.0
-  jac[11] = -2.0    
-  #---- GRADIENT OF CONSTRAINT 4.
-  jac[12] = 1.0
-  jac[13] = -1.0    
-  jac[14] = -2.0
-  #---- GRADIENT OF CONSTRAINT 5.
-  jac[15] = 1.0
-  jac[16] = 1.0
+    tmp1 = x[1] - x[2] + 1.0
+    tmp2 = x[2] + 1.0
+    #---- GRADIENT OF CONSTRAINT 0.
+    jac[1] = 0.96 / tmp1
+    jac[2] = (-0.96 / tmp1) + (0.8 / tmp2) 
+    jac[3] = -0.8
+    #---- GRADIENT OF CONSTRAINT 1.
+    jac[4] = 1.2 / tmp1
+    jac[5] = (-1.2 / tmp1) + (1.0 / tmp2) 
+    jac[6] = -1.0
+    jac[7] = -2.0
+    #---- GRADIENT OF CONSTRAINT 2.
+    jac[8] = -1.0
+    jac[9] = 1.0
+    #---- GRADIENT OF CONSTRAINT 3.
+    jac[10] = 1.0
+    jac[11] = -2.0    
+    #---- GRADIENT OF CONSTRAINT 4.
+    jac[12] = 1.0
+    jac[13] = -1.0    
+    jac[14] = -2.0
+    #---- GRADIENT OF CONSTRAINT 5.
+    jac[15] = 1.0
+    jac[16] = 1.0
 end
 
 function eval_h(x::Vector{Float64}, lambda::Vector{Float64},
                 sigma::Float64, hess::Vector{Float64})
-  tmp1 = x[1] - x[2] + 1.0
-  tmp2 = x[2] + 1.0
-  hess[1] = sigma*(19.2 / (tmp1*tmp1)) + lambda[1]*(-0.96 / (tmp1*tmp1)) + lambda[2]*(-1.2 / (tmp1*tmp1))
-  hess[2] = sigma*(-19.2 / (tmp1*tmp1)) + lambda[1]*(0.96 / (tmp1*tmp1)) + lambda[2]*(1.2 / (tmp1*tmp1))
-  hess[3] = sigma*((19.2 / (tmp1*tmp1)) + (18.0 / (tmp2*tmp2))) + lambda[1]*((-0.96 / (tmp1*tmp1)) - (0.8 / (tmp2*tmp2))) + lambda[2]*((-1.2 / (tmp1*tmp1)) - (1.0 / (tmp2*tmp2)))
+    tmp1 = x[1] - x[2] + 1.0
+    tmp2 = x[2] + 1.0
+    hess[1] = sigma*(19.2 / (tmp1*tmp1)) + lambda[1]*(-0.96 / (tmp1*tmp1)) + lambda[2]*(-1.2 / (tmp1*tmp1))
+    hess[2] = sigma*(-19.2 / (tmp1*tmp1)) + lambda[1]*(0.96 / (tmp1*tmp1)) + lambda[2]*(1.2 / (tmp1*tmp1))
+    hess[3] = sigma*((19.2 / (tmp1*tmp1)) + (18.0 / (tmp2*tmp2))) + lambda[1]*((-0.96 / (tmp1*tmp1)) - (0.8 / (tmp2*tmp2))) + lambda[2]*((-1.2 / (tmp1*tmp1)) - (1.0 / (tmp2*tmp2)))
 end
 
 function eval_hv(x::Vector{Float64}, lambda::Vector{Float64},
                  sigma::Float64, hv::Vector{Float64})
-  tmp1 = (x[1] - x[2] + 1.0)^2
-  tmp2 = x[2] + 1.0
+    tmp1 = (x[1] - x[2] + 1.0)^2
+    tmp2 = x[2] + 1.0
 
-  hv1 = (sigma*(19.2/tmp1)+lambda[1]*(-0.96/tmp1)+lambda[2]*(-1.2/tmp1))*hv[1]
-  hv1 = hv1 + (sigma*(-19.2/tmp1)+lambda[1]*(0.96/tmp1)+lambda[2]*(1.2/tmp1))*hv[2]
-  hv2 = (sigma*(-19.2/tmp1)+lambda[1]*(0.96/tmp1)+lambda[2]*(1.2/tmp1))*hv[1]
-  hv2 = hv2 + (sigma*((19.2/tmp1)+(18.0/tmp2))+lambda[1]*((-0.96/tmp1)-(0.8/tmp2))+lambda[2]*((-1.2/tmp1)-(1.0/tmp2)))*hv[2]
-  hv[1] = hv1
-  hv[2] = hv2
-  hv[3] = 0.0
-  hv[4] = 0.0
-  hv[5] = 0.0
-  hv[6] = 0.0
+    hv1 = (sigma*(19.2/tmp1)+lambda[1]*(-0.96/tmp1)+lambda[2]*(-1.2/tmp1))*hv[1]
+    hv1 = hv1 + (sigma*(-19.2/tmp1)+lambda[1]*(0.96/tmp1)+lambda[2]*(1.2/tmp1))*hv[2]
+    hv2 = (sigma*(-19.2/tmp1)+lambda[1]*(0.96/tmp1)+lambda[2]*(1.2/tmp1))*hv[1]
+    hv2 = hv2 + (sigma*((19.2/tmp1)+(18.0/tmp2))+lambda[1]*((-0.96/tmp1)-(0.8/tmp2))+lambda[2]*((-1.2/tmp1)-(1.0/tmp2)))*hv[2]
+    hv[1] = hv1
+    hv[2] = hv2
+    hv[3] = 0.0
+    hv[4] = 0.0
+    hv[5] = 0.0
+    hv[6] = 0.0
 end
 
 function eval_mip_node(kp::KnitroProblem, obj::Float64)
-  # Print information about the status of the MIP solution
-  println("callbackProcessNode:")
-  println("    Node number    = ", get_mip_num_nodes(kp))
-  println("    Node objective = ", obj)
-  println("    Current relaxation bound = ", get_mip_relaxation_bnd(kp))
-  bound = get_mip_incumbent_obj(kp)
-  if abs(bound) >= KTR_INFBOUND
-    println("    No integer feasible point found yet.")
-  else
-    println("    Current incumbent bound  = ", bound)
-    println("    Absolute integrality gap = ", get_mip_abs_gap(kp))
-    println("    Relative integrality gap = ", get_mip_rel_gap(kp))
-  end
+    # Print information about the status of the MIP solution
+    println("callbackProcessNode:")
+    println("    Node number    = ", get_mip_num_nodes(kp))
+    println("    Node objective = ", obj)
+    println("    Current relaxation bound = ", get_mip_relaxation_bnd(kp))
+    bound = get_mip_incumbent_obj(kp)
+    if abs(bound) >= KTR_INFBOUND
+        println("    No integer feasible point found yet.")
+    else
+        println("    Current incumbent bound  = ", bound)
+        println("    Absolute integrality gap = ", get_mip_abs_gap(kp))
+        println("    Relative integrality gap = ", get_mip_rel_gap(kp))
+    end
 end
 
 function eval_mip_node_wrapper(evalRequestCode::Cint,
@@ -138,16 +138,16 @@ function eval_mip_node_wrapper(evalRequestCode::Cint,
                                H_::Ptr{Cdouble},
                                HV_::Ptr{Cdouble},
                                userParams_::Ptr{Void})
-  kp = unsafe_pointer_to_objref(userParams_)::KnitroProblem
-  obj = unsafe_load(obj_)
-  kp.eval_mip_node(kp,obj)
-  int32(0)
+    kp = unsafe_pointer_to_objref(userParams_)::KnitroProblem
+    obj = unsafe_load(obj_)
+    kp.eval_mip_node(kp,obj)
+    int32(0)
 end
 
 function setMIPCallback(kp::KnitroProblem,
                         eval_node::Function)
-  kp.eval_mip_node = eval_mip_node
-  set_mip_node_callback(kp,eval_mip_node_wrapper)
+    kp.eval_mip_node = eval_mip_node
+    set_mip_node_callback(kp,eval_mip_node_wrapper)
 end
 
 objType = KTR_OBJTYPE_GENERAL

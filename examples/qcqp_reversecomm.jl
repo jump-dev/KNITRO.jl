@@ -16,18 +16,18 @@ using Base.Test
  ##
 
 function eval_f(x::Vector{Float64})
-  1000.0 - x[1]^2 - 2.0*x[2]^2 - x[3]^2 - x[1]^2 - x[1]*x[3]
+    1000.0 - x[1]^2 - 2.0*x[2]^2 - x[3]^2 - x[1]^2 - x[1]*x[3]
 end
 
 function eval_g(x::Vector{Float64}, cons::Vector{Float64})
-  cons[1] = 8.0*x[1] + 14.0*x[2] + 7.0*x[3] - 56.0
-  cons[2] = x[1]^2 + x[2]^2 + x[3]^2 - 25.0
+    cons[1] = 8.0*x[1] + 14.0*x[2] + 7.0*x[3] - 56.0
+    cons[2] = x[1]^2 + x[2]^2 + x[3]^2 - 25.0
 end
 
 function eval_grad_f(x::Vector{Float64}, grad::Vector{Float64})
-  grad[1] = -2.0*x[1] - x[2] - x[3]
-  grad[2] = -4.0*x[2] - x[1]
-  grad[3] = -2.0*x[3] - x[1]
+    grad[1] = -2.0*x[1] - x[2] - x[3]
+    grad[2] = -4.0*x[2] - x[1]
+    grad[3] = -2.0*x[3] - x[1]
 end
 
 function eval_jac_g(x::Vector{Float64}, jac::Vector{Float64})
@@ -44,21 +44,21 @@ end
 
 function eval_h(x::Vector{Float64}, lambda::Vector{Float64},
                 sigma::Float64, hess::Vector{Float64})
-  hess[1] = -2.0*sigma + 2.0*lambda[2]
-  hess[2] = -1.0*sigma
-  hess[3] = -1.0*sigma
-  hess[4] = -4.0*sigma + 2.0*lambda[2]
-  hess[5] = -2.0*sigma + 2.0*lambda[2]
+    hess[1] = -2.0*sigma + 2.0*lambda[2]
+    hess[2] = -1.0*sigma
+    hess[3] = -1.0*sigma
+    hess[4] = -4.0*sigma + 2.0*lambda[2]
+    hess[5] = -2.0*sigma + 2.0*lambda[2]
 end
 
 function eval_hv(x::Vector{Float64}, lambda::Vector{Float64},
                  sigma::Float64, hv::Vector{Float64})
-  hv1 = (-2.0*sigma + 2.0*lambda[2])*hv[1] - sigma*hv[2] - sigma*hv[3]
-  hv2 = -sigma*hv[1] + (-4.0*sigma + 2.0*lambda[2])*hv[2]
-  hv3 = -sigma*hv[1] + (-2.0*sigma + 2.0*lambda[2])*hv[3]
-  hv[1] = hv1
-  hv[2] = hv2
-  hv[3] = hv3
+    hv1 = (-2.0*sigma + 2.0*lambda[2])*hv[1] - sigma*hv[2] - sigma*hv[3]
+    hv2 = -sigma*hv[1] + (-4.0*sigma + 2.0*lambda[2])*hv[2]
+    hv3 = -sigma*hv[1] + (-2.0*sigma + 2.0*lambda[2])*hv[3]
+    hv[1] = hv1
+    hv[2] = hv2
+    hv[3] = hv3
 end
 
 objGoal = KTR_OBJGOAL_MINIMIZE
@@ -104,28 +104,28 @@ hessVector = Array(Float64, n)
 # nEvalStatus = int32(0)
 nKnStatus = int32(1)
 while nKnStatus > 0
-  nKnStatus = solveProblem(kp, cons, objGrad, jac, hess, hessVector)
-  if nKnStatus == KTR_RC_EVALFC
-    #---- KNITRO WANTS obj AND c EVALUATED AT THE POINT x.
-    kp.obj_val[1] = eval_f(kp.x)
-    eval_g(kp.x,cons)
-  elseif nKnStatus == KTR_RC_EVALGA
-    #---- KNITRO WANTS objGrad AND jac EVALUATED AT THE POINT x.
-    eval_grad_f(kp.x, objGrad)
-    eval_jac_g(kp.x, jac)
-  elseif nKnStatus == KTR_RC_EVALH
-    #---- KNITRO WANTS hess EVALUATED AT THE POINT x.
-    eval_h(kp.x, kp.lambda, 1.0, hess)
-  elseif nKnStatus == KTR_RC_EVALH_NO_F
-    #---- KNITRO WANTS hess EVALUATED AT THE POINT x
-    #---- WITHOUT OBJECTIVE COMPONENT.
-    eval_h(kp.x, kp.lambda, 0.0, hess)
-  end
-  #---- ASSUME THAT PROBLEM EVALUATION IS ALWAYS SUCCESSFUL.
-  #---- IF A FUNCTION OR ITS DERIVATIVE COULD NOT BE EVALUATED
-  #---- AT THE GIVEN (x, lambda), THEN SET kp.status = 1 BEFORE
-  #---- CALLING solve AGAIN.
-  # kp.status = int32(0)
+    nKnStatus = solveProblem(kp, cons, objGrad, jac, hess, hessVector)
+    if nKnStatus == KTR_RC_EVALFC
+        #---- KNITRO WANTS obj AND c EVALUATED AT THE POINT x.
+        kp.obj_val[1] = eval_f(kp.x)
+        eval_g(kp.x,cons)
+    elseif nKnStatus == KTR_RC_EVALGA
+        #---- KNITRO WANTS objGrad AND jac EVALUATED AT THE POINT x.
+        eval_grad_f(kp.x, objGrad)
+        eval_jac_g(kp.x, jac)
+    elseif nKnStatus == KTR_RC_EVALH
+        #---- KNITRO WANTS hess EVALUATED AT THE POINT x.
+        eval_h(kp.x, kp.lambda, 1.0, hess)
+    elseif nKnStatus == KTR_RC_EVALH_NO_F
+        #---- KNITRO WANTS hess EVALUATED AT THE POINT x
+        #---- WITHOUT OBJECTIVE COMPONENT.
+        eval_h(kp.x, kp.lambda, 0.0, hess)
+    end
+    #---- ASSUME THAT PROBLEM EVALUATION IS ALWAYS SUCCESSFUL.
+    #---- IF A FUNCTION OR ITS DERIVATIVE COULD NOT BE EVALUATED
+    #---- AT THE GIVEN (x, lambda), THEN SET kp.status = 1 BEFORE
+    #---- CALLING solve AGAIN.
+    # kp.status = int32(0)
 end
 
 # --- test optimal solutions ---
