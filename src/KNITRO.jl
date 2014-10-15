@@ -8,7 +8,8 @@ module KNITRO
         dlopen("libdl", RTLD_GLOBAL)
         dlopen("libgomp", RTLD_GLOBAL)
     end
-    const libknitro = "libknitro"
+    @unix_only const libknitro = "libknitro"
+    @windows_only const libknitro = "knitro"
 
     export
         KnitroProblem,

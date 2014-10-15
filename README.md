@@ -32,3 +32,20 @@ to your start-up file (e.g. ``.bash_profile``).
   ```julia
   julia> Pkg.test("KNITRO")
   ```
+
+Setting up KNITRO on Windows
+----------------------------
+
+Note that currently *only 64-bit* Windows is supported. That is, you must use 64-bit Julia and install the Win64 version of KNITRO.
+
+1. First, you must obtain a copy of the KNITRO software and a license; trial versions and academic licenses are available [here](http://www.ziena.com/download.htm).
+
+2. Once KNITRO is installed on your machine, add the directory containing ``knitro.dll`` to the `PATH` environment variable, as described in the KNITRO documentation. 
+
+3. At the Julia prompt, run
+  ```julia
+  julia> Pkg.clone("https://github.com/yeesian/KNITRO.jl.git")
+  ```
+(or manually clone this module to your ``.julia`` directory).
+
+4. Test that KNITRO works by runnning
