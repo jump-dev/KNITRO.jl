@@ -7,7 +7,6 @@ KNITRO functionality is extensive, so coverage is incomplete, but the basic func
 
 Setting up KNITRO on Linux and OS X
 -----------------------------------
-KNITRO isn't a listed package (yet). Here's what you need to do to install it
 
 1. First, you must obtain a copy of the KNITRO software and a license; trial versions and academic licenses are available [here](http://www.ziena.com/download.htm).
 
@@ -24,9 +23,8 @@ to your start-up file (e.g. ``.bash_profile``).
 
 3. At the Julia prompt, run 
   ```julia
-  julia> Pkg.clone("https://github.com/yeesian/KNITRO.jl.git")
+  julia> Pkg.add("KNITRO")
   ```
-(or manually clone this module to your ``.julia`` directory).
 
 4. Test that KNITRO works by runnning
   ```julia
@@ -44,8 +42,10 @@ Note that currently *only 64-bit* Windows is supported. That is, you must use 64
 
 3. At the Julia prompt, run
   ```julia
-  julia> Pkg.clone("https://github.com/yeesian/KNITRO.jl.git")
+  julia> Pkg.add("KNITRO")
   ```
-(or manually clone this module to your ``.julia`` directory).
 
 4. Test that KNITRO works by runnning
+  ```julia
+  julia> Pkg.test("KNITRO")
+  ```
