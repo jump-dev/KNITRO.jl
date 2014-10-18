@@ -96,19 +96,10 @@ function loadnonlinearproblem!(m::KnitroMathProgModel,
     c_Type = fill(KTR_CONTYPE_GENERAL, numConstr)
 
     # Objective callback
-    if sense == :Min
-        eval_f_cb(x) = eval_f(d,x)
-    else
-        eval_f_cb(x) = -eval_f(d,x)
-    end
+    eval_f_cb(x) = eval_f(d,x)
 
     # Objective gradient callback
-    if sense == :Min
-        eval_grad_f_cb(x, grad_f) = eval_grad_f(d, grad_f, x)
-    else
-        eval_grad_f_cb(x, grad_f) = (eval_grad_f(d, grad_f, x);
-                                     scale!(grad_f,-1))
-    end
+    eval_grad_f_cb(x, grad_f) = eval_grad_f(d, grad_f, x)
 
     # Constraint value callback
     eval_g_cb(x, g) = eval_g(d, g, x)
@@ -153,7 +144,7 @@ function status(m::KnitroMathProgModel)
     applicationReturnStatus(m.inner)
 end
 
-getobjval(m::KnitroMathProgModel) = m.inner.obj_val[1] * (m.inner.sense == :Max ? -1 : +1)
+getobjval(m::KnitroMathProgModel) = m.inner.obj_val[1]
 getsolution(m::KnitroMathProgModel) = m.inner.x
 getconstrsolution(m::KnitroMathProgModel) = m.inner.g
 getreducedcosts(m::KnitroMathProgModel) = zeros(m.inner.n)
