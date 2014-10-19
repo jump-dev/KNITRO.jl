@@ -86,5 +86,3 @@ solveProblem(kp)
 @test_approx_eq_eps kp.x[1] 0.5 1e-4
 @test_approx_eq_eps kp.x[2] 2.0 1e-4
 @test_approx_eq_eps kp.obj_val[1] 306.5 0.02
-
-freeProblem(kp)
