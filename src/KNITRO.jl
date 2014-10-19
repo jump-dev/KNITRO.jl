@@ -100,15 +100,15 @@ module KNITRO
         kp.status = int32(0)
     end
 
-    solveProblem(kp::KnitroProblem) = solve_problem(kp, kp.x, kp.lambda,
-                                                    kp.status, kp.obj_val)
+    solveProblem(kp::KnitroProblem) = (kp.status = solve_problem(kp, kp.x, kp.lambda,
+                                                    kp.status, kp.obj_val))
     function solveProblem(kp::KnitroProblem,
                           cons::Vector{Float64},
                           objGrad::Vector{Float64},
                           jac::Vector{Float64},
                           hess::Vector{Float64},
                           hessVector::Vector{Float64})
-        solve_problem(kp, kp.x, kp.lambda, kp.status, kp.obj_val, cons,
+        kp.status = solve_problem(kp, kp.x, kp.lambda, kp.status, kp.obj_val, cons,
                       objGrad, jac, hess, hessVector)
     end
 

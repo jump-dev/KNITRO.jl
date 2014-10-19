@@ -442,9 +442,6 @@ function solve_problem(kp::KnitroProblem,
                              Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble},
                              Ptr{Cdouble}, Any), kp.env, x, lambda, evalStatus,
                              obj, cons, objGrad, jac, hess, hessVector, kp)
-    if return_code < 0
-        error("KNITRO: Error solving problem")
-    end
     return_code
 end
 
@@ -459,9 +456,6 @@ function solve_problem(kp::KnitroProblem,
                              Ptr{Void}, Ptr{Void}, Ptr{Void}, Ptr{Void}, Any),
                              kp.env, x, lambda, evalStatus, obj, C_NULL,
                              C_NULL, C_NULL, C_NULL, C_NULL, kp)
-    if return_code < 0
-        error("KNITRO: Error solving problem (in callback mode")
-    end
     return_code
 end
 
