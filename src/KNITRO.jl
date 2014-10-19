@@ -13,7 +13,7 @@ module KNITRO
 
     export
         KnitroProblem,
-        createProblem, #freeProblem,
+        createProblem, freeProblem,
         initializeProblem,
         solveProblem,
         restartProblem,
@@ -57,7 +57,7 @@ module KNITRO
         function KnitroProblem()
             prob = new(newcontext())
             # finalizer segfaults upon termination of the running script
-            finalizer(prob, freeProblem)
+            # finalizer(prob, freeProblem)
             prob
         end
     end
@@ -65,9 +65,13 @@ module KNITRO
     createProblem() = KnitroProblem()
 
     function freeProblem(kp::KnitroProblem)
-        println("KNITRO.jl: freeing problem")
-        freecontext(kp.env)
-        println("KNITRO.jl: problem freed")
+        println("KNITRO: calling freecontext on $(kp.env)")
+        println("C_NULL (for reference): $(C_NULL)")
+        return_code = @ktr_ccall(free, Int32, (Ptr{Void},), pointer_from_objref(kp.env))
+        if return_code != 0
+            error("KNITRO: Error freeing memory")
+        end
+        println("KNITRO: freecontext successful")
         kp.env = C_NULL
         println("KNITRO.jl: set env to C_NULL")
     end
