@@ -13,7 +13,7 @@ module KNITRO
 
     export
         KnitroProblem,
-        createProblem, #freeProblem,
+        createProblem, freeProblem,
         initializeProblem,
         solveProblem,
         restartProblem,
@@ -43,6 +43,7 @@ module KNITRO
         lambda::Vector{Float64}
         g::Vector{Float64}  # Final constraint values
         obj_val::Vector{Float64}  # (length 1) Final objective
+        eval_status::Int32 # scalar input used only for reverse comms
         status::Int32  # Final status
 
         # Callbacks
@@ -56,8 +57,7 @@ module KNITRO
 
         function KnitroProblem()
             prob = new(newcontext())
-            # finalizer segfaults upon termination of the running script
-            # finalizer(prob, freeProblem)
+            finalizer(prob, freeProblem)
             prob
         end
     end
@@ -65,16 +65,16 @@ module KNITRO
     createProblem() = KnitroProblem()
 
     function freeProblem(kp::KnitroProblem)
-        freecontext(kp.env)
-        #kp.env = C_NULL
+        return_code = @ktr_ccall(free, Int32, (Ptr{Void},), [kp.env])
+        if return_code != 0
+            error("KNITRO: Error freeing memory")
+        end
+        kp.env = C_NULL
     end
 
     function initializeProblem(kp, objGoal, objType, x_l, x_u, c_Type, g_lb,
                                g_ub, jac_var, jac_con, hess_row, hess_col,
                                x0 = C_NULL, lambda0 = C_NULL)
-        # TODO: check return code?
-        init_problem(kp, objGoal, objType, x_l, x_u, c_Type, g_lb, g_ub,
-                     jac_var, jac_con, hess_row, hess_col, x0, lambda0)
         if objGoal == KTR_OBJGOAL_MINIMIZE
             kp.sense = :Min 
         else
@@ -95,20 +95,24 @@ module KNITRO
             kp.lambda = zeros(Float64, kp.n + kp.m)
         end
 
-        kp.g = Array(Float64, kp.m)
-        kp.obj_val = Array(Float64, 1)
-        kp.status = int32(0)
+        kp.g = zeros(Float64, kp.m)
+        kp.obj_val = zeros(Float64, 1)
+        kp.status = int32(1)
+        kp.eval_status = int32(0)
+
+        init_problem(kp, objGoal, objType, x_l, x_u, c_Type, g_lb, g_ub,
+                     jac_var, jac_con, hess_row, hess_col, kp.x, kp.lambda)
     end
 
     solveProblem(kp::KnitroProblem) = (kp.status = solve_problem(kp, kp.x, kp.lambda,
-                                                    kp.status, kp.obj_val))
+                                                    kp.eval_status, kp.obj_val))
     function solveProblem(kp::KnitroProblem,
                           cons::Vector{Float64},
                           objGrad::Vector{Float64},
                           jac::Vector{Float64},
                           hess::Vector{Float64},
                           hessVector::Vector{Float64})
-        kp.status = solve_problem(kp, kp.x, kp.lambda, kp.status, kp.obj_val, cons,
+        kp.status = solve_problem(kp, kp.x, kp.lambda, kp.eval_status, kp.obj_val, cons,
                       objGrad, jac, hess, hessVector)
     end
 

@@ -101,31 +101,35 @@ hessVector = Array(Float64, n)
 #---- RETURNS WHENEVER IT NEEDS MORE PROBLEM INFORMATION.  THE CALLING
 #---- PROGRAM MUST INTERPRET KNITRO'S RETURN STATUS AND CONTINUE
 #---- SUPPLYING PROBLEM INFORMATION UNTIL KNITRO IS COMPLETE.
-# nEvalStatus = int32(0)
-nKnStatus = int32(1)
-while nKnStatus > 0
-    nKnStatus = solveProblem(kp, cons, objGrad, jac, hess, hessVector)
-    if nKnStatus == KTR_RC_EVALFC
+while kp.status > 0
+    solveProblem(kp, cons, objGrad, jac, hess, hessVector)
+    if kp.status == KTR_RC_EVALFC
         #---- KNITRO WANTS obj AND c EVALUATED AT THE POINT x.
         kp.obj_val[1] = eval_f(kp.x)
         eval_g(kp.x,cons)
-    elseif nKnStatus == KTR_RC_EVALGA
+    elseif kp.status == KTR_RC_EVALGA
         #---- KNITRO WANTS objGrad AND jac EVALUATED AT THE POINT x.
         eval_grad_f(kp.x, objGrad)
         eval_jac_g(kp.x, jac)
-    elseif nKnStatus == KTR_RC_EVALH
+    elseif kp.status == KTR_RC_EVALH
         #---- KNITRO WANTS hess EVALUATED AT THE POINT x.
         eval_h(kp.x, kp.lambda, 1.0, hess)
-    elseif nKnStatus == KTR_RC_EVALH_NO_F
+    elseif kp.status == KTR_RC_EVALH_NO_F
         #---- KNITRO WANTS hess EVALUATED AT THE POINT x
         #---- WITHOUT OBJECTIVE COMPONENT.
         eval_h(kp.x, kp.lambda, 0.0, hess)
+    elseif kp.status == KTR_RC_EVALHV
+        #---- KNITRO WANTS hessVector EVALUATED AT THE POINT x.
+        eval_hv(kp.x, kp.lambda, 1.0, hessVector)
+    elseif kp.status == KTR_RC_EVALHV_NO_F
+        #---- KNITRO WANTS hessVector EVALUATED AT THE POINT x
+        #---- WITHOUT OBJECTIVE COMPONENT.
+        eval_hv(kp.x, kp.lambda, 0.0, hessVector)
     end
-    #---- ASSUME THAT PROBLEM EVALUATION IS ALWAYS SUCCESSFUL.
-    #---- IF A FUNCTION OR ITS DERIVATIVE COULD NOT BE EVALUATED
-    #---- AT THE GIVEN (x, lambda), THEN SET kp.status = 1 BEFORE
-    #---- CALLING solve AGAIN.
-    # kp.status = int32(0)
+    #/*---- ASSUME THAT PROBLEM EVALUATION IS ALWAYS SUCCESSFUL.
+    #*---- IF A FUNCTION OR ITS DERIVATIVE COULD NOT BE EVALUATED
+    #*---- AT THE GIVEN (x, lambda), THEN SET evalStatus = 1 BEFORE
+    #*---- CALLING KTR_solve AGAIN. */
 end
 
 # --- test optimal solutions ---
