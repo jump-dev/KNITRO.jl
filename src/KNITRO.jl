@@ -57,7 +57,7 @@ module KNITRO
         function KnitroProblem()
             prob = new(newcontext())
             # finalizer segfaults upon termination of the running script
-            # finalizer(prob, freeProblem)
+            finalizer(prob, freeProblem)
             prob
         end
     end
@@ -65,8 +65,11 @@ module KNITRO
     createProblem() = KnitroProblem()
 
     function freeProblem(kp::KnitroProblem)
+        println("KNITRO.jl: freeing problem")
         freecontext(kp.env)
-        #kp.env = C_NULL
+        println("KNITRO.jl: problem freed")
+        kp.env = C_NULL
+        println("KNITRO.jl: set env to C_NULL")
     end
 
     function initializeProblem(kp, objGoal, objType, x_l, x_u, c_Type, g_lb,

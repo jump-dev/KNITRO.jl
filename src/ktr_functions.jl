@@ -51,10 +51,13 @@ end
 @doc "Free all memory and release any KNITRO license acquired with [kp_env]" ->
 function freecontext(kp_env::Ptr{Void})
     if kp_env != C_NULL
+        println("KNITRO: calling freecontext on $(kp_env)")
+        println("C_NULL (for reference): $(C_NULL)")
         return_code = @ktr_ccall(free, Int32, (Ptr{Void},), kp_env)
         if return_code != 0
-              error("KNITRO: Error freeing memory")
+            error("KNITRO: Error freeing memory")
         end
+        println("KNITRO: freecontext successful")
     end
 end
 
