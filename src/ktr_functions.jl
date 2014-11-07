@@ -309,7 +309,7 @@ function add_contraints(kp::KnitroProblem,
     return_code = @ktr_ccall(add_compcons, Int32, (Ptr{Void}, Cint, Ptr{Cint},
                              Ptr{Cint}), kp.env, ncons, index1, index2)
     if return_code != 0
-    error("KNITRO: Error adding complementary constraints")
+        error("KNITRO: Error adding complementary constraints")
     end
 end
 
@@ -440,12 +440,11 @@ function solve_problem(kp::KnitroProblem,
                        jac::Vector{Float64},
                        hess::Vector{Float64},
                        hessVector::Vector{Float64})
-    return_code = @ktr_ccall(solve, Int32, (Ptr{Void}, Ptr{Cdouble},
-                             Ptr{Cdouble}, Cint, Ptr{Cdouble}, Ptr{Cdouble},
-                             Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble},
-                             Ptr{Cdouble}, Any), kp.env, x, lambda, evalStatus,
-                             obj, cons, objGrad, jac, hess, hessVector, kp)
-    return_code
+    @ktr_ccall(solve, Int32, (Ptr{Void}, Ptr{Cdouble},
+               Ptr{Cdouble}, Cint, Ptr{Cdouble}, Ptr{Cdouble},
+               Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble},
+               Ptr{Cdouble}, Any), kp.env, x, lambda, evalStatus,
+               obj, cons, objGrad, jac, hess, hessVector, kp)
 end
 
 function solve_problem(kp::KnitroProblem,
@@ -454,12 +453,11 @@ function solve_problem(kp::KnitroProblem,
                        evalStatus::Int32,
                        obj::Vector{Float64})
     # For callback mode
-    return_code = @ktr_ccall(solve, Int32, (Ptr{Void}, Ptr{Cdouble},
-                             Ptr{Cdouble}, Cint, Ptr{Cdouble}, Ptr{Void},
-                             Ptr{Void}, Ptr{Void}, Ptr{Void}, Ptr{Void}, Any),
-                             kp.env, x, lambda, evalStatus, obj, C_NULL,
-                             C_NULL, C_NULL, C_NULL, C_NULL, kp)
-    return_code
+    @ktr_ccall(solve, Int32, (Ptr{Void}, Ptr{Cdouble},
+               Ptr{Cdouble}, Cint, Ptr{Cdouble}, Ptr{Void},
+               Ptr{Void}, Ptr{Void}, Ptr{Void}, Ptr{Void}, Any),
+               kp.env, x, lambda, evalStatus, obj, C_NULL,
+               C_NULL, C_NULL, C_NULL, C_NULL, kp)
 end
 
 @doc """
@@ -601,15 +599,11 @@ function mip_solve_problem(kp::KnitroProblem,
                            jac::Vector{Float64},
                            hess::Vector{Float64},
                            hessVector::Vector{Float64})
-    return_code = @ktr_ccall(mip_solve, Int32, (Ptr{Void}, Ptr{Cdouble},
-                             Ptr{Cdouble}, Cint, Ptr{Cdouble}, Ptr{Cdouble},
-                             Ptr{Cdouble},Ptr{Cdouble}, Ptr{Cdouble},
-                             Ptr{Cdouble}, Any), kp.env, x, lambda, evalStatus,
-                             obj, cons, objGrad, jac, hess, hessVector, kp)
-    if return_code < 0
-        error("KNITRO: Error solving MIP problem")
-    end
-    return_code
+    @ktr_ccall(mip_solve, Int32, (Ptr{Void}, Ptr{Cdouble},
+               Ptr{Cdouble}, Cint, Ptr{Cdouble}, Ptr{Cdouble},
+               Ptr{Cdouble},Ptr{Cdouble}, Ptr{Cdouble},
+               Ptr{Cdouble}, Any), kp.env, x, lambda, evalStatus,
+               obj, cons, objGrad, jac, hess, hessVector, kp)
 end
 
 function mip_solve_problem(kp::KnitroProblem,
@@ -618,15 +612,11 @@ function mip_solve_problem(kp::KnitroProblem,
                            evalStatus::Int32,
                            obj::Vector{Float64})
     # For callback mode
-    return_code = @ktr_ccall(mip_solve, Int32, (Ptr{Void}, Ptr{Cdouble},
-                             Ptr{Cdouble}, Cint, Ptr{Cdouble}, Ptr{Void},
-                             Ptr{Void}, Ptr{Void}, Ptr{Void}, Ptr{Void}, Any),
-                             kp.env, x, lambda, evalStatus, obj, C_NULL,
-                             C_NULL, C_NULL, C_NULL, C_NULL, kp)
-    if return_code != 0
-        error("KNITRO: Error solving MIP problem (in callback mode)")
-    end
-    return_code
+    @ktr_ccall(mip_solve, Int32, (Ptr{Void}, Ptr{Cdouble},
+               Ptr{Cdouble}, Cint, Ptr{Cdouble}, Ptr{Void},
+               Ptr{Void}, Ptr{Void}, Ptr{Void}, Ptr{Void}, Any),
+               kp.env, x, lambda, evalStatus, obj, C_NULL,
+               C_NULL, C_NULL, C_NULL, C_NULL, kp)
 end
 
 @doc """
@@ -888,6 +878,7 @@ function get_mip_num_nodes(kp::KnitroProblem)
         error("KNITRO: Error getting the number of nodes processed in
               MIP solve")
     end
+    n
 end
 
 @doc "Return the number of continuous subproblems processed in MIP solve." ->
@@ -897,6 +888,7 @@ function get_mip_num_solves(kp::KnitroProblem)
         error("KNITRO: Error getting the number of subproblems processed in
               MIP solve")
     end
+    n
 end
 
 @doc """
