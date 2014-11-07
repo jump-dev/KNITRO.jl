@@ -152,7 +152,9 @@ getconstrduals(m::KnitroMathProgModel) = zeros(m.inner.m)
 getrawsolver(m::KnitroMathProgModel) = m.inner
 
 function warmstart(m::KnitroMathProgModel, x)
-    @assert m.inner.status != :Uninitialized
+    if m.inner.status == :Uninitialized
+        error("KNITRO.jl: Error setting warm start. Initialize the problem using loadnonlinearproblem! first.")
+    end
     restartProblem(m.inner, float64(x), m.inner.lambda)
 end
 
