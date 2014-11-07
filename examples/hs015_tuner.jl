@@ -73,16 +73,19 @@ hess_row = Int32[0,0,1]
 hess_col = Int32[0,1,1]
 
 kp = createProblem()
+@test applicationReturnStatus(kp) == :InitialStatus
 loadOptionsFile(kp, joinpath(dirname(@__FILE__),"tuner-fixed.opt"))
 setOption(kp, KTR_PARAM_TUNER, KTR_TUNER_ON)
 loadTunerFile(kp, joinpath(dirname(@__FILE__), "tuner-explore.opt"))
 
 initializeProblem(kp, objGoal, objType, x_L, x_U, c_Type, c_L, c_U,
                   jac_var, jac_con, hess_row, hess_col, x)
+@test applicationReturnStatus(kp) == :InitialStatus
 setCallbacks(kp, eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h, eval_hv)
 solveProblem(kp)
 
 # --- test optimal solutions ---
+@test applicationReturnStatus(kp) == :Optimal
 @test_approx_eq_eps kp.x[1] 0.5 1e-4
 @test_approx_eq_eps kp.x[2] 2.0 1e-4
 @test_approx_eq_eps kp.obj_val[1] 306.5 0.02

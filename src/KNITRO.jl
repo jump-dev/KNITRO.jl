@@ -33,7 +33,10 @@ module KNITRO
     end
 
     type KnitroProblem
+        # For KNITRO
         env::Ptr{Void} # pointer to KTR_context
+        eval_status::Int32 # scalar input used only for reverse comms
+        status::Int32  # Final status
 
         # For MathProgBase
         sense::Symbol
@@ -43,8 +46,6 @@ module KNITRO
         lambda::Vector{Float64}
         g::Vector{Float64}  # Final constraint values
         obj_val::Vector{Float64}  # (length 1) Final objective
-        eval_status::Int32 # scalar input used only for reverse comms
-        status::Int32  # Final status
 
         # Callbacks
         eval_f::Function
@@ -56,9 +57,11 @@ module KNITRO
         eval_mip_node::Function
 
         function KnitroProblem()
-            prob = new(newcontext())
-            finalizer(prob, freeProblem)
-            prob
+            kp = new(newcontext(),
+                     int32(0),
+                     int32(10)) # chosen to not clash with any KTR return code
+            finalizer(kp, freeProblem)
+            kp
         end
     end
 
@@ -97,8 +100,6 @@ module KNITRO
 
         kp.g = zeros(Float64, kp.m)
         kp.obj_val = zeros(Float64, 1)
-        kp.status = int32(1)
-        kp.eval_status = int32(0)
 
         init_problem(kp, objGoal, objType, x_l, x_u, c_Type, g_lb, g_ub,
                      jac_var, jac_con, hess_row, hess_col, kp.x, kp.lambda)
@@ -117,7 +118,8 @@ module KNITRO
     end
 
     function restartProblem(kp, x0, lambda0)
-        kp.status = int32(0)
+        kp.status = int32(10) # chosen to not clash with any of the return codes
+        kp.eval_status = int32(0)
         restart_problem(kp, x0, lambda0)
     end
 
@@ -208,9 +210,8 @@ module KNITRO
             kp.eval_hv(x, lambda, 0.0, pointer_to_array(HV_, n))
         else
             return KTR_RC_CALLBACK_ERR
-    end
-
-    int32(0)
+        end
+        int32(0)
     end
 
     function setFuncCallback(kp::KnitroProblem,
@@ -256,9 +257,13 @@ module KNITRO
     getOption(args...) = get_param(args...)
 
     function applicationReturnStatus(kp::KnitroProblem)
-        @assert int32(-599) <= kp.status <= int32(0)
+        @assert int32(-599) <= kp.status <= int32(10)
         if kp.status == int32(0)
             return :Optimal
+        elseif kp.status == int32(10)
+            return :InitialStatus
+        elseif int32(1) <= kp.status <= int32(9)
+            return :ReverseComms
         elseif int32(-199) <= kp.status <= int32(-100)
             return :FeasibleApproximate
         elseif int32(-299) <= kp.status <= int32(-200)
