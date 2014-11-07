@@ -73,9 +73,9 @@ lambda  = zeros(n+m)
 obj     = [0.0]
 
 kp = createProblem()
-@test applicationReturnStatus(kp) == :InitialStatus
+@test applicationReturnStatus(kp) == :Uninitialized
 loadOptionsFile(kp,joinpath(dirname(@__FILE__),"knitro.opt"))
-@test applicationReturnStatus(kp) == :InitialStatus
+@test applicationReturnStatus(kp) == :Uninitialized
 
 # --- test getters and setters ---
 hessopt = int32(zeros(1))
@@ -91,9 +91,9 @@ getOption(kp,"hessopt",hessopt)
 
 initializeProblem(kp, objGoal, objType, x_L, x_U, c_Type, c_L, c_U,
                   jac_var, jac_con, hess_row, hess_col)
-@test applicationReturnStatus(kp) == :InitialStatus
+@test applicationReturnStatus(kp) == :Initialized
 setCallbacks(kp, eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h, eval_hv)
-@test applicationReturnStatus(kp) == :InitialStatus
+@test applicationReturnStatus(kp) == :Initialized
 solveProblem(kp)
 
 # --- test optimal solutions ---
@@ -119,7 +119,7 @@ solveProblem(kp)
 x = [2.0,2.0,2.0]
 lambda = ones(n+m)
 restartProblem(kp, x, lambda)
-@test applicationReturnStatus(kp) == :InitialStatus
+@test applicationReturnStatus(kp) == :Initialized
 solveProblem(kp)
 # --- test optimal solutions ---
 @test applicationReturnStatus(kp) == :Optimal

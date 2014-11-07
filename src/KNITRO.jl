@@ -100,6 +100,7 @@ module KNITRO
 
         kp.g = zeros(Float64, kp.m)
         kp.obj_val = zeros(Float64, 1)
+        kp.status = int32(11) # chosen to not clash with any of the return codes
 
         init_problem(kp, objGoal, objType, x_l, x_u, c_Type, g_lb, g_ub,
                      jac_var, jac_con, hess_row, hess_col, kp.x, kp.lambda)
@@ -118,7 +119,7 @@ module KNITRO
     end
 
     function restartProblem(kp, x0, lambda0)
-        kp.status = int32(10) # chosen to not clash with any of the return codes
+        kp.status = int32(11) # chosen to not clash with any of the return codes
         kp.eval_status = int32(0)
         restart_problem(kp, x0, lambda0)
     end
@@ -257,11 +258,13 @@ module KNITRO
     getOption(args...) = get_param(args...)
 
     function applicationReturnStatus(kp::KnitroProblem)
-        @assert int32(-599) <= kp.status <= int32(10)
+        @assert int32(-599) <= kp.status <= int32(11)
         if kp.status == int32(0)
             return :Optimal
         elseif kp.status == int32(10)
-            return :InitialStatus
+            return :Uninitialized
+        elseif kp.status == int32(11)
+            return :Initialized
         elseif int32(1) <= kp.status <= int32(9)
             return :ReverseComms
         elseif int32(-199) <= kp.status <= int32(-100)
