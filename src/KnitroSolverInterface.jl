@@ -150,4 +150,12 @@ getconstrsolution(m::KnitroMathProgModel) = m.inner.g
 getreducedcosts(m::KnitroMathProgModel) = zeros(m.inner.n)
 getconstrduals(m::KnitroMathProgModel) = zeros(m.inner.m)
 getrawsolver(m::KnitroMathProgModel) = m.inner
-setwarmstart!(m::KnitroMathProgModel, x) = copy!(m.inner.x, x) # starting point
+
+function warmstart(m::KnitroMathProgModel, x)
+    if m.inner.status == :Uninitialized
+        error("KNITRO.jl: Error setting warm start. Initialize the problem using loadnonlinearproblem! first.")
+    end
+    restartProblem(m.inner, float64(x), m.inner.lambda)
+end
+
+setwarmstart!(m::KnitroMathProgModel, x) = warmstart(m,x)

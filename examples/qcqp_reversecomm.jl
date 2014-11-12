@@ -82,18 +82,18 @@ hess_col = Int32[0,1,2,1,2]
 x = [2.0,2.0,2.0] # initial guess
 
 kp = createProblem()
-@test applicationReturnStatus(kp) == :InitialStatus
+@test applicationReturnStatus(kp) == :Uninitialized
 setOption(kp, "outlev", "all")
 setOption(kp, "hessopt", int32(1))
 setOption(kp, "hessian_no_f", int32(1))
 setOption(kp, "feastol", 1.0e-10)
 
-@test applicationReturnStatus(kp) == :InitialStatus
+@test applicationReturnStatus(kp) == :Uninitialized
 @test kp.eval_status == int32(0)
 
 initializeProblem(kp, objGoal, objType, x_L, x_U, c_Type, c_L, c_U,
                   jac_var, jac_con, hess_row, hess_col, x)
-@test applicationReturnStatus(kp) == :InitialStatus
+@test applicationReturnStatus(kp) == :Initialized
 @test kp.eval_status == int32(0)
 
 #---- ALLOCATE ARRAYS FOR REVERSE COMMUNICATIONS OPERATION.
@@ -108,7 +108,7 @@ hessVector = Array(Float64, n)
 #---- PROGRAM MUST INTERPRET KNITRO'S RETURN STATUS AND CONTINUE
 #---- SUPPLYING PROBLEM INFORMATION UNTIL KNITRO IS COMPLETE.
 while kp.status > 0
-    @test applicationReturnStatus(kp) in [:InitialStatus, :ReverseComms]
+    @test applicationReturnStatus(kp) in [:Initialized, :ReverseComms]
     solveProblem(kp, cons, objGrad, jac, hess, hessVector)
     if kp.status == KTR_RC_EVALFC
         #---- KNITRO WANTS obj AND c EVALUATED AT THE POINT x.

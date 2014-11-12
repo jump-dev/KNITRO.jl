@@ -1,4 +1,5 @@
-include("../examples/hs015_tuner.jl")
-include("../examples/hs035_restart.jl")
-include("../examples/minlp.jl")
-include("../examples/qcqp_reversecomm.jl")
+for test_file in readdir("../examples/")
+    if test_file[end-2:end] == ".jl"
+        include("../examples/$(test_file)")
+    end
+end

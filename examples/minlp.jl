@@ -193,7 +193,7 @@ x_Type = [KTR_VARTYPE_CONTINUOUS,
           KTR_VARTYPE_BINARY]
 
 kp = createProblem()
-@test applicationReturnStatus(kp) == :InitialStatus
+@test applicationReturnStatus(kp) == :Uninitialized
 
 # ------ Illustrate how to override default options ------
 # --- (options must be set before calling init_problem) ---
@@ -207,18 +207,17 @@ setOption(kp, KTR_PARAM_MIP_MAXNODES, int32(10000))
 # hessian matrix without the objective component
 # (turned off by default, but should be enabled if possible)
 setOption(kp, KTR_PARAM_HESSIAN_NO_F, KTR_HESSIAN_NO_F_ALLOW)
-@test applicationReturnStatus(kp) == :InitialStatus
+@test applicationReturnStatus(kp) == :Uninitialized
 
 # --- set callback functions ---
 setCallbacks(kp, eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h, eval_hv)
-@test applicationReturnStatus(kp) == :InitialStatus
+@test applicationReturnStatus(kp) == :Uninitialized
 setMIPCallback(kp, eval_mip_node)
-@test applicationReturnStatus(kp) == :InitialStatus
+@test applicationReturnStatus(kp) == :Uninitialized
 
 ret = mip_init_problem(kp, objGoal, objType, objFnType,
                        x_Type, x_L, x_U, c_Type, c_FnType, c_L, c_U,
                        jac_var, jac_con, hess_row, hess_col)
-@test applicationReturnStatus(kp) == :InitialStatus
 
 x = Array(Float64, n)
 lambda = Array(Float64, n+m)
