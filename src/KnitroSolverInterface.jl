@@ -125,9 +125,6 @@ function loadnonlinearproblem!(m::KnitroMathProgModel,
                                                          lambda)
 
     m.inner = createProblem()
-    # ---
-    # set options/parameters here
-    # ---
     initializeProblem(m.inner, objGoal, objType, x_l, x_u, c_Type, g_lb, g_ub,
                       int32(jac_var-1), int32(jac_con-1), int32(hess_row-1),
                       int32(hess_col-1))
@@ -138,7 +135,12 @@ end
 getsense(m::KnitroMathProgModel) = int32(m.inner.sense)
 numvar(m::KnitroMathProgModel) = int32(m.inner.n)
 numconstr(m::KnitroMathProgModel) = int32(m.inner.m)
-optimize!(m::KnitroMathProgModel) = solveProblem(m.inner)
+function optimize!(m::KnitroMathProgModel)
+    for (param,value) in m.options
+        setOption(m.inner, param, value)
+    end
+    solveProblem(m.inner)
+end
 
 function status(m::KnitroMathProgModel)
     applicationReturnStatus(m.inner)
