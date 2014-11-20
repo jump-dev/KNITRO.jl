@@ -127,20 +127,19 @@ function loadnonlinearproblem!(m::KnitroMathProgModel,
     m.inner = createProblem()
 
     for (param,value) in m.options
-        try
-            setOption(m.inner, eval(param), value)
-        catch
-            try
-                param = string(param)
-                if param == "options_file"
-                    loadOptionsFile(m.inner, value)
-                elseif param == "tuner_file"
-                    loadTunerFile(m.inner, value)
-                else
-                    setOption(m.inner, param, value)    
-                end
-            catch
-                error("KNITRO: unrecognized option $(param)")
+        param = string(param)
+        if param == "options_file"
+            loadOptionsFile(m.inner, value)
+        elseif param == "tuner_file"
+            loadTunerFile(m.inner, value)
+        else
+            if isa(value, Int)
+                value = int32(value)
+            end
+            if haskey(paramName2Indx, param) # KTR_PARAM_*
+                setOption(m.inner, paramName2Indx[param], value)
+            else # string name
+                setOption(m.inner, param, value)
             end
         end
     end

@@ -1,8 +1,8 @@
 using KNITRO, JuMP, Base.Test
 
 for m in [Model(solver=KnitroSolver()),
-          Model(solver=KnitroSolver(KTR_PARAM_ALG=int32(5))), # int param name
-          Model(solver=KnitroSolver(hessopt=int32(1))), # string param name
+          Model(solver=KnitroSolver(KTR_PARAM_ALG=5)),
+          Model(solver=KnitroSolver(hessopt=1)),
           Model(solver=KnitroSolver(options_file=joinpath(dirname(@__FILE__),
                                                           "tuner-fixed.opt"))),
           Model(solver=KnitroSolver(tuner_file=joinpath(dirname(@__FILE__),
