@@ -125,6 +125,26 @@ function loadnonlinearproblem!(m::KnitroMathProgModel,
                                                          lambda)
 
     m.inner = createProblem()
+
+    for (param,value) in m.options
+        try
+            setOption(m.inner, eval(param), value)
+        catch
+            try
+                param = string(param)
+                if param == "options_file"
+                    loadOptionsFile(m.inner, value)
+                elseif param == "tuner_file"
+                    loadTunerFile(m.inner, value)
+                else
+                    setOption(m.inner, param, value)    
+                end
+            catch
+                error("KNITRO: unrecognized option $(param)")
+            end
+        end
+    end
+
     initializeProblem(m.inner, objGoal, objType, x_l, x_u, c_Type, g_lb, g_ub,
                       int32(jac_var-1), int32(jac_con-1), int32(hess_row-1),
                       int32(hess_col-1))
@@ -135,12 +155,7 @@ end
 getsense(m::KnitroMathProgModel) = int32(m.inner.sense)
 numvar(m::KnitroMathProgModel) = int32(m.inner.n)
 numconstr(m::KnitroMathProgModel) = int32(m.inner.m)
-function optimize!(m::KnitroMathProgModel)
-    for (param,value) in m.options
-        setOption(m.inner, param, value)
-    end
-    solveProblem(m.inner)
-end
+optimize!(m::KnitroMathProgModel) = solveProblem(m.inner)
 
 function status(m::KnitroMathProgModel)
     applicationReturnStatus(m.inner)

@@ -86,6 +86,6 @@ solveProblem(kp)
 
 # --- test optimal solutions ---
 @test applicationReturnStatus(kp) == :Optimal
-@test_approx_eq_eps kp.x[1] 0.5 1e-4
-@test_approx_eq_eps kp.x[2] 2.0 1e-4
-@test_approx_eq_eps kp.obj_val[1] 306.5 0.02
+@test abs(kp.x[1]-0.5) < 1e-4 || abs(kp.x[1]+0.79212) < 1e-4
+@test abs(kp.x[2]-2.0) < 1e-4 || abs(kp.x[2]+1.26243) < 1e-4
+@test abs(kp.obj_val[1]-306.5) < 0.025 || abs(kp.obj_val[1]-360.4) < 0.025
