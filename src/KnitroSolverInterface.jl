@@ -125,9 +125,25 @@ function loadnonlinearproblem!(m::KnitroMathProgModel,
                                                          lambda)
 
     m.inner = createProblem()
-    # ---
-    # set options/parameters here
-    # ---
+
+    for (param,value) in m.options
+        param = string(param)
+        if param == "options_file"
+            loadOptionsFile(m.inner, value)
+        elseif param == "tuner_file"
+            loadTunerFile(m.inner, value)
+        else
+            if isa(value, Int)
+                value = int32(value)
+            end
+            if haskey(paramName2Indx, param) # KTR_PARAM_*
+                setOption(m.inner, paramName2Indx[param], value)
+            else # string name
+                setOption(m.inner, param, value)
+            end
+        end
+    end
+
     initializeProblem(m.inner, objGoal, objType, x_l, x_u, c_Type, g_lb, g_ub,
                       int32(jac_var-1), int32(jac_con-1), int32(hess_row-1),
                       int32(hess_col-1))

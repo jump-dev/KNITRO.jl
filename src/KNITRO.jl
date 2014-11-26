@@ -283,5 +283,6 @@ module KNITRO
     include("ktr_callbacks.jl")
     include("ktr_functions.jl")
     include("ktr_defines.jl")
+    include("ktr_params.jl")
     include("KnitroSolverInterface.jl")
 end
