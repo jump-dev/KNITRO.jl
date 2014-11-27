@@ -19,6 +19,7 @@ Contents
    solving.rst
    solverparams.rst
    callbacks.rst
+   jumpinterface.rst
 
 .. _KNITRO solver: http://www.ziena.com/knitro.htm
 .. _Julia language: http://julialang.org/
