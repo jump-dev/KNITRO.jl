@@ -1,5 +1,17 @@
+const var_type_map = Compat.@compat Dict(
+KTR_VARTYPE_CONTINUOUS => :Cont,
+KTR_VARTYPE_INTEGER => :Int,
+KTR_VARTYPE_BINARY => :Bin
+)
+
+const rev_var_type_map = Compat.@compat Dict(
+:Cont => KTR_VARTYPE_CONTINUOUS,
+:Int => KTR_VARTYPE_INTEGER,
+:Bin => KTR_VARTYPE_BINARY
+)
+
 # grep "#define" knitro.h | grep "KTR_PARAM_" | awk '{ printf("\"%s\" => int32(%s),\n",$2,$3) }'
-const paramName2Indx = [
+const paramName2Indx = Compat.@compat Dict(
 "KTR_PARAM_NEWPOINT" => int32(1001),
 "KTR_PARAM_HONORBNDS" => int32(1002),
 "KTR_PARAM_ALGORITHM" => int32(1003),
@@ -112,4 +124,4 @@ const paramName2Indx = [
 "KTR_PARAM_PAR_CONCURRENT_EVALS" => int32(3002),
 "KTR_PARAM_PAR_BLASNUMTHREADS" => int32(3003),
 "KTR_PARAM_PAR_LSNUMTHREADS" => int32(3004)
-]
+)

@@ -84,6 +84,113 @@ function loadnonlinearproblem!(m::KnitroMathProgModel,
     end
 
     @assert sense == :Min || sense == :Max
+    objGoal = (sense == :Min) ? KTR_OBJGOAL_MINIMIZE : KTR_OBJGOAL_MAXIMIZE
+    # allow for the possibility of specializing to LINEAR or QUADRATIC?
+    objType = KTR_OBJTYPE_GENERAL
+    c_Type = fill(KTR_CONTYPE_GENERAL, numConstr)
+
+    # Objective callback
+    eval_f_cb(x) = eval_f(d,x)
+
+    # Objective gradient callback
+    eval_grad_f_cb(x, grad_f) = eval_grad_f(d, grad_f, x)
+
+    # Constraint value callback
+    eval_g_cb(x, g) = eval_g(d, g, x)
+
+    # Jacobian callback
+    function eval_jac_g_cb(x, jac)
+        eval_jac_g(d, jac_tmp, x)
+        for i in 1:n_jac_indices
+            jac[i] = sum(jac_tmp[jac_indices[i]])
+        end
+    end
+
+    # Hessian callback
+    function eval_h_cb(x, lambda, sigma, hess)
+        eval_hesslag(d, hess_tmp, x, sigma, lambda)
+        for i in 1:n_hess_indices
+            hess[i] = sum(hess_tmp[hess_indices[i]])
+        end
+    end
+
+    # Hessian-vector callback
+    eval_hv_cb(x, lambda, sigma, hv) = eval_hesslag_prod(d, hv, x, sigma,
+                                                         lambda)
+
+    m.inner = createProblem()
+
+    for (param,value) in m.options
+        param = string(param)
+        if param == "options_file"
+            loadOptionsFile(m.inner, value)
+        elseif param == "tuner_file"
+            loadTunerFile(m.inner, value)
+        else
+            if isa(value, Int)
+                value = int32(value)
+            end
+            if haskey(paramName2Indx, param) # KTR_PARAM_*
+                setOption(m.inner, paramName2Indx[param], value)
+            else # string name
+                setOption(m.inner, param, value)
+            end
+        end
+    end
+    initializeProblem(m.inner, objGoal, objType, x_l, x_u, c_Type, g_lb, g_ub,
+                      int32(jac_var-1), int32(jac_con-1), int32(hess_row-1),
+                      int32(hess_col-1))
+    setCallbacks(m.inner, eval_f_cb, eval_g_cb, eval_grad_f_cb, eval_jac_g_cb,
+                 eval_h_cb, eval_hv_cb)
+end
+
+function loadnonlinearproblem!(m::KnitroMathProgModel,
+                               numVar::Integer,
+                               numConstr::Integer,
+                               x_l, x_u, x_Type, g_lb, g_ub,
+                               sense::Symbol,
+                               d::AbstractNLPEvaluator)
+    initialize(d, [:Grad, :Jac, :Hess])
+    Ijac, Jjac = jac_structure(d)
+    Ihess, Jhess = hesslag_structure(d)
+    nnzJ = length(Ijac)
+    nnzH = length(Ihess)
+    jac_tmp = Array(Float64, nnzJ)
+    hess_tmp = Array(Float64, nnzH)
+    @assert length(Ijac) == length(Jjac)
+    @assert length(Ihess) == length(Jhess)
+    jac_con, jac_var, jac_indices = sparse_merge_jac_duplicates(Ijac, Jjac,
+                                                                numConstr,
+                                                                numVar)
+    hess_row, hess_col, hess_indices = sparse_merge_hess_duplicates(Ihess,
+                                                                    Jhess,
+                                                                    numVar,
+                                                                    numVar)
+    n_jac_indices = length(jac_indices)
+    n_hess_indices = length(hess_indices)
+
+    x_l, x_u, g_lb, g_ub = float(x_l), float(x_u), float(g_lb), float(g_ub)
+    @assert length(x_l) == length(x_u)
+    @assert length(g_lb) == length(g_ub)
+    for i in 1:length(x_l)
+        if x_l[i] == -Inf
+            x_l[i] = -KTR_INFBOUND
+        end
+        if x_u[i] == Inf
+            x_u[i] = KTR_INFBOUND
+        end
+    end
+
+    for i in 1:length(g_lb)
+        if g_lb[i] == -Inf
+            g_lb[i] = -KTR_INFBOUND
+        end
+        if g_ub[i] == Inf
+            g_ub[i] = KTR_INFBOUND
+        end
+    end
+
+    @assert sense == :Min || sense == :Max
 
     # Objective sense
     if sense == :Min
@@ -144,9 +251,17 @@ function loadnonlinearproblem!(m::KnitroMathProgModel,
         end
     end
 
-    initializeProblem(m.inner, objGoal, objType, x_l, x_u, c_Type, g_lb, g_ub,
-                      int32(jac_var-1), int32(jac_con-1), int32(hess_row-1),
-                      int32(hess_col-1))
+    if all(x_Type .== :Cont)
+        initializeProblem(m.inner, objGoal, objType, x_l, x_u, c_Type, g_lb, g_ub,
+                          int32(jac_var-1), int32(jac_con-1), int32(hess_row-1),
+                          int32(hess_col-1))
+    else
+        initializeProblem(m.inner, objGoal, objType, KTR_FNTYPE_UNCERTAIN,
+                          map(x->rev_var_type_map[x], x_Type), x_l, x_u, c_Type,
+                          fill(KTR_FNTYPE_UNCERTAIN,length(c_Type)), g_lb, g_ub,
+                          int32(jac_var-1), int32(jac_con-1), int32(hess_row-1),
+                          int32(hess_col-1))
+    end
     setCallbacks(m.inner, eval_f_cb, eval_g_cb, eval_grad_f_cb, eval_jac_g_cb,
                  eval_h_cb, eval_hv_cb)
 end
@@ -175,3 +290,4 @@ function warmstart(m::KnitroMathProgModel, x)
 end
 
 setwarmstart!(m::KnitroMathProgModel, x) = warmstart(m,x)
+#function setvartype!(m::KnitroMathProgModel, typ::Vector{Symbol})

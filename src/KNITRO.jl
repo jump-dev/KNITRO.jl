@@ -11,6 +11,8 @@ module KNITRO
     @unix_only const libknitro = "libknitro"
     @windows_only const libknitro = "knitro"
 
+    import Compat
+    
     export
         KnitroProblem,
         createProblem, freeProblem,
@@ -44,6 +46,7 @@ module KNITRO
         n::Int  # Num vars
         m::Int  # Num cons
         x::Vector{Float64}  # Starting and final solution
+        # vartype::Vector{Symbol}
         lambda::Vector{Float64}
         g::Vector{Float64}  # Final constraint values
         obj_val::Vector{Float64}  # (length 1) Final objective
@@ -93,6 +96,7 @@ module KNITRO
                                g_ub, jac_var, jac_con, hess_row, hess_col,
                                x0 = C_NULL, lambda0 = C_NULL)
         initializeKP(kp, objGoal, length(x_l), length(g_lb), x0, lambda0)
+        # kp.vartype = fill(:Cont, length(x_l))
         init_problem(kp, objGoal, objType, x_l, x_u, c_Type, g_lb, g_ub,
                      jac_var, jac_con, hess_row, hess_col, kp.x, kp.lambda)
     end
@@ -103,6 +107,7 @@ module KNITRO
                                g_ub, jac_var, jac_con, hess_row, hess_col,
                                x0 = C_NULL, lambda0 = C_NULL)
         initializeKP(kp, objGoal, length(x_l), length(g_lb), x0, lambda0, mip=true)
+        # kp.vartype = map(x->var_type_map[x], x_Type)
         mip_init_problem(kp, objGoal, objType, objFnType, x_Type, x_l, x_u,
                          c_Type, c_FnType, g_lb, g_ub, jac_var, jac_con,
                          hess_row, hess_col, kp.x, kp.lambda)
