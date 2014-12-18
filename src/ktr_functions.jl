@@ -1,18 +1,23 @@
 export
-    newcontext, freecontext,
+    newcontext, freecontext, # newcontext_puts,
+    # checkoutlicense, releaselicense, get_release,
     load_param_file, save_param_file, load_tuner_file,
+    set_param, get_param, # reset_params_to_defaults,
+    # set_feastols, set_names, add_contraints, chgvarbnds,
     init_problem, solve_problem, restart_problem,
     mip_init_problem, mip_solve_problem,
-    set_param, get_param,
+    #set_branching_priorities, set_findiff_relstepsizes
     get_number_FC_evals, get_number_GA_evals,
     get_number_H_evals, get_number_HV_evals,
     get_number_iters, get_number_cg_iters,
     get_abs_feas_error, get_rel_feas_error,
     get_abs_opt_error, get_rel_opt_error,
+    # get_solution, get_constraint_values,
+    # get_objgrad_values, get_jacobian_values, get_hessian_values,
     get_mip_num_nodes, get_mip_num_solves,
     get_mip_abs_gap, get_mip_rel_gap,
     get_mip_incumbent_obj, get_mip_relaxation_bnd,
-    get_mip_lastnode_obj, get_mip_incumbent_x
+    get_mip_lastnode_obj, get_mip_incumbent_x #, check_first_ders,
 
 @doc """
 Returns a pointer to the solver object that is used in all other KNITRO API calls.
