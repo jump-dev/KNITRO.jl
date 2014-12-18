@@ -10,28 +10,28 @@ KnitroSolver(;kwargs...) = KnitroSolver(kwargs)
 
 type KnitroMathProgModel <: AbstractMathProgModel
     options
-    inner
+    inner::KnitroProblem
 
     numVar::Integer
     numConstr::Integer
     nnzJ::Integer
     nnzH::Integer
 
-    varLB
-    varUB
-    constrLB
-    constrUB
+    varLB::Vector{Float64}
+    varUB::Vector{Float64}
+    constrLB::Vector{Float64}
+    constrUB::Vector{Float64}
 
-    jac_con
-    jac_var
-    hess_row
-    hess_col
+    jac_con::Vector{Int32}
+    jac_var::Vector{Int32}
+    hess_row::Vector{Int32}
+    hess_col::Vector{Int32}
 
-    varType
-    objType
-    objFnType
-    constrType
-    constrFnType
+    varType::Vector{Int32}
+    objType::Int32
+    objFnType::Int32
+    constrType::Vector{Int32}
+    constrFnType::Vector{Int32}
 
     initial_x
     sense::Int32
