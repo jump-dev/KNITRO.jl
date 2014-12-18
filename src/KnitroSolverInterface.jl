@@ -9,12 +9,39 @@ end
 KnitroSolver(;kwargs...) = KnitroSolver(kwargs)
 
 type KnitroMathProgModel <: AbstractMathProgModel
-    inner
     options
-end
-function KnitroMathProgModel(;options...)
-    KnitroMathProgModel(nothing,options)
-end
+    inner
+
+    numVar::Integer
+    numConstr::Integer
+    nnzJ::Integer
+    nnzH::Integer
+
+    varLB
+    varUB
+    constrLB
+    constrUB
+
+    jac_con
+    jac_var
+    hess_row
+    hess_col
+
+    varType
+    objType
+    objFnType
+    constrType
+    constrFnType
+
+    initial_x
+    sense::Int32
+    d::AbstractNLPEvaluator
+
+    function KnitroMathProgModel(;options...)
+        new(options)
+    end
+end 
+
 model(s::KnitroSolver) = KnitroMathProgModel(;s.options...)
 export model
 
@@ -46,161 +73,57 @@ function loadnonlinearproblem!(m::KnitroMathProgModel,
     initialize(d, [:Grad, :Jac, :Hess])
     Ijac, Jjac = jac_structure(d)
     Ihess, Jhess = hesslag_structure(d)
-    nnzJ = length(Ijac)
-    nnzH = length(Ihess)
-    jac_tmp = Array(Float64, nnzJ)
-    hess_tmp = Array(Float64, nnzH)
+    m.nnzJ = length(Ijac)
+    m.nnzH = length(Ihess)
+    jac_tmp = Array(Float64, m.nnzJ)
+    hess_tmp = Array(Float64, m.nnzH)
     @assert length(Ijac) == length(Jjac)
     @assert length(Ihess) == length(Jhess)
-    jac_con, jac_var, jac_indices = sparse_merge_jac_duplicates(Ijac, Jjac,
+    m.jac_con, m.jac_var, jac_indices = sparse_merge_jac_duplicates(Ijac, Jjac,
                                                                 numConstr,
                                                                 numVar)
-    hess_row, hess_col, hess_indices = sparse_merge_hess_duplicates(Ihess,
+    m.jac_con, m.jac_var = int32(m.jac_con-1), int32(m.jac_var-1)
+    m.hess_row, m.hess_col, hess_indices = sparse_merge_hess_duplicates(Ihess,
                                                                     Jhess,
                                                                     numVar,
                                                                     numVar)
+    m.hess_row, m.hess_col = int32(m.hess_row-1), int32(m.hess_col-1)
     n_jac_indices = length(jac_indices)
     n_hess_indices = length(hess_indices)
 
-    x_l, x_u, g_lb, g_ub = float(x_l), float(x_u), float(g_lb), float(g_ub)
-    @assert length(x_l) == length(x_u)
-    @assert length(g_lb) == length(g_ub)
-    for i in 1:length(x_l)
-        if x_l[i] == -Inf
-            x_l[i] = -KTR_INFBOUND
+    m.varLB, m.varUB, m.constrLB, m.constrUB = float(x_l), float(x_u), float(g_lb), float(g_ub)
+    m.numVar = length(m.varLB)
+    m.numConstr = length(m.constrLB)
+    @assert m.numVar == length(m.varUB)
+    @assert m.numConstr == length(m.constrUB)
+
+    for i in 1:m.numVar
+        if m.varLB[i] == -Inf
+            m.varLB[i] = -KTR_INFBOUND
         end
-        if x_u[i] == Inf
-            x_u[i] = KTR_INFBOUND
+        if m.varUB[i] == Inf
+            m.varUB[i] = KTR_INFBOUND
         end
     end
 
-    for i in 1:length(g_lb)
-        if g_lb[i] == -Inf
-            g_lb[i] = -KTR_INFBOUND
+    for i in 1:m.numConstr
+        if m.constrLB[i] == -Inf
+            m.constrLB[i] = -KTR_INFBOUND
         end
-        if g_ub[i] == Inf
-            g_ub[i] = KTR_INFBOUND
+        if m.constrUB[i] == Inf
+            m.constrUB[i] = KTR_INFBOUND
         end
     end
+    m.initial_x = C_NULL
 
     @assert sense == :Min || sense == :Max
-    objGoal = (sense == :Min) ? KTR_OBJGOAL_MINIMIZE : KTR_OBJGOAL_MAXIMIZE
+    m.sense = (sense == :Min) ? KTR_OBJGOAL_MINIMIZE : KTR_OBJGOAL_MAXIMIZE
     # allow for the possibility of specializing to LINEAR or QUADRATIC?
-    objType = KTR_OBJTYPE_GENERAL
-    c_Type = fill(KTR_CONTYPE_GENERAL, numConstr)
-
-    # Objective callback
-    eval_f_cb(x) = eval_f(d,x)
-
-    # Objective gradient callback
-    eval_grad_f_cb(x, grad_f) = eval_grad_f(d, grad_f, x)
-
-    # Constraint value callback
-    eval_g_cb(x, g) = eval_g(d, g, x)
-
-    # Jacobian callback
-    function eval_jac_g_cb(x, jac)
-        eval_jac_g(d, jac_tmp, x)
-        for i in 1:n_jac_indices
-            jac[i] = sum(jac_tmp[jac_indices[i]])
-        end
-    end
-
-    # Hessian callback
-    function eval_h_cb(x, lambda, sigma, hess)
-        eval_hesslag(d, hess_tmp, x, sigma, lambda)
-        for i in 1:n_hess_indices
-            hess[i] = sum(hess_tmp[hess_indices[i]])
-        end
-    end
-
-    # Hessian-vector callback
-    eval_hv_cb(x, lambda, sigma, hv) = eval_hesslag_prod(d, hv, x, sigma,
-                                                         lambda)
-
-    m.inner = createProblem()
-
-    for (param,value) in m.options
-        param = string(param)
-        if param == "options_file"
-            loadOptionsFile(m.inner, value)
-        elseif param == "tuner_file"
-            loadTunerFile(m.inner, value)
-        else
-            if isa(value, Int)
-                value = int32(value)
-            end
-            if haskey(paramName2Indx, param) # KTR_PARAM_*
-                setOption(m.inner, paramName2Indx[param], value)
-            else # string name
-                setOption(m.inner, param, value)
-            end
-        end
-    end
-    initializeProblem(m.inner, objGoal, objType, x_l, x_u, c_Type, g_lb, g_ub,
-                      int32(jac_var-1), int32(jac_con-1), int32(hess_row-1),
-                      int32(hess_col-1))
-    setCallbacks(m.inner, eval_f_cb, eval_g_cb, eval_grad_f_cb, eval_jac_g_cb,
-                 eval_h_cb, eval_hv_cb)
-end
-
-function loadnonlinearproblem!(m::KnitroMathProgModel,
-                               numVar::Integer,
-                               numConstr::Integer,
-                               x_l, x_u, x_Type, g_lb, g_ub,
-                               sense::Symbol,
-                               d::AbstractNLPEvaluator)
-    initialize(d, [:Grad, :Jac, :Hess])
-    Ijac, Jjac = jac_structure(d)
-    Ihess, Jhess = hesslag_structure(d)
-    nnzJ = length(Ijac)
-    nnzH = length(Ihess)
-    jac_tmp = Array(Float64, nnzJ)
-    hess_tmp = Array(Float64, nnzH)
-    @assert length(Ijac) == length(Jjac)
-    @assert length(Ihess) == length(Jhess)
-    jac_con, jac_var, jac_indices = sparse_merge_jac_duplicates(Ijac, Jjac,
-                                                                numConstr,
-                                                                numVar)
-    hess_row, hess_col, hess_indices = sparse_merge_hess_duplicates(Ihess,
-                                                                    Jhess,
-                                                                    numVar,
-                                                                    numVar)
-    n_jac_indices = length(jac_indices)
-    n_hess_indices = length(hess_indices)
-
-    x_l, x_u, g_lb, g_ub = float(x_l), float(x_u), float(g_lb), float(g_ub)
-    @assert length(x_l) == length(x_u)
-    @assert length(g_lb) == length(g_ub)
-    for i in 1:length(x_l)
-        if x_l[i] == -Inf
-            x_l[i] = -KTR_INFBOUND
-        end
-        if x_u[i] == Inf
-            x_u[i] = KTR_INFBOUND
-        end
-    end
-
-    for i in 1:length(g_lb)
-        if g_lb[i] == -Inf
-            g_lb[i] = -KTR_INFBOUND
-        end
-        if g_ub[i] == Inf
-            g_ub[i] = KTR_INFBOUND
-        end
-    end
-
-    @assert sense == :Min || sense == :Max
-
-    # Objective sense
-    if sense == :Min
-        objGoal = KTR_OBJGOAL_MINIMIZE
-    else
-        objGoal = KTR_OBJGOAL_MAXIMIZE
-    end
-    # allow for the possibility of specializing to LINEAR or QUADRATIC?
-    objType = KTR_OBJTYPE_GENERAL
-    c_Type = fill(KTR_CONTYPE_GENERAL, numConstr)
+    m.objType = KTR_OBJTYPE_GENERAL
+    m.objFnType = KTR_FNTYPE_UNCERTAIN
+    m.varType = fill(KTR_VARTYPE_CONTINUOUS, m.numVar)
+    m.constrType = fill(KTR_CONTYPE_GENERAL, m.numConstr)
+    m.constrFnType = fill(KTR_FNTYPE_UNCERTAIN, m.numConstr)
 
     # Objective callback
     eval_f_cb(x) = eval_f(d,x)
@@ -251,25 +174,27 @@ function loadnonlinearproblem!(m::KnitroMathProgModel,
         end
     end
 
-    if all(x_Type .== :Cont)
-        initializeProblem(m.inner, objGoal, objType, x_l, x_u, c_Type, g_lb, g_ub,
-                          int32(jac_var-1), int32(jac_con-1), int32(hess_row-1),
-                          int32(hess_col-1))
-    else
-        initializeProblem(m.inner, objGoal, objType, KTR_FNTYPE_UNCERTAIN,
-                          map(x->rev_var_type_map[x], x_Type), x_l, x_u, c_Type,
-                          fill(KTR_FNTYPE_UNCERTAIN,length(c_Type)), g_lb, g_ub,
-                          int32(jac_var-1), int32(jac_con-1), int32(hess_row-1),
-                          int32(hess_col-1))
-    end
     setCallbacks(m.inner, eval_f_cb, eval_g_cb, eval_grad_f_cb, eval_jac_g_cb,
                  eval_h_cb, eval_hv_cb)
 end
 
-getsense(m::KnitroMathProgModel) = int32(m.inner.sense)
-numvar(m::KnitroMathProgModel) = int32(m.inner.n)
-numconstr(m::KnitroMathProgModel) = int32(m.inner.m)
-optimize!(m::KnitroMathProgModel) = solveProblem(m.inner)
+getsense(m::KnitroMathProgModel) = int32(m.sense)
+numvar(m::KnitroMathProgModel) = int32(m.numVar)
+numconstr(m::KnitroMathProgModel) = int32(m.numConstr)
+
+function optimize!(m::KnitroMathProgModel)
+    if all(m.varType .== KTR_VARTYPE_CONTINUOUS)
+        initializeProblem(m.inner, m.sense, m.objType, m.varLB, m.varUB, m.constrType,
+                          m.constrLB, m.constrUB, m.jac_var, m.jac_con, m.hess_row, m.hess_col,
+                          m.initial_x)
+    else
+        initializeProblem(m.inner, m.sense, m.objType, m.objFnType,
+                          m.varType, m.varLB, m.varUB, m.constrType,
+                          m.constrFnType, m.constrLB, m.constrUB,
+                          m.jac_var, m.jac_con, m.hess_row, m.hess_col, m.initial_x)
+    end
+    solveProblem(m.inner)
+end
 
 function status(m::KnitroMathProgModel)
     applicationReturnStatus(m.inner)
@@ -278,16 +203,16 @@ end
 getobjval(m::KnitroMathProgModel) = m.inner.obj_val[1]
 getsolution(m::KnitroMathProgModel) = m.inner.x
 getconstrsolution(m::KnitroMathProgModel) = m.inner.g
-getreducedcosts(m::KnitroMathProgModel) = zeros(m.inner.n)
-getconstrduals(m::KnitroMathProgModel) = zeros(m.inner.m)
+getreducedcosts(m::KnitroMathProgModel) = zeros(m.numVar)
+getconstrduals(m::KnitroMathProgModel) = zeros(m.numConstr)
 getrawsolver(m::KnitroMathProgModel) = m.inner
 
 function warmstart(m::KnitroMathProgModel, x)
-    if m.inner.status == :Uninitialized
-        error("KNITRO.jl: Error setting warm start. Initialize the problem using loadnonlinearproblem! first.")
+    m.initial_x = float64(x)
+    if applicationReturnStatus(m.inner) != :Uninitialized
+        restartProblem(m.inner, m.initial_x, m.inner.lambda)
     end
-    restartProblem(m.inner, float64(x), m.inner.lambda)
 end
 
 setwarmstart!(m::KnitroMathProgModel, x) = warmstart(m,x)
-#function setvartype!(m::KnitroMathProgModel, typ::Vector{Symbol})
+setvartype!(m::KnitroMathProgModel, typ::Vector{Symbol}) = (m.varType = map(t->rev_var_type_map[t], typ))

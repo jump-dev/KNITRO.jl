@@ -12,7 +12,7 @@ module KNITRO
     @windows_only const libknitro = "knitro"
 
     import Compat
-    
+
     export
         KnitroProblem,
         createProblem, freeProblem,
@@ -42,11 +42,7 @@ module KNITRO
         mip::Bool # whether it is a Mixed Integer Problem
 
         # For MathProgBase
-        sense::Symbol
-        n::Int  # Num vars
-        m::Int  # Num cons
         x::Vector{Float64}  # Starting and final solution
-        # vartype::Vector{Symbol}
         lambda::Vector{Float64}
         g::Vector{Float64}  # Final constraint values
         obj_val::Vector{Float64}  # (length 1) Final objective
@@ -80,23 +76,21 @@ module KNITRO
         kp.env = C_NULL
     end
 
-    function initializeKP(kp, objGoal, n, m, x0, lambda0; mip = false)
+    function initializeKP(kp, x0, lambda0, g; mip = false)
         kp.status = int32(11)
         kp.mip = mip
-        kp.sense = (objGoal == KTR_OBJGOAL_MINIMIZE) ? (:Min) : (:Max)
-        kp.n = n
-        kp.m = m
-        kp.x = (x0 != C_NULL) ? x0 : zeros(Float64, kp.n)
-        kp.lambda = (lambda0 != C_NULL) ? lambda0 : zeros(Float64, kp.n + kp.m)
-        kp.g = zeros(Float64, kp.m)
+        kp.x = x0
+        kp.lambda = lambda0
+        kp.g = g
         kp.obj_val = zeros(Float64, 1)
     end
 
     function initializeProblem(kp, objGoal, objType, x_l, x_u, c_Type, g_lb,
                                g_ub, jac_var, jac_con, hess_row, hess_col,
                                x0 = C_NULL, lambda0 = C_NULL)
-        initializeKP(kp, objGoal, length(x_l), length(g_lb), x0, lambda0)
-        # kp.vartype = fill(:Cont, length(x_l))
+        initializeKP(kp, (x0 != C_NULL) ? x0 : zeros(Float64, length(x_l)),
+                     (lambda0 != C_NULL) ? lambda0 : zeros(Float64, length(x_l) + length(g_lb)),
+                     zeros(Float64, length(g_lb)))
         init_problem(kp, objGoal, objType, x_l, x_u, c_Type, g_lb, g_ub,
                      jac_var, jac_con, hess_row, hess_col, kp.x, kp.lambda)
     end
@@ -106,8 +100,9 @@ module KNITRO
                                x_Type, x_l, x_u, c_Type, c_FnType, g_lb,
                                g_ub, jac_var, jac_con, hess_row, hess_col,
                                x0 = C_NULL, lambda0 = C_NULL)
-        initializeKP(kp, objGoal, length(x_l), length(g_lb), x0, lambda0, mip=true)
-        # kp.vartype = map(x->var_type_map[x], x_Type)
+        initializeKP(kp, (x0 != C_NULL) ? x0 : zeros(Float64, length(x_l)),
+                     (lambda0 != C_NULL) ? lambda0 : zeros(Float64, length(x_l) + length(g_lb)),
+                     zeros(Float64, length(g_lb)), mip=true)
         mip_init_problem(kp, objGoal, objType, objFnType, x_Type, x_l, x_u,
                          c_Type, c_FnType, g_lb, g_ub, jac_var, jac_con,
                          hess_row, hess_col, kp.x, kp.lambda)
