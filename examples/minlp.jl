@@ -124,32 +124,6 @@ function eval_mip_node(kp::KnitroProblem, obj::Float64)
     end
 end
 
-function eval_mip_node_wrapper(evalRequestCode::Cint,
-                               n::Cint,
-                               m::Cint,
-                               nnzJ::Cint,
-                               nnzH::Cint,
-                               x_::Ptr{Cdouble},
-                               lambda_::Ptr{Cdouble},
-                               obj_::Ptr{Cdouble},
-                               c_::Ptr{Cdouble},
-                               g_::Ptr{Cdouble},
-                               J_::Ptr{Cdouble},
-                               H_::Ptr{Cdouble},
-                               HV_::Ptr{Cdouble},
-                               userParams_::Ptr{Void})
-    kp = unsafe_pointer_to_objref(userParams_)::KnitroProblem
-    obj = unsafe_load(obj_)
-    kp.eval_mip_node(kp,obj)
-    int32(0)
-end
-
-function setMIPCallback(kp::KnitroProblem,
-                        eval_node::Function)
-    kp.eval_mip_node = eval_mip_node
-    set_mip_node_callback(kp,eval_mip_node_wrapper)
-end
-
 objType = KTR_OBJTYPE_GENERAL
 objGoal = KTR_OBJGOAL_MINIMIZE
 objFnType = KTR_FNTYPE_CONVEX
@@ -215,20 +189,16 @@ setCallbacks(kp, eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h, eval_hv)
 setMIPCallback(kp, eval_mip_node)
 @test applicationReturnStatus(kp) == :Uninitialized
 
-ret = mip_init_problem(kp, objGoal, objType, objFnType,
-                       x_Type, x_L, x_U, c_Type, c_FnType, c_L, c_U,
-                       jac_var, jac_con, hess_row, hess_col)
-
-x = Array(Float64, n)
-lambda = Array(Float64, n+m)
-obj = Array(Float64, 1)
-kp.status = mip_solve_problem(kp, x, lambda, int32(0), obj)
+initializeProblem(kp, objGoal, objType, objFnType,
+                  x_Type, x_L, x_U, c_Type, c_FnType, c_L, c_U,
+                  jac_var, jac_con, hess_row, hess_col)
+solveProblem(kp)
 
 # --- test optimal solutions ---
 @test applicationReturnStatus(kp) == :Optimal
-@test_approx_eq_eps x[1] 1.30098 1e-5
-@test_approx_eq_eps x[2] 0.0 1e-5
-@test_approx_eq_eps x[3] 1.0 1e-5
-@test_approx_eq_eps x[4] 0.0 1e-5
-@test_approx_eq_eps x[5] 1.0 1e-5
-@test_approx_eq_eps x[6] 0.0 1e-5
+@test_approx_eq_eps kp.x[1] 1.30098 1e-5
+@test_approx_eq_eps kp.x[2] 0.0 1e-5
+@test_approx_eq_eps kp.x[3] 1.0 1e-5
+@test_approx_eq_eps kp.x[4] 0.0 1e-5
+@test_approx_eq_eps kp.x[5] 1.0 1e-5
+@test_approx_eq_eps kp.x[6] 0.0 1e-5
