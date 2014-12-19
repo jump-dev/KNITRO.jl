@@ -11,13 +11,15 @@ module KNITRO
     @unix_only const libknitro = "libknitro"
     @windows_only const libknitro = "knitro"
 
+    import Compat
+
     export
         KnitroProblem,
         createProblem, freeProblem,
         initializeProblem,
         solveProblem,
         restartProblem,
-        setCallbacks,
+        setCallbacks, setMIPCallback,
         loadOptionsFile,
         loadTunerFile,
         setOption, getOption,
@@ -37,11 +39,9 @@ module KNITRO
         env::Ptr{Void} # pointer to KTR_context
         eval_status::Int32 # scalar input used only for reverse comms
         status::Int32  # Final status
+        mip::Bool # whether it is a Mixed Integer Problem
 
         # For MathProgBase
-        sense::Symbol
-        n::Int  # Num vars
-        m::Int  # Num cons
         x::Vector{Float64}  # Starting and final solution
         lambda::Vector{Float64}
         g::Vector{Float64}  # Final constraint values
@@ -59,7 +59,8 @@ module KNITRO
         function KnitroProblem()
             kp = new(newcontext(),
                      int32(0),
-                     int32(10)) # chosen to not clash with any KTR return code
+                     int32(10), # chosen to not clash with any KTR return code
+                     false)
             finalizer(kp, freeProblem)
             kp
         end
@@ -75,47 +76,59 @@ module KNITRO
         kp.env = C_NULL
     end
 
+    function initializeKP(kp, x0, lambda0, g; mip = false)
+        kp.status = int32(11)
+        kp.mip = mip
+        kp.x = x0
+        kp.lambda = lambda0
+        kp.g = g
+        kp.obj_val = zeros(Float64, 1)
+    end
+
     function initializeProblem(kp, objGoal, objType, x_l, x_u, c_Type, g_lb,
                                g_ub, jac_var, jac_con, hess_row, hess_col,
                                x0 = C_NULL, lambda0 = C_NULL)
-        if objGoal == KTR_OBJGOAL_MINIMIZE
-            kp.sense = :Min 
-        else
-            kp.sense = :Max 
-        end
-        kp.n = length(x_l)
-        kp.m = length(g_lb)
-
-        if x0 != C_NULL
-            kp.x = x0
-        else
-            kp.x = zeros(Float64, kp.n)
-        end
-
-        if lambda0 != C_NULL
-            kp.lambda = lambda0
-        else
-            kp.lambda = zeros(Float64, kp.n + kp.m)
-        end
-
-        kp.g = zeros(Float64, kp.m)
-        kp.obj_val = zeros(Float64, 1)
-        kp.status = int32(11) # chosen to not clash with any of the return codes
-
+        initializeKP(kp, (x0 != C_NULL) ? x0 : zeros(Float64, length(x_l)),
+                     (lambda0 != C_NULL) ? lambda0 : zeros(Float64, length(x_l) + length(g_lb)),
+                     zeros(Float64, length(g_lb)))
         init_problem(kp, objGoal, objType, x_l, x_u, c_Type, g_lb, g_ub,
                      jac_var, jac_con, hess_row, hess_col, kp.x, kp.lambda)
     end
 
-    solveProblem(kp::KnitroProblem) = (kp.status = solve_problem(kp, kp.x, kp.lambda,
-                                                    kp.eval_status, kp.obj_val))
+    # Initialization for MIP
+    function initializeProblem(kp, objGoal, objType, objFnType,
+                               x_Type, x_l, x_u, c_Type, c_FnType, g_lb,
+                               g_ub, jac_var, jac_con, hess_row, hess_col,
+                               x0 = C_NULL, lambda0 = C_NULL)
+        initializeKP(kp, (x0 != C_NULL) ? x0 : zeros(Float64, length(x_l)),
+                     (lambda0 != C_NULL) ? lambda0 : zeros(Float64, length(x_l) + length(g_lb)),
+                     zeros(Float64, length(g_lb)), mip=true)
+        mip_init_problem(kp, objGoal, objType, objFnType, x_Type, x_l, x_u,
+                         c_Type, c_FnType, g_lb, g_ub, jac_var, jac_con,
+                         hess_row, hess_col, kp.x, kp.lambda)
+    end
+
+    function solveProblem(kp::KnitroProblem)
+        if kp.mip
+            kp.status = mip_solve_problem(kp, kp.x, kp.lambda, kp.eval_status, kp.obj_val)
+        else
+            kp.status = solve_problem(kp, kp.x, kp.lambda, kp.eval_status, kp.obj_val)
+        end
+    end
+
     function solveProblem(kp::KnitroProblem,
                           cons::Vector{Float64},
                           objGrad::Vector{Float64},
                           jac::Vector{Float64},
                           hess::Vector{Float64},
                           hessVector::Vector{Float64})
-        kp.status = solve_problem(kp, kp.x, kp.lambda, kp.eval_status, kp.obj_val, cons,
-                      objGrad, jac, hess, hessVector)
+        if kp.mip
+            kp.status = mip_solve_problem(kp, kp.x, kp.lambda, kp.eval_status, kp.obj_val, cons,
+                                          objGrad, jac, hess, hessVector)
+        else
+            kp.status = solve_problem(kp, kp.x, kp.lambda, kp.eval_status, kp.obj_val, cons,
+                                      objGrad, jac, hess, hessVector)
+        end
     end
 
     function restartProblem(kp, x0, lambda0)
@@ -215,6 +228,26 @@ module KNITRO
         int32(0)
     end
 
+    function eval_mip_node_wrapper(evalRequestCode::Cint,
+                               n::Cint,
+                               m::Cint,
+                               nnzJ::Cint,
+                               nnzH::Cint,
+                               x_::Ptr{Cdouble},
+                               lambda_::Ptr{Cdouble},
+                               obj_::Ptr{Cdouble},
+                               c_::Ptr{Cdouble},
+                               g_::Ptr{Cdouble},
+                               J_::Ptr{Cdouble},
+                               H_::Ptr{Cdouble},
+                               HV_::Ptr{Cdouble},
+                               userParams_::Ptr{Void})
+        kp = unsafe_pointer_to_objref(userParams_)::KnitroProblem
+        obj = unsafe_load(obj_)
+        kp.eval_mip_node(kp,obj)
+        int32(0)
+    end
+
     function setFuncCallback(kp::KnitroProblem,
                              eval_f::Function,
                              eval_g::Function)
@@ -249,6 +282,11 @@ module KNITRO
         setFuncCallback(kp, eval_f, eval_g)
         setGradCallback(kp, eval_grad_f, eval_jac_g)
         setHessCallback(kp, eval_h, eval_hv)
+    end
+
+    function setMIPCallback(kp::KnitroProblem, eval_mip_node::Function)
+        kp.eval_mip_node = eval_mip_node
+        set_mip_node_callback(kp,eval_mip_node_wrapper)
     end
 
     # Getters and Setters for Parameters/Options
