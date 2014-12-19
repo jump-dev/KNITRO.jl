@@ -12,10 +12,10 @@ type KnitroMathProgModel <: AbstractMathProgModel
     options
     inner::KnitroProblem
 
-    numVar::Integer
-    numConstr::Integer
-    nnzJ::Integer
-    nnzH::Integer
+    numVar::Int
+    numConstr::Int
+    nnzJ::Int
+    nnzH::Int
 
     varLB::Vector{Float64}
     varUB::Vector{Float64}
@@ -65,8 +65,8 @@ end
 
 # generic nonlinear interface
 function loadnonlinearproblem!(m::KnitroMathProgModel,
-                               numVar::Integer,
-                               numConstr::Integer,
+                               numVar::Int,
+                               numConstr::Int,
                                x_l, x_u, g_lb, g_ub,
                                sense::Symbol,
                                d::AbstractNLPEvaluator)
