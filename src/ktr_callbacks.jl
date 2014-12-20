@@ -2,7 +2,11 @@ export
     set_func_callback,
     set_grad_callback,
     set_hess_callback,
-    set_mip_node_callback
+    # set_newpt_callback,
+    # set_ms_process_callback,
+    set_mip_node_callback #,
+    # set_ms_initpt_callback,
+    # set_puts_callback,
 
 callback_params = (Cint, Cint, Cint, Cint, Cint, Ptr{Cdouble},
                    Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble},
