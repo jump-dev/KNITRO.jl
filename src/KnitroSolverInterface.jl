@@ -119,11 +119,27 @@ function loadnonlinearproblem!(m::KnitroMathProgModel,
     @assert sense == :Min || sense == :Max
     m.sense = (sense == :Min) ? KTR_OBJGOAL_MINIMIZE : KTR_OBJGOAL_MAXIMIZE
     # allow for the possibility of specializing to LINEAR or QUADRATIC?
-    m.objType = KTR_OBJTYPE_GENERAL
-    m.objFnType = KTR_FNTYPE_UNCERTAIN
-    m.varType = fill(KTR_VARTYPE_CONTINUOUS, m.numVar)
+    if isobjlinear(d)
+        m.objType = KTR_OBJTYPE_LINEAR
+        m.objFnType = KTR_FNTYPE_CONVEX
+    elseif isobjquadratic(d)
+        m.objType = KTR_OBJTYPE_QUADRATIC
+        m.objFnType = KTR_FNTYPE_CONVEX
+    else
+        m.objType = KTR_OBJTYPE_GENERAL
+        m.objFnType = KTR_FNTYPE_UNCERTAIN
+    end
+
     m.constrType = fill(KTR_CONTYPE_GENERAL, m.numConstr)
     m.constrFnType = fill(KTR_FNTYPE_UNCERTAIN, m.numConstr)
+    for i=1:m.numConstr
+        if isconstrlinear(d, i)
+            m.constrType[i] = KTR_CONTYPE_LINEAR
+            m.constrFnType[i] = KTR_FNTYPE_CONVEX
+        end
+    end
+
+    m.varType = fill(KTR_VARTYPE_CONTINUOUS, m.numVar)
 
     # Objective callback
     eval_f_cb(x) = eval_f(d,x)
@@ -183,7 +199,7 @@ numvar(m::KnitroMathProgModel) = int32(m.numVar)
 numconstr(m::KnitroMathProgModel) = int32(m.numConstr)
 
 function optimize!(m::KnitroMathProgModel)
-    if all(m.varType .== KTR_VARTYPE_CONTINUOUS)
+    if all(x->x==KTR_VARTYPE_CONTINUOUS, m.varType)
         initializeProblem(m.inner, m.sense, m.objType, m.varLB, m.varUB, m.constrType,
                           m.constrLB, m.constrUB, m.jac_var, m.jac_con, m.hess_row, m.hess_col,
                           m.initial_x)
