@@ -124,7 +124,7 @@ function loadnonlinearproblem!(m::KnitroMathProgModel,
         m.objFnType = KTR_FNTYPE_CONVEX
     elseif isobjquadratic(d)
         m.objType = KTR_OBJTYPE_QUADRATIC
-        m.objFnType = KTR_FNTYPE_CONVEX
+        m.objFnType = KTR_FNTYPE_UNCERTAIN
     else
         m.objType = KTR_OBJTYPE_GENERAL
         m.objFnType = KTR_FNTYPE_UNCERTAIN
