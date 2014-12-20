@@ -59,7 +59,7 @@ module KNITRO
         function KnitroProblem()
             kp = new(newcontext(),
                      int32(0),
-                     int32(10), # chosen to not clash with any KTR return code
+                     int32(100), # Code for :Uninitialized
                      false)
             finalizer(kp, freeProblem)
             kp
@@ -77,7 +77,7 @@ module KNITRO
     end
 
     function initializeKP(kp, x0, lambda0, g; mip = false)
-        kp.status = int32(11)
+        kp.status = int32(101) # code for :Initialized
         kp.mip = mip
         kp.x = x0
         kp.lambda = lambda0
@@ -132,7 +132,7 @@ module KNITRO
     end
 
     function restartProblem(kp, x0, lambda0)
-        kp.status = int32(11) # chosen to not clash with any of the return codes
+        kp.status = int32(101) # code for :Initialized
         kp.eval_status = int32(0)
         restart_problem(kp, x0, lambda0)
     end
@@ -296,14 +296,13 @@ module KNITRO
     getOption(args...) = get_param(args...)
 
     function applicationReturnStatus(kp::KnitroProblem)
-        @assert int32(-599) <= kp.status <= int32(11)
-        if kp.status == int32(0)
-            return :Optimal
-        elseif kp.status == int32(10)
+        if kp.status == int32(100) # chosen not to clash with any of the KTR_RC_* codes
             return :Uninitialized
-        elseif kp.status == int32(11)
+        elseif kp.status == int32(101) # chosen not to clash with any of the KTR_RC_* codes
             return :Initialized
-        elseif int32(1) <= kp.status <= int32(9)
+        elseif kp.status == int32(0)
+            return :Optimal
+        elseif int32(1) <= kp.status <= int32(11)
             return :ReverseComms
         elseif int32(-199) <= kp.status <= int32(-100)
             return :FeasibleApproximate
@@ -313,8 +312,10 @@ module KNITRO
             return :Unbounded
         elseif int32(-499) <= kp.status <= int32(-400)
             return :PredefinedLimit
-        else #int32(-599) <= kp.status <= int32(-500)
-            return :Error
+        elseif int32(-599) <= kp.status <= int32(-500)
+            return :KnitroError
+        else
+            return :Undefined
         end
     end
 
