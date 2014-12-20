@@ -308,7 +308,7 @@ module KNITRO
             return :FeasibleApproximate
         elseif int32(-299) <= kp.status <= int32(-200)
             return :Infeasible
-        elseif status == int32(-300)
+        elseif kp.status == int32(-300)
             return :Unbounded
         elseif int32(-499) <= kp.status <= int32(-400)
             return :PredefinedLimit
