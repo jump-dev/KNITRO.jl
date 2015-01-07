@@ -53,3 +53,10 @@ Note that currently *only 64-bit* Windows is supported. That is, you must use 64
   ```julia
   julia> Pkg.test("KNITRO")
   ```
+
+MathProgBase Interface
+----------------------
+
+KNITRO implements the solver-independent [MathProgBase](https://github.com/JuliaOpt/MathProgBase.jl) interface,
+and so can be used within modeling software like [JuMP](https://github.com/JuliaOpt/JuMP.jl).
+The solver object is called ``KnitroSolver``. All options listed in the [KNITRO documentation](https://www.artelys.com/tools/knitro_doc/3_referenceManual/callableLibrary/userOptions.html) may be passed directly. For example, you can run all algorithms by saying ``KnitroSolver(KTR_PARAM_ALG=KTR_ALG_MULTI)``.
