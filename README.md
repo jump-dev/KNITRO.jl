@@ -21,12 +21,14 @@ Setting up KNITRO on Linux and OS X
   ```
 to your start-up file (e.g. ``.bash_profile``).
 
-3. At the Julia prompt, run 
+3. To activate KNITRO for your computer you will need a valid Ziena license file (which looks like `ziena_lic_*.txt`). The simplest procedure is to copy each license into your `HOME` directory.
+
+4. At the Julia prompt, run 
   ```julia
   julia> Pkg.add("KNITRO")
   ```
 
-4. Test that KNITRO works by runnning
+5. Test that KNITRO works by runnning
   ```julia
   julia> Pkg.test("KNITRO")
   ```
@@ -40,12 +42,14 @@ Note that currently *only 64-bit* Windows is supported. That is, you must use 64
 
 2. Once KNITRO is installed on your machine, add the directory containing ``knitro.dll`` to the `PATH` environment variable, as described in the KNITRO documentation. 
 
-3. At the Julia prompt, run
+3. To activate KNITRO for your computer you will need a valid Ziena license file (which looks like `ziena_lic_*.txt`). The simplest procedure is to copy each license into your `HOME` directory.
+
+4. At the Julia prompt, run
   ```julia
   julia> Pkg.add("KNITRO")
   ```
 
-4. Test that KNITRO works by runnning
+5. Test that KNITRO works by runnning
   ```julia
   julia> Pkg.test("KNITRO")
   ```
