@@ -103,11 +103,11 @@ solveProblem(kp)
 @test_approx_eq_eps kp.x[3] 0.4444444 1e-5
 @test_approx_eq_eps kp.obj_val[1] 0.1111111 1e-5
 # ------------------------------
-@test get_number_FC_evals(kp) == 7
-@test get_number_GA_evals(kp) == 7
+@test get_number_FC_evals(kp) == 6
+@test get_number_GA_evals(kp) == 6
 @test get_number_H_evals(kp) == 1
 @test get_number_HV_evals(kp) == 0
-@test get_number_iters(kp) == 6
+@test get_number_iters(kp) == 5
 @test get_number_cg_iters(kp) == 0
 @test_approx_eq_eps get_abs_feas_error(kp) 0.0 1e-5
 @test_approx_eq_eps get_rel_feas_error(kp) 0.0 1e-5
