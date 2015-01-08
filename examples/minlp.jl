@@ -1,5 +1,4 @@
-using KNITRO
-using Base.Test
+using KNITRO, FactCheck
 
  ## Solve test problem 1 (Synthesis of processing system) in
  #  M. Duran & I.E. Grossmann, "An outer approximation algorithm for
@@ -167,7 +166,7 @@ x_Type = [KTR_VARTYPE_CONTINUOUS,
           KTR_VARTYPE_BINARY]
 
 kp = createProblem()
-@test applicationReturnStatus(kp) == :Uninitialized
+@fact applicationReturnStatus(kp) => :Uninitialized
 
 # ------ Illustrate how to override default options ------
 # --- (options must be set before calling init_problem) ---
@@ -181,13 +180,13 @@ setOption(kp, KTR_PARAM_MIP_MAXNODES, int32(10000))
 # hessian matrix without the objective component
 # (turned off by default, but should be enabled if possible)
 setOption(kp, KTR_PARAM_HESSIAN_NO_F, KTR_HESSIAN_NO_F_ALLOW)
-@test applicationReturnStatus(kp) == :Uninitialized
+@fact applicationReturnStatus(kp) => :Uninitialized
 
 # --- set callback functions ---
 setCallbacks(kp, eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h, eval_hv)
-@test applicationReturnStatus(kp) == :Uninitialized
+@fact applicationReturnStatus(kp) => :Uninitialized
 setMIPCallback(kp, eval_mip_node)
-@test applicationReturnStatus(kp) == :Uninitialized
+@fact applicationReturnStatus(kp) => :Uninitialized
 
 initializeProblem(kp, objGoal, objType, objFnType,
                   x_Type, x_L, x_U, c_Type, c_FnType, c_L, c_U,
@@ -195,10 +194,8 @@ initializeProblem(kp, objGoal, objType, objFnType,
 solveProblem(kp)
 
 # --- test optimal solutions ---
-@test applicationReturnStatus(kp) == :Optimal
-@test_approx_eq_eps kp.x[1] 1.30098 1e-5
-@test_approx_eq_eps kp.x[2] 0.0 1e-5
-@test_approx_eq_eps kp.x[3] 1.0 1e-5
-@test_approx_eq_eps kp.x[4] 0.0 1e-5
-@test_approx_eq_eps kp.x[5] 1.0 1e-5
-@test_approx_eq_eps kp.x[6] 0.0 1e-5
+facts("Test optimal solutions") do
+  @fact applicationReturnStatus(kp) => :Optimal
+  @fact kp.x => roughly(
+      [1.30098, 0.0, 1.0, 0.0, 1.0, 0.0], 1e-5)
+end
