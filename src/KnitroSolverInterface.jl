@@ -118,11 +118,11 @@ function loadnonlinearproblem!(m::KnitroMathProgModel,
 
     @assert sense == :Min || sense == :Max
     m.sense = (sense == :Min) ? KTR_OBJGOAL_MINIMIZE : KTR_OBJGOAL_MAXIMIZE
-    # allow for the possibility of specializing to LINEAR or QUADRATIC?
-    if isobjlinear(d)
+    
+    if applicable(isobjlinear, d) && isobjlinear(d)
         m.objType = KTR_OBJTYPE_LINEAR
         m.objFnType = KTR_FNTYPE_CONVEX
-    elseif isobjquadratic(d)
+    elseif applicable(isobjquadratic, d) && isobjquadratic(d)
         m.objType = KTR_OBJTYPE_QUADRATIC
         m.objFnType = KTR_FNTYPE_UNCERTAIN
     else
@@ -133,7 +133,7 @@ function loadnonlinearproblem!(m::KnitroMathProgModel,
     m.constrType = fill(KTR_CONTYPE_GENERAL, m.numConstr)
     m.constrFnType = fill(KTR_FNTYPE_UNCERTAIN, m.numConstr)
     for i=1:m.numConstr
-        if isconstrlinear(d, i)
+        if applicable(isconstrlinear, d, i) && isconstrlinear(d, i)
             m.constrType[i] = KTR_CONTYPE_LINEAR
             m.constrFnType[i] = KTR_FNTYPE_CONVEX
         end
