@@ -1,5 +1,4 @@
-using KNITRO
-using Base.Test
+using KNITRO, FactCheck
 
 #    min  9 - 8x1 - 6x2 - 4x3
 #         + 2(x1^2) + 2(x2^2) + (x3^2) + 2(x1*x2) + 2(x1*x3)
@@ -73,58 +72,59 @@ lambda  = zeros(n+m)
 obj     = [0.0]
 
 kp = createProblem()
-@test applicationReturnStatus(kp) == :Uninitialized
+@fact applicationReturnStatus(kp) => :Uninitialized
 loadOptionsFile(kp,joinpath(dirname(@__FILE__),"knitro.opt"))
-@test applicationReturnStatus(kp) == :Uninitialized
+@fact applicationReturnStatus(kp) => :Uninitialized
 
 # --- test getters and setters ---
 hessopt = int32(zeros(1))
 getOption(kp,"hessopt",hessopt)
-@test hessopt[1] == 1
+@fact hessopt[1] => 1
 setOption(kp,"hessopt",int32(0))
 getOption(kp,"hessopt",hessopt)
-@test hessopt[1] == 0
+@fact hessopt[1] => 0
 setOption(kp,"hessopt",int32(1))
 getOption(kp,"hessopt",hessopt)
-@test hessopt[1] == 1
+@fact hessopt[1] => 1
 # ---------------------------------
 
 initializeProblem(kp, objGoal, objType, x_L, x_U, c_Type, c_L, c_U,
                   jac_var, jac_con, hess_row, hess_col)
-@test applicationReturnStatus(kp) == :Initialized
+@fact applicationReturnStatus(kp) => :Initialized
 setCallbacks(kp, eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h, eval_hv)
-@test applicationReturnStatus(kp) == :Initialized
+@fact applicationReturnStatus(kp) => :Initialized
 solveProblem(kp)
 
 # --- test optimal solutions ---
-@test applicationReturnStatus(kp) == :Optimal
-@test_approx_eq_eps kp.x[1] 1.3333333 1e-5
-@test_approx_eq_eps kp.x[2] 0.7777777 1e-5
-@test_approx_eq_eps kp.x[3] 0.4444444 1e-5
-@test_approx_eq_eps kp.obj_val[1] 0.1111111 1e-5
-# ------------------------------
-@test get_number_FC_evals(kp) > 0
-@test get_number_GA_evals(kp) > 0
-@test get_number_H_evals(kp) == 1
-@test get_number_HV_evals(kp) == 0
-@test get_number_iters(kp) > 0
-@test get_number_cg_iters(kp) >= 0
-@test_approx_eq_eps get_abs_feas_error(kp) 0.0 1e-5
-@test_approx_eq_eps get_rel_feas_error(kp) 0.0 1e-5
-@test_approx_eq_eps get_abs_opt_error(kp) 0.0 1e-5
-@test_approx_eq_eps get_rel_opt_error(kp) 0.0 1e-5
-# ------------------------------
+facts("Test optimal solutions") do
+    @fact applicationReturnStatus(kp) => :Optimal
+    @fact kp.x => roughly(
+        [1.3333333, 0.7777777, 0.4444444], 1e-5)
+    @fact kp.obj_val[1] => roughly(0.1111111, 1e-5)
+end
+
+facts("Test getters") do
+    @fact get_number_FC_evals(kp) => greater_than_or_equal(0)
+    @fact get_number_GA_evals(kp) => greater_than_or_equal(0)
+    @fact get_number_H_evals(kp) => greater_than_or_equal(0)
+    @fact get_number_HV_evals(kp) => greater_than_or_equal(0)
+    @fact get_number_iters(kp) => greater_than_or_equal(0)
+    @fact get_number_cg_iters(kp) => greater_than_or_equal(0)
+    @fact get_abs_feas_error(kp) => roughly(0.0, 1e-5)
+    @fact get_rel_feas_error(kp) => roughly(0.0, 1e-5)
+    @fact get_abs_opt_error(kp) => roughly(0.0, 1e-5)
+    @fact get_rel_opt_error(kp) => roughly(0.0, 1e-5)
+end
 
 # start at a different starting point
 x = [2.0,2.0,2.0]
 lambda = ones(n+m)
 restartProblem(kp, x, lambda)
-@test applicationReturnStatus(kp) == :Initialized
+@fact applicationReturnStatus(kp) => :Initialized
 solveProblem(kp)
-# --- test optimal solutions ---
-@test applicationReturnStatus(kp) == :Optimal
-@test_approx_eq_eps kp.x[1] 1.3333333 1e-5
-@test_approx_eq_eps kp.x[2] 0.7777777 1e-5
-@test_approx_eq_eps kp.x[3] 0.4444444 1e-5
-@test_approx_eq_eps kp.obj_val[1] 0.1111111 1e-5
-# ------------------------------
+facts("Test optimal solutions (at a different starting point") do
+    @fact applicationReturnStatus(kp) => :Optimal
+    @fact kp.x => roughly(
+        [1.3333333, 0.7777777, 0.4444444], 1e-5)
+    @fact kp.obj_val[1] => roughly(0.1111111, 1e-5)
+end
