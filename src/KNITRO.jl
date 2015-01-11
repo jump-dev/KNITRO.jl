@@ -311,7 +311,7 @@ module KNITRO
         elseif kp.status == int32(-300)
             return :Unbounded
         elseif int32(-499) <= kp.status <= int32(-400)
-            return :PredefinedLimit
+            return :UserLimit
         elseif int32(-599) <= kp.status <= int32(-500)
             return :KnitroError
         else
