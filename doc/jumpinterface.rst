@@ -16,6 +16,8 @@ Re-visiting the `example`_, here's what it'll look like with JuMP:
   @addConstraint(m, x[1] + x[2] + 2.0*x[3] <= 3)
   solve(m)
 
+**Remark**: To use `KNITRO` through the JuMP interface, you currently need to have a nonlinear objective (via `@setNLObjective`) or at least one nonlinear constraint (via `@addNLConstraint`).
+
 Solver Parameters
 ^^^^^^^^^^^^^^^^^
 You can also provide `solver parameters`_ to KNITRO in JuMP, e.g.
