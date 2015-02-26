@@ -1,6 +1,8 @@
 KNITRO.jl
 =========
 
+[![Join the chat at https://gitter.im/JuliaOpt/KNITRO.jl](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/JuliaOpt/KNITRO.jl?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 The KNITRO.jl package provides an interface for using the [KNITRO solver](http://www.ziena.com/knitro.htm) from the [Julia language](http://julialang.org/). You cannot use KNITRO.jl without having purchased and installed a copy of KNITRO from [Ziena Optimization](http://www.ziena.com/). This package is available free of charge and in no way replaces or alters any functionality of Ziena's KNITRO solver.
 
 KNITRO functionality is extensive, so coverage is incomplete, but the basic functionality for solving linear, nonlinear, and mixed-integer programs is provided. Documentation is available on [ReadTheDocs](http://knitrojl.readthedocs.org/en/latest/knitro.html).
