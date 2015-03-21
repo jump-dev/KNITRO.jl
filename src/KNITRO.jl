@@ -5,8 +5,9 @@ module KNITRO
 
     @linux_only begin
         # fixes missing symbols in libknitro.so
-        dlopen("libdl", RTLD_GLOBAL)
-        dlopen("libgomp", RTLD_GLOBAL)
+        # TODO: use Libdl.RTLD_GLOBAL on julia 0.4
+        dlopen("libdl", 0x00000001)
+        dlopen("libgomp", 0x00000001)
     end
     @unix_only const libknitro = "libknitro"
     @windows_only const libknitro = "knitro"
