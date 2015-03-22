@@ -3,11 +3,13 @@ module KNITRO
     using Docile
     @docstrings
 
+    if VERSION >= v"0.4.0-dev+3844"
+        import Base.Libdl: RTLD_GLOBAL
+    end
     @linux_only begin
         # fixes missing symbols in libknitro.so
-        # TODO: use Libdl.RTLD_GLOBAL on julia 0.4
-        dlopen("libdl", 0x00000001)
-        dlopen("libgomp", 0x00000001)
+        dlopen("libdl", RTLD_GLOBAL)
+        dlopen("libgomp", RTLD_GLOBAL)
     end
     @unix_only const libknitro = "libknitro"
     @windows_only const libknitro = "knitro"
