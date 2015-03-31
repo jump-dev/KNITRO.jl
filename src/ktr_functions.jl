@@ -51,7 +51,7 @@ function newcontext_puts(f::Function, userParams=C_NULL)
         error("KNITRO: Error creating solver with put-string")
     end
     ptr
-end  
+end
 
 @doc "Free all memory and release any KNITRO license acquired with [kp_env]" ->
 function freecontext(kp_env::Ptr{Void})
@@ -138,7 +138,7 @@ function save_param_file(kp::KnitroProblem, filename::String)
     end
 end
 
-@doc* "Set a parameter using either its (i) name::String, or (ii) id::Int" ->
+@doc+ "Set a parameter using either its (i) name::String, or (ii) id::Int" ->
 function set_param(kp::KnitroProblem, name::String, value::Int32)
     return_code = @ktr_ccall(set_int_param_by_name, Int32, (Ptr{Void},
                              Ptr{Cchar}, Cint), kp.env, name, value)
@@ -187,7 +187,7 @@ function set_param(kp::KnitroProblem, id::Int32, value::Float64)
     end
 end
 
-@doc* "Get a parameter using either its (i) name::String, or (ii) id::Int" ->
+@doc+ "Get a parameter using either its (i) name::String, or (ii) id::Int" ->
 function get_param(kp::KnitroProblem, name::String, value::Vector{Int32})
     @ktr_ccall(get_int_param_by_name, Int32, (Ptr{Void}, Ptr{Cchar}, Ptr{Cint}),
                kp.env, name, value)
@@ -232,7 +232,7 @@ function get_release(length::Int32, release::String)
 end
 
 @doc """
-Set an array of absolute feasibility tolerances (one for each 
+Set an array of absolute feasibility tolerances (one for each
 constraint and variable) to use for the termination tests.
 
 The user options KTR_PARAM_FEASTOL/KTR_PARAM_FEASTOLABS define
@@ -267,7 +267,7 @@ function set_feastols(kp::KnitroProblem,
                       c_tol::Vector{Float64},
                       x_tol::Vector{Float64},
                       cc_tol::Vector{Float64})
-    return_code = @ktr_ccall(set_feastols, Int32, (Ptr{Void}, Ptr{Cdouble}, 
+    return_code = @ktr_ccall(set_feastols, Int32, (Ptr{Void}, Ptr{Cdouble},
                              Ptr{Cdouble}, Ptr{Cdouble}), kp.env, c_tol, x_tol,
                              cc_tol)
     if return_code != 0
@@ -336,7 +336,7 @@ end
 
 # /* ----- Solving ----- */
 
-@doc* """
+@doc+ """
 Initialize KNITRO with a new problem.  KNITRO makes a local copy of
 all inputs, so the application may free memory after the call completes.
 """ ->
@@ -362,7 +362,7 @@ function init_problem(kp::KnitroProblem,
                              Cint, Ptr{Cdouble}, Ptr{Cdouble}, Cint,
                              Ptr{Cint}, Ptr{Cdouble}, Ptr{Cdouble}, Cint,
                              Ptr{Cint}, Ptr{Cint}, Cint, Ptr{Cint},
-                             Ptr{Cint}, Ptr{Void}, Ptr{Void}), kp.env, n, 
+                             Ptr{Cint}, Ptr{Void}, Ptr{Void}), kp.env, n,
                              objGoal, objType, x_L, x_U, m, c_Type, c_L, c_U,
                              nnzJ, jac_var, jac_cons, nnzH, hess_rows,
                              hess_cols, initial_x, initial_lambda)
@@ -398,13 +398,13 @@ function init_problem(kp::KnitroProblem,
         error("KNITRO: Error initializing problem without exact hessians")
     end
 end
-        
-@doc* """
+
+@doc+ """
 Call KNITRO to solve the problem.
 
 If the application provides callback functions for evaluating the function,
 constraints, and derivatives, then a single call to `solve_problem` returns
-the solution.  Otherwise, KNITRO operates in reverse communications mode and 
+the solution.  Otherwise, KNITRO operates in reverse communications mode and
 returns a status code that may request another call.
 
 Returns one of the status codes KTR_RC_*. In particular:
@@ -569,9 +569,9 @@ function set_branching_priorities(kp::KnitroProblem,
     if return_code != 0
         error("KNITRO: Error setting MIP branching priorities")
     end
-end  
+end
 
-@doc* """
+@doc+ """
 Call KNITRO to solve the MIP problem.
 
 If the application provides callback functions for evaluating the function,
@@ -740,8 +740,8 @@ function get_abs_feas_error(kp::KnitroProblem)
     n
 end
 
-# /** 
-#  *  
+# /**
+#  *
 #  *  Returns a negative number if there is a problem with kc.
 #  */
 # double  KNITRO_API KTR_get_rel_feas_error (const KTR_context_ptr  kc);
@@ -873,7 +873,7 @@ function get_hessian_values(kp::KnitroProblem,
     return_code
 end
 
-    
+
 # /* ----- Solution properties for MIP problems only ----- */
 
 @doc "Return the number of nodes processed in MIP solve" ->
