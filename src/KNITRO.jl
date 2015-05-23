@@ -140,6 +140,12 @@ module KNITRO
         restart_problem(kp, x0, lambda0)
     end
 
+    function restartProblem(kp)
+        kp.status = int32(101) # code for :Initialized
+        kp.eval_status = int32(0)
+        restart_problem(kp)
+    end
+
     # -----
     # Callback Wrappers
     # -----

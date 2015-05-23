@@ -482,6 +482,20 @@ function restart_problem(kp::KnitroProblem,
 end
 
 @doc """
+Prepare KNITRO to restart the current problem.
+
+If output to a file is enabled, this will erase the current file.
+KNITRO parameter values are not changed by this call.
+""" ->
+function restart_problem(kp::KnitroProblem)
+    return_code = @ktr_ccall(restart, Int32, (Ptr{Void}, Ptr{Cdouble},
+                             Ptr{Cdouble}), kp.env, C_NULL, C_NULL)
+    if return_code != 0
+        error("KNITRO: Error restarting problem")
+    end
+end
+
+@doc """
 Initialize KNITRO with a new MIP problem.  KNITRO makes a local copy of
 all inputs, so the application may free memory after the call completes.
 """ ->
