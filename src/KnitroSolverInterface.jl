@@ -37,6 +37,8 @@ type KnitroMathProgModel <: AbstractMathProgModel
     sense::Int32
     d::AbstractNLPEvaluator
 
+    hasbeenrestarted::Bool
+
     function KnitroMathProgModel(;options...)
         new(options)
     end
@@ -199,17 +201,22 @@ numvar(m::KnitroMathProgModel) = int32(m.numVar)
 numconstr(m::KnitroMathProgModel) = int32(m.numConstr)
 
 function optimize!(m::KnitroMathProgModel)
-    if all(x->x==KTR_VARTYPE_CONTINUOUS, m.varType)
-        initializeProblem(m.inner, m.sense, m.objType, m.varLB, m.varUB, m.constrType,
-                          m.constrLB, m.constrUB, m.jac_var, m.jac_con, m.hess_row, m.hess_col,
-                          m.initial_x)
-    else
-        initializeProblem(m.inner, m.sense, m.objType, m.objFnType,
-                          m.varType, m.varLB, m.varUB, m.constrType,
-                          m.constrFnType, m.constrLB, m.constrUB,
-                          m.jac_var, m.jac_con, m.hess_row, m.hess_col, m.initial_x)
+    if applicationReturnStatus(m.inner) == :Uninitialized
+        if all(x->x==KTR_VARTYPE_CONTINUOUS, m.varType)
+            initializeProblem(m.inner, m.sense, m.objType, m.varLB, m.varUB, m.constrType,
+                              m.constrLB, m.constrUB, m.jac_var, m.jac_con, m.hess_row, m.hess_col,
+                              m.initial_x)
+        else
+            initializeProblem(m.inner, m.sense, m.objType, m.objFnType,
+                              m.varType, m.varLB, m.varUB, m.constrType,
+                              m.constrFnType, m.constrLB, m.constrUB,
+                              m.jac_var, m.jac_con, m.hess_row, m.hess_col, m.initial_x)
+        end
+    elseif !m.hasbeenrestarted
+        restartProblem(m.inner)
     end
     solveProblem(m.inner)
+    m.hasbeenrestarted = false
 end
 
 function status(m::KnitroMathProgModel)
@@ -227,6 +234,7 @@ function warmstart(m::KnitroMathProgModel, x)
     m.initial_x = float64(x)
     if applicationReturnStatus(m.inner) != :Uninitialized
         restartProblem(m.inner, m.initial_x, m.inner.lambda)
+        m.hasbeenrestarted = true
     end
 end
 
