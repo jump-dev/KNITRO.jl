@@ -138,7 +138,7 @@ function save_param_file(kp::KnitroProblem, filename::String)
     end
 end
 
-@doc+ "Set a parameter using either its (i) name::String, or (ii) id::Int" ->
+@doc "Set an integer parameter by its name" ->
 function set_param(kp::KnitroProblem, name::String, value::Int32)
     return_code = @ktr_ccall(set_int_param_by_name, Int32, (Ptr{Void},
                              Ptr{Cchar}, Cint), kp.env, name, value)
@@ -147,6 +147,7 @@ function set_param(kp::KnitroProblem, name::String, value::Int32)
     end
 end
 
+@doc "Set a string parameter by its name" ->
 function set_param(kp::KnitroProblem, name::String, value::String)
     return_code = @ktr_ccall(set_char_param_by_name, Int32, (Ptr{Void},
                              Ptr{Cchar}, Ptr{Cchar}), kp.env, name, value)
@@ -187,12 +188,13 @@ function set_param(kp::KnitroProblem, id::Int32, value::Float64)
     end
 end
 
-@doc+ "Get a parameter using either its (i) name::String, or (ii) id::Int" ->
+@doc "Get an integer parameter by its name" ->
 function get_param(kp::KnitroProblem, name::String, value::Vector{Int32})
     @ktr_ccall(get_int_param_by_name, Int32, (Ptr{Void}, Ptr{Cchar}, Ptr{Cint}),
                kp.env, name, value)
 end
 
+@doc "Get a float parameter by its name" ->
 function get_param(kp::KnitroProblem, name::String, value::Vector{Float64})
     @ktr_ccall(get_double_param_by_name, Int32, (Ptr{Void}, Ptr{Cchar},
                Ptr{Cdouble}), kp.env, name, value)
@@ -336,10 +338,9 @@ end
 
 # /* ----- Solving ----- */
 
-@doc+ """
-Initialize KNITRO with a new problem.  KNITRO makes a local copy of
-all inputs, so the application may free memory after the call completes.
-""" ->
+@doc """
+Initialize KNITRO with a new problem. KNITRO makes a local copy of all inputs,
+so the application may free memory after the call completes.""" ->
 function init_problem(kp::KnitroProblem,
                       objGoal::Int32,
                       objType::Int32,
@@ -399,7 +400,7 @@ function init_problem(kp::KnitroProblem,
     end
 end
 
-@doc+ """
+@doc """
 Call KNITRO to solve the problem.
 
 If the application provides callback functions for evaluating the function,
@@ -585,7 +586,7 @@ function set_branching_priorities(kp::KnitroProblem,
     end
 end
 
-@doc+ """
+@doc """
 Call KNITRO to solve the MIP problem.
 
 If the application provides callback functions for evaluating the function,
