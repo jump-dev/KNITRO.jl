@@ -226,8 +226,8 @@ end
 getobjval(m::KnitroMathProgModel) = m.inner.obj_val[1]
 getsolution(m::KnitroMathProgModel) = m.inner.x
 getconstrsolution(m::KnitroMathProgModel) = m.inner.g
-getreducedcosts(m::KnitroMathProgModel) = zeros(m.numVar)
-getconstrduals(m::KnitroMathProgModel) = zeros(m.numConstr)
+getreducedcosts(m::KnitroMathProgModel) = -1 .* m.inner.lambda[m.numConstr+1:end]
+getconstrduals(m::KnitroMathProgModel) = -1 .* m.inner.lambda[1:m.numConstr]
 getrawsolver(m::KnitroMathProgModel) = m.inner
 
 function warmstart(m::KnitroMathProgModel, x)
