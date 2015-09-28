@@ -72,21 +72,21 @@ hess_row = Int32[0,0,1]
 hess_col = Int32[0,1,1]
 
 kp = createProblem()
-@fact applicationReturnStatus(kp) => :Uninitialized
+@fact applicationReturnStatus(kp) --> :Uninitialized
 loadOptionsFile(kp, joinpath(dirname(@__FILE__),"tuner-fixed.opt"))
 setOption(kp, KTR_PARAM_TUNER, KTR_TUNER_ON)
 loadTunerFile(kp, joinpath(dirname(@__FILE__), "tuner-explore.opt"))
 
 initializeProblem(kp, objGoal, objType, x_L, x_U, c_Type, c_L, c_U,
                   jac_var, jac_con, hess_row, hess_col, x)
-@fact applicationReturnStatus(kp) => :Initialized
+@fact applicationReturnStatus(kp) --> :Initialized
 setCallbacks(kp, eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h, eval_hv)
 solveProblem(kp)
 
 # --- test optimal solutions ---
 facts("Test optimal solutions") do
-    @fact applicationReturnStatus(kp) => :Optimal
-    @fact (abs(kp.x[1]-0.5) < 1e-4 || abs(kp.x[1]+0.79212) < 1e-4) => true
-    @fact (abs(kp.x[2]-2.0) < 1e-4 || abs(kp.x[2]+1.26243) < 1e-4) => true
-    @fact (abs(kp.obj_val[1]-306.5) < 0.025 || abs(kp.obj_val[1]-360.4) < 0.025) => true
+    @fact applicationReturnStatus(kp) --> :Optimal
+    @fact (abs(kp.x[1]-0.5) < 1e-4 || abs(kp.x[1]+0.79212) < 1e-4) --> true
+    @fact (abs(kp.x[2]-2.0) < 1e-4 || abs(kp.x[2]+1.26243) < 1e-4) --> true
+    @fact (abs(kp.obj_val[1]-306.5) < 0.025 || abs(kp.obj_val[1]-360.4) < 0.025) --> true
 end
