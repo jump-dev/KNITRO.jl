@@ -1,4 +1,5 @@
 module KNITRO
+    using Compat
 
     if VERSION < v"0.4.0-dev"
         using Docile
@@ -9,13 +10,11 @@ module KNITRO
     end
     @linux_only begin
         # fixes missing symbols in libknitro.so
-        dlopen("libdl", RTLD_GLOBAL)
-        dlopen("libgomp", RTLD_GLOBAL)
+        Libdl.dlopen("libdl", RTLD_GLOBAL)
+        Libdl.dlopen("libgomp", RTLD_GLOBAL)
     end
     @unix_only const libknitro = "libknitro"
     @windows_only const libknitro = "knitro"
-
-    using Compat
 
     export
         KnitroProblem,
