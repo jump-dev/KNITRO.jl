@@ -121,7 +121,7 @@ function reset_params_to_defaults(kp::KnitroProblem)
 end
 
 @doc "Set all parameters specified in the given file" ->
-function load_param_file(kp::KnitroProblem, filename::String)
+function load_param_file(kp::KnitroProblem, filename::AbstractString)
     return_code = @ktr_ccall(load_param_file, Int32, (Ptr{Void}, Ptr{Cchar}),
                              kp.env, filename)
     if return_code != 0
@@ -130,7 +130,7 @@ function load_param_file(kp::KnitroProblem, filename::String)
 end
 
 @doc "Write all current parameter values to a file" ->
-function save_param_file(kp::KnitroProblem, filename::String)
+function save_param_file(kp::KnitroProblem, filename::AbstractString)
     return_code = @ktr_ccall(save_param_file, Int32, (Ptr{Void}, Ptr{Cchar}),
                              kp.env, filename)
     if return_code != 0
@@ -139,7 +139,7 @@ function save_param_file(kp::KnitroProblem, filename::String)
 end
 
 @doc "Set an integer parameter by its name" ->
-function set_param(kp::KnitroProblem, name::String, value::Int32)
+function set_param(kp::KnitroProblem, name::AbstractString, value::Integer)
     return_code = @ktr_ccall(set_int_param_by_name, Int32, (Ptr{Void},
                              Ptr{Cchar}, Cint), kp.env, name, value)
     if return_code != 0
@@ -148,7 +148,7 @@ function set_param(kp::KnitroProblem, name::String, value::Int32)
 end
 
 @doc "Set a string parameter by its name" ->
-function set_param(kp::KnitroProblem, name::String, value::String)
+function set_param(kp::KnitroProblem, name::AbstractString, value::AbstractString)
     return_code = @ktr_ccall(set_char_param_by_name, Int32, (Ptr{Void},
                              Ptr{Cchar}, Ptr{Cchar}), kp.env, name, value)
     if return_code != 0
@@ -156,7 +156,7 @@ function set_param(kp::KnitroProblem, name::String, value::String)
     end
 end
 
-function set_param(kp::KnitroProblem, name::String, value::Float64)
+function set_param(kp::KnitroProblem, name::AbstractString, value::Float64)
     return_code = @ktr_ccall(set_double_param_by_name, Int32, (Ptr{Void},
                              Ptr{Cchar}, Cdouble), kp.env, name, value)
     if return_code != 0
@@ -164,7 +164,7 @@ function set_param(kp::KnitroProblem, name::String, value::Float64)
     end
 end
 
-function set_param(kp::KnitroProblem, id::Int32, value::Int32)
+function set_param(kp::KnitroProblem, id::Integer, value::Integer)
     return_code = @ktr_ccall(set_int_param, Int32, (Ptr{Void}, Cint, Cint),
                              kp.env, id, value)
     if return_code != 0
@@ -172,7 +172,7 @@ function set_param(kp::KnitroProblem, id::Int32, value::Int32)
     end
 end
 
-function set_param(kp::KnitroProblem, id::Int32, value::String)
+function set_param(kp::KnitroProblem, id::Integer, value::AbstractString)
     return_code = @ktr_ccall(set_char_param, Int32, (Ptr{Void}, Cint,
                              Ptr{Cchar}), kp.env, id, value)
     if return_code != 0
@@ -180,7 +180,7 @@ function set_param(kp::KnitroProblem, id::Int32, value::String)
     end
 end
 
-function set_param(kp::KnitroProblem, id::Int32, value::Float64)
+function set_param(kp::KnitroProblem, id::Integer, value::Float64)
     return_code = @ktr_ccall(set_double_param, Int32, (Ptr{Void}, Cint,
                              Cdouble), kp.env, id, value)
     if return_code != 0
@@ -189,23 +189,23 @@ function set_param(kp::KnitroProblem, id::Int32, value::Float64)
 end
 
 @doc "Get an integer parameter by its name" ->
-function get_param(kp::KnitroProblem, name::String, value::Vector{Int32})
+function get_param(kp::KnitroProblem, name::AbstractString, value::Vector{Int32})
     @ktr_ccall(get_int_param_by_name, Int32, (Ptr{Void}, Ptr{Cchar}, Ptr{Cint}),
                kp.env, name, value)
 end
 
 @doc "Get a float parameter by its name" ->
-function get_param(kp::KnitroProblem, name::String, value::Vector{Float64})
+function get_param(kp::KnitroProblem, name::AbstractString, value::Vector{Float64})
     @ktr_ccall(get_double_param_by_name, Int32, (Ptr{Void}, Ptr{Cchar},
                Ptr{Cdouble}), kp.env, name, value)
 end
 
-function get_param(kp::KnitroProblem, id::Int32, value::Vector{Int32})
+function get_param(kp::KnitroProblem, id::Integer, value::Vector{Int32})
     @ktr_ccall(get_int_param, Int32, (Ptr{Void}, Cint, Ptr{Cint}),
                kp.env, id, value)
 end
 
-function get_param(kp::KnitroProblem, id::Int32, value::Vector{Float64})
+function get_param(kp::KnitroProblem, id::Integer, value::Vector{Float64})
     @ktr_ccall(get_double_param, Int32, (Ptr{Void}, Cint, Ptr{Cdouble}),
                kp.env, id, value)
 end
@@ -215,7 +215,7 @@ Similar to KTR_load_param_file but specifically allows user to
 specify a file of options (and option values) to explore for
 the KNITRO-Tuner.
 """ ->
-function load_tuner_file(kp::KnitroProblem, filename::String)
+function load_tuner_file(kp::KnitroProblem, filename::AbstractString)
     return_code = @ktr_ccall(load_tuner_file, Int32, (Ptr{Void}, Ptr{Cchar}),
                              kp.env, filename)
     if return_code != 0
@@ -229,7 +229,7 @@ preallocated to have [length] elements, including the string termination
 character.  For compatibility with future releases, please allocate at
 least 15 characters.
 """ ->
-function get_release(length::Int32, release::String)
+function get_release(length::Integer, release::AbstractString)
     @ktr_ccall(get_release, Any, (Cint, Ptr{Cchar}), kp.env, release)
 end
 
@@ -287,8 +287,9 @@ free memory after the call.
 This routine must be called after calling KTR_init_problem /
 KTR_mip_init_problem and before calling KTR_solve / KTR_mip_solve.
 """ ->
-function set_names(kp::KnitroProblem, objName::String, varNames::Vector{String},
-                   conNames::Vector{String})
+function set_names(kp::KnitroProblem, objName::AbstractString,
+                   varNames::Vector{AbstractString},
+                   conNames::Vector{AbstractString})
     return_code = @ktr_ccall(set_names, Int32, (Ptr{Void}, Ptr{Cchar},
                              Ptr{Ptr{Cchar}}, Ptr{Ptr{Cchar}}),
                              kp.env, objName, varNames, conNames)
@@ -310,7 +311,7 @@ to accumulate a long list of complementarity constraints in KNITRO's
 internal problem definition.
 """ ->
 function add_contraints(kp::KnitroProblem,
-                        ncons::Int32,
+                        ncons::Integer,
                         index1::Vector{Int32},
                         index2::Vector{Int32})
     return_code = @ktr_ccall(add_compcons, Int32, (Ptr{Void}, Cint, Ptr{Cint},
@@ -342,8 +343,8 @@ end
 Initialize KNITRO with a new problem. KNITRO makes a local copy of all inputs,
 so the application may free memory after the call completes.""" ->
 function init_problem(kp::KnitroProblem,
-                      objGoal::Int32,
-                      objType::Int32,
+                      objGoal::Integer,
+                      objType::Integer,
                       x_L::Vector{Float64},     # length n
                       x_U::Vector{Float64},     # length n
                       c_Type::Vector{Int32},    # length m
@@ -373,8 +374,8 @@ function init_problem(kp::KnitroProblem,
 end
 
 function init_problem(kp::KnitroProblem,
-                      objGoal::Int32,
-                      objType::Int32,
+                      objGoal::Integer,
+                      objType::Integer,
                       x_L::Vector{Float64},     # length n
                       x_U::Vector{Float64},     # length n
                       c_Type::Vector{Int32},    # length m
@@ -391,10 +392,9 @@ function init_problem(kp::KnitroProblem,
                              Ptr{Cdouble}, Ptr{Cdouble}, Cint, Ptr{Cint},
                              Ptr{Cdouble}, Ptr{Cdouble}, Cint, Ptr{Cint},
                              Ptr{Cint}, Cint, Ptr{Void}, Ptr{Void}, Ptr{Void},
-                             Ptr{Void}), kp.env, n, objGoal, objType,
-                             x_L, x_U, m, c_Type, c_L, c_U, nnzJ, jac_var,
-                             jac_cons, int32(0), C_NULL, C_NULL,
-                             initial_x, initial_lambda)
+                             Ptr{Void}), kp.env, n, objGoal, objType, x_L, x_U,
+                             m, c_Type, c_L, c_U, nnzJ, jac_var, jac_cons, 0,
+                             C_NULL, C_NULL, initial_x, initial_lambda)
     if return_code != 0
         error("KNITRO: Error initializing problem without exact hessians")
     end
@@ -439,7 +439,7 @@ arguments are not modified.
 function solve_problem(kp::KnitroProblem,
                        x::Vector{Float64},
                        lambda::Vector{Float64},
-                       evalStatus::Int32,
+                       evalStatus::Integer,
                        obj::Vector{Float64},
                        cons::Vector{Float64},
                        objGrad::Vector{Float64},
@@ -456,7 +456,7 @@ end
 function solve_problem(kp::KnitroProblem,
                        x::Vector{Float64},
                        lambda::Vector{Float64},
-                       evalStatus::Int32,
+                       evalStatus::Integer,
                        obj::Vector{Float64})
     # For callback mode
     @ktr_ccall(solve, Int32, (Ptr{Void}, Ptr{Cdouble},
@@ -502,9 +502,9 @@ all inputs, so the application may free memory after the call completes.
 """ ->
 
 function mip_init_problem(kp::KnitroProblem,
-                          objGoal::Int32,
-                          objType::Int32,
-                          objFnType::Int32,
+                          objGoal::Integer,
+                          objType::Integer,
+                          objFnType::Integer,
                           x_Type::Vector{Int32},    # length n
                           x_L::Vector{Float64},     # length n
                           x_U::Vector{Float64},     # length n
@@ -537,9 +537,9 @@ function mip_init_problem(kp::KnitroProblem,
 end
 
 function mip_init_problem(kp::KnitroProblem,
-                          objGoal::Int32,
-                          objType::Int32,
-                          objFnType::Int32,
+                          objGoal::Integer,
+                          objType::Integer,
+                          objFnType::Integer,
                           x_Type::Vector{Int32},    # length n
                           x_L::Vector{Float64},     # length n
                           x_U::Vector{Float64},     # length n
@@ -561,7 +561,7 @@ function mip_init_problem(kp::KnitroProblem,
                              Ptr{Void}, Ptr{Void}, Ptr{Void}, Ptr{Void}),
                              kp.env, n, objGoal, objType, objFnType, x_Type,
                              x_L, x_U, m, c_Type, c_FnType, c_L, c_U, nnzJ,
-                             jac_var, jac_cons, int32(0), C_NULL, C_NULL,
+                             jac_var, jac_cons, 0, C_NULL, C_NULL,
                              initial_x, initial_lambda)
     if return_code != 0
         error("KNITRO: Error initializing MIP problem without exact hessians")
@@ -590,9 +590,10 @@ end
 Call KNITRO to solve the MIP problem.
 
 If the application provides callback functions for evaluating the function,
-constraints, and derivatives, then a single call to KTR_mip_solve returns the solution.
-Otherwise, KNITRO operates in reverse communications mode and returns a status code
-that may request another call.
+constraints, and derivatives, then a single call to KTR_mip_solve returns
+the solution.
+Otherwise, KNITRO operates in reverse communications mode and returns a
+status code that may request another call.
 
 Returns one of the status codes KTR_RC_*. In particular:
 0 - KNITRO is finished: x, lambda, and obj contain the optimal solution
@@ -612,7 +613,7 @@ are not modified.
 function mip_solve_problem(kp::KnitroProblem,
                            x::Vector{Float64},
                            lambda::Vector{Float64},
-                           evalStatus::Int32,
+                           evalStatus::Integer,
                            obj::Vector{Float64},
                            cons::Vector{Float64},
                            objGrad::Vector{Float64},
@@ -629,7 +630,7 @@ end
 function mip_solve_problem(kp::KnitroProblem,
                            x::Vector{Float64},
                            lambda::Vector{Float64},
-                           evalStatus::Int32,
+                           evalStatus::Integer,
                            obj::Vector{Float64})
     # For callback mode
     @ktr_ccall(mip_solve, Int32, (Ptr{Void}, Ptr{Cdouble},
@@ -732,11 +733,11 @@ function get_number_iters(kp::KnitroProblem)
     n
 end
 
-@doc "Return the number of conjugate gradient (CG) iterations made by KTR_solve" ->
+@doc "Return the number of conjugate gradient (CG) iterations by KTR_solve" ->
 function get_number_cg_iters(kp::KnitroProblem)
     n = @ktr_ccall(get_number_cg_iters, Int32, (Ptr{Void},), kp.env)
     if n < 0
-        error("KNITRO: Error returning number of conjugate gradient iterations")
+        error("KNITRO: Error returning no. of conjugate gradient iterations")
     end
     n
 end
@@ -1018,10 +1019,10 @@ jac              - input (length nnzJ) analytic constraint Jacobian at x
 """ ->
 function check_first_ders(kp::KnitroProblem,
                           x::Vector{Float64},
-                          finiteDiffMethod::Int32,
+                          finiteDiffMethod::Integer,
                           absThreshold::Float64,
                           relThreshold::Float64,
-                          evalStatus::Int32,
+                          evalStatus::Integer,
                           obj::Float64,
                           cons::Vector{Float64},
                           objGrad::Vector{Float64},

@@ -12,8 +12,8 @@ Parameters may be set using their integer identifier, e.g.
 .. code-block:: julia
 
   setOption(kp, KTR_PARAM_OUTLEV, KTR_OUTLEV_ALL)
-  setOption(kp, KTR_PARAM_MIP_OUTINTERVAL, int32(1))
-  setOption(kp, KTR_PARAM_MIP_MAXNODES, int32(10000))
+  setOption(kp, KTR_PARAM_MIP_OUTINTERVAL, 1)
+  setOption(kp, KTR_PARAM_MIP_MAXNODES, 10000)
 
 or using their string names, e.g.
 

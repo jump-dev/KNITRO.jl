@@ -15,7 +15,7 @@ module KNITRO
     @unix_only const libknitro = "libknitro"
     @windows_only const libknitro = "knitro"
 
-    import Compat
+    using Compat
 
     export
         KnitroProblem,
@@ -62,8 +62,8 @@ module KNITRO
 
         function KnitroProblem()
             kp = new(newcontext(),
-                     int32(0),
-                     int32(100), # Code for :Uninitialized
+                     0,
+                     100, # Code for :Uninitialized
                      false)
             finalizer(kp, freeProblem)
             kp
@@ -81,7 +81,7 @@ module KNITRO
     end
 
     function initializeKP(kp, x0, lambda0, g; mip = false)
-        kp.status = int32(101) # code for :Initialized
+        kp.status = 101 # code for :Initialized
         kp.mip = mip
         kp.x = x0
         kp.lambda = lambda0
@@ -93,7 +93,8 @@ module KNITRO
                                g_ub, jac_var, jac_con, hess_row, hess_col,
                                x0 = C_NULL, lambda0 = C_NULL)
         initializeKP(kp, (x0 != C_NULL) ? x0 : zeros(Float64, length(x_l)),
-                     (lambda0 != C_NULL) ? lambda0 : zeros(Float64, length(x_l) + length(g_lb)),
+                     (lambda0 != C_NULL) ?
+                        lambda0 : zeros(Float64, length(x_l) + length(g_lb)),
                      zeros(Float64, length(g_lb)))
         init_problem(kp, objGoal, objType, x_l, x_u, c_Type, g_lb, g_ub,
                      jac_var, jac_con, hess_row, hess_col, kp.x, kp.lambda)
@@ -105,7 +106,8 @@ module KNITRO
                                g_ub, jac_var, jac_con, hess_row, hess_col,
                                x0 = C_NULL, lambda0 = C_NULL)
         initializeKP(kp, (x0 != C_NULL) ? x0 : zeros(Float64, length(x_l)),
-                     (lambda0 != C_NULL) ? lambda0 : zeros(Float64, length(x_l) + length(g_lb)),
+                     (lambda0 != C_NULL) ?
+                        lambda0 : zeros(Float64, length(x_l) + length(g_lb)),
                      zeros(Float64, length(g_lb)), mip=true)
         mip_init_problem(kp, objGoal, objType, objFnType, x_Type, x_l, x_u,
                          c_Type, c_FnType, g_lb, g_ub, jac_var, jac_con,
@@ -114,9 +116,11 @@ module KNITRO
 
     function solveProblem(kp::KnitroProblem)
         if kp.mip
-            kp.status = mip_solve_problem(kp, kp.x, kp.lambda, kp.eval_status, kp.obj_val)
+            kp.status = mip_solve_problem(kp, kp.x, kp.lambda, kp.eval_status,
+                                          kp.obj_val)
         else
-            kp.status = solve_problem(kp, kp.x, kp.lambda, kp.eval_status, kp.obj_val)
+            kp.status = solve_problem(kp, kp.x, kp.lambda, kp.eval_status,
+                                      kp.obj_val)
         end
     end
 
@@ -127,23 +131,25 @@ module KNITRO
                           hess::Vector{Float64},
                           hessVector::Vector{Float64})
         if kp.mip
-            kp.status = mip_solve_problem(kp, kp.x, kp.lambda, kp.eval_status, kp.obj_val, cons,
-                                          objGrad, jac, hess, hessVector)
+            kp.status = mip_solve_problem(kp, kp.x, kp.lambda, kp.eval_status,
+                                          kp.obj_val, cons, objGrad, jac, hess,
+                                          hessVector)
         else
-            kp.status = solve_problem(kp, kp.x, kp.lambda, kp.eval_status, kp.obj_val, cons,
-                                      objGrad, jac, hess, hessVector)
+            kp.status = solve_problem(kp, kp.x, kp.lambda, kp.eval_status,
+                                      kp.obj_val, cons, objGrad, jac, hess,
+                                      hessVector)
         end
     end
 
     function restartProblem(kp, x0, lambda0)
-        kp.status = int32(101) # code for :Initialized
-        kp.eval_status = int32(0)
+        kp.status = 101 # code for :Initialized
+        kp.eval_status = 0
         restart_problem(kp, x0, lambda0)
     end
 
     function restartProblem(kp)
-        kp.status = int32(101) # code for :Initialized
-        kp.eval_status = int32(0)
+        kp.status = 101 # code for :Initialized
+        kp.eval_status = 0
         restart_problem(kp)
     end
 
@@ -175,7 +181,7 @@ module KNITRO
         # calculate the new constraint values
         kp.eval_g(x,pointer_to_array(c_,m))
 
-        int32(0)
+        @compat(Int32(0))
     end
 
     function eval_ga_wrapper(evalRequestCode::Cint,
@@ -203,7 +209,7 @@ module KNITRO
         # evaluate the jacobian
         kp.eval_jac_g(x,pointer_to_array(J_,nnzJ))
 
-        int32(0)
+        @compat(Int32(0))
     end
 
     function eval_hess_wrapper(evalRequestCode::Cint,
@@ -235,7 +241,7 @@ module KNITRO
         else
             return KTR_RC_CALLBACK_ERR
         end
-        int32(0)
+        @compat(Int32(0))
     end
 
     function eval_mip_node_wrapper(evalRequestCode::Cint,
@@ -255,7 +261,7 @@ module KNITRO
         kp = unsafe_pointer_to_objref(userParams_)::KnitroProblem
         obj = unsafe_load(obj_)
         kp.eval_mip_node(kp,obj)
-        int32(0)
+        @compat(Int32(0))
     end
 
     function setFuncCallback(kp::KnitroProblem,
@@ -306,23 +312,25 @@ module KNITRO
     getOption(args...) = get_param(args...)
 
     function applicationReturnStatus(kp::KnitroProblem)
-        if kp.status == int32(100) # chosen not to clash with any of the KTR_RC_* codes
+        if kp.status == 100
+            # chosen not to clash with any of the KTR_RC_* codes
             return :Uninitialized
-        elseif kp.status == int32(101) # chosen not to clash with any of the KTR_RC_* codes
+        elseif kp.status == 101
+            # chosen not to clash with any of the KTR_RC_* codes
             return :Initialized
-        elseif kp.status == int32(0)
+        elseif kp.status == 0
             return :Optimal
-        elseif int32(1) <= kp.status <= int32(11)
+        elseif 1 <= kp.status <= 11
             return :ReverseComms
-        elseif int32(-199) <= kp.status <= int32(-100)
+        elseif -199 <= kp.status <= -100
             return :FeasibleApproximate
-        elseif int32(-299) <= kp.status <= int32(-200)
+        elseif -299 <= kp.status <= -200
             return :Infeasible
-        elseif kp.status == int32(-300)
+        elseif kp.status == -300
             return :Unbounded
-        elseif int32(-499) <= kp.status <= int32(-400)
+        elseif -499 <= kp.status <= -400
             return :UserLimit
-        elseif int32(-599) <= kp.status <= int32(-500)
+        elseif -599 <= kp.status <= -500
             return :KnitroError
         else
             return :Undefined

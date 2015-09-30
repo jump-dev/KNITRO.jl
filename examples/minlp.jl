@@ -166,7 +166,7 @@ x_Type = [KTR_VARTYPE_CONTINUOUS,
           KTR_VARTYPE_BINARY]
 
 kp = createProblem()
-@fact applicationReturnStatus(kp) => :Uninitialized
+@fact applicationReturnStatus(kp) --> :Uninitialized
 
 # ------ Illustrate how to override default options ------
 # --- (options must be set before calling init_problem) ---
@@ -174,19 +174,19 @@ setOption(kp, "mip_method", KTR_MIP_METHOD_BB)
 setOption(kp, "algorithm", KTR_ALG_ACT_CG)
 setOption(kp, "outmode", KTR_OUTMODE_SCREEN)
 setOption(kp, KTR_PARAM_OUTLEV, KTR_OUTLEV_ALL)
-setOption(kp, KTR_PARAM_MIP_OUTINTERVAL, int32(1))
-setOption(kp, KTR_PARAM_MIP_MAXNODES, int32(10000))
+setOption(kp, KTR_PARAM_MIP_OUTINTERVAL, 1)
+setOption(kp, KTR_PARAM_MIP_MAXNODES, 10000)
 # specify that user is able to provide evaluations of the
 # hessian matrix without the objective component
 # (turned off by default, but should be enabled if possible)
 setOption(kp, KTR_PARAM_HESSIAN_NO_F, KTR_HESSIAN_NO_F_ALLOW)
-@fact applicationReturnStatus(kp) => :Uninitialized
+@fact applicationReturnStatus(kp) --> :Uninitialized
 
 # --- set callback functions ---
 setCallbacks(kp, eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h, eval_hv)
-@fact applicationReturnStatus(kp) => :Uninitialized
+@fact applicationReturnStatus(kp) --> :Uninitialized
 setMIPCallback(kp, eval_mip_node)
-@fact applicationReturnStatus(kp) => :Uninitialized
+@fact applicationReturnStatus(kp) --> :Uninitialized
 
 initializeProblem(kp, objGoal, objType, objFnType,
                   x_Type, x_L, x_U, c_Type, c_FnType, c_L, c_U,
@@ -195,7 +195,7 @@ solveProblem(kp)
 
 # --- test optimal solutions ---
 facts("Test optimal solutions") do
-  @fact applicationReturnStatus(kp) => :Optimal
-  @fact kp.x => roughly(
+  @fact applicationReturnStatus(kp) --> :Optimal
+  @fact kp.x --> roughly(
       [1.30098, 0.0, 1.0, 0.0, 1.0, 0.0], 1e-5)
 end

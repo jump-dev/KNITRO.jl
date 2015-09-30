@@ -1,5 +1,6 @@
 using KNITRO
 using Base.Test
+using Compat
 
  ## Solve a small QCQP (quadratically constrained quadratic programming)
  #  test problem.
@@ -82,19 +83,19 @@ hess_col = Int32[0,1,2,1,2]
 x = [2.0,2.0,2.0] # initial guess
 
 kp = createProblem()
-@fact applicationReturnStatus(kp) => :Uninitialized
+@fact applicationReturnStatus(kp) --> :Uninitialized
 setOption(kp, "outlev", "all")
-setOption(kp, "hessopt", int32(1))
-setOption(kp, "hessian_no_f", int32(1))
+setOption(kp, "hessopt", 1)
+setOption(kp, "hessian_no_f", 1)
 setOption(kp, "feastol", 1.0e-10)
 
-@fact applicationReturnStatus(kp) => :Uninitialized
-@fact kp.eval_status => int32(0)
+@fact applicationReturnStatus(kp) --> :Uninitialized
+@fact kp.eval_status --> @compat(Int32(0))
 
 initializeProblem(kp, objGoal, objType, x_L, x_U, c_Type, c_L, c_U,
                   jac_var, jac_con, hess_row, hess_col, x)
-@fact applicationReturnStatus(kp) => :Initialized
-@fact kp.eval_status => int32(0)
+@fact applicationReturnStatus(kp) --> :Initialized
+@fact kp.eval_status --> @compat(Int32(0))
 
 #---- ALLOCATE ARRAYS FOR REVERSE COMMUNICATIONS OPERATION.
 cons = Array(Float64, m)
@@ -108,7 +109,7 @@ hessVector = Array(Float64, n)
 #---- PROGRAM MUST INTERPRET KNITRO'S RETURN STATUS AND CONTINUE
 #---- SUPPLYING PROBLEM INFORMATION UNTIL KNITRO IS COMPLETE.
 while kp.status > 0
-    @fact applicationReturnStatus(kp) => anyof(:Initialized, :ReverseComms)
+    @fact applicationReturnStatus(kp) --> anyof(:Initialized, :ReverseComms)
     solveProblem(kp, cons, objGrad, jac, hess, hessVector)
     if kp.status == KTR_RC_EVALFC
         #---- KNITRO WANTS obj AND c EVALUATED AT THE POINT x.
@@ -137,14 +138,14 @@ while kp.status > 0
     #*---- IF A FUNCTION OR ITS DERIVATIVE COULD NOT BE EVALUATED
     #*---- AT THE GIVEN (x, lambda), THEN SET evalStatus = 1 BEFORE
     #*---- CALLING KTR_solve AGAIN. */
-    @fact applicationReturnStatus(kp) => anyof(:ReverseComms, :Optimal)
-    @fact kp.eval_status => int32(0)
+    @fact applicationReturnStatus(kp) --> anyof(:ReverseComms, :Optimal)
+    @fact kp.eval_status --> @compat(Int32(0))
 end
 
 # --- test optimal solutions ---
 facts("Test optimal solutions") do
-    @fact applicationReturnStatus(kp) => :Optimal
-    @fact kp.x => roughly(
+    @fact applicationReturnStatus(kp) --> :Optimal
+    @fact kp.x --> roughly(
         [0.0, 0.0, 8.0], 1e-5)
-    @fact kp.obj_val[1] => roughly(936.0, 1e-5)
+    @fact kp.obj_val[1] --> roughly(936.0, 1e-5)
 end

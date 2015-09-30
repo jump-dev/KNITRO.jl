@@ -50,7 +50,7 @@ export model
 ###############################################################################
 # Begin interface implementation
 
-function sparse_merge_hess_duplicates(I,J, m, n)
+function sparse_merge_hess_duplicates(I, J, m, n)
     V = [Int[i] for i in 1:length(I)]
     for i in 1:length(I) # make upper triangular
         if I[i] > J[i]
@@ -60,7 +60,7 @@ function sparse_merge_hess_duplicates(I,J, m, n)
     findnz(sparse(I,J,V,m,n,vcat))
 end
 
-function sparse_merge_jac_duplicates(I,J, m, n)
+function sparse_merge_jac_duplicates(I, J, m, n)
     V = [Int[i] for i in 1:length(I)]
     findnz(sparse(I,J,V,m,n,vcat))
 end
@@ -84,16 +84,21 @@ function loadnonlinearproblem!(m::KnitroMathProgModel,
     m.jac_con, m.jac_var, jac_indices = sparse_merge_jac_duplicates(Ijac, Jjac,
                                                                 numConstr,
                                                                 numVar)
-    m.jac_con, m.jac_var = int32(m.jac_con-1), int32(m.jac_var-1)
+    m.jac_con = m.jac_con .- 1
+    m.jac_var = m.jac_var .- 1
     m.hess_row, m.hess_col, hess_indices = sparse_merge_hess_duplicates(Ihess,
                                                                     Jhess,
                                                                     numVar,
                                                                     numVar)
-    m.hess_row, m.hess_col = int32(m.hess_row-1), int32(m.hess_col-1)
+    m.hess_row = m.hess_row .- 1
+    m.hess_col = m.hess_col .- 1
     n_jac_indices = length(jac_indices)
     n_hess_indices = length(hess_indices)
 
-    m.varLB, m.varUB, m.constrLB, m.constrUB = float(x_l), float(x_u), float(g_lb), float(g_ub)
+    m.varLB = x_l
+    m.varUB = x_u
+    m.constrLB = g_lb
+    m.constrUB = g_ub
     m.numVar = length(m.varLB)
     m.numConstr = length(m.constrLB)
     @assert m.numVar == length(m.varUB)
@@ -181,9 +186,6 @@ function loadnonlinearproblem!(m::KnitroMathProgModel,
         elseif param == "tuner_file"
             loadTunerFile(m.inner, value)
         else
-            if isa(value, Int)
-                value = int32(value)
-            end
             if haskey(paramName2Indx, param) # KTR_PARAM_*
                 setOption(m.inner, paramName2Indx[param], value)
             else # string name
@@ -196,21 +198,22 @@ function loadnonlinearproblem!(m::KnitroMathProgModel,
                  eval_h_cb, eval_hv_cb)
 end
 
-getsense(m::KnitroMathProgModel) = int32(m.sense)
-numvar(m::KnitroMathProgModel) = int32(m.numVar)
-numconstr(m::KnitroMathProgModel) = int32(m.numConstr)
+getsense(m::KnitroMathProgModel) = m.sense
+numvar(m::KnitroMathProgModel) = m.numVar
+numconstr(m::KnitroMathProgModel) = m.numConstr
 
 function optimize!(m::KnitroMathProgModel)
     if applicationReturnStatus(m.inner) == :Uninitialized
         if all(x->x==KTR_VARTYPE_CONTINUOUS, m.varType)
-            initializeProblem(m.inner, m.sense, m.objType, m.varLB, m.varUB, m.constrType,
-                              m.constrLB, m.constrUB, m.jac_var, m.jac_con, m.hess_row, m.hess_col,
-                              m.initial_x)
+            initializeProblem(m.inner, m.sense, m.objType, m.varLB, m.varUB,
+                              m.constrType, m.constrLB, m.constrUB, m.jac_var,
+                              m.jac_con, m.hess_row, m.hess_col, m.initial_x)
         else
             initializeProblem(m.inner, m.sense, m.objType, m.objFnType,
                               m.varType, m.varLB, m.varUB, m.constrType,
                               m.constrFnType, m.constrLB, m.constrUB,
-                              m.jac_var, m.jac_con, m.hess_row, m.hess_col, m.initial_x)
+                              m.jac_var, m.jac_con, m.hess_row, m.hess_col,
+                              m.initial_x)
         end
     elseif !m.hasbeenrestarted
         restartProblem(m.inner)
@@ -226,12 +229,13 @@ end
 getobjval(m::KnitroMathProgModel) = m.inner.obj_val[1]
 getsolution(m::KnitroMathProgModel) = m.inner.x
 getconstrsolution(m::KnitroMathProgModel) = m.inner.g
-getreducedcosts(m::KnitroMathProgModel) = -1 .* m.inner.lambda[m.numConstr+1:end]
+getreducedcosts(m::KnitroMathProgModel) =
+    -1 .* m.inner.lambda[m.numConstr + 1:end]
 getconstrduals(m::KnitroMathProgModel) = -1 .* m.inner.lambda[1:m.numConstr]
 getrawsolver(m::KnitroMathProgModel) = m.inner
 
 function warmstart(m::KnitroMathProgModel, x)
-    m.initial_x = float64(x)
+    m.initial_x = [@compat(Float64(i)) for i in x]
     if applicationReturnStatus(m.inner) != :Uninitialized
         restartProblem(m.inner, m.initial_x, m.inner.lambda)
         m.hasbeenrestarted = true
@@ -239,4 +243,5 @@ function warmstart(m::KnitroMathProgModel, x)
 end
 
 setwarmstart!(m::KnitroMathProgModel, x) = warmstart(m,x)
-setvartype!(m::KnitroMathProgModel, typ::Vector{Symbol}) = (m.varType = map(t->rev_var_type_map[t], typ))
+setvartype!(m::KnitroMathProgModel, typ::Vector{Symbol}) =
+    (m.varType = map(t->rev_var_type_map[t], typ))
