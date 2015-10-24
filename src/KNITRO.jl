@@ -72,6 +72,7 @@ module KNITRO
     createProblem() = KnitroProblem()
 
     function freeProblem(kp::KnitroProblem)
+        kp.env == C_NULL && return
         return_code = @ktr_ccall(free, Int32, (Ptr{Void},), [kp.env])
         if return_code != 0
             error("KNITRO: Error freeing memory")
