@@ -245,3 +245,5 @@ end
 setwarmstart!(m::KnitroMathProgModel, x) = warmstart(m,x)
 setvartype!(m::KnitroMathProgModel, typ::Vector{Symbol}) =
     (m.varType = map(t->rev_var_type_map[t], typ))
+
+freemodel!(m::KnitroMathProgModel) = freeProblem(m.inner)
