@@ -7,6 +7,8 @@ The KNITRO.jl package provides an interface for using the [KNITRO solver](http:/
 
 KNITRO functionality is extensive, so coverage is incomplete, but the basic functionality for solving linear, nonlinear, and mixed-integer programs is provided. Documentation is available on [ReadTheDocs](http://knitrojl.readthedocs.org/en/latest/knitro.html).
 
+*The KNITRO wrapper for Julia is community driven and not officially supported by KNITRO. If you are a KNITRO customer interested in official support for Julia, let them know!*
+
 Setting up KNITRO on Linux and OS X
 -----------------------------------
 
