@@ -17,11 +17,11 @@ Setting up KNITRO on Linux and OS X
 2. Once KNITRO is installed on your machine, point the `LD_LIBRARY_PATH` (Linux) or `DYLD_LIBRARY_PATH` (OS X) variable to the KNITRO library by adding, e.g.,
 
   ```bash
-  export LD_LIBRARY_PATH="$HOME/knitro-9.0.1-z/lib:$LD_LIBRARY_PATH"
+  export LD_LIBRARY_PATH="$HOME/knitro-10.0.0-z/lib:$LD_LIBRARY_PATH"
   ```
 
   ```bash
-  export DYLD_LIBRARY_PATH="$HOME/knitro-9.0.1-z/lib:$DYLD_LIBRARY_PATH"
+  export DYLD_LIBRARY_PATH="$HOME/knitro-10.0.0-z/lib:$DYLD_LIBRARY_PATH"
   ```
 to your start-up file (e.g. ``.bash_profile``).
 
