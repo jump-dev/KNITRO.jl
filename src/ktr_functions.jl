@@ -224,13 +224,14 @@ function load_tuner_file(kp::KnitroProblem, filename::AbstractString)
 end
 
 """
-Copy the KNITRO release name into [release].  This variable must be
-preallocated to have [length] elements, including the string termination
-character.  For compatibility with future releases, please allocate at
-least 15 characters.
+Returns the current KNITRO version.
 """
-function get_release(length::Integer, release::AbstractString)
-    @ktr_ccall(get_release, Any, (Cint, Ptr{Cchar}), kp.env, release)
+function get_release()
+    len = 15
+    out = zeros(Cchar,len)
+
+    @ktr_ccall(get_release, Any, (Cint, Ptr{Cchar}), len, out)
+    return strip(bytestring(convert(Vector{UInt8},out)),'\0')
 end
 
 """
