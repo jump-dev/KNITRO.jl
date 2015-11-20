@@ -235,7 +235,7 @@ getconstrduals(m::KnitroMathProgModel) = -1 .* m.inner.lambda[1:m.numConstr]
 getrawsolver(m::KnitroMathProgModel) = m.inner
 
 function warmstart(m::KnitroMathProgModel, x)
-    m.initial_x = [@compat(Float64(i)) for i in x]
+    m.initial_x = [Float64(i) for i in x]
     if applicationReturnStatus(m.inner) != :Uninitialized
         restartProblem(m.inner, m.initial_x, m.inner.lambda)
         m.hasbeenrestarted = true

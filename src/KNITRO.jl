@@ -1,17 +1,13 @@
+__precompile__()
+
 module KNITRO
-    using Compat
-
-    if VERSION < v"0.4.0-dev"
-        using Docile
-    end
-
-    if VERSION >= v"0.4.0-dev+3844"
-        import Base.Libdl: RTLD_GLOBAL
-    end
-    @linux_only begin
-        # fixes missing symbols in libknitro.so
-        Libdl.dlopen("libdl", RTLD_GLOBAL)
-        Libdl.dlopen("libgomp", RTLD_GLOBAL)
+    import Base.Libdl: RTLD_GLOBAL
+    function __init__()
+        @linux_only begin
+            # fixes missing symbols in libknitro.so
+            Libdl.dlopen("libdl", RTLD_GLOBAL)
+            Libdl.dlopen("libgomp", RTLD_GLOBAL)
+        end
     end
     @unix_only const libknitro = "libknitro"
     @windows_only const libknitro = "knitro"
@@ -28,7 +24,7 @@ module KNITRO
         setOption, getOption,
         applicationReturnStatus
 
-    @doc "A macro to make calling KNITRO's C API a little cleaner" ->
+    "A macro to make calling KNITRO's C API a little cleaner"
     macro ktr_ccall(func, args...)
         f = Base.Meta.quot(symbol("KTR_$(func)"))
         args = [esc(a) for a in args]
@@ -181,7 +177,7 @@ module KNITRO
         # calculate the new constraint values
         kp.eval_g(x,pointer_to_array(c_,m))
 
-        @compat(Int32(0))
+        Int32(0)
     end
 
     function eval_ga_wrapper(evalRequestCode::Cint,
@@ -209,7 +205,7 @@ module KNITRO
         # evaluate the jacobian
         kp.eval_jac_g(x,pointer_to_array(J_,nnzJ))
 
-        @compat(Int32(0))
+        Int32(0)
     end
 
     function eval_hess_wrapper(evalRequestCode::Cint,
@@ -241,7 +237,7 @@ module KNITRO
         else
             return KTR_RC_CALLBACK_ERR
         end
-        @compat(Int32(0))
+        Int32(0)
     end
 
     function eval_mip_node_wrapper(evalRequestCode::Cint,
@@ -261,7 +257,7 @@ module KNITRO
         kp = unsafe_pointer_to_objref(userParams_)::KnitroProblem
         obj = unsafe_load(obj_)
         kp.eval_mip_node(kp,obj)
-        @compat(Int32(0))
+        Int32(0)
     end
 
     function setFuncCallback(kp::KnitroProblem,
