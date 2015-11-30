@@ -8,7 +8,7 @@ immutable KnitroSolver <: AbstractMathProgSolver
 end
 KnitroSolver(;kwargs...) = KnitroSolver(kwargs)
 
-type KnitroMathProgModel <: AbstractMathProgModel
+type KnitroMathProgModel <: AbstractNonlinearModel
     options
     inner::KnitroProblem
 
@@ -44,8 +44,8 @@ type KnitroMathProgModel <: AbstractMathProgModel
     end
 end 
 
-model(s::KnitroSolver) = KnitroMathProgModel(;s.options...)
-export model
+NonlinearModel(s::KnitroSolver) = KnitroMathProgModel(;s.options...)
+LinearQuadraticModel(s::KnitroSolver) = NonlinearToLPQPBridge(NonlinearModel(s))
 
 ###############################################################################
 # Begin interface implementation
@@ -66,12 +66,12 @@ function sparse_merge_jac_duplicates(I, J, m, n)
 end
 
 # generic nonlinear interface
-function loadnonlinearproblem!(m::KnitroMathProgModel,
-                               numVar::Int,
-                               numConstr::Int,
-                               x_l, x_u, g_lb, g_ub,
-                               sense::Symbol,
-                               d::AbstractNLPEvaluator)
+function loadproblem!(m::KnitroMathProgModel,
+                      numVar::Int,
+                      numConstr::Int,
+                      x_l, x_u, g_lb, g_ub,
+                      sense::Symbol,
+                      d::AbstractNLPEvaluator)
     initialize(d, [:Grad, :Jac, :Hess])
     Ijac, Jjac = jac_structure(d)
     Ihess, Jhess = hesslag_structure(d)
