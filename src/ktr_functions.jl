@@ -204,21 +204,15 @@ end
 "Get a parameter by its name"
 function get_param(kp::KnitroProblem, name::AbstractString)
     # try getting an integer parameter first
-    int_result = Ref{Cint}(0)
-    return_code = @ktr_ccall(get_int_param_by_name, Int32, (Ptr{Void}, Ptr{Cchar},
-                             Ref{Cint}), kp.env, name, int_result)
-    if return_code == 0
-        return int_result[]
-    end
-
-    # otherwise, try getting a double parameter
-    float_result = Ref{Cdouble}(0)
-    return_code = @ktr_ccall(get_double_param_by_name, Int32, (Ptr{Void},
-                             Ptr{Cchar}, Ref{Cdouble}), kp.env, name, float_result)
-    if return_code != 0
+    int_result = Array(Cint, 1)
+    float_result = Array(Cdouble, 1)
+    if get_param(kp, name, int_result) == 0
+        return int_result[1]
+    elseif get_param(kp, name, float_result) != 0
+        # otherwise, try getting a double parameter
         error("KNITRO: Error getting parameter by name")
     end
-    float_result[]
+    float_result[1]
 end
 
 "Get an integer parameter by its id"
@@ -236,21 +230,15 @@ end
 "Get a parameter by its id"
 function get_param(kp::KnitroProblem, id::Integer)
     # try getting an integer parameter first
-    int_result = Ref{Cint}(0)
-    return_code = @ktr_ccall(get_int_param, Int32, (Ptr{Void}, Ptr{Cchar},
-                             Ref{Cint}), kp.env, name, int_result)
-    if return_code == 0
-        return int_result[]
-    end
-
-    # otherwise, try getting a double parameter
-    float_result = Ref{Cdouble}(0)
-    return_code = @ktr_ccall(get_double_param, Int32, (Ptr{Void}, Ptr{Cchar},
-                             Ref{Cdouble}), kp.env, name, float_result)
-    if return_code != 0
+    int_result = Array(Cint, 1)
+    float_result = Array(Cdouble, 1)
+    if get_param(kp, id, int_result) == 0
+        return int_result[1]
+    elseif get_param(kp, id, float_result) != 0
+        # otherwise, try getting a double parameter
         error("KNITRO: Error getting parameter by id")
     end
-    float_result[]
+    float_result[1]
 end
 
 ### ===== NEW in KNITRO 10.0 =====
