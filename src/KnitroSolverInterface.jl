@@ -72,9 +72,18 @@ function loadproblem!(m::KnitroMathProgModel,
                       x_l, x_u, g_lb, g_ub,
                       sense::Symbol,
                       d::AbstractNLPEvaluator)
-    initialize(d, [:Grad, :Jac, :Hess])
+    features = features_available(d)
+    has_hessian = (:Hess in features)
+    if has_hessian
+        initialize(d, [:Grad, :Jac, :Hess])
+        Ihess, Jhess = hesslag_structure(d)
+    else
+        initialize(d, [:Grad, :Jac])
+        Ihess = Int[]
+        Jhess = Int[]
+    end
+   
     Ijac, Jjac = jac_structure(d)
-    Ihess, Jhess = hesslag_structure(d)
     m.nnzJ = length(Ijac)
     m.nnzH = length(Ihess)
     jac_tmp = Array(Float64, m.nnzJ)
@@ -178,9 +187,12 @@ function loadproblem!(m::KnitroMathProgModel,
                                                          lambda)
 
     m.inner = createProblem()
-
+    defined_hessopt = false; hessopt_value = 0
     for (param,value) in m.options
         param = string(param)
+        if param == "KTR_PARAM_HESSOPT"
+            defined_hessopt = true; hessopt_value = value
+        end
         if param == "options_file"
             loadOptionsFile(m.inner, value)
         elseif param == "tuner_file"
@@ -192,6 +204,11 @@ function loadproblem!(m::KnitroMathProgModel,
                 setOption(m.inner, param, value)
             end
         end
+    end
+    
+    # check and define default hessian option 
+    if (!has_hessian && !defined_hessopt) || (!has_hessian && !in(hessopt_value,2:6)) 
+        setOption(m.inner,paramName2Indx["KTR_PARAM_HESSOPT"],6)
     end
 
     setCallbacks(m.inner, eval_f_cb, eval_g_cb, eval_grad_f_cb, eval_jac_g_cb,
