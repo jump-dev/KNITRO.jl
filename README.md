@@ -21,7 +21,7 @@ Setting up Knitro on Linux and OS X
   ```bash
   export DYLD_LIBRARY_PATH="$HOME/knitro-10.0.0-z/lib:$DYLD_LIBRARY_PATH"
   ```
-to your start-up file (e.g. ``.bash_profile``).
+to your start-up file (e.g. ``.bash_profile``). **Not all environments load these variables.** You may need to set them explicitly from Julia using ``ENV["DYLD_LIBRARY_PATH"] = ...`` before ``using KNITRO``.
 
 3. To activate Knitro for your computer you will need a valid license file (which looks like `ziena_lic_*.txt`). The simplest procedure is to copy each license into your `HOME` directory.
 
