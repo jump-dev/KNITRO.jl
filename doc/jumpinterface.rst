@@ -1,7 +1,7 @@
 --------------
 JuMP interface
 --------------
-You can also work with KNITRO through `JuMP`_, a domain-specific modeling language for mathematical programming embedded in Julia.
+You can also work with Artelys Knitro through `JuMP`_, a domain-specific modeling language for mathematical programming embedded in Julia.
 
 Re-visiting the `example`_, here's what it'll look like with JuMP:
 
@@ -16,11 +16,11 @@ Re-visiting the `example`_, here's what it'll look like with JuMP:
   @addConstraint(m, x[1] + x[2] + 2.0*x[3] <= 3)
   solve(m)
 
-**Remark**: To use `KNITRO` through the JuMP interface, you currently need to have a nonlinear objective (via `@setNLObjective`) or at least one nonlinear constraint (via `@addNLConstraint`).
+**Remark**: To use Artelys Knitro through the JuMP interface, you currently need to have a nonlinear objective (via `@setNLObjective`) or at least one nonlinear constraint (via `@addNLConstraint`).
 
 Solver Parameters
 ^^^^^^^^^^^^^^^^^
-You can also provide `solver parameters`_ to KNITRO in JuMP, e.g.
+You can also provide `solver parameters`_ to Artelys Knitro in JuMP, e.g.
 
 .. code-block:: julia
 

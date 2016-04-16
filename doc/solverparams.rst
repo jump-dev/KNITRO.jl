@@ -1,7 +1,7 @@
 --------------------------------------
 Changing and reading solver parameters
 --------------------------------------
-Parameters cannot be set after KNITRO begins solving; i.e. after ``solveProblem`` is called.  They may be set again after ``restart_problem``. In most cases, parameter values are not validated until ``initializeProblem`` or ``solveProblem`` is called.
+Parameters cannot be set after Artelys Knitro begins solving; i.e. after ``solveProblem`` is called.  They may be set again after ``restart_problem``. In most cases, parameter values are not validated until ``initializeProblem`` or ``solveProblem`` is called.
 
 **Note:** The ``gradopt`` and ``hessopt`` user options must be set before calling ``initializeProblem``, and cannot be changed after calling these functions.
 

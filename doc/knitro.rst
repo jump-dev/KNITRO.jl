@@ -1,13 +1,13 @@
-=================================================
-KNITRO.jl --- Julia interface for the KNITRO solver
-=================================================
+===========================================================
+KNITRO.jl --- Julia interface for the Artelys Knitro solver
+===========================================================
 
 .. module:: KNITRO
    :synopsis: Julia interface for the KNITRO solver
 
-The KNITRO.jl package provides an interface for using the `KNITRO solver`_ from the `Julia language`_. You cannot use KNITRO.jl without having purchased and installed a copy of KNITRO from `Ziena Optimization`_. This package is available free of charge and in no way replaces or alters any functionality of Ziena's KNITRO solver.
+The KNITRO.jl package provides an interface for using the `Artelys Knitro solver`_ from the `Julia language`_. You cannot use KNITRO.jl without having purchased and installed a copy of Artelys Knitro from `Artelys`_. This package is available free of charge and in no way replaces or alters any functionality of the Artelys Knitro solver.
 
-KNITRO functionality is extensive, so coverage is incomplete, but the basic functionality for solving linear, nonlinear, and mixed-integer programs is provided.
+Artelys Knitro functionality is extensive, so KNITRO.jl's coverage is incomplete, but the basic functionality for solving linear, nonlinear, and mixed-integer programs is provided.
 
 Contents
 --------
@@ -21,6 +21,6 @@ Contents
    callbacks.rst
    jumpinterface.rst
 
-.. _KNITRO solver: http://www.ziena.com/knitro.htm
+.. _Artelys Knitro solver: http://www.ziena.com/knitro.htm
 .. _Julia language: http://julialang.org/
-.. _Ziena Optimization: http://www.ziena.com/
+.. _Artelys: https://www.artelys.com/
