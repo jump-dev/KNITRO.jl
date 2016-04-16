@@ -1,6 +1,6 @@
 The KNITRO.jl package is licensed under the MIT Expat License:
 
-> Copyright (c) 2014 Ng Yee Sian, Miles Lubin, and other contributors --
+> Copyright (c) 2016 Ng Yee Sian, Miles Lubin, and other contributors --
 > https://github.com/JuliaOpt/KNITRO.jl/contributors
 >
 > Permission is hereby granted, free of charge, to any person obtaining a copy
