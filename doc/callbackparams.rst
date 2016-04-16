@@ -34,10 +34,10 @@ all use the same `KTR_callback()` function prototype defined below.
 
 New Point Callbacks
 ^^^^^^^^^^^^^^^^^^^
-Type declaration for the callback function that is invoked after KNITRO computes a new estimate of the solution point (i.e., after every major iteration).
+Type declaration for the callback function that is invoked after Artelys Knitro computes a new estimate of the solution point (i.e., after every major iteration).
 
-The function should not modify any KNITRO arguments.
-- "kc" is the context pointer for the current problem being solved inside KNITRO (either the main single-solve problem, or a subproblem when using multi-start, Tuner, etc.).
+The function should not modify any Artelys Knitro arguments.
+- "kc" is the context pointer for the current problem being solved inside Artelys Knitro (either the main single-solve problem, or a subproblem when using multi-start, Tuner, etc.).
 - "x" and "lambda" contain the new point and values.
 - "obj" and "c" contain objective and constraint values at "x", and
 - "objGrad" and "jac" contain the objective gradient and constraint Jacobian at "x".
@@ -58,7 +58,7 @@ The function should not modify any KNITRO arguments.
 
 Multi-Start Initial Point Callback
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Type declaration for the callback that allows applications to specify an initial point before each local solve in the multistart procedure.  On input, arguments "x" and "lambda" are the randomly generated initial points determined by KNITRO, which can be overwritten by the user.  
+Type declaration for the callback that allows applications to specify an initial point before each local solve in the multistart procedure.  On input, arguments "x" and "lambda" are the randomly generated initial points determined by Artelys Knitro, which can be overwritten by the user.  
 
 The argument "nSolveNumber" is the number of the multistart solve.  Return 0 if successful, a negative error code if not. Use `set_ms_initpt_callback` to set this callback function.
 

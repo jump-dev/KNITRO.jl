@@ -34,7 +34,7 @@ For MIP problems, use ``mip_init_problem`` and ``mip_solve`` instead (see ``exam
 
 Reverse Communications
 ^^^^^^^^^^^^^^^^^^^^^^
-If the application provides callback functions for making evaluations, then a single call to KTR_solve will return the solution. Alternatively, the application can employ a reverse communications driver, with the following calling sequence:
+If the application provides callback functions for making evaluations, then a single call to ``solveProblem`` will return the solution. Alternatively, the application can employ a reverse communications driver, with the following calling sequence:
 
 .. code-block:: julia
 

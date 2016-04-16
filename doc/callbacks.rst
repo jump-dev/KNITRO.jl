@@ -48,7 +48,7 @@ As with ``eval_g``, you must set the values "in-place" for ``eval_grad_f``.
 eval_jac_g
 ^^^^^^^^^^
 
-This function returns the values of the Jacobian, evaluated at the non-negative indices, based on the sparsity structure passed to KNITRO through ``initializeProblem``. Julia is 1-based, in the sense that indexing always starts at 1 (unlike C, which starts at 0).::
+This function returns the values of the Jacobian, evaluated at the non-negative indices, based on the sparsity structure passed to Artelys Knitro through ``initializeProblem``. Julia is 1-based, in the sense that indexing always starts at 1 (unlike C, which starts at 0).::
 
   function eval_jac_g(x::Vector{Float64},       # (length n) Current Solution
                         jac::Vector{Float64})   # (length nnzJ) The values of the Jacobian
