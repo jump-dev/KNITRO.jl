@@ -51,9 +51,9 @@ source_suffix = '.rst'
 master_doc = 'knitro'
 
 # General information about the project.
-project = u'KNITRO.jl - Julia interface to the KNITRO solver'
-AUTHORS = u'Ng Yee Sian'
-copyright = u'2014, '+AUTHORS
+project = u'KNITRO.jl - Julia interface to the Artelys Knitro solver'
+AUTHORS = u'Ng Yee Sian, Miles Lubin, and other contributors -- https://github.com/JuliaOpt/KNITRO.jl/contributors'
+copyright = u'2016, '+AUTHORS
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
