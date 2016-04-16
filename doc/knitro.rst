@@ -2,8 +2,8 @@
 KNITRO.jl --- Julia interface for the Artelys Knitro solver
 ===========================================================
 
-.. module:: KNITRO
-   :synopsis: Julia interface for the KNITRO solver
+.. module:: KNITRO.jl
+   :synopsis: Julia interface for the Artelys Knitro solver
 
 The KNITRO.jl package provides an interface for using the `Artelys Knitro solver`_ from the `Julia language`_. You cannot use KNITRO.jl without having purchased and installed a copy of Artelys Knitro from `Artelys`_. This package is available free of charge and in no way replaces or alters any functionality of the Artelys Knitro solver.
 

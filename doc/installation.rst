@@ -35,7 +35,7 @@ Note that currently *only 64-bit* Windows is supported. That is, you must use 64
 
 1. First, you must obtain a copy of the Artelys Knitro software and a license; trial versions and academic licenses are available `here`_.
 
-2. Once Artelys Knitro is installed on your machine, add the directory containing ``knitro.dll`` to the `PATH` environment variable, as described in the Artelys Knitro documentation. 
+2. Once Artelys Knitro is installed on your machine, add the directory containing ``knitro.dll`` to the ``PATH`` environment variable, as described in the Artelys Knitro documentation. 
 
 3. At the Julia prompt, run
 
