@@ -16,5 +16,5 @@ for m in [Model(solver=KnitroSolver()),
     @test_approx_eq_eps getvalue(x[1]) 1.3333333 1e-5
     @test_approx_eq_eps getvalue(x[2]) 0.7777777 1e-5
     @test_approx_eq_eps getvalue(x[3]) 0.4444444 1e-5
-    @test_approx_eq_eps getObjectiveValue(m) 0.1111111 1e-5
+    @test_approx_eq_eps getobjectivevalue(m) 0.1111111 1e-5
 end
