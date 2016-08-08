@@ -150,7 +150,9 @@ function loadproblem!(m::KnitroMathProgModel,
     m.constrFnType = fill(KTR_FNTYPE_UNCERTAIN, m.numConstr)
     for i=1:m.numConstr
         if isconstrlinear(d, i)
-            m.constrType[i] = KTR_CONTYPE_LINEAR
+            # Bug in Knitro, this is unsafe until 10.1.2
+            # See https://groups.google.com/d/msg/knitro/H9ck55HjY0s/U0r2-f6zAwAJ
+            #m.constrType[i] = KTR_CONTYPE_LINEAR
             m.constrFnType[i] = KTR_FNTYPE_CONVEX
         end
     end
