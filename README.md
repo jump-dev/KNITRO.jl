@@ -61,4 +61,4 @@ MathProgBase Interface
 
 KNITRO.jl implements the solver-independent [MathProgBase](https://github.com/JuliaOpt/MathProgBase.jl) interface, and so can be used within modeling software like [JuMP](https://github.com/JuliaOpt/JuMP.jl).
 
-The solver object is called ``KnitroSolver``. All options listed in the [Artelys KNITRO documentation](https://www.artelys.com/tools/knitro_doc/3_referenceManual/callableLibrary/userOptions.html) may be passed directly. For example, you can run all algorithms by saying ``KnitroSolver(KTR_PARAM_ALG=KTR_ALG_MULTI)``.
+The solver object is called ``KnitroSolver``. All options listed in the [Artelys Knitro documentation](https://www.artelys.com/tools/knitro_doc/3_referenceManual/userOptions.html) may be passed directly. For example, you can run all algorithms by saying ``KnitroSolver(KTR_PARAM_ALG=KTR_ALG_MULTI)``.
