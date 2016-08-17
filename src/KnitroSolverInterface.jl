@@ -39,6 +39,8 @@ type KnitroMathProgModel <: AbstractNonlinearModel
 
     hasbeenrestarted::Bool
 
+    solve_time::Float64
+
     function KnitroMathProgModel(;options...)
         new(options)
     end
@@ -237,7 +239,9 @@ function optimize!(m::KnitroMathProgModel)
     elseif !m.hasbeenrestarted
         restartProblem(m.inner)
     end
+    t = time()
     solveProblem(m.inner)
+    m.solve_time = time() - t
     m.hasbeenrestarted = false
 end
 
@@ -252,6 +256,7 @@ getreducedcosts(m::KnitroMathProgModel) =
     -1 .* m.inner.lambda[m.numConstr + 1:end]
 getconstrduals(m::KnitroMathProgModel) = -1 .* m.inner.lambda[1:m.numConstr]
 getrawsolver(m::KnitroMathProgModel) = m.inner
+getsolvetime(m::KnitroMathProgModel) = m.solve_time
 
 function warmstart(m::KnitroMathProgModel, x)
     m.initial_x = [Float64(i) for i in x]
