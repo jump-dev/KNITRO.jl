@@ -527,7 +527,7 @@ function init_problem(kp::KnitroProblem,
                       jac_var::Vector{Int32},   # length nnzJ
                       jac_cons::Vector{Int32},  # length nnzJ
                       hess_rows::Vector{Int32}, # length nnzH
-                      hess_cols::Vector{Int32}, # length nnzH
+                      hess_cols::Vector{Int32}; # length nnzH
                       initial_x = C_NULL,         # length n
                       initial_lambda = C_NULL)    # length m+n
     n = length(x_L)
@@ -556,7 +556,7 @@ function init_problem(kp::KnitroProblem,
                       c_L::Vector{Float64},     # length m
                       c_U::Vector{Float64},     # length m
                       jac_var::Vector{Int32},   # length nnzJ
-                      jac_cons::Vector{Int32},  # length nnzJ
+                      jac_cons::Vector{Int32};  # length nnzJ
                       initial_x = C_NULL,       # length n
                       initial_lambda = C_NULL)  # length m+n
     n = length(x_L)
@@ -689,7 +689,7 @@ function mip_init_problem(kp::KnitroProblem,
                           jac_var::Vector{Int32},   # length nnzJ
                           jac_cons::Vector{Int32},  # length nnzJ
                           hess_rows::Vector{Int32}, # length nnzH
-                          hess_cols::Vector{Int32}, # length nnzH
+                          hess_cols::Vector{Int32}; # length nnzH
                           initial_x = C_NULL,       # length n
                           initial_lambda = C_NULL)  # length m+n
     n = length(x_L)
@@ -722,7 +722,7 @@ function mip_init_problem(kp::KnitroProblem,
                           c_L::Vector{Float64},     # length m
                           c_U::Vector{Float64},     # length m
                           jac_var::Vector{Int32},   # length nnzJ
-                          jac_cons::Vector{Int32},  # length nnzJ
+                          jac_cons::Vector{Int32};  # length nnzJ
                           initial_x = C_NULL,       # length n
                           initial_lambda = C_NULL)  # length m+n
     n = length(x_L)

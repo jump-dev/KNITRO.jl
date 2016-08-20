@@ -228,13 +228,14 @@ function optimize!(m::KnitroMathProgModel)
         if all(x->x==KTR_VARTYPE_CONTINUOUS, m.varType)
             initializeProblem(m.inner, m.sense, m.objType, m.varLB, m.varUB,
                               m.constrType, m.constrLB, m.constrUB, m.jac_var,
-                              m.jac_con, m.hess_row, m.hess_col, m.initial_x)
+                              m.jac_con, m.hess_row, m.hess_col;
+                              initial_x = m.initial_x)
         else
             initializeProblem(m.inner, m.sense, m.objType, m.objFnType,
                               m.varType, m.varLB, m.varUB, m.constrType,
                               m.constrFnType, m.constrLB, m.constrUB,
-                              m.jac_var, m.jac_con, m.hess_row, m.hess_col,
-                              m.initial_x)
+                              m.jac_var, m.jac_con, m.hess_row, m.hess_col;
+                              initial_x = m.initial_x)
         end
     elseif !m.hasbeenrestarted
         restartProblem(m.inner)

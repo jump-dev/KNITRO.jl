@@ -18,6 +18,7 @@ module KNITRO
         initializeProblem,
         solveProblem,
         restartProblem,
+        setFuncCallback, setGradCallback, setHessCallback,
         setCallbacks, setMIPCallback,
         loadOptionsFile,
         loadTunerFile,
@@ -86,28 +87,74 @@ module KNITRO
     end
 
     function initializeProblem(kp, objGoal, objType, x_l, x_u, c_Type, g_lb,
-                               g_ub, jac_var, jac_con, hess_row, hess_col,
-                               x0 = C_NULL, lambda0 = C_NULL)
-        initializeKP(kp, (x0 != C_NULL) ? x0 : zeros(Float64, length(x_l)),
-                     (lambda0 != C_NULL) ?
-                        lambda0 : zeros(Float64, length(x_l) + length(g_lb)),
-                     zeros(Float64, length(g_lb)))
+                               g_ub, jac_var, jac_con, hess_row, hess_col;
+                               initial_x = C_NULL, initial_lambda = C_NULL)
+        initializeKP(kp, (initial_x != C_NULL) ? initial_x :
+                            zeros(Float64, length(x_l)),
+                         (initial_lambda != C_NULL) ? initial_lambda :
+                            zeros(Float64, length(x_l) + length(g_lb)),
+                         zeros(Float64, length(g_lb)))
         init_problem(kp, objGoal, objType, x_l, x_u, c_Type, g_lb, g_ub,
-                     jac_var, jac_con, hess_row, hess_col, kp.x, kp.lambda)
+                     jac_var, jac_con, hess_row, hess_col; initial_x=kp.x,
+                     initial_lambda=kp.lambda)
+    end
+
+    function initializeProblem(kp, objGoal, objType, x_l, x_u, c_Type, g_lb,
+                               g_ub, jac_var, jac_con; initial_x = C_NULL,
+                               initial_lambda = C_NULL)
+        hessopt = Array(Int32, 1)
+        getOption(kp, "hessopt", hessopt)
+        @assert hessopt[1] != KTR_HESSOPT_EXACT
+        # KNITRO documentation:
+        # If user option hessopt is not set to KTR_HESSOPT_EXACT, then Hessian
+        # nonzeros will not be used. In this case, set nnzH=0, and pass NULL
+        # pointers for hessIndexRows and hessIndexCols.
+        initializeKP(kp, (initial_x != C_NULL) ? initial_x :
+                            zeros(Float64, length(x_l)),
+                         (initial_lambda != C_NULL) ? initial_lambda :
+                            zeros(Float64, length(x_l) + length(g_lb)),
+                         zeros(Float64, length(g_lb)))
+        init_problem(kp, objGoal, objType, x_l, x_u, c_Type, g_lb, g_ub,
+                     jac_var, jac_con; initial_x=kp.x,initial_lambda=kp.lambda)
     end
 
     # Initialization for MIP
     function initializeProblem(kp, objGoal, objType, objFnType,
                                x_Type, x_l, x_u, c_Type, c_FnType, g_lb,
-                               g_ub, jac_var, jac_con, hess_row, hess_col,
-                               x0 = C_NULL, lambda0 = C_NULL)
-        initializeKP(kp, (x0 != C_NULL) ? x0 : zeros(Float64, length(x_l)),
-                     (lambda0 != C_NULL) ?
-                        lambda0 : zeros(Float64, length(x_l) + length(g_lb)),
-                     zeros(Float64, length(g_lb)), mip=true)
+                               g_ub, jac_var, jac_con, hess_row, hess_col;
+                               initial_x = C_NULL, initial_lambda = C_NULL)
+        initializeKP(kp, (initial_x != C_NULL) ? initial_x :
+                            zeros(Float64, length(x_l)),
+                         (initial_lambda != C_NULL) ? initial_lambda :
+                            zeros(Float64, length(x_l) + length(g_lb)),
+                         zeros(Float64, length(g_lb)),
+                         mip=true)
         mip_init_problem(kp, objGoal, objType, objFnType, x_Type, x_l, x_u,
                          c_Type, c_FnType, g_lb, g_ub, jac_var, jac_con,
-                         hess_row, hess_col, kp.x, kp.lambda)
+                         hess_row, hess_col; initial_x=kp.x,
+                         initial_lambda=kp.lambda)
+    end
+
+    function initializeProblem(kp, objGoal, objType, objFnType,
+                               x_Type, x_l, x_u, c_Type, c_FnType, g_lb,
+                               g_ub, jac_var, jac_con; initial_x = C_NULL,
+                               initial_lambda = C_NULL)
+        hessopt = Array(Int32, 1)
+        getOption(kp, "hessopt", hessopt)
+        @assert hessopt[1] != KTR_HESSOPT_EXACT
+        # KNITRO documentation:
+        # If user option hessopt is not set to KTR_HESSOPT_EXACT, then Hessian
+        # nonzeros will not be used. In this case, set nnzH=0, and pass NULL
+        # pointers for hessIndexRows and hessIndexCols.
+        initializeKP(kp, (initial_x != C_NULL) ? initial_x :
+                            zeros(Float64, length(x_l)),
+                         (initial_lambda != C_NULL) ? initial_lambda :
+                            zeros(Float64, length(x_l) + length(g_lb)),
+                         zeros(Float64, length(g_lb)),
+                         mip=true)
+        mip_init_problem(kp, objGoal, objType, objFnType, x_Type, x_l, x_u,
+                         c_Type, c_FnType, g_lb, g_ub, jac_var, jac_con;
+                         initial_x=kp.x, initial_lambda=kp.lambda)
     end
 
     function solveProblem(kp::KnitroProblem)

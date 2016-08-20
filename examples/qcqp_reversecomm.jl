@@ -93,7 +93,7 @@ setOption(kp, "feastol", 1.0e-10)
 @fact kp.eval_status --> @compat(Int32(0))
 
 initializeProblem(kp, objGoal, objType, x_L, x_U, c_Type, c_L, c_U,
-                  jac_var, jac_con, hess_row, hess_col, x)
+                  jac_var, jac_con, hess_row, hess_col; initial_x = x)
 @fact applicationReturnStatus(kp) --> :Initialized
 @fact kp.eval_status --> @compat(Int32(0))
 
