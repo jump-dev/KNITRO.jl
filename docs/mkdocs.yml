@@ -1,0 +1,35 @@
+site_name:        KNITRO.jl
+repo_url:         https://github.com/JuliaOpt/KNITRO.jl
+site_description: Julia interface to the Artelys Knitro solver
+site_author:      JuliaOpt
+
+theme: material
+
+extra:
+  palette:
+    primary: 'indigo'
+    accent: 'blue'
+
+extra_css:
+  - assets/Documenter.css
+
+extra_javascript:
+  - https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML
+  - assets/mathjaxhelper.js
+
+markdown_extensions:
+  - extra
+  - tables
+  - fenced_code
+  - mdx_math
+
+docs_dir: 'build'
+
+pages:
+  - Home: index.md
+  - Example: example.md
+  - Problem Setup: solving.md
+  - Solver Parameters: solverparams.md
+  - Callbacks: callbacks.md
+#  - Callback Parameters: callbackparams.md
+  - JuMP Interface: jumpinterface.md
