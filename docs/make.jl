@@ -1,11 +1,5 @@
 using Documenter, KNITRO
 
-# Pkg.add("DataFrames")
-# Pkg.add("TypedTables")
-# using DataFrames
-# using NamedTuples
-# using TypedTables
-
 makedocs(
     modules = [KNITRO]
 )
