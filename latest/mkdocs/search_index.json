@@ -1,0 +1,119 @@
+{
+    "docs": [
+        {
+            "location": "/", 
+            "text": "KNITRO.jl Documentation\n\n\n\n\nOverview\n\n\nThe \nKNITRO.jl\n package provides an interface for using the \nArtelys Knitro solver\n from the \nJulia language\n. You cannot use \nKNITRO.jl\n without having purchased and installed a copy of Artelys Knitro from \nArtelys\n. This package is available free of charge and in no way replaces or alters any functionality of the Artelys Knitro solver.\n\n\nArtelys Knitro functionality is extensive, so \nKNITRO.jl\n's coverage is incomplete, but the basic functionality for solving linear, nonlinear, and mixed-integer programs is provided.\n\n\n\n\nInstallation\n\n\n\n\n\n\nFirst, you must obtain a copy of the Artelys Knitro software and a license; trial versions and academic licenses are available \nhere\n.\n\n\n\n\n\n\nOnce Artelys Knitro is installed on your machine, point the \nLD_LIBRARY_PATH\n (Linux) or \nDYLD_LIBRARY_PATH\n (OS X) variable to the Artelys Knitro library by adding, e.g. \nexport LD_LIBRARY_PATH=\"$HOME/knitro-9.0.1-z/lib:$LD_LIBRARY_PATH\"\n or \nexport DYLD_LIBRARY_PATH=\"$HOME/knitro-9.0.1-z/lib:$DYLD_LIBRARY_PATH\"\n to your start-up file (e.g. \n.bash_profile\n).\n\n\n\n\n\n\nAt the Julia prompt, run \nPkg.add(\"KNITRO\")\n.\n\n\n\n\n\n\nTest that KNITRO.jl works by runnning \nPkg.test(\"KNITRO\")\n.\n\n\n\n\n\n\n\n\nSetting up Knitro on Windows\n\n\nNote that currently \nonly 64-bit\n Windows is supported. That is, you must use 64-bit Julia and install the Win64 version of Artelys Knitro.\n\n\n\n\n\n\nFirst, you must obtain a copy of the Artelys Knitro software and a license; trial versions and academic licenses are available \nhere\n.\n\n\n\n\n\n\nOnce Artelys Knitro is installed on your machine, add the directory containing \nknitro.dll\n to the \nPATH\n environment variable, as described in the Artelys Knitro documentation. \n\n\n\n\n\n\nAt the Julia prompt, run \nPkg.add(\"KNITRO\")\n\n\n\n\n\n\nTest that KNITRO.jl works by runnning \nPkg.test(\"KNITRO\")\n.", 
+            "title": "Home"
+        }, 
+        {
+            "location": "/#knitrojl-documentation", 
+            "text": "", 
+            "title": "KNITRO.jl Documentation"
+        }, 
+        {
+            "location": "/#overview", 
+            "text": "The  KNITRO.jl  package provides an interface for using the  Artelys Knitro solver  from the  Julia language . You cannot use  KNITRO.jl  without having purchased and installed a copy of Artelys Knitro from  Artelys . This package is available free of charge and in no way replaces or alters any functionality of the Artelys Knitro solver.  Artelys Knitro functionality is extensive, so  KNITRO.jl 's coverage is incomplete, but the basic functionality for solving linear, nonlinear, and mixed-integer programs is provided.", 
+            "title": "Overview"
+        }, 
+        {
+            "location": "/#installation", 
+            "text": "First, you must obtain a copy of the Artelys Knitro software and a license; trial versions and academic licenses are available  here .    Once Artelys Knitro is installed on your machine, point the  LD_LIBRARY_PATH  (Linux) or  DYLD_LIBRARY_PATH  (OS X) variable to the Artelys Knitro library by adding, e.g.  export LD_LIBRARY_PATH=\"$HOME/knitro-9.0.1-z/lib:$LD_LIBRARY_PATH\"  or  export DYLD_LIBRARY_PATH=\"$HOME/knitro-9.0.1-z/lib:$DYLD_LIBRARY_PATH\"  to your start-up file (e.g.  .bash_profile ).    At the Julia prompt, run  Pkg.add(\"KNITRO\") .    Test that KNITRO.jl works by runnning  Pkg.test(\"KNITRO\") .", 
+            "title": "Installation"
+        }, 
+        {
+            "location": "/#setting-up-knitro-on-windows", 
+            "text": "Note that currently  only 64-bit  Windows is supported. That is, you must use 64-bit Julia and install the Win64 version of Artelys Knitro.    First, you must obtain a copy of the Artelys Knitro software and a license; trial versions and academic licenses are available  here .    Once Artelys Knitro is installed on your machine, add the directory containing  knitro.dll  to the  PATH  environment variable, as described in the Artelys Knitro documentation.     At the Julia prompt, run  Pkg.add(\"KNITRO\")    Test that KNITRO.jl works by runnning  Pkg.test(\"KNITRO\") .", 
+            "title": "Setting up Knitro on Windows"
+        }, 
+        {
+            "location": "/example/", 
+            "text": "We begin with an example to motivate the various interfaces. Here is what that problem looks like in Julia with the \nKNITRO.jl\ninterface:\n\n\nusing KNITRO\nusing Base.Test\n\n#    min  9 - 8x1 - 6x2 - 4x3\n#         + 2(x1^2) + 2(x2^2) + (x3^2) + 2(x1*x2) + 2(x1*x3)\n#    subject to  c[0]:  x1 + x2 + 2x3 \n= 3\n#                x1 \n= 0\n#                x2 \n= 0\n#                x3 \n= 0\n#    initpt (0.5, 0.5, 0.5)\n#\n#    Solution is x1=4/3, x2=7/9, x3=4/9, lambda=2/9  (f* = 1/9)\n#\n#  The problem comes from Hock and Schittkowski, HS35.\n\nfunction eval_f(x::Vector{Float64})\n  linear_terms = 9.0 - 8.0*x[1] - 6.0*x[2] - 4.0*x[3]\n  quad_terms = 2.0*x[1]^2 + 2.0*x[2]^2 + x[3]^2 + 2.0*x[1]*x[2] + 2.0*x[1]*x[3]\n  return linear_terms + quad_terms\nend\n\nfunction eval_g(x::Vector{Float64}, cons::Vector{Float64})\n  cons[1] = x[1] + x[2] + 2.0*x[3]\nend\n\nfunction eval_grad_f(x::Vector{Float64}, grad::Vector{Float64})\n  grad[1] = -8.0 + 4.0*x[1] + 2.0*x[2] + 2.0*x[3]\n  grad[2] = -6.0 + 2.0*x[1] + 4.0*x[2]\n  grad[3] = -4.0 + 2.0*x[1]            + 2.0*x[3]\nend\n\nfunction eval_jac_g(x::Vector{Float64}, jac::Vector{Float64})\n  jac[1] = 1.0\n  jac[2] = 1.0\n  jac[3] = 2.0\nend\n\nfunction eval_h(x::Vector{Float64}, lambda::Vector{Float64},\n                sigma::Float64, hess::Vector{Float64})\n  hess[1] = sigma*4.0\n  hess[2] = sigma*2.0\n  hess[3] = sigma*2.0\n  hess[4] = sigma*4.0\n  hess[5] = sigma*2.0\nend\n\nfunction eval_hv(x::Vector{Float64}, lambda::Vector{Float64},\n                 sigma::Float64, hv::Vector{Float64})\n  hv[1] = sigma*4.0*hv[1] + sigma*2.0*hv[2] + sigma*2.0*hv[3]\n  hv[2] = sigma*2.0*hv[1] + sigma*4.0*hv[2]\n  hv[3] = sigma*2.0*hv[1]                   + sigma*2.0*hv[3]\nend\n\nobjGoal = KTR_OBJGOAL_MINIMIZE\nobjType = KTR_OBJTYPE_QUADRATIC\n\nn = 3\nx_L = zeros(n)\nx_U = [KTR_INFBOUND,KTR_INFBOUND,KTR_INFBOUND]\n\nm = 1\nc_Type = [KTR_CONTYPE_LINEAR]\nc_L = [-KTR_INFBOUND]\nc_U = [3.0]\n\njac_con = Int32[0,0,0]\njac_var = Int32[0,1,2]\nhess_row = Int32[0,0,0,1,2]\nhess_col = Int32[0,1,2,1,2]\n\nx       = [0.5,0.5,0.5]\nlambda  = zeros(n+m)\nobj     = [0.0]\n\nkp = createProblem()\nloadOptionsFile(kp, \nknitro.opt\n)\ninitializeProblem(kp, objGoal, objType, x_L, x_U, c_Type, c_L, c_U, jac_var,\n                  jac_con, hess_row, hess_col)\nsetCallbacks(kp, eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h, eval_hv)\nsolveProblem(kp)\n\n\n\n\nAs you can see, the code mirrors the C interface fairly closely, with some C-specific features abstracted such as replacing the various callback-adding functions with one \nsetCallbacks()\n method.", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/solving/", 
+            "text": "Creating and Solving Problems\n\n\nThe problem is solved by calling \nsolveProblem\n.  Applications must provide a means of evaluating the nonlinear objective, constraints, first derivatives, and (optionally) second derivatives.  (First derivatives are also optional, but highly recommended.)\n\n\n\n\nTypical Setup\n\n\nThe typical calling sequence is:\n\n\nkp = createProblem()\nsetOption(kp, ...) (set any number of parameters)\ninitializeProblem(kp, ...)\nsetCallbacks(kp, ...)\nsolveProblem(kp) (a single call, or a reverse communications loop)\n\n\n\n\n\n\nRestarting the Problem\n\n\nCalling sequence if the same problem is to be solved again, with different parameters or a different start point (see \nexamples/hs035_restart.jl\n):\n\n\nkp = createProblem()\nsetOption(kp, ...) (set any number of parameters)\ninitializeProblem(kp, ...)\nsetCallbacks(kp, ...)\nsolveProblem(kp) (a single call, or a reverse communications loop)\nrestartProblem(kp, ...)\nsetOption(kp, ...) (set any number of parameters)\nsolveProblem(kp) (a single call, or a reverse communications loop)\n\n\n\n\nFor MIP problems, use \nmip_init_problem\n and \nmip_solve\n instead (see \nexamples/minlp.jl\n).\n\n\n\n\nReverse Communications\n\n\nIf the application provides callback functions for making evaluations, then a single call to \nsolveProblem\n will return the solution. Alternatively, the application can employ a reverse communications driver, with the following calling sequence:\n\n\nkp = createProblem()\nsetOption(kp, ...) (set any number of parameters)\ninitializeProblem(kp, ...)\nwhile status != Optimal\n    status = solveProblem(kp, ...)\n    [...]\nend\n\n\n\n\nIn this case, \nsolveProblem\n returns a status code whenever it needs evaluation data (see \nexamples/qcqp_reversecomm.jl\n).", 
+            "title": "Problem Setup"
+        }, 
+        {
+            "location": "/solving/#creating-and-solving-problems", 
+            "text": "The problem is solved by calling  solveProblem .  Applications must provide a means of evaluating the nonlinear objective, constraints, first derivatives, and (optionally) second derivatives.  (First derivatives are also optional, but highly recommended.)", 
+            "title": "Creating and Solving Problems"
+        }, 
+        {
+            "location": "/solving/#typical-setup", 
+            "text": "The typical calling sequence is:  kp = createProblem()\nsetOption(kp, ...) (set any number of parameters)\ninitializeProblem(kp, ...)\nsetCallbacks(kp, ...)\nsolveProblem(kp) (a single call, or a reverse communications loop)", 
+            "title": "Typical Setup"
+        }, 
+        {
+            "location": "/solving/#restarting-the-problem", 
+            "text": "Calling sequence if the same problem is to be solved again, with different parameters or a different start point (see  examples/hs035_restart.jl ):  kp = createProblem()\nsetOption(kp, ...) (set any number of parameters)\ninitializeProblem(kp, ...)\nsetCallbacks(kp, ...)\nsolveProblem(kp) (a single call, or a reverse communications loop)\nrestartProblem(kp, ...)\nsetOption(kp, ...) (set any number of parameters)\nsolveProblem(kp) (a single call, or a reverse communications loop)  For MIP problems, use  mip_init_problem  and  mip_solve  instead (see  examples/minlp.jl ).", 
+            "title": "Restarting the Problem"
+        }, 
+        {
+            "location": "/solving/#reverse-communications", 
+            "text": "If the application provides callback functions for making evaluations, then a single call to  solveProblem  will return the solution. Alternatively, the application can employ a reverse communications driver, with the following calling sequence:  kp = createProblem()\nsetOption(kp, ...) (set any number of parameters)\ninitializeProblem(kp, ...)\nwhile status != Optimal\n    status = solveProblem(kp, ...)\n    [...]\nend  In this case,  solveProblem  returns a status code whenever it needs evaluation data (see  examples/qcqp_reversecomm.jl ).", 
+            "title": "Reverse Communications"
+        }, 
+        {
+            "location": "/solverparams/", 
+            "text": "Changing and reading solver parameters\n\n\nParameters cannot be set after Artelys Knitro begins solving; i.e. after \nsolveProblem\n is called.  They may be set again after \nrestart_problem\n. In most cases, parameter values are not validated until \ninitializeProblem\n or \nsolveProblem\n is called.\n\n\nNote:\n The \ngradopt\n and \nhessopt\n user options must be set before calling \ninitializeProblem\n, and cannot be changed after calling these functions.\n\n\n\n\nProgrammatic Interface\n\n\nParameters may be set using their integer identifier, e.g.\n\n\nsetOption(kp, KTR_PARAM_OUTLEV, KTR_OUTLEV_ALL)\nsetOption(kp, KTR_PARAM_MIP_OUTINTERVAL, 1)\nsetOption(kp, KTR_PARAM_MIP_MAXNODES, 10000)\n\n\n\n\nor using their string names, e.g.\n\n\nsetOption(kp, \nmip_method\n, KTR_MIP_METHOD_BB)\nsetOption(kp, \nalgorithm\n, KTR_ALG_ACT_CG)\nsetOption(kp, \noutmode\n, KTR_OUTMODE_SCREEN)\n\n\n\n\nThe full list of integer identifiers are available in \nsrc/ktr_defines.jl\n, and prefixed by \nKTR_PARAM_\n. For more details, see the \nofficial documentation\n.", 
+            "title": "Solver Parameters"
+        }, 
+        {
+            "location": "/solverparams/#changing-and-reading-solver-parameters", 
+            "text": "Parameters cannot be set after Artelys Knitro begins solving; i.e. after  solveProblem  is called.  They may be set again after  restart_problem . In most cases, parameter values are not validated until  initializeProblem  or  solveProblem  is called.  Note:  The  gradopt  and  hessopt  user options must be set before calling  initializeProblem , and cannot be changed after calling these functions.", 
+            "title": "Changing and reading solver parameters"
+        }, 
+        {
+            "location": "/solverparams/#programmatic-interface", 
+            "text": "Parameters may be set using their integer identifier, e.g.  setOption(kp, KTR_PARAM_OUTLEV, KTR_OUTLEV_ALL)\nsetOption(kp, KTR_PARAM_MIP_OUTINTERVAL, 1)\nsetOption(kp, KTR_PARAM_MIP_MAXNODES, 10000)  or using their string names, e.g.  setOption(kp,  mip_method , KTR_MIP_METHOD_BB)\nsetOption(kp,  algorithm , KTR_ALG_ACT_CG)\nsetOption(kp,  outmode , KTR_OUTMODE_SCREEN)  The full list of integer identifiers are available in  src/ktr_defines.jl , and prefixed by  KTR_PARAM_ . For more details, see the  official documentation .", 
+            "title": "Programmatic Interface"
+        }, 
+        {
+            "location": "/callbacks/", 
+            "text": "Applications may define functions for evaluating problem elements given a current solution. This section of the documentation details the function signatures expected for the callbacks.\n\n\n\n\neval_f\n\n\nReturns the value of the objective function at the current solution \nx\n\n\nfunction eval_f(x::Vector{Float64})   # (length n) Current Solution\n    # ...\n    return obj_value\nend\n\n\n\n\n\n\neval_g\n\n\nSets the value of the constraint functions \ng\n at the current solution \nx\n\n\nfunction eval_g(x::Vector{Float64},     # (length n) Current Solution\n                cons::Vector{Float64})  # (length m) Constraint values g(x)\n    # ...\n    # cons[1] = ...\n    # ...\n    # cons[prob.m] = ...\nend\n\n\n\n\nNote that the values of \ncons\n must be set \"in-place\", i.e. the statement \ncons = zeros(prob.m)\n musn't be done. If you do want to create a new vector and allocate it to \ncons\n use \ncons[:]\n, e.g. \ncons[:] = zeros(prob.m)\n.\n\n\n\n\neval_grad_f\n\n\nSets the value of the gradient of the objective function at the current solution \nx\n\n\nfunction eval_grad_f(x::Vector{Float64},     # (length n) Current Solution\n                     grad::Vector{Float64})  # (length n) Objective gradient\n    # ...\n    # grad[1] = ...\n    # ...\n    # grad[prob.n] = ...\nend\n\n\n\n\nAs with \neval_g\n, you must set the values \"in-place\" for \neval_grad_f\n.\n\n\n\n\neval_jac_g\n\n\nThis function returns the values of the Jacobian, evaluated at the non-negative indices, based on the sparsity structure passed to Artelys Knitro through \ninitializeProblem\n. Julia is 1-based, in the sense that indexing always starts at 1 (unlike C, which starts at 0).\n\n\nfunction eval_jac_g(x::Vector{Float64},    # (length n) Current Solution\n                    jac::Vector{Float64})  # (length nnzJ) The Jacobian values\n    # ...\n    # jac[1] = ...\n    # ...\n    # jac[nnzJ] = ... # where nnzJ = length(jac)\nend\n\n\n\n\nAs for the previous two callbacks, all values must be set \"in-place\".\n\n\n\n\neval_h\n\n\nSimilar to the Jacobian, except for the Hessian of the Lagrangian. See the documentation for full details of the meaning of everything.\n\n\nfunction eval_h(x::Vector{Float64},        # (length n) Current solution\n                lambda::Vector{Float64},   # (length n+m) Multipliers for each constraint\n                sigma::Float64,            # Lagrangian multiplier for objective\n                hess::Vector{Float64})     # (length nnzH) The values of the Hessian\n    # ...\n    # hess[1] = ...\n    # ...\n    # hess[nnzH] = ... # where nnzH = length(hess)\nend\n\n\n\n\n\n\neval_hv\n\n\nComputes the Hessian-of-the-Lagrangian-vector product, storing the result in the vector \nhv\n.\n\n\nfunction eval_hv(x::Vector{Float64},      # (length n) Current solution\n                 lambda::Vector{Float64}, # (length n+m) Multipliers for each constraint\n                 sigma::Float64,          # Lagrangian multiplier for objective\n                 hv::Vector{Float64})     # (length n) Hessian-of-the-Lagrangian-vector product\n    # ...\n    # hv[1] = ...\n    # ...\n    # hv[end] = ...\nend", 
+            "title": "Callbacks"
+        }, 
+        {
+            "location": "/callbacks/#eval_f", 
+            "text": "Returns the value of the objective function at the current solution  x  function eval_f(x::Vector{Float64})   # (length n) Current Solution\n    # ...\n    return obj_value\nend", 
+            "title": "eval_f"
+        }, 
+        {
+            "location": "/callbacks/#eval_g", 
+            "text": "Sets the value of the constraint functions  g  at the current solution  x  function eval_g(x::Vector{Float64},     # (length n) Current Solution\n                cons::Vector{Float64})  # (length m) Constraint values g(x)\n    # ...\n    # cons[1] = ...\n    # ...\n    # cons[prob.m] = ...\nend  Note that the values of  cons  must be set \"in-place\", i.e. the statement  cons = zeros(prob.m)  musn't be done. If you do want to create a new vector and allocate it to  cons  use  cons[:] , e.g.  cons[:] = zeros(prob.m) .", 
+            "title": "eval_g"
+        }, 
+        {
+            "location": "/callbacks/#eval_grad_f", 
+            "text": "Sets the value of the gradient of the objective function at the current solution  x  function eval_grad_f(x::Vector{Float64},     # (length n) Current Solution\n                     grad::Vector{Float64})  # (length n) Objective gradient\n    # ...\n    # grad[1] = ...\n    # ...\n    # grad[prob.n] = ...\nend  As with  eval_g , you must set the values \"in-place\" for  eval_grad_f .", 
+            "title": "eval_grad_f"
+        }, 
+        {
+            "location": "/callbacks/#eval_jac_g", 
+            "text": "This function returns the values of the Jacobian, evaluated at the non-negative indices, based on the sparsity structure passed to Artelys Knitro through  initializeProblem . Julia is 1-based, in the sense that indexing always starts at 1 (unlike C, which starts at 0).  function eval_jac_g(x::Vector{Float64},    # (length n) Current Solution\n                    jac::Vector{Float64})  # (length nnzJ) The Jacobian values\n    # ...\n    # jac[1] = ...\n    # ...\n    # jac[nnzJ] = ... # where nnzJ = length(jac)\nend  As for the previous two callbacks, all values must be set \"in-place\".", 
+            "title": "eval_jac_g"
+        }, 
+        {
+            "location": "/callbacks/#eval_h", 
+            "text": "Similar to the Jacobian, except for the Hessian of the Lagrangian. See the documentation for full details of the meaning of everything.  function eval_h(x::Vector{Float64},        # (length n) Current solution\n                lambda::Vector{Float64},   # (length n+m) Multipliers for each constraint\n                sigma::Float64,            # Lagrangian multiplier for objective\n                hess::Vector{Float64})     # (length nnzH) The values of the Hessian\n    # ...\n    # hess[1] = ...\n    # ...\n    # hess[nnzH] = ... # where nnzH = length(hess)\nend", 
+            "title": "eval_h"
+        }, 
+        {
+            "location": "/callbacks/#eval_hv", 
+            "text": "Computes the Hessian-of-the-Lagrangian-vector product, storing the result in the vector  hv .  function eval_hv(x::Vector{Float64},      # (length n) Current solution\n                 lambda::Vector{Float64}, # (length n+m) Multipliers for each constraint\n                 sigma::Float64,          # Lagrangian multiplier for objective\n                 hv::Vector{Float64})     # (length n) Hessian-of-the-Lagrangian-vector product\n    # ...\n    # hv[1] = ...\n    # ...\n    # hv[end] = ...\nend", 
+            "title": "eval_hv"
+        }, 
+        {
+            "location": "/jumpinterface/", 
+            "text": "You can also work with Artelys Knitro through \nJuMP.jl\n, a domain-specific modeling language for mathematical programming embedded in Julia.\n\n\nRe-visiting the earlier example, here's what it'll look like with JuMP:\n\n\nusing KNITRO, JuMP\nm = JuMP.Model(solver=KNITRO.KnitroSolver(options_file=\nknitro.opt\n))\nJuMP.@variable(m, x[1:3]\n=0)\nJuMP.@objective(m, Min, 9.0 - 8.0*x[1] - 6.0*x[2] - 4.0*x[3]\n                            + 2.0*x[1]^2 + 2.0*x[2]^2 + x[3]^2\n                            + 2.0*x[1]*x[2] + 2.0*x[1]*x[3])\nJuMP.@constraint(m, x[1] + x[2] + 2.0*x[3] \n= 3)\nJuMP.solve(m)\n\n\n\n\nRemark\n: To use Artelys Knitro through the JuMP interface, you currently need to have a nonlinear objective (via \n@NLobjective\n) or at least one nonlinear constraint (via \n@NLconstraint\n).\n\n\n\n\nSolver Parameters\n\n\nYou can also provide solver parameters to Artelys Knitro through JuMP, e.g.\n\n\nKnitroSolver() # default parameters\nKnitroSolver(KTR_PARAM_ALG=5)\nKnitroSolver(hessopt=1)\n\n\n\n\nYou can also provide the path to the options, or tuner, using the \noptions_file\n or \ntuner_file\n keywords respectively, e.g.\n\n\nKnitroSolver(options_file=\ntuner-fixed.opt\n)\nKnitroSolver(tuner_file=\ntuner-explore.opt\n)", 
+            "title": "JuMP Interface"
+        }, 
+        {
+            "location": "/jumpinterface/#solver-parameters", 
+            "text": "You can also provide solver parameters to Artelys Knitro through JuMP, e.g.  KnitroSolver() # default parameters\nKnitroSolver(KTR_PARAM_ALG=5)\nKnitroSolver(hessopt=1)  You can also provide the path to the options, or tuner, using the  options_file  or  tuner_file  keywords respectively, e.g.  KnitroSolver(options_file= tuner-fixed.opt )\nKnitroSolver(tuner_file= tuner-explore.opt )", 
+            "title": "Solver Parameters"
+        }
+    ]
+}

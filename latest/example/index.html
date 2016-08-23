@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<!--[if lt IE 7 ]><html class="no-js ie6"><![endif]-->
+<!--[if IE 7 ]><html class="no-js ie7"><![endif]-->
+<!--[if IE 8 ]><html class="no-js ie8"><![endif]-->
+<!--[if IE 9 ]><html class="no-js ie9"><![endif]-->
+<!--[if (gt IE 9)|!(IE)]><!--> <html class="no-js"> <!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,user-scalable=no,initial-scale=1,maximum-scale=1">
+    
+      
+        <title>Example - KNITRO.jl</title>
+      
+      
+      
+      
+        <meta name="author" content="JuliaOpt">
+      
+    
+    <meta property="og:url" content="None">
+    <meta property="og:title" content="KNITRO.jl">
+    <meta property="og:image" content="None/../">
+    <meta name="apple-mobile-web-app-title" content="KNITRO.jl">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    
+    <link rel="shortcut icon" type="image/x-icon" href="../assets/images/favicon-e565ddfa3b.ico">
+    <link rel="icon" type="image/x-icon" href="../assets/images/favicon-e565ddfa3b.ico">
+    <style>
+      @font-face {
+      	font-family: 'Icon';
+      	src: url('../assets/fonts/icon.eot?52m981');
+      	src: url('../assets/fonts/icon.eot?#iefix52m981')
+               format('embedded-opentype'),
+      		   url('../assets/fonts/icon.woff?52m981')
+               format('woff'),
+      		   url('../assets/fonts/icon.ttf?52m981')
+               format('truetype'),
+      		   url('../assets/fonts/icon.svg?52m981#icon')
+               format('svg');
+      	font-weight: normal;
+      	font-style: normal;
+      }
+    </style>
+    <link rel="stylesheet" href="../assets/stylesheets/application-a422ff04cc.css">
+    
+      <link rel="stylesheet" href="../assets/stylesheets/palettes-05ab2406df.css">
+    
+    
+      
+      
+      
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Ubuntu:400,700|Ubuntu+Mono">
+      <style>
+        body, input {
+          font-family: 'Ubuntu', Helvetica, Arial, sans-serif;
+        }
+        pre, code {
+          font-family: 'Ubuntu Mono', 'Courier New', 'Courier', monospace;
+        }
+      </style>
+    
+    
+      <link rel="stylesheet" href="../assets/Documenter.css">
+    
+    <script src="../assets/javascripts/modernizr-4ab42b99fd.js"></script>
+    
+  </head>
+  
+  
+  
+  <body class="palette-primary-indigo palette-accent-blue">
+    
+      
+      
+    
+    <div class="backdrop">
+      <div class="backdrop-paper"></div>
+    </div>
+    <input class="toggle" type="checkbox" id="toggle-drawer">
+    <input class="toggle" type="checkbox" id="toggle-search">
+    <label class="toggle-button overlay" for="toggle-drawer"></label>
+    <header class="header">
+      <nav aria-label="Header">
+  <div class="bar default">
+    <div class="button button-menu" role="button" aria-label="Menu">
+      <label class="toggle-button icon icon-menu" for="toggle-drawer">
+        <span></span>
+      </label>
+    </div>
+    <div class="stretch">
+      <div class="title">
+        
+          <span class="path">
+            
+          </span>
+        
+        Example
+      </div>
+    </div>
+    
+    
+    <div class="button button-search" role="button" aria-label="Search">
+      <label class="toggle-button icon icon-search" title="Search" for="toggle-search"></label>
+    </div>
+  </div>
+  <div class="bar search">
+    <div class="button button-close" role="button" aria-label="Close">
+      <label class="toggle-button icon icon-back" for="toggle-search"></label>
+    </div>
+    <div class="stretch">
+      <div class="field">
+        <input class="query" type="text" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck>
+      </div>
+    </div>
+    <div class="button button-reset" role="button" aria-label="Search">
+      <button class="toggle-button icon icon-close" id="reset-search"></button>
+    </div>
+  </div>
+</nav>
+    </header>
+    <main class="main">
+      
+      <div class="drawer">
+        <nav aria-label="Navigation">
+  
+  <a href="https://github.com/JuliaOpt/KNITRO.jl" class="project">
+    <div class="banner">
+      
+      <div class="name">
+        <strong>
+          KNITRO.jl
+          <span class="version">
+            
+          </span>
+        </strong>
+        
+          <br>
+          JuliaOpt/KNITRO.jl
+        
+      </div>
+    </div>
+  </a>
+  <div class="scrollable">
+    <div class="wrapper">
+      
+        <ul class="repo">
+          <li class="repo-download">
+            
+            <a href="https://github.com/JuliaOpt/KNITRO.jl/archive/master.zip" target="_blank" title="Download" data-action="download">
+              <i class="icon icon-download"></i> Download
+            </a>
+          </li>
+          <li class="repo-stars">
+            <a href="https://github.com/JuliaOpt/KNITRO.jl/stargazers" target="_blank" title="Stargazers" data-action="star">
+              <i class="icon icon-star"></i> Stars
+              <span class="count">&ndash;</span>
+            </a>
+          </li>
+        </ul>
+        <hr>
+      
+      <div class="toc">
+        <ul>
+          
+            
+  <li>
+    <a class="" title="Home" href="..">
+      Home
+    </a>
+    
+  </li>
+
+          
+            
+  <li>
+    <a class="current" title="Example" href="./">
+      Example
+    </a>
+    
+      
+      
+    
+  </li>
+
+          
+            
+  <li>
+    <a class="" title="Problem Setup" href="../solving/">
+      Problem Setup
+    </a>
+    
+  </li>
+
+          
+            
+  <li>
+    <a class="" title="Solver Parameters" href="../solverparams/">
+      Solver Parameters
+    </a>
+    
+  </li>
+
+          
+            
+  <li>
+    <a class="" title="Callbacks" href="../callbacks/">
+      Callbacks
+    </a>
+    
+  </li>
+
+          
+            
+  <li>
+    <a class="" title="JuMP Interface" href="../jumpinterface/">
+      JuMP Interface
+    </a>
+    
+  </li>
+
+          
+        </ul>
+        
+      </div>
+    </div>
+  </div>
+</nav>
+      </div>
+      <article class="article">
+        <div class="wrapper">
+          
+            <h1>Example</h1>
+          
+          <p>We begin with an example to motivate the various interfaces. Here is what that problem looks like in Julia with the <code>KNITRO.jl</code>interface:</p>
+<pre><code class="julia">using KNITRO
+using Base.Test
+
+#    min  9 - 8x1 - 6x2 - 4x3
+#         + 2(x1^2) + 2(x2^2) + (x3^2) + 2(x1*x2) + 2(x1*x3)
+#    subject to  c[0]:  x1 + x2 + 2x3 &lt;= 3
+#                x1 &gt;= 0
+#                x2 &gt;= 0
+#                x3 &gt;= 0
+#    initpt (0.5, 0.5, 0.5)
+#
+#    Solution is x1=4/3, x2=7/9, x3=4/9, lambda=2/9  (f* = 1/9)
+#
+#  The problem comes from Hock and Schittkowski, HS35.
+
+function eval_f(x::Vector{Float64})
+  linear_terms = 9.0 - 8.0*x[1] - 6.0*x[2] - 4.0*x[3]
+  quad_terms = 2.0*x[1]^2 + 2.0*x[2]^2 + x[3]^2 + 2.0*x[1]*x[2] + 2.0*x[1]*x[3]
+  return linear_terms + quad_terms
+end
+
+function eval_g(x::Vector{Float64}, cons::Vector{Float64})
+  cons[1] = x[1] + x[2] + 2.0*x[3]
+end
+
+function eval_grad_f(x::Vector{Float64}, grad::Vector{Float64})
+  grad[1] = -8.0 + 4.0*x[1] + 2.0*x[2] + 2.0*x[3]
+  grad[2] = -6.0 + 2.0*x[1] + 4.0*x[2]
+  grad[3] = -4.0 + 2.0*x[1]            + 2.0*x[3]
+end
+
+function eval_jac_g(x::Vector{Float64}, jac::Vector{Float64})
+  jac[1] = 1.0
+  jac[2] = 1.0
+  jac[3] = 2.0
+end
+
+function eval_h(x::Vector{Float64}, lambda::Vector{Float64},
+                sigma::Float64, hess::Vector{Float64})
+  hess[1] = sigma*4.0
+  hess[2] = sigma*2.0
+  hess[3] = sigma*2.0
+  hess[4] = sigma*4.0
+  hess[5] = sigma*2.0
+end
+
+function eval_hv(x::Vector{Float64}, lambda::Vector{Float64},
+                 sigma::Float64, hv::Vector{Float64})
+  hv[1] = sigma*4.0*hv[1] + sigma*2.0*hv[2] + sigma*2.0*hv[3]
+  hv[2] = sigma*2.0*hv[1] + sigma*4.0*hv[2]
+  hv[3] = sigma*2.0*hv[1]                   + sigma*2.0*hv[3]
+end
+
+objGoal = KTR_OBJGOAL_MINIMIZE
+objType = KTR_OBJTYPE_QUADRATIC
+
+n = 3
+x_L = zeros(n)
+x_U = [KTR_INFBOUND,KTR_INFBOUND,KTR_INFBOUND]
+
+m = 1
+c_Type = [KTR_CONTYPE_LINEAR]
+c_L = [-KTR_INFBOUND]
+c_U = [3.0]
+
+jac_con = Int32[0,0,0]
+jac_var = Int32[0,1,2]
+hess_row = Int32[0,0,0,1,2]
+hess_col = Int32[0,1,2,1,2]
+
+x       = [0.5,0.5,0.5]
+lambda  = zeros(n+m)
+obj     = [0.0]
+
+kp = createProblem()
+loadOptionsFile(kp, &quot;knitro.opt&quot;)
+initializeProblem(kp, objGoal, objType, x_L, x_U, c_Type, c_L, c_U, jac_var,
+                  jac_con, hess_row, hess_col)
+setCallbacks(kp, eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h, eval_hv)
+solveProblem(kp)
+</code></pre>
+
+<p>As you can see, the code mirrors the C interface fairly closely, with some C-specific features abstracted such as replacing the various callback-adding functions with one <code>setCallbacks()</code> method.</p>
+          <aside class="copyright" role="note">
+            
+            Documentation built with
+            <a href="http://www.mkdocs.org" target="_blank">MkDocs</a>
+            using the
+            <a href="http://squidfunk.github.io/mkdocs-material/" target="_blank">
+              Material
+            </a>
+            theme.
+          </aside>
+          
+            <footer class="footer">
+              
+  <nav class="pagination" aria-label="Footer">
+    <div class="previous">
+      
+        <a href=".." title="Home">
+          <span class="direction">
+            Previous
+          </span>
+          <div class="page">
+            <div class="button button-previous" role="button" aria-label="Previous">
+              <i class="icon icon-back"></i>
+            </div>
+            <div class="stretch">
+              <div class="title">
+                Home
+              </div>
+            </div>
+          </div>
+        </a>
+      
+    </div>
+    <div class="next">
+      
+        <a href="../solving/" title="Problem Setup">
+          <span class="direction">
+            Next
+          </span>
+          <div class="page">
+            <div class="stretch">
+              <div class="title">
+                Problem Setup
+              </div>
+            </div>
+            <div class="button button-next" role="button" aria-label="Next">
+              <i class="icon icon-forward"></i>
+            </div>
+          </div>
+        </a>
+      
+    </div>
+  </nav>
+
+            </footer>
+          
+        </div>
+      </article>
+      <div class="results" role="status" aria-live="polite">
+        <div class="scrollable">
+          <div class="wrapper">
+            <div class="meta"></div>
+            <div class="list"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+    <script>
+      var base_url = '..';
+      var repo_id  = 'JuliaOpt/KNITRO.jl';
+    </script>
+    <script src="../assets/javascripts/application-997097ee0c.js"></script>
+    
+      <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+      <script src="../assets/mathjaxhelper.js"></script>
+    
+    
+  </body>
+</html>
