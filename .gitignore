@@ -1,2 +1,4 @@
 deps/usr/
-doc/_*
+docs/build/
+docs/site/
+docs/.documenter
