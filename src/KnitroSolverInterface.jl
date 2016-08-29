@@ -251,6 +251,7 @@ function status(m::KnitroMathProgModel)
 end
 
 getobjval(m::KnitroMathProgModel) = m.inner.obj_val[1]
+getobjbound(m::KnitroMathProgModel) = get_mip_relaxation_bnd(m.inner)
 getsolution(m::KnitroMathProgModel) = m.inner.x
 getconstrsolution(m::KnitroMathProgModel) = m.inner.g
 getreducedcosts(m::KnitroMathProgModel) =
