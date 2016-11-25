@@ -3,14 +3,14 @@ __precompile__()
 module KNITRO
     import Base.Libdl: RTLD_GLOBAL
     function __init__()
-        @linux_only begin
+        if is_linux()
             # fixes missing symbols in libknitro.so
             Libdl.dlopen("libdl", RTLD_GLOBAL)
             Libdl.dlopen("libgomp", RTLD_GLOBAL)
         end
     end
-    @unix_only const libknitro = "libknitro"
-    @windows_only const libknitro = "knitro"
+    @static if is_unix() const libknitro = "libknitro" end
+    @static if is_windows() const libknitro = "knitro" end
 
     export
         KnitroProblem,
@@ -27,7 +27,7 @@ module KNITRO
 
     "A macro to make calling KNITRO's C API a little cleaner"
     macro ktr_ccall(func, args...)
-        f = Base.Meta.quot(symbol("KTR_$(func)"))
+        f = Base.Meta.quot(Symbol("KTR_$(func)"))
         args = [esc(a) for a in args]
         quote
             ccall(($f,libknitro), $(args...))
@@ -217,12 +217,12 @@ module KNITRO
             return KTR_RC_CALLBACK_ERR
         end
         kp = unsafe_pointer_to_objref(userParams_)::KnitroProblem
-        x = pointer_to_array(x_,n)
+        x = unsafe_wrap(Array,x_,n)
 
         # calculate the new objective function value
         unsafe_store!(obj_, kp.eval_f(x))
         # calculate the new constraint values
-        kp.eval_g(x,pointer_to_array(c_,m))
+        kp.eval_g(x,unsafe_wrap(Array,c_,m))
 
         Int32(0)
     end
@@ -245,12 +245,12 @@ module KNITRO
             return KTR_RC_CALLBACK_ERR
         end
         kp = unsafe_pointer_to_objref(userParams_)::KnitroProblem
-        x = pointer_to_array(x_,n)
+        x = unsafe_wrap(Array,x_,n)
 
         # evaluate the gradient
-        kp.eval_grad_f(x,pointer_to_array(g_,n))
+        kp.eval_grad_f(x,unsafe_wrap(Array,g_,n))
         # evaluate the jacobian
-        kp.eval_jac_g(x,pointer_to_array(J_,nnzJ))
+        kp.eval_jac_g(x,unsafe_wrap(Array,J_,nnzJ))
 
         Int32(0)
     end
@@ -270,17 +270,17 @@ module KNITRO
                                HV_::Ptr{Cdouble},
                                userParams_::Ptr{Void})
         kp = unsafe_pointer_to_objref(userParams_)::KnitroProblem
-        x = pointer_to_array(x_, n)
-        lambda = pointer_to_array(lambda_, m+n)
+        x = unsafe_wrap(Array,x_, n)
+        lambda = unsafe_wrap(Array,lambda_, m+n)
 
         if evalRequestCode == KTR_RC_EVALH
-            kp.eval_h(x, lambda, 1.0, pointer_to_array(H_, nnzH))
+            kp.eval_h(x, lambda, 1.0, unsafe_wrap(Array,H_, nnzH))
         elseif evalRequestCode == KTR_RC_EVALH_NO_F
-            kp.eval_h(x, lambda, 0.0, pointer_to_array(H_, nnzH))
+            kp.eval_h(x, lambda, 0.0, unsafe_wrap(Array,H_, nnzH))
         elseif evalRequestCode == KTR_RC_EVALHV
-            kp.eval_hv(x, lambda, 1.0, pointer_to_array(HV_, n))
+            kp.eval_hv(x, lambda, 1.0, unsafe_wrap(Array,HV_, n))
         elseif evalRequestCode == KTR_RC_EVALHV_NO_F
-            kp.eval_hv(x, lambda, 0.0, pointer_to_array(HV_, n))
+            kp.eval_hv(x, lambda, 0.0, unsafe_wrap(Array,HV_, n))
         else
             return KTR_RC_CALLBACK_ERR
         end
