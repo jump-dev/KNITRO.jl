@@ -185,8 +185,10 @@ function loadproblem!(m::KnitroMathProgModel,
     end
 
     # Hessian-vector callback
-    eval_hv_cb(x, lambda, sigma, hv) = eval_hesslag_prod(d, hv, x, sigma,
-                                                         lambda)
+    eval_hv_cb(x, lambda, sigma, hv) = begin 
+        v = copy(hv)
+        eval_hesslag_prod(d, hv, x,v,sigma,lambda)
+    end
 
     m.inner = createProblem()
     defined_hessopt = false; hessopt_value = 0
