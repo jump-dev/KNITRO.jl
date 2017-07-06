@@ -44,7 +44,7 @@ type KnitroMathProgModel <: AbstractNonlinearModel
     function KnitroMathProgModel(;options...)
         new(options)
     end
-end 
+end
 
 NonlinearModel(s::KnitroSolver) = KnitroMathProgModel(;s.options...)
 LinearQuadraticModel(s::KnitroSolver) = NonlinearToLPQPBridge(NonlinearModel(s))
@@ -84,12 +84,12 @@ function loadproblem!(m::KnitroMathProgModel,
         Ihess = Int[]
         Jhess = Int[]
     end
-   
+
     Ijac, Jjac = jac_structure(d)
     m.nnzJ = length(Ijac)
     m.nnzH = length(Ihess)
-    jac_tmp = Array(Float64, m.nnzJ)
-    hess_tmp = Array(Float64, m.nnzH)
+    jac_tmp = Array{Float64}(m.nnzJ)
+    hess_tmp = Array{Float64}(m.nnzH)
     @assert length(Ijac) == length(Jjac)
     @assert length(Ihess) == length(Jhess)
     m.jac_con, m.jac_var, jac_indices = sparse_merge_jac_duplicates(Ijac, Jjac,
@@ -207,9 +207,9 @@ function loadproblem!(m::KnitroMathProgModel,
             end
         end
     end
-    
-    # check and define default hessian option 
-    if (!has_hessian && !defined_hessopt) || (!has_hessian && !in(hessopt_value,2:6)) 
+
+    # check and define default hessian option
+    if (!has_hessian && !defined_hessopt) || (!has_hessian && !in(hessopt_value,2:6))
         setOption(m.inner,paramName2Indx["KTR_PARAM_HESSOPT"],6)
     end
 

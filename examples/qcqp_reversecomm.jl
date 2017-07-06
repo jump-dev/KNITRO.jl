@@ -36,7 +36,7 @@ function eval_jac_g(x::Vector{Float64}, jac::Vector{Float64})
     jac[1] =  8.0
     jac[2] = 14.0
     jac[3] =  7.0
-        
+
     #---- GRADIENT OF THE SECOND CONSTRAINT, c[1].
     jac[4] = 2.0*x[1]
     jac[5] = 2.0*x[2]
@@ -98,11 +98,11 @@ initializeProblem(kp, objGoal, objType, x_L, x_U, c_Type, c_L, c_U,
 @fact kp.eval_status --> @compat(Int32(0))
 
 #---- ALLOCATE ARRAYS FOR REVERSE COMMUNICATIONS OPERATION.
-cons = Array(Float64, m)
-objGrad = Array(Float64, n)
-jac = Array(Float64, length(jac_con))
-hess = Array(Float64, length(hess_row))
-hessVector = Array(Float64, n)
+cons = Array{Float64}(m)
+objGrad = Array{Float64}(n)
+jac = Array{Float64}(length(jac_con))
+hess = Array{Float64}(length(hess_row))
+hessVector = Array{Float64}(n)
 
 #---- SOLVE THE PROBLEM.  IN REVERSE COMMUNICATIONS MODE, KNITRO
 #---- RETURNS WHENEVER IT NEEDS MORE PROBLEM INFORMATION.  THE CALLING

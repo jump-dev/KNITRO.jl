@@ -13,8 +13,8 @@ for m in [Model(solver=KnitroSolver()),
                             + 2.0*x[1]*x[2] + 2.0*x[1]*x[3])
     @constraint(m, x[1] + x[2] + 2.0*x[3] <= 3)
     solve(m)
-    @test_approx_eq_eps getvalue(x[1]) 1.3333333 1e-5
-    @test_approx_eq_eps getvalue(x[2]) 0.7777777 1e-5
-    @test_approx_eq_eps getvalue(x[3]) 0.4444444 1e-5
-    @test_approx_eq_eps getobjectivevalue(m) 0.1111111 1e-5
+    @test getvalue(x[1]) ≈ 1.3333333 atol=1.0e-5
+    @test getvalue(x[2]) ≈ 0.7777777 atol=1.0e-5
+    @test getvalue(x[3]) ≈ 0.4444444 atol=1.0e-5
+    @test getobjectivevalue(m) ≈ 0.1111111 atol=1.0e-5
 end
