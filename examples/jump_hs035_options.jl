@@ -7,10 +7,10 @@ function testmodel(m)
                             + 2.0*x[1]*x[2] + 2.0*x[1]*x[3])
     @constraint(m, x[1] + x[2] + 2.0*x[3] <= 3)
     solve(m)
-    @test getvalue(x[1]) ≈ 1.3333333 atol=1.0e-5
-    @test getvalue(x[2]) ≈ 0.7777777 atol=1.0e-5
-    @test getvalue(x[3]) ≈ 0.4444444 atol=1.0e-5
-    @test getobjectivevalue(m) ≈ 0.1111111 atol=1.0e-5
+    @test isapprox(getvalue(x[1]), 1.3333333, atol=1.0e-5)
+    @test isapprox(getvalue(x[2]), 0.7777777, atol=1.0e-5)
+    @test isapprox(getvalue(x[3]), 0.4444444, atol=1.0e-5)
+    @test isapprox(getobjectivevalue(m), 0.1111111, atol=1.0e-5)
 end
 
 m = Model(solver=KnitroSolver())
