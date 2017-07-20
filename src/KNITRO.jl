@@ -102,7 +102,7 @@ module KNITRO
     function initializeProblem(kp, objGoal, objType, x_l, x_u, c_Type, g_lb,
                                g_ub, jac_var, jac_con; initial_x = C_NULL,
                                initial_lambda = C_NULL)
-        hessopt = Array(Int32, 1)
+        hessopt = Array{Int32}(1)
         getOption(kp, "hessopt", hessopt)
         @assert hessopt[1] != KTR_HESSOPT_EXACT
         # KNITRO documentation:
