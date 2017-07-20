@@ -149,3 +149,5 @@ facts("Test optimal solutions") do
         [0.0, 0.0, 8.0], 1e-5)
     @fact kp.obj_val[1] --> roughly(936.0, 1e-5)
 end
+
+freeProblem(kp)

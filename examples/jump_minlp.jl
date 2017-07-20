@@ -45,3 +45,6 @@ x_U = [2,2,1]
     y[4] + y[5] <= 1
 end)
 solve(m)
+
+ktrmod = internalmodel(m)
+MathProgBase.freemodel!(ktrmod)

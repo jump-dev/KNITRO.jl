@@ -90,3 +90,5 @@ facts("Test optimal solutions") do
     @fact (abs(kp.x[2]-2.0) < 1e-4 || abs(kp.x[2]+1.26243) < 1e-4) --> true
     @fact (abs(kp.obj_val[1]-306.5) < 0.025 || abs(kp.obj_val[1]-360.4) < 0.025) --> true
 end
+
+freeProblem(kp)
