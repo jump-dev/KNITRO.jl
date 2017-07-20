@@ -74,18 +74,17 @@ function loadproblem!(m::KnitroMathProgModel,
                       x_l, x_u, g_lb, g_ub,
                       sense::Symbol,
                       d::AbstractNLPEvaluator)
+
     features = features_available(d)
     has_hessian = (:Hess in features)
-    if has_hessian
-        initialize(d, [:Grad, :Jac, :Hess])
-        Ihess, Jhess = hesslag_structure(d)
-    else
-        initialize(d, [:Grad, :Jac])
-        Ihess = Int[]
-        Jhess = Int[]
-    end
-
-    Ijac, Jjac = jac_structure(d)
+    init_feat = [:Grad]
+    has_hessian && push!(init_feat, :Hess)
+    numConstr > 0 && push!(init_feat, :Jac)
+    
+    initialize(d, init_feat)
+    Ihess, Jhess = has_hessian ? hesslag_structure(d) : (Int[], Int[])
+    Ijac, Jjac = numConstr > 0 ? jac_structure(d) : (Int[], Int[])
+    
     m.nnzJ = length(Ijac)
     m.nnzH = length(Ihess)
     jac_tmp = Array{Float64}(m.nnzJ)

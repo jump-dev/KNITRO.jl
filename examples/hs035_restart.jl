@@ -122,7 +122,7 @@ lambda = ones(n+m)
 restartProblem(kp, x, lambda)
 @fact applicationReturnStatus(kp) --> :Initialized
 solveProblem(kp)
-facts("Test optimal solutions (at a different starting point") do
+facts("Test optimal solutions (at a different starting point)") do
     @fact applicationReturnStatus(kp) --> :Optimal
     @fact kp.x --> roughly(
         [1.3333333, 0.7777777, 0.4444444], 1e-5)

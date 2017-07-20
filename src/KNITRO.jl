@@ -250,8 +250,10 @@ module KNITRO
         # evaluate the gradient
         kp.eval_grad_f(x,unsafe_wrap(Array,g_,n))
         # evaluate the jacobian
-        kp.eval_jac_g(x,unsafe_wrap(Array,J_,nnzJ))
-
+        if m > 0
+            kp.eval_jac_g(x,unsafe_wrap(Array,J_,nnzJ))
+        end
+        
         Int32(0)
     end
 
