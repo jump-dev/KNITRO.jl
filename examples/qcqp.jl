@@ -36,7 +36,7 @@ function eval_jac_g(x::Vector{Float64}, jac::Vector{Float64})
     jac[1] =  8.0
     jac[2] = 14.0
     jac[3] =  7.0
-        
+
     #---- GRADIENT OF THE SECOND CONSTRAINT, c[1].
     jac[4] = 2.0*x[1]
     jac[5] = 2.0*x[2]
@@ -92,55 +92,16 @@ setOption(kp, "feastol", 1.0e-10)
 @fact applicationReturnStatus(kp) --> :Uninitialized
 @fact kp.eval_status --> @compat(Int32(0))
 
+# --- set callback functions ---
+setCallbacks(kp, eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h, eval_hv)
+@fact applicationReturnStatus(kp) --> :Uninitialized
+
 initializeProblem(kp, objGoal, objType, x_L, x_U, c_Type, c_L, c_U,
                   jac_var, jac_con, hess_row, hess_col; initial_x = x)
 @fact applicationReturnStatus(kp) --> :Initialized
 @fact kp.eval_status --> @compat(Int32(0))
 
-#---- ALLOCATE ARRAYS FOR REVERSE COMMUNICATIONS OPERATION.
-cons = Array(Float64, m)
-objGrad = Array(Float64, n)
-jac = Array(Float64, length(jac_con))
-hess = Array(Float64, length(hess_row))
-hessVector = Array(Float64, n)
-
-#---- SOLVE THE PROBLEM.  IN REVERSE COMMUNICATIONS MODE, KNITRO
-#---- RETURNS WHENEVER IT NEEDS MORE PROBLEM INFORMATION.  THE CALLING
-#---- PROGRAM MUST INTERPRET KNITRO'S RETURN STATUS AND CONTINUE
-#---- SUPPLYING PROBLEM INFORMATION UNTIL KNITRO IS COMPLETE.
-while kp.status > 0
-    @fact applicationReturnStatus(kp) --> anyof(:Initialized, :ReverseComms)
-    solveProblem(kp, cons, objGrad, jac, hess, hessVector)
-    if kp.status == KTR_RC_EVALFC
-        #---- KNITRO WANTS obj AND c EVALUATED AT THE POINT x.
-        kp.obj_val[1] = eval_f(kp.x)
-        eval_g(kp.x,cons)
-    elseif kp.status == KTR_RC_EVALGA
-        #---- KNITRO WANTS objGrad AND jac EVALUATED AT THE POINT x.
-        eval_grad_f(kp.x, objGrad)
-        eval_jac_g(kp.x, jac)
-    elseif kp.status == KTR_RC_EVALH
-        #---- KNITRO WANTS hess EVALUATED AT THE POINT x.
-        eval_h(kp.x, kp.lambda, 1.0, hess)
-    elseif kp.status == KTR_RC_EVALH_NO_F
-        #---- KNITRO WANTS hess EVALUATED AT THE POINT x
-        #---- WITHOUT OBJECTIVE COMPONENT.
-        eval_h(kp.x, kp.lambda, 0.0, hess)
-    elseif kp.status == KTR_RC_EVALHV
-        #---- KNITRO WANTS hessVector EVALUATED AT THE POINT x.
-        eval_hv(kp.x, kp.lambda, 1.0, hessVector)
-    elseif kp.status == KTR_RC_EVALHV_NO_F
-        #---- KNITRO WANTS hessVector EVALUATED AT THE POINT x
-        #---- WITHOUT OBJECTIVE COMPONENT.
-        eval_hv(kp.x, kp.lambda, 0.0, hessVector)
-    end
-    #/*---- ASSUME THAT PROBLEM EVALUATION IS ALWAYS SUCCESSFUL.
-    #*---- IF A FUNCTION OR ITS DERIVATIVE COULD NOT BE EVALUATED
-    #*---- AT THE GIVEN (x, lambda), THEN SET evalStatus = 1 BEFORE
-    #*---- CALLING KTR_solve AGAIN. */
-    @fact applicationReturnStatus(kp) --> anyof(:ReverseComms, :Optimal)
-    @fact kp.eval_status --> @compat(Int32(0))
-end
+solveProblem(kp)
 
 # --- test optimal solutions ---
 facts("Test optimal solutions") do

@@ -102,7 +102,7 @@ module KNITRO
     function initializeProblem(kp, objGoal, objType, x_l, x_u, c_Type, g_lb,
                                g_ub, jac_var, jac_con; initial_x = C_NULL,
                                initial_lambda = C_NULL)
-        hessopt = Array(Int32, 1)
+        hessopt = Array{Int32}(1)
         getOption(kp, "hessopt", hessopt)
         @assert hessopt[1] != KTR_HESSOPT_EXACT
         # KNITRO documentation:
@@ -250,8 +250,10 @@ module KNITRO
         # evaluate the gradient
         kp.eval_grad_f(x,unsafe_wrap(Array,g_,n))
         # evaluate the jacobian
-        kp.eval_jac_g(x,unsafe_wrap(Array,J_,nnzJ))
-
+        if m > 0
+            kp.eval_jac_g(x,unsafe_wrap(Array,J_,nnzJ))
+        end
+        
         Int32(0)
     end
 

@@ -191,6 +191,7 @@ setMIPCallback(kp, eval_mip_node)
 initializeProblem(kp, objGoal, objType, objFnType,
                   x_Type, x_L, x_U, c_Type, c_FnType, c_L, c_U,
                   jac_var, jac_con, hess_row, hess_col)
+@fact applicationReturnStatus(kp) --> :Initialized
 solveProblem(kp)
 
 # --- test optimal solutions ---
