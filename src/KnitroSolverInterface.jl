@@ -80,11 +80,11 @@ function loadproblem!(m::KnitroMathProgModel,
     init_feat = [:Grad]
     has_hessian && push!(init_feat, :Hess)
     numConstr > 0 && push!(init_feat, :Jac)
-    
+
     initialize(d, init_feat)
     Ihess, Jhess = has_hessian ? hesslag_structure(d) : (Int[], Int[])
     Ijac, Jjac = numConstr > 0 ? jac_structure(d) : (Int[], Int[])
-    
+
     m.nnzJ = length(Ijac)
     m.nnzH = length(Ihess)
     jac_tmp = Array{Float64}(m.nnzJ)
@@ -184,9 +184,11 @@ function loadproblem!(m::KnitroMathProgModel,
     end
 
     # Hessian-vector callback
-    eval_hv_cb(x, lambda, sigma, hv) = eval_hesslag_prod(d, hv, x, sigma,
-                                                         lambda)
-
+    eval_hv_cb(x, lambda, sigma, hv) = begin
+        v = copy(hv)
+        eval_hesslag_prod(d, hv, x, v, sigma, lambda)
+    end
+    
     m.inner = createProblem()
     defined_hessopt = false; hessopt_value = 0
     for (param,value) in m.options
