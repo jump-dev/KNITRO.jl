@@ -90,7 +90,7 @@ setOption(kp, "hessian_no_f", 1)
 setOption(kp, "feastol", 1.0e-10)
 
 @fact applicationReturnStatus(kp) --> :Uninitialized
-@fact kp.eval_status --> @compat(Int32(0))
+@fact kp.eval_status --> Int32(0)
 
 # --- set callback functions ---
 setCallbacks(kp, eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h, eval_hv)
@@ -99,7 +99,7 @@ setCallbacks(kp, eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h, eval_hv)
 initializeProblem(kp, objGoal, objType, x_L, x_U, c_Type, c_L, c_U,
                   jac_var, jac_con, hess_row, hess_col; initial_x = x)
 @fact applicationReturnStatus(kp) --> :Initialized
-@fact kp.eval_status --> @compat(Int32(0))
+@fact kp.eval_status --> Int32(0)
 
 solveProblem(kp)
 
