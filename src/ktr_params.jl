@@ -10,7 +10,7 @@ const rev_var_type_map = Dict(
 :Bin => KTR_VARTYPE_BINARY
 )
 
-# grep "#define" include/ktr.h | grep "KTR_PARAM_" | awk '{ printf("\"%s\" => Int32(%s),\n",$2,$3) }'
+# grep "#define" ktr.h | grep "KTR_PARAM_" | awk '{ printf("\"%s\" => Int32(%s),\n",$2,$3) }'
 const paramName2Indx = Dict(
 "KTR_PARAM_NEWPOINT" => Int32(1001),
 "KTR_PARAM_HONORBNDS" => Int32(1002),
