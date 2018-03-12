@@ -10,7 +10,10 @@ const rev_var_type_map = Dict(
 :Bin => KTR_VARTYPE_BINARY
 )
 
-# grep "#define" ktr.h | grep "KTR_PARAM_" | awk '{ printf("\"%s\" => Int32(%s),\n",$2,$3) }'
+# This list was obtained through AWK with Knitro 11.0 with the following command:
+# grep "#define" include/ktr.h | grep "KTR_PARAM_" | awk '{ printf("\"%s\" => Int32(%s),\n",$2,$3) }'
+# For versions up to 10.3, use the folowing command:
+# grep "#define" knitro.h | grep "KTR_PARAM_" | awk '{ printf("\"%s\" => Int32(%s),\n",$2,$3) }'
 const paramName2Indx = Dict(
 "KTR_PARAM_NEWPOINT" => Int32(1001),
 "KTR_PARAM_HONORBNDS" => Int32(1002),

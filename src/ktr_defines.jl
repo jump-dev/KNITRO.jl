@@ -1,6 +1,9 @@
-# This list was obtained through AWK with Knitro 10.0 (and then pared down) with the following two commands:
-# grep "#define" ktr.h | awk '{ printf("const %s = Int32(%s)\n",$2,$3) }'
-# grep "#  define" ktr.h | awk '{ printf("const %s = Int32(%s)\n",$3,$4) }'
+# This list was obtained through AWK with Knitro 11.0 (and then pared down) with the following two commands:
+# grep "#define" include/ktr.h | awk '{ printf("const %s = Int32(%s)\n",$2,$3) }'
+# grep "#  define" include/ktr.h | awk '{ printf("const %s = Int32(%s)\n",$3,$4) }'
+# For version up until 10.3, use following commands :
+# grep "#define" knitro.h | awk '{ printf("const %s = Int32(%s)\n",$2,$3) }'
+# grep "#  define" knitro.h | awk '{ printf("const %s = Int32(%s)\n",$3,$4) }'
 
 export
     KTR_INFBOUND,
