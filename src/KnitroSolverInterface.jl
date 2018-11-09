@@ -1,14 +1,14 @@
-importall MathProgBase.SolverInterface
+using MathProgBase.SolverInterface
 
 ###############################################################################
 # Solver objects
 export KnitroSolver
-immutable KnitroSolver <: AbstractMathProgSolver
+struct KnitroSolver <: AbstractMathProgSolver
     options
 end
 KnitroSolver(;kwargs...) = KnitroSolver(kwargs)
 
-type KnitroMathProgModel <: AbstractNonlinearModel
+mutable struct KnitroMathProgModel <: AbstractNonlinearModel
     options
     inner::KnitroProblem
 
@@ -188,7 +188,7 @@ function loadproblem!(m::KnitroMathProgModel,
         v = copy(hv)
         eval_hesslag_prod(d, hv, x, v, sigma, lambda)
     end
-    
+
     m.inner = createProblem()
     defined_hessopt = false; hessopt_value = 0
     for (param,value) in m.options

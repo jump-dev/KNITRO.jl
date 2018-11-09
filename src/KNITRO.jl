@@ -1,16 +1,17 @@
 __precompile__()
 
 module KNITRO
-    import Base.Libdl: RTLD_GLOBAL
+    using Libdl
+
     function __init__()
-        if is_linux()
+        if Sys.islinux()
             # fixes missing symbols in libknitro.so
             Libdl.dlopen("libdl", RTLD_GLOBAL)
             Libdl.dlopen("libgomp", RTLD_GLOBAL)
         end
     end
-    @static if is_unix() const libknitro = "libknitro" end
-    @static if is_windows() const libknitro = "knitro" end
+    @static if Sys.islinux() const libknitro = "libknitro" end
+    @static if Sys.iswindows() const libknitro = "knitro" end
 
     export
         KnitroProblem,
@@ -34,9 +35,9 @@ module KNITRO
         end
     end
 
-    type KnitroProblem
+    mutable struct KnitroProblem
         # For KNITRO
-        env::Ptr{Void} # pointer to KTR_context
+        env::Ptr{Nothing} # pointer to KTR_context
         eval_status::Int32 # scalar input used only for reverse comms
         status::Int32  # Final status
         mip::Bool # whether it is a Mixed Integer Problem
@@ -70,7 +71,7 @@ module KNITRO
 
     function freeProblem(kp::KnitroProblem)
         kp.env == C_NULL && return
-        return_code = @ktr_ccall(free, Int32, (Ptr{Void},), [kp.env])
+        return_code = @ktr_ccall(free, Int32, (Ptr{Nothing},), [kp.env])
         if return_code != 0
             error("KNITRO: Error freeing memory")
         end
@@ -212,7 +213,7 @@ module KNITRO
                              J_::Ptr{Cdouble},
                              H_::Ptr{Cdouble},
                              HV_::Ptr{Cdouble},
-                             userParams_::Ptr{Void})
+                             userParams_::Ptr{Nothing})
         if evalRequestCode != KTR_RC_EVALFC
             return KTR_RC_CALLBACK_ERR
         end
@@ -240,7 +241,7 @@ module KNITRO
                              J_::Ptr{Cdouble},
                              H_::Ptr{Cdouble},
                              HV_::Ptr{Cdouble},
-                             userParams_::Ptr{Void})
+                             userParams_::Ptr{Nothing})
         if evalRequestCode != KTR_RC_EVALGA
             return KTR_RC_CALLBACK_ERR
         end
@@ -253,7 +254,7 @@ module KNITRO
         if m > 0
             kp.eval_jac_g(x,unsafe_wrap(Array,J_,nnzJ))
         end
-        
+
         Int32(0)
     end
 
@@ -270,7 +271,7 @@ module KNITRO
                                J_::Ptr{Cdouble},
                                H_::Ptr{Cdouble},
                                HV_::Ptr{Cdouble},
-                               userParams_::Ptr{Void})
+                               userParams_::Ptr{Nothing})
         kp = unsafe_pointer_to_objref(userParams_)::KnitroProblem
         x = unsafe_wrap(Array,x_, n)
         lambda = unsafe_wrap(Array,lambda_, m+n)
@@ -302,7 +303,7 @@ module KNITRO
                                J_::Ptr{Cdouble},
                                H_::Ptr{Cdouble},
                                HV_::Ptr{Cdouble},
-                               userParams_::Ptr{Void})
+                               userParams_::Ptr{Nothing})
         kp = unsafe_pointer_to_objref(userParams_)::KnitroProblem
         obj = unsafe_load(obj_)
         kp.eval_mip_node(kp,obj)
