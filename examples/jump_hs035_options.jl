@@ -1,4 +1,4 @@
-using KNITRO, JuMP, Base.Test
+using KNITRO, JuMP, Compat.Test
 
 function testmodel(m)
     @variable(m, x[1:3]>=0)

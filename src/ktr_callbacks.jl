@@ -8,7 +8,7 @@ export
     # set_ms_initpt_callback,
     # set_puts_callback,
 
-callback_params = (Cint, Cint, Cint, Cint, Cint, Ptr{Cdouble},
+const callback_params = (Cint, Cint, Cint, Cint, Cint, Ptr{Cdouble},
                    Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble},
                    Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble},
                    Ptr{Cdouble}, Ptr{Nothing})
@@ -20,7 +20,10 @@ It may also evaluate `objGrad` and `jac` if EVALFC and EVALGA are
 combined into a single call.
 """
 function set_func_callback(kp::KnitroProblem, f::Function)
-    cb = cfunction(f, Cint, callback_params)
+    cb = @cfunction($f, Cint, (Cint, Cint, Cint, Cint, Cint, Ptr{Cdouble},
+                   Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble},
+                   Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble},
+                   Ptr{Cdouble}, Ptr{Nothing}))
     return_code = @ktr_ccall(set_func_callback, Int32, (Ptr{Nothing},
                              Ptr{Nothing}), kp.env, cb)
     if return_code != 0
@@ -40,7 +43,10 @@ Set the callback function that evaluates `objGrad` and `jac` at `x`.
 It may do nothing if EVALFC and EVALGA are combined into a single call.
 """
 function set_grad_callback(kp::KnitroProblem, f::Function)
-    cb = cfunction(f, Cint, callback_params)
+    cb = @cfunction($f, Cint, (Cint, Cint, Cint, Cint, Cint, Ptr{Cdouble},
+                   Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble},
+                   Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble},
+                   Ptr{Cdouble}, Ptr{Nothing}))
     return_code = @ktr_ccall(set_grad_callback, Int32,(Ptr{Nothing},
                              Ptr{Nothing}), kp.env, cb)
     if return_code != 0
@@ -57,7 +63,10 @@ function multiplies second derivatives by `hessVector` and returns the
 product in `hessVector`.
 """
 function set_hess_callback(kp::KnitroProblem, f::Function)
-    cb = cfunction(f, Cint, callback_params)
+    cb = @cfunction($f, Cint, (Cint, Cint, Cint, Cint, Cint, Ptr{Cdouble},
+                   Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble},
+                   Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble},
+                   Ptr{Cdouble}, Ptr{Nothing}))
     return_code = @ktr_ccall(set_hess_callback, Int32, (Ptr{Nothing},
                              Ptr{Nothing}), kp.env, cb)
     if return_code != 0
@@ -70,7 +79,7 @@ Set the callback function that is invoked after KNITRO computes a
 new estimate of the solution point (i.e., after every major iteration).
 """
 function set_newpt_callback(kp::KnitroProblem, f::Function)
-    cb = cfunction(f, Cint, (Ptr{Nothing}, Cint, Cint, Cint, Ptr{Cdouble},
+    cb = @cfunction($f, Cint, (Ptr{Nothing}, Cint, Cint, Cint, Ptr{Cdouble},
                    Ptr{Cdouble}, Cdouble, Ptr{Cdouble}, Ptr{Cdouble},
                    Ptr{Cdouble}, Ptr{Nothing}))
     return_code = @ktr_ccall(set_newpt_callback, Int32, (Ptr{Nothing},
@@ -91,7 +100,10 @@ values at `x`.  First and second derivative arguments are not currently
 defined and should not be examined.
 """
 function set_ms_process_callback(kp::KnitroProblem, f::Function)
-    cb = cfunction(f, Cint, callback_params)
+    cb = @cfunction($f, Cint, (Cint, Cint, Cint, Cint, Cint, Ptr{Cdouble},
+                   Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble},
+                   Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble},
+                   Ptr{Cdouble}, Ptr{Nothing}))
     return_code = @ktr_ccall(set_ms_process_callback, Int32, (Ptr{Nothing},
                              Ptr{Nothing}), kp.env, cb)
     if return_code != 0
@@ -106,7 +118,10 @@ Set the callback function that is invoked after KNITRO finishes
 processing a node on the branch-and-bound tree.
 """
 function set_mip_node_callback(kp::KnitroProblem, f::Function)
-    cb = cfunction(f, Cint, callback_params)
+    cb = @cfunction($f, Cint, (Cint, Cint, Cint, Cint, Cint, Ptr{Cdouble},
+                   Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble},
+                   Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble},
+                   Ptr{Cdouble}, Ptr{Nothing}))
     return_code = @ktr_ccall(set_mip_node_callback, Int32, (Ptr{Nothing},
                              Ptr{Nothing}), kp.env, cb)
     if return_code != 0
@@ -121,8 +136,8 @@ Set the callback that allows applications to specify an initial point
 before each local solve in the multistart procedure.
 """
 function set_ms_initpt_callback(kp::KnitroProblem, f::Function)
-    cb = cfunction(f, Cint, (Cint, Cint, Cint, Ptr{Cdouble}, Ptr{Cdouble},
-                   Ptr{Cdouble}, Ptr{cdouble}, Ptr{Nothing}))
+    cb = @cfunction($f, Cint, (Cint, Cint, Cint, Ptr{Cdouble}, Ptr{Cdouble},
+                   Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Nothing}))
     return_code = @ktr_ccall(set_ms_initpt_callback, Int32, (Ptr{Nothing},
                              Ptr{Nothing}), kp.env, cb)
     if return_code < 0
@@ -139,7 +154,7 @@ By default KNITRO prints to stdout or a file named `knitro.log`,
 as determined by KTR_PARAM_OUTMODE.
 """
 function set_puts_callback(kp::KnitroProblem, f::Function)
-    cb = cfunction(f, Cint, (Ptr{Cchar}, Ptr{Nothing}))
+    cb = @cfunction($f, Cint, (Ptr{Cchar}, Ptr{Nothing}))
     return_code = @ktr_ccall(set_puts_callback, Int32, (Ptr{Nothing},
                              Ptr{Nothing}), kp.env, cb)
     if return_code < 0

@@ -62,7 +62,7 @@ module KNITRO
                      0,
                      100, # Code for :Uninitialized
                      false)
-            finalizer(kp, freeProblem)
+            #= finalizer(kp, freeProblem) =#
             kp
         end
     end
