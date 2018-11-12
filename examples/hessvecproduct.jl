@@ -32,12 +32,13 @@ function MathProgBase.eval_hesslag_prod(d::Myquad,h,x,v,σ,μ)
 end
 
 m = MathProgBase.NonlinearModel(KnitroSolver(KTR_PARAM_OUTLEV=2,KTR_PARAM_HESSOPT=5))
-MathProgBase.loadproblem!(m,2,0,-3.*ones(2),3.*ones(2),Float64[],Float64[],:Min,Myquad())
-MathProgBase.setwarmstart!(m,rand(2)); MathProgBase.optimize!(m)
+MathProgBase.loadproblem!(m, 2, 0, -3. * ones(2), 3. * ones(2), Float64[], Float64[], :Min, Myquad())
+MathProgBase.setwarmstart!(m,rand(2))
+MathProgBase.optimize!(m)
 x = MathProgBase.getsolution(m)
 
 # --- test optimal solutions ---
-@testest "Test optimal solutions" begin
+@testset "Test optimal solutions" begin
     @test isapprox(x[1],1.,atol=1.0e-5)
     @test isapprox(x[2],2.,atol=1.0e-5)
 end
