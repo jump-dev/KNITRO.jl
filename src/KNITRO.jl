@@ -1,7 +1,10 @@
 __precompile__()
 
 module KNITRO
-    using Libdl, SparseArrays
+    using Compat
+    using Compat.Libdl, Compat.SparseArrays
+    import Compat: Sys
+
 
     function __init__()
         if Sys.islinux()
@@ -62,6 +65,7 @@ module KNITRO
                      0,
                      100, # Code for :Uninitialized
                      false)
+            # FIXME: finalizer is not working on julia 1.0
             #= finalizer(kp, freeProblem) =#
             kp
         end
