@@ -9,8 +9,8 @@ module KNITRO
     function __init__()
         if Sys.islinux()
             # fixes missing symbols in libknitro.so
-            Libdl.dlopen("libdl", RTLD_GLOBAL)
-            Libdl.dlopen("libgomp", RTLD_GLOBAL)
+            Compat.Libdl.dlopen("libdl", RTLD_GLOBAL)
+            Compat.Libdl.dlopen("libgomp", RTLD_GLOBAL)
         end
     end
     @static if Sys.islinux() const libknitro = "libknitro" end
