@@ -1,14 +1,16 @@
+import MathProgBase
+const MPB = MathProgBase
 using MathProgBase.SolverInterface
 
 ###############################################################################
 # Solver objects
 export KnitroSolver
-struct KnitroSolver <: AbstractMathProgSolver
+struct KnitroSolver <: MPB.AbstractMathProgSolver
     options
 end
 KnitroSolver(;kwargs...) = KnitroSolver(kwargs)
 
-mutable struct KnitroMathProgModel <: AbstractNonlinearModel
+mutable struct KnitroMathProgModel <: MPB.AbstractNonlinearModel
     options
     inner::KnitroProblem
 
@@ -46,8 +48,8 @@ mutable struct KnitroMathProgModel <: AbstractNonlinearModel
     end
 end
 
-NonlinearModel(s::KnitroSolver) = KnitroMathProgModel(;s.options...)
-LinearQuadraticModel(s::KnitroSolver) = NonlinearToLPQPBridge(NonlinearModel(s))
+MPB.NonlinearModel(s::KnitroSolver) = KnitroMathProgModel(;s.options...)
+MPB.LinearQuadraticModel(s::KnitroSolver) = NonlinearToLPQPBridge(NonlinearModel(s))
 
 ###############################################################################
 # Begin interface implementation
@@ -68,7 +70,7 @@ function sparse_merge_jac_duplicates(I, J, m, n)
 end
 
 # generic nonlinear interface
-function loadproblem!(m::KnitroMathProgModel,
+function MPB.loadproblem!(m::KnitroMathProgModel,
                       numVar::Int,
                       numConstr::Int,
                       x_l, x_u, g_lb, g_ub,
@@ -218,11 +220,11 @@ function loadproblem!(m::KnitroMathProgModel,
                  eval_h_cb, eval_hv_cb)
 end
 
-getsense(m::KnitroMathProgModel) = m.sense
-numvar(m::KnitroMathProgModel) = m.numVar
-numconstr(m::KnitroMathProgModel) = m.numConstr
+MPB.getsense(m::KnitroMathProgModel) = m.sense
+MPB.numvar(m::KnitroMathProgModel) = m.numVar
+MPB.numconstr(m::KnitroMathProgModel) = m.numConstr
 
-function optimize!(m::KnitroMathProgModel)
+function MPB.optimize!(m::KnitroMathProgModel)
     if applicationReturnStatus(m.inner) == :Uninitialized
         if all(x->x==KTR_VARTYPE_CONTINUOUS, m.varType)
             initializeProblem(m.inner, m.sense, m.objType, m.varLB, m.varUB,
@@ -245,19 +247,19 @@ function optimize!(m::KnitroMathProgModel)
     m.hasbeenrestarted = false
 end
 
-function status(m::KnitroMathProgModel)
+function MPB.status(m::KnitroMathProgModel)
     applicationReturnStatus(m.inner)
 end
 
-getobjval(m::KnitroMathProgModel) = m.inner.obj_val[1]
-getobjbound(m::KnitroMathProgModel) = get_mip_relaxation_bnd(m.inner)
-getsolution(m::KnitroMathProgModel) = m.inner.x
-getconstrsolution(m::KnitroMathProgModel) = m.inner.g
-getreducedcosts(m::KnitroMathProgModel) =
+MPB.getobjval(m::KnitroMathProgModel) = m.inner.obj_val[1]
+MPB.getobjbound(m::KnitroMathProgModel) = get_mip_relaxation_bnd(m.inner)
+MPB.getsolution(m::KnitroMathProgModel) = m.inner.x
+MPB.getconstrsolution(m::KnitroMathProgModel) = m.inner.g
+MPB.getreducedcosts(m::KnitroMathProgModel) =
     -1 .* m.inner.lambda[m.numConstr + 1:end]
-getconstrduals(m::KnitroMathProgModel) = -1 .* m.inner.lambda[1:m.numConstr]
-getrawsolver(m::KnitroMathProgModel) = m.inner
-getsolvetime(m::KnitroMathProgModel) = m.solve_time
+MPB.getconstrduals(m::KnitroMathProgModel) = -1 .* m.inner.lambda[1:m.numConstr]
+MPB.getrawsolver(m::KnitroMathProgModel) = m.inner
+MPB.getsolvetime(m::KnitroMathProgModel) = m.solve_time
 
 function warmstart(m::KnitroMathProgModel, x)
     m.initial_x = [Float64(i) for i in x]
@@ -267,8 +269,8 @@ function warmstart(m::KnitroMathProgModel, x)
     end
 end
 
-setwarmstart!(m::KnitroMathProgModel, x) = warmstart(m,x)
-setvartype!(m::KnitroMathProgModel, typ::Vector{Symbol}) =
+MPB.setwarmstart!(m::KnitroMathProgModel, x) = warmstart(m,x)
+MPB.setvartype!(m::KnitroMathProgModel, typ::Vector{Symbol}) =
     (m.varType = map(t->rev_var_type_map[t], typ))
 
-freemodel!(m::KnitroMathProgModel) = freeProblem(m.inner)
+MPB.freemodel!(m::KnitroMathProgModel) = freeProblem(m.inner)
