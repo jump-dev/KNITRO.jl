@@ -89,8 +89,8 @@ function MPB.loadproblem!(m::KnitroMathProgModel,
 
     m.nnzJ = length(Ijac)
     m.nnzH = length(Ihess)
-    jac_tmp = Array{Float64}(m.nnzJ)
-    hess_tmp = Array{Float64}(m.nnzH)
+    jac_tmp = zeros(Float64, m.nnzJ)
+    hess_tmp = zeros(Float64, m.nnzH)
     @assert length(Ijac) == length(Jjac)
     @assert length(Ihess) == length(Jhess)
     m.jac_con, m.jac_var, jac_indices = sparse_merge_jac_duplicates(Ijac, Jjac,
