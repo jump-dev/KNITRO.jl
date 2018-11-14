@@ -16,7 +16,7 @@ using Compat.Test
  ##
 
 function eval_f(x::Vector{Float64})
-    1000.0 - x[1]^2 - 2.0*x[2]^2 - x[3]^2 - x[1]^2 - x[1]*x[3]
+    1000.0 - x[1]^2 - 2.0*x[2]^2 - x[3]^2 - x[1]*x[2] - x[1]*x[3]
 end
 
 function eval_g(x::Vector{Float64}, cons::Vector{Float64})

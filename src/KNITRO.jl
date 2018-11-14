@@ -65,8 +65,7 @@ module KNITRO
                      0,
                      100, # Code for :Uninitialized
                      false)
-            # FIXME: finalizer is not working on julia 1.0
-            #= finalizer(kp, freeProblem) =#
+            finalizer(freeProblem, kp)
             kp
         end
     end
