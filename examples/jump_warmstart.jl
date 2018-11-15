@@ -1,4 +1,4 @@
-using KNITRO, JuMP, Base.Test
+using KNITRO, JuMP, Compat.Test
 
 m = Model(solver=KnitroSolver())
 @variable(m, x)

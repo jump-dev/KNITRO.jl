@@ -1,6 +1,5 @@
 using KNITRO
-using Base.Test
-using Compat
+using Compat.Test
 
  ## Solve a small QCQP (quadratically constrained quadratic programming)
  #  test problem.
@@ -17,7 +16,7 @@ using Compat
  ##
 
 function eval_f(x::Vector{Float64})
-    1000.0 - x[1]^2 - 2.0*x[2]^2 - x[3]^2 - x[1]^2 - x[1]*x[3]
+    1000.0 - x[1]^2 - 2.0*x[2]^2 - x[3]^2 - x[1]*x[2] - x[1]*x[3]
 end
 
 function eval_g(x::Vector{Float64}, cons::Vector{Float64})
@@ -83,32 +82,31 @@ hess_col = Int32[0,1,2,1,2]
 x = [2.0,2.0,2.0] # initial guess
 
 kp = createProblem()
-@fact applicationReturnStatus(kp) --> :Uninitialized
+@test applicationReturnStatus(kp) == :Uninitialized
 setOption(kp, "outlev", "all")
 setOption(kp, "hessopt", 1)
 setOption(kp, "hessian_no_f", 1)
 setOption(kp, "feastol", 1.0e-10)
 
-@fact applicationReturnStatus(kp) --> :Uninitialized
-@fact kp.eval_status --> Int32(0)
+@test applicationReturnStatus(kp) == :Uninitialized
+@test kp.eval_status == Int32(0)
 
 # --- set callback functions ---
 setCallbacks(kp, eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h, eval_hv)
-@fact applicationReturnStatus(kp) --> :Uninitialized
+@test applicationReturnStatus(kp) == :Uninitialized
 
 initializeProblem(kp, objGoal, objType, x_L, x_U, c_Type, c_L, c_U,
                   jac_var, jac_con, hess_row, hess_col; initial_x = x)
-@fact applicationReturnStatus(kp) --> :Initialized
-@fact kp.eval_status --> Int32(0)
+@test applicationReturnStatus(kp) == :Initialized
+@test kp.eval_status == Int32(0)
 
 solveProblem(kp)
 
 # --- test optimal solutions ---
-facts("Test optimal solutions") do
-    @fact applicationReturnStatus(kp) --> :Optimal
-    @fact kp.x --> roughly(
-        [0.0, 0.0, 8.0], 1e-5)
-    @fact kp.obj_val[1] --> roughly(936.0, 1e-5)
+@testset "Test optimal solutions" begin
+    @test applicationReturnStatus(kp) == :Optimal
+    @test isapprox(kp.x, [0.0, 0.0, 8.0], atol=1e-5)
+    @test isapprox(kp.obj_val[1], 936.0, atol=1e-5)
 end
 
 freeProblem(kp)

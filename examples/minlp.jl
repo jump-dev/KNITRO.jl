@@ -1,4 +1,4 @@
-using KNITRO, FactCheck
+using KNITRO, Compat.Test
 
  ## Solve test problem 1 (Synthesis of processing system) in
  #  M. Duran & I.E. Grossmann, "An outer approximation algorithm for
@@ -14,12 +14,12 @@ using KNITRO, FactCheck
  #        x2 - 2 x4 <= 0
  #        x1 - x2 - 2 x5 <= 0
  #        x4 + x5 <= 1
- #        0 <= x1 <= 2 
+ #        0 <= x1 <= 2
  #        0 <= x2 <= 2
  #        0 <= x3 <= 1
  #        x1, x2, x3 continuous
  #        x4, x5, x6 binary
- #        
+ #
  #
  #  The solution is (1.30098, 0, 1, 0, 1, 0).
  ##
@@ -59,11 +59,11 @@ function eval_jac_g(x::Vector{Float64}, jac::Vector{Float64})
     tmp2 = x[2] + 1.0
     #---- GRADIENT OF CONSTRAINT 0.
     jac[1] = 0.96 / tmp1
-    jac[2] = (-0.96 / tmp1) + (0.8 / tmp2) 
+    jac[2] = (-0.96 / tmp1) + (0.8 / tmp2)
     jac[3] = -0.8
     #---- GRADIENT OF CONSTRAINT 1.
     jac[4] = 1.2 / tmp1
-    jac[5] = (-1.2 / tmp1) + (1.0 / tmp2) 
+    jac[5] = (-1.2 / tmp1) + (1.0 / tmp2)
     jac[6] = -1.0
     jac[7] = -2.0
     #---- GRADIENT OF CONSTRAINT 2.
@@ -71,10 +71,10 @@ function eval_jac_g(x::Vector{Float64}, jac::Vector{Float64})
     jac[9] = 1.0
     #---- GRADIENT OF CONSTRAINT 3.
     jac[10] = 1.0
-    jac[11] = -2.0    
+    jac[11] = -2.0
     #---- GRADIENT OF CONSTRAINT 4.
     jac[12] = 1.0
-    jac[13] = -1.0    
+    jac[13] = -1.0
     jac[14] = -2.0
     #---- GRADIENT OF CONSTRAINT 5.
     jac[15] = 1.0
@@ -166,7 +166,7 @@ x_Type = [KTR_VARTYPE_CONTINUOUS,
           KTR_VARTYPE_BINARY]
 
 kp = createProblem()
-@fact applicationReturnStatus(kp) --> :Uninitialized
+@test applicationReturnStatus(kp) == :Uninitialized
 
 # ------ Illustrate how to override default options ------
 # --- (options must be set before calling init_problem) ---
@@ -180,25 +180,24 @@ setOption(kp, KTR_PARAM_MIP_MAXNODES, 10000)
 # hessian matrix without the objective component
 # (turned off by default, but should be enabled if possible)
 setOption(kp, KTR_PARAM_HESSIAN_NO_F, KTR_HESSIAN_NO_F_ALLOW)
-@fact applicationReturnStatus(kp) --> :Uninitialized
+@test applicationReturnStatus(kp) == :Uninitialized
 
 # --- set callback functions ---
 setCallbacks(kp, eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h, eval_hv)
-@fact applicationReturnStatus(kp) --> :Uninitialized
+@test applicationReturnStatus(kp) == :Uninitialized
 setMIPCallback(kp, eval_mip_node)
-@fact applicationReturnStatus(kp) --> :Uninitialized
+@test applicationReturnStatus(kp) == :Uninitialized
 
 initializeProblem(kp, objGoal, objType, objFnType,
                   x_Type, x_L, x_U, c_Type, c_FnType, c_L, c_U,
                   jac_var, jac_con, hess_row, hess_col)
-@fact applicationReturnStatus(kp) --> :Initialized
+@test applicationReturnStatus(kp) == :Initialized
 solveProblem(kp)
 
 # --- test optimal solutions ---
-facts("Test optimal solutions") do
-  @fact applicationReturnStatus(kp) --> :Optimal
-  @fact kp.x --> roughly(
-      [1.30098, 0.0, 1.0, 0.0, 1.0, 0.0], 1e-5)
+@testset "Test optimal solutions" begin
+    @test applicationReturnStatus(kp) == :Optimal
+    @test isapprox(kp.x, [1.30098, 0.0, 1.0, 0.0, 1.0, 0.0], atol=1e-5)
 end
 
 freeProblem(kp)

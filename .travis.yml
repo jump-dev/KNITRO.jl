@@ -5,11 +5,13 @@ os:
 #  - osx
 julia:
   - 0.6
+  - 0.7
+  - 1.0
 notifications:
   email: false
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-  - julia -e 'Pkg.clone(pwd())'
+  - julia -e '(VERSION > v"0.7" && using Pkg); Pkg.clone(pwd())'
 after_success:
-  - julia -e 'Pkg.add("Documenter")'
-  - julia -e 'cd(Pkg.dir("KNITRO")); include(joinpath("docs", "make.jl"))'
+  - julia -e '(VERSION > v"0.7" && using Pkg); Pkg.add("Documenter")'
+  - julia -e '(VERSION > v"0.7" && using Pkg); cd(Pkg.dir("KNITRO")); include(joinpath("docs", "make.jl"))'

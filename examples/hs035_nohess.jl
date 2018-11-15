@@ -1,4 +1,5 @@
-using KNITRO, FactCheck
+using KNITRO
+using Compat.Test
 
 #    min  9 - 8x1 - 6x2 - 4x3
 #         + 2(x1^2) + 2(x2^2) + (x3^2) + 2(x1*x2) + 2(x1*x3)
@@ -62,11 +63,10 @@ setGradCallback(kp, eval_grad_f, eval_jac_g)
 solveProblem(kp)
 
 # --- test optimal solutions ---
-facts("Test optimal solutions") do
-    @fact applicationReturnStatus(kp) --> :Optimal
-    @fact kp.x --> roughly(
-        [1.3333333, 0.7777777, 0.4444444], 1e-5)
-    @fact kp.obj_val[1] --> roughly(0.1111111, 1e-5)
+@testset "Test optimal solution" begin
+    @test applicationReturnStatus(kp) == :Optimal
+    @test isapprox(kp.x, [1.3333333, 0.7777777, 0.4444444], atol=1e-5)
+    @test isapprox(kp.obj_val[1], 0.1111111, atol=1e-5)
 end
 
 freeProblem(kp)
