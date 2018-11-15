@@ -261,7 +261,7 @@ ma_terminate optimal
 
 # Maximum allowable CG iterations per trial step
 # (if 0 then Knitro determines the best value).
-maxcgit      0
+cg_maxit      0
 
 # Maximum number of function evaluations to allow
 # (a negative number implies no limit is imposed).
@@ -584,7 +584,7 @@ par_numthreads 1
 # is non-positive initially no pivoting will be performed. Smaller values
 # may improve the speed of the code but higher values are recommended for
 # more stability.
-pivot        1e-08
+linsolver_pivottol        1e-08
 
 # Whether to apply a presolve operation to the model.
 #   none   = 0 = no presolve
