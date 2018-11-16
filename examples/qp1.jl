@@ -83,7 +83,7 @@ KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_BAR_MAXCROSSIT, 5)
 
 # Solve the problem.
 #
-# Return status codes are defined in "knitro.py" and described
+# Return status codes are defined in "kn_defines.jl" and described
 # in the Knitro manual.
 nStatus = KNITRO.KN_solve(kc)
 
@@ -93,8 +93,7 @@ println("Knitro converged with final status = ", nStatus)
 nStatus, objSol, x, lambda_ =  KNITRO.KN_get_solution(kc)
 println("  optimal objective value  = ", objSol)
 println("  optimal primal values x  = ",  x)
-#= println("  feasibility violation    = %e" % KN_get_abs_feas_error (kc)) =#
-#= println("  KKT optimality violation = %e" % KN_get_abs_opt_error (kc)) =#
-
+println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
+println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
 # Delete the Knitro solver instance.
 KNITRO.KN_free(kc)

@@ -62,3 +62,14 @@ function KN_set_var_upbnds(m::Model, upbnds::Vector{Cdouble})
                     m.env.ptr_env.x, upbnds)
     _checkraise(ret)
 end
+
+
+##################################################
+## Initial values
+##################################################
+function KN_set_var_primal_init_values(m::Model, xinitval::Vector{Cdouble})
+    ret = @kn_ccall(set_var_primal_init_values_all, Cint,
+                    (Ptr{Nothing}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, xinitval)
+    _checkraise(ret)
+end

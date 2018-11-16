@@ -35,19 +35,15 @@ KN_new() = Model(Env())
 # parameters
 "Set all parameters specified in the given file"
 function KN_load_param_file(m::Model, filename::AbstractString)
-    return_code = @kn_ccall(load_param_file, Cint, (Ptr{Nothing}, Ptr{Cchar}),
+    ret = @kn_ccall(load_param_file, Cint, (Ptr{Nothing}, Ptr{Cchar}),
                              m.env.ptr_env.x, filename)
-    if return_code != 0
-        error("KNITRO: Error loading parameters from $(filename)")
-    end
+    _checkraise(ret)
 end
 
 "Reset all parameters to default values"
 function KN_reset_params_to_defaults(m::Model)
-    return_code = @kn_ccall(reset_params_to_defaults, Cint, (Ptr{Nothing}, ),
+    ret = @kn_ccall(reset_params_to_defaults, Cint, (Ptr{Nothing}, ),
                              m.env.ptr_env.x)
-    if return_code != 0
-        error("KNITRO: Fail to reset default params")
-    end
+    _checkraise(ret)
 end
 

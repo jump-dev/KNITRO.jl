@@ -25,9 +25,11 @@ end
 #
 ####################
 # Equality constraints
-function KN_set_con_eqbnds(m::Model, indexCons::Vector{Cint})
-    error("To implement")
+function KN_set_con_eqbnd(m::Model, indexCons::Int, bnds::Cdouble)
+    ret = @kn_ccall(set_con_eqbnd, Cint, (Ptr{Nothing}, Cint, Cdouble), m.env.ptr_env.x, indexCons, bnds)
+    _checkraise(ret)
 end
+KN_set_con_eqbnds(m::Model, indexCons::Int, bnds::Cdouble) = KN_set_con_eqbnd(m, indexCons, bnds)
 
 function KN_set_con_eqbnds(m::Model, eqBnds::Vector{Cdouble})
     ret = @kn_ccall(set_con_eqbnds_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}), m.env.ptr_env.x, eqBnds)
@@ -39,6 +41,13 @@ end
 ####################
 # Inequality constraints
 # Upper bounds
+function KN_set_con_upbnd(m::Model, indexCons::Int, bnds::Cdouble)
+    ret = @kn_ccall(set_con_upbnd, Cint, (Ptr{Nothing}, Cint, Cdouble),
+                    m.env.ptr_env.x, indexCons, bnds)
+    _checkraise(ret)
+end
+KN_set_con_upbnds(m::Model, indexCons::Int, bnds::Cdouble) = KN_set_con_upbnd(m, indexCons, bnds)
+
 function KN_set_con_upbnds(m::Model, upBnds::Vector{Cdouble})
     ret = @kn_ccall(set_con_upbnds_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}), m.env.ptr_env.x, upBnds)
     _checkraise(ret)
@@ -49,6 +58,15 @@ function KN_set_con_upbnd(m::Model, indexcons::Integer, upbd::Cdouble)
                     m.env.ptr_env.x, indexcons, upbd)
     _checkraise(ret)
 end
+
+
+
+function KN_set_con_lobnd(m::Model, indexCons::Int, bnds::Cdouble)
+    ret = @kn_ccall(set_con_lobnd, Cint, (Ptr{Nothing}, Cint, Cdouble),
+                    m.env.ptr_env.x, indexCons, bnds)
+    _checkraise(ret)
+end
+KN_set_con_lobnds(m::Model, indexCons::Int, bnds::Cdouble) = KN_set_con_lobnd(m, indexCons, bnds)
 
 # Lower bounds
 function KN_set_con_lobnds(m::Model, loBnds::Vector{Cdouble})
@@ -106,10 +124,29 @@ function KN_add_con_quadratic_struct(m::Model,
                                   indexVars2::Vector{Int},
                                   coefs::Vector{Cdouble})
     # get number of constraints
-    nnz = length(jacIndexCons)
+    nnz = length(indexVars1)
     ret = @kn_ccall(add_con_quadratic_struct,
                     Cint,
                     (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env.ptr_env.x,
+                    nnz,
+                    indexCons,
+                    indexVars1,
+                    indexVars2,
+                    coefs)
+    _checkraise(ret)
+end
+
+function KN_add_con_quadratic_struct(m::Model,
+                                  indexCons::Int,
+                                  indexVars1::Vector{Int},
+                                  indexVars2::Vector{Int},
+                                  coefs::Vector{Cdouble})
+    # get number of constraints
+    nnz = length(indexVars1)
+    ret = @kn_ccall(add_con_quadratic_struct_one,
+                    Cint,
+                    (Ptr{Nothing}, Cint, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
                     m.env.ptr_env.x,
                     nnz,
                     indexCons,
