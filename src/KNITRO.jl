@@ -33,6 +33,8 @@ module KNITRO
     include("kn_params.jl")
     include("kn_variables.jl")
     include("kn_attributes.jl")
+    include("kn_constraints.jl")
+    include("kn_solve.jl")
 
 
     # wrapper with MathProgBase

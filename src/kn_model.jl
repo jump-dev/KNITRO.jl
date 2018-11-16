@@ -17,15 +17,15 @@ mutable struct Model
         if res != 0
             error("KNITRO: Error creating solver")
         end
-        finalizer(finalize_model, model)
+        finalizer(KN_free, model)
         return model
     end
 end
 
 
-function finalize_model(m::Model)
-    free_env(m.env)
-end
+KN_free(m::Model) = free_env(m.env)
+
+KN_new() = Model(Env())
 
 
 ##################################################
