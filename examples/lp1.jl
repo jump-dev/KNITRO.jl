@@ -40,7 +40,7 @@ end
 
 # Add the constraints and set the rhs and coefficients.
 KNITRO.KN_add_cons!(kc, 2)
-KNITRO.KN_set_con_eqbnds!(kc,  [5., 8.])
+KNITRO.KN_set_con_eqbnds(kc,  [5., 8.])
 # Add Jacobian structure and coefficients.
 # First constraint
 jacIndexCons = [0, 0, 0]

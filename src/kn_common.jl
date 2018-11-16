@@ -10,6 +10,12 @@ macro kn_ccall(func, args...)
     end
 end
 
+"Check if return value is valid."
+function _checkraise(ret::Cint)
+    if ret != 0
+        error("Fail to use specified function: $ret")
+    end
+end
 
 "Return the current KNITRO version."
 function get_release()
