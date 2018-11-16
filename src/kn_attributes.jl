@@ -67,7 +67,7 @@ end
 
 function KN_get_number_cons(m::Model)
     num_cons = Int32[0]
-    ret = @kn_ccall(get_number_vars, Cint, (Ptr{Nothing}, Ptr{Cint}),
+    ret = @kn_ccall(get_number_cons, Cint, (Ptr{Nothing}, Ptr{Cint}),
                     m.env.ptr_env.x, num_cons)
     _checkraise(ret)
     return num_cons[1]
@@ -75,15 +75,15 @@ end
 
 function KN_get_obj_value(m::Model)
     obj = Cdouble[0]
-    ret = @kn_ccall(get_number_vars, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, objj)
+    ret = @kn_ccall(get_obj_value, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, obj)
     _checkraise(ret)
     return obj[1]
 end
 
 function KN_get_obj_type(m::Model)
     obj_type = Int32[0]
-    ret = @kn_ccall(get_number_vars, Cint, (Ptr{Nothing}, Ptr{Cint}), m.env.ptr_env.x, obj_type)
+    ret = @kn_ccall(get_obj_type, Cint, (Ptr{Nothing}, Ptr{Cint}), m.env.ptr_env.x, obj_type)
     _checkraise(ret)
     return obj_type[1]
 end
@@ -160,6 +160,31 @@ function KN_get_rel_opt_error(m::Model)
     _checkraise(ret)
     return res[1]
 end
+
+
+####################
+# Jacobian utils
+####################
+function KN_get_jacobian_nnz(m::Model)
+    res = Cint[0]
+    ret = @kn_ccall(get_jacobian_nnz, Cint, (Ptr{Nothing}, Ptr{Cint}),
+                    m.env.ptr_env.x, res)
+    _checkraise(ret)
+    return res[1]
+end
+
+function KN_get_jacobian_values(m::Model)
+    nnz = KN_get_jacobian_nnz(m)
+    jacvars = zeros(Cint, nnz)
+    jaccons = zeros(Cint, nnz)
+    jaccoef = zeros(Cdouble, nnz)
+    ret = @kn_ccall(get_jacobian_values, Cint,
+                    (Ptr{Nothing}, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, jacvars, jaccons, jaccoef)
+    _checkraise(ret)
+    return jacvars, jaccons, jaccoef
+end
+
 
 ##################################################
 # setters

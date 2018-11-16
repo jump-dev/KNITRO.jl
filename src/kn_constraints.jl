@@ -87,6 +87,7 @@ function KN_add_con_linear_struct(m::Model,
                                   jacCoefs::Vector{Float64})
     # get number of constraints
     nnz = length(jacIndexCons)
+    @assert nnz == length(jacIndexVars) == length(jacCoefs)
     ret = @kn_ccall(add_con_linear_struct,
                     Cint,
                     (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
@@ -99,10 +100,11 @@ function KN_add_con_linear_struct(m::Model,
 end
 function KN_add_con_linear_struct(m::Model,
                                   indexCon::Int,
-                                  indexVar::Vector{Int},
+                                  indexVar::Vector{Cint},
                                   coefs::Vector{Float64})
     # get number of constraints
     nnz = length(indexVar)
+    @assert nnz == length(coefs)
     ret = @kn_ccall(add_con_linear_struct_one,
                     Cint,
                     (Ptr{Nothing}, Cint, Cint, Ptr{Cint}, Ptr{Cdouble}),

@@ -12,13 +12,11 @@ end
 ##################################################
 # TODO
 function KN_get_solution(m::Model)
-    status = 0
-    obj = 0.
     nx = KN_get_number_vars(m)
     nc = KN_get_number_cons(m)
+
     x = zeros(Cdouble, nx)
     lambda = zeros(Cdouble, nc)
-
     status = Cint[0]
     obj = Cdouble[0.]
 

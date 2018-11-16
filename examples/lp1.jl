@@ -27,7 +27,7 @@ kc = KNITRO.KN_new()
 
 # Illustrate how to override default options by reading from
 # the knitro.opt file.
-KNITRO.KN_load_param_file(kc, "examples/knitro.opt")
+#= KNITRO.KN_load_param_file(kc, "examples/knitro.opt") =#
 
 # Initialize Knitro with the problem definition.
 
@@ -39,7 +39,7 @@ for x in xIndices
 end
 
 # Add the constraints and set the rhs and coefficients.
-KNITRO.KN_add_cons!(kc, 2)
+cons = KNITRO.KN_add_cons!(kc, 2)
 KNITRO.KN_set_con_eqbnds(kc,  [5., 8.])
 # Add Jacobian structure and coefficients.
 # First constraint
@@ -50,13 +50,15 @@ jacCoefs = [1.0, 1.0, 1.0]
 jacIndexCons = [jacIndexCons; [1, 1, 1]]
 jacIndexVars = [jacIndexVars; [0, 1, 3]]
 jacCoefs = [jacCoefs; [2.0, 0.5, 1.0]]
-KNITRO.KN_add_con_linear_struct(kc, jacIndexCons, jacIndexVars, jacCoefs)
+#= KNITRO.KN_add_con_linear_struct(kc, jacIndexCons, jacIndexVars, jacCoefs) =#
+KNITRO.KN_add_con_linear_struct(kc, 0, Int32[0, 1, 2], [1., 1., 1.])
+KNITRO.KN_add_con_linear_struct(kc, 1, Int32[0, 1, 3], [2., .5, 1.])
 
 # Set minimize or maximize (if not set, assumed minimize).
 KNITRO.KN_set_obj_goal(kc, KNITRO.KN_OBJGOAL_MINIMIZE)
 
 # Set the coefficients for the objective.
-objIndices = Int32[0, 1]
+objIndices = [0, 1]
 objCoefs = [-4.0, -2.0]
 KNITRO.KN_add_obj_linear_struct(kc, objIndices, objCoefs)
 
@@ -76,4 +78,4 @@ println("Knitro converged with final status = ", nStatus)
 #= #1= print ("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error (kc)) =1# =#
 
 #= # Delete the Knitro solver instance. =#
-KNITRO.KN_free(kc)
+#= KNITRO.KN_free(kc) =#
