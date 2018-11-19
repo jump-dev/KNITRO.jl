@@ -10,6 +10,14 @@ mutable struct Model
     status::Int32  # Final status
     mip::Bool # whether it is a Mixed Integer Problem
 
+    eval_f::Function
+    eval_g::Function
+    eval_grad_f::Function
+    eval_jac_g::Function
+    eval_h::Function
+    eval_hv::Function
+    eval_mip_node::Function
+
     function Model(env::Env)
         model = new(env, Int32(0), Int32(100), false)
 

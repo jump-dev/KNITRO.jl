@@ -157,6 +157,8 @@ function KN_add_con_quadratic_struct(m::Model,
                     coefs)
     _checkraise(ret)
 end
+KN_add_con_quadratic_struct(m, indexCons::Integer, indexVar1::Integer, indexVar2::Integer, coef::Cdouble) =
+KN_add_con_quadratic_struct(m, indexCons, Cint[indexVar1], Cint[indexVar2], Cdouble[coef])
 
 
 ##################################################
