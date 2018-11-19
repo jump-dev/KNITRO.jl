@@ -189,7 +189,7 @@ end
 ##################################################
 # setters
 ##################################################
-function KN_set_param(m::Model, id::Cint, value::Cint)
+function KN_set_param(m::Model, id::Integer, value::Integer)
     ret = @kn_ccall(set_int_param, Cint, (Ptr{Nothing}, Cint, Cint),
                              m.env.ptr_env.x, id, value)
     _checkraise(ret)

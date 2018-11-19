@@ -3,7 +3,7 @@
 
 ##################################################
 # Constraint definition
-function KN_add_cons!(m::Model, ncons::Int)
+function KN_add_cons!(m::Model, ncons::Integer)
     ptr_cons = zeros(Cint, ncons)
     ret = @kn_ccall(add_cons, Cint, (Ptr{Nothing}, Cint, Ptr{Cint}), m.env.ptr_env.x, ncons, ptr_cons)
     _checkraise(ret)
@@ -25,11 +25,11 @@ end
 #
 ####################
 # Equality constraints
-function KN_set_con_eqbnd(m::Model, indexCons::Cint, bnds::Cdouble)
+function KN_set_con_eqbnd(m::Model, indexCons::Integer, bnds::Cdouble)
     ret = @kn_ccall(set_con_eqbnd, Cint, (Ptr{Nothing}, Cint, Cdouble), m.env.ptr_env.x, indexCons, bnds)
     _checkraise(ret)
 end
-KN_set_con_eqbnds(m::Model, indexCons::Cint, bnds::Cdouble) = KN_set_con_eqbnd(m, indexCons, bnds)
+KN_set_con_eqbnds(m::Model, indexCons::Integer, bnds::Cdouble) = KN_set_con_eqbnd(m, indexCons, bnds)
 
 function KN_set_con_eqbnds(m::Model, eqBnds::Vector{Cdouble})
     ret = @kn_ccall(set_con_eqbnds_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}), m.env.ptr_env.x, eqBnds)
@@ -41,18 +41,18 @@ end
 ####################
 # Inequality constraints
 # Upper bounds
-function KN_set_con_upbnd(m::Model, indexCons::Cint, bnds::Cdouble)
+function KN_set_con_upbnd(m::Model, indexCons::Integer, bnds::Cdouble)
     ret = @kn_ccall(set_con_upbnd, Cint, (Ptr{Nothing}, Cint, Cdouble),
                     m.env.ptr_env.x, indexCons, bnds)
     _checkraise(ret)
 end
-KN_set_con_upbnds(m::Model, indexCons::Cint, bnds::Cdouble) = KN_set_con_upbnd(m, indexCons, bnds)
+KN_set_con_upbnds(m::Model, indexCons::Integer, bnds::Cdouble) = KN_set_con_upbnd(m, indexCons, bnds)
 
 function KN_set_con_upbnds(m::Model, upBnds::Vector{Cdouble})
     ret = @kn_ccall(set_con_upbnds_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}), m.env.ptr_env.x, upBnds)
     _checkraise(ret)
 end
-function KN_set_con_upbnd(m::Model, indexcons::Cint, upbd::Cdouble)
+function KN_set_con_upbnd(m::Model, indexcons::Integer, upbd::Cdouble)
     ret = @kn_ccall(set_con_upbnd, Cint,
                     (Ptr{Nothing}, Cint, Cdouble),
                     m.env.ptr_env.x, indexcons, upbd)
@@ -61,12 +61,12 @@ end
 
 
 
-function KN_set_con_lobnd(m::Model, indexCons::Cint, bnds::Cdouble)
+function KN_set_con_lobnd(m::Model, indexCons::Integer, bnds::Cdouble)
     ret = @kn_ccall(set_con_lobnd, Cint, (Ptr{Nothing}, Cint, Cdouble),
                     m.env.ptr_env.x, indexCons, bnds)
     _checkraise(ret)
 end
-KN_set_con_lobnds(m::Model, indexCons::Cint, bnds::Cdouble) = KN_set_con_lobnd(m, indexCons, bnds)
+KN_set_con_lobnds(m::Model, indexCons::Integer, bnds::Cdouble) = KN_set_con_lobnd(m, indexCons, bnds)
 
 # Lower bounds
 function KN_set_con_lobnds(m::Model, loBnds::Vector{Cdouble})
@@ -115,7 +115,7 @@ function KN_add_con_linear_struct(m::Model,
                     coefs)
     _checkraise(ret)
 end
-KN_add_con_linear_struct(m::Model, indexCon::Cint, indexVar::Cint, coef::Float64) =  KN_add_con_linear_struct(m, indexCon, [indexVar], [coef])
+KN_add_con_linear_struct(m::Model, indexCon::Integer, indexVar::Integer, coef::Float64) =  KN_add_con_linear_struct(m, indexCon, Int32[indexVar], [coef])
 
 
 

@@ -55,20 +55,20 @@ KNITRO.KN_add_con_linear_struct(kc, 0, 2, -6.0)
 if (bSeparate)
     # Set linear and quadratic objective structure separately.
     # First set linear objective structure.
-    lobjIndexVars = [0, 2]
+    lobjIndexVars = Int32[0, 2]
     lobjCoefs = [11.0, 1.0]
     KNITRO.KN_add_obj_linear_struct(kc, lobjIndexVars, lobjCoefs)
     # Now set quadratic objective structure.
-    qobjIndexVars1 = [0, 1, 2]
-    qobjIndexVars2 = [0, 1, 2]
+    qobjIndexVars1 = Int32[0, 1, 2]
+    qobjIndexVars2 = Int32[0, 1, 2]
     qobjCoefs = [0.5, 0.5, 0.5]
     KNITRO.KN_add_obj_quadratic_struct(kc, qobjIndexVars1, qobjIndexVars2, qobjCoefs)
 else
     # Example of how to set linear and quadratic objective
     # structure at once. Setting the 2nd variable index in a
     # quadratic term to be negative, treats it as a linear term.
-    indexVars1 = [0, 1, 2, 0, 2]
-    indexVars2 = [0, 1, 2, -1, -1]  # -1 for linear coefficients
+    indexVars1 = Int32[0, 1, 2, 0, 2]
+    indexVars2 = Int32[0, 1, 2, -1, -1]  # -1 for linear coefficients
     objCoefs = [0.5, 0.5, 0.5, 11.0, 1.0]
     KNITRO.KN_add_obj_quadratic_struct(kc, indexVars1, indexVars2, objCoefs)
 end

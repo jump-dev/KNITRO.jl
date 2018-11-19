@@ -42,13 +42,13 @@ KNITRO.KN_set_con_eqbnds(kc, 0, 56.0)
 KNITRO.KN_set_con_lobnds(kc, 1, 25.0)
 
 # Add coefficients for linear constraint.
-lconIndexVars = [  0,    1,   2]
+lconIndexVars = Int32[  0,    1,   2]
 lconCoefs     = [8.0, 14.0, 7.0]
 KNITRO.KN_add_con_linear_struct(kc, 0, lconIndexVars, lconCoefs)
 
 # Add coefficients for quadratic constraint
-qconIndexVars1 = [  0,   1,   2]
-qconIndexVars2 = [  0,   1,   2]
+qconIndexVars1 = Int32[  0,   1,   2]
+qconIndexVars2 = Int32[  0,   1,   2]
 qconCoefs      = [1.0, 1.0, 1.0]
 KNITRO.KN_add_con_quadratic_struct(kc, 1, qconIndexVars1, qconIndexVars2, qconCoefs)
 
@@ -59,8 +59,8 @@ KNITRO.KN_set_obj_goal(kc, KNITRO.KN_OBJGOAL_MINIMIZE)
 KNITRO.KN_add_obj_constant(kc, 1000.0)
 
 # Set quadratic objective structure.
-qobjIndexVars1 = [   0,    1,    2,    0,    0]
-qobjIndexVars2 = [   0,    1,    2,    1,    2]
+qobjIndexVars1 = Int32[   0,    1,    2,    0,    0]
+qobjIndexVars2 = Int32[   0,    1,    2,    1,    2]
 qobjCoefs      = [-1.0, -2.0, -1.0, -1.0, -1.0]
 
 KNITRO.KN_add_obj_quadratic_struct(kc, qobjIndexVars1, qobjIndexVars2, qobjCoefs)
