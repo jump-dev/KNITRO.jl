@@ -17,7 +17,7 @@ function KN_set_obj_goal(m::Model, objgoal::Cint)
 end
 
 function KN_add_obj_linear_struct(m::Model,
-                                  objIndices::Vector{Int},
+                                  objIndices::Vector{Cint},
                                   objCoefs::Vector{Cdouble})
     nnz = length(objIndices)
 
@@ -33,8 +33,8 @@ end
 
 # quadratic part of objective
 function KN_add_obj_quadratic_struct(m::Model,
-                                  indexVars1::Vector{Int},
-                                  indexVars2::Vector{Int},
+                                  indexVars1::Vector{Cint},
+                                  indexVars2::Vector{Cint},
                                   coefs::Vector{Cdouble})
     nnz = length(indexVars1)
 
@@ -189,7 +189,7 @@ end
 ##################################################
 # setters
 ##################################################
-function KN_set_param(m::Model, id::Integer, value::Integer)
+function KN_set_param(m::Model, id::Cint, value::Cint)
     ret = @kn_ccall(set_int_param, Cint, (Ptr{Nothing}, Cint, Cint),
                              m.env.ptr_env.x, id, value)
     _checkraise(ret)

@@ -3,7 +3,7 @@
 
 function KN_add_var!(m::Model)
 
-    ptr_int = [0]
+    ptr_int = Cint[0]
     ret = @kn_ccall(add_var, Cint, (Ptr{Nothing}, Ptr{Cint}), m.env.ptr_env.x, ptr_int)
     _checkraise(ret)
     return ptr_int[1]
@@ -44,7 +44,7 @@ end
 
 
 # upper bounds
-function KN_set_var_upbnd(m::Model, nindex::Integer, val::Cdouble)
+function KN_set_var_upbnd(m::Model, nindex::Cint, val::Cdouble)
     ret = @kn_ccall(set_var_upbnd, Cint, (Ptr{Nothing}, Cint, Cdouble), m.env.ptr_env.x, nindex, val)
     _checkraise(ret)
 end

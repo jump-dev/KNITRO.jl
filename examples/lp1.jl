@@ -43,12 +43,12 @@ cons = KNITRO.KN_add_cons!(kc, 2)
 KNITRO.KN_set_con_eqbnds(kc,  [5., 8.])
 # Add Jacobian structure and coefficients.
 # First constraint
-jacIndexCons = [0, 0, 0]
-jacIndexVars = [0, 1, 2]
+jacIndexCons = Int32[0, 0, 0]
+jacIndexVars = Int32[0, 1, 2]
 jacCoefs = [1.0, 1.0, 1.0]
 # Second constraint
-jacIndexCons = [jacIndexCons; [1, 1, 1]]
-jacIndexVars = [jacIndexVars; [0, 1, 3]]
+jacIndexCons = [jacIndexCons; Int32[1, 1, 1]]
+jacIndexVars = [jacIndexVars; Int32[0, 1, 3]]
 jacCoefs = [jacCoefs; [2.0, 0.5, 1.0]]
 #= KNITRO.KN_add_con_linear_struct(kc, jacIndexCons, jacIndexVars, jacCoefs) =#
 KNITRO.KN_add_con_linear_struct(kc, 0, Int32[0, 1, 2], [1., 1., 1.])
@@ -58,7 +58,7 @@ KNITRO.KN_add_con_linear_struct(kc, 1, Int32[0, 1, 3], [2., .5, 1.])
 KNITRO.KN_set_obj_goal(kc, KNITRO.KN_OBJGOAL_MINIMIZE)
 
 # Set the coefficients for the objective.
-objIndices = [0, 1]
+objIndices = Int32[0, 1]
 objCoefs = [-4.0, -2.0]
 KNITRO.KN_add_obj_linear_struct(kc, objIndices, objCoefs)
 
@@ -70,12 +70,12 @@ nStatus = KNITRO.KN_solve(kc)
 
 println("Knitro converged with final status = ", nStatus)
 
-#= # An example of obtaining solution information. =#
-#= nStatus, objSol, x, lambda_ =  KNITRO.KN_get_solution(kc) =#
-#= println("  optimal objective value  = ", objSol) =#
-#= println("  optimal primal values x  = ",   (x[0], x[1], x[2], x[3])) =#
-#= #1= print ("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error (kc)) =1# =#
-#= #1= print ("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error (kc)) =1# =#
+# An example of obtaining solution information.
+nStatus, objSol, x, lambda_ =  KNITRO.KN_get_solution(kc)
+println("  optimal objective value  = ", objSol)
+println("  optimal primal values x  = ",   x)
+println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
+println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
 
-#= # Delete the Knitro solver instance. =#
-#= KNITRO.KN_free(kc) =#
+# Delete the Knitro solver instance.
+KNITRO.KN_free(kc)

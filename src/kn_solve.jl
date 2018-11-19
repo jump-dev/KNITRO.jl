@@ -16,7 +16,7 @@ function KN_get_solution(m::Model)
     nc = KN_get_number_cons(m)
 
     x = zeros(Cdouble, nx)
-    lambda = zeros(Cdouble, nc)
+    lambda = zeros(Cdouble, nx + nc)
     status = Cint[0]
     obj = Cdouble[0.]
 
