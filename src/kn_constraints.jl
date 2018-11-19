@@ -157,3 +157,26 @@ function KN_add_con_quadratic_struct(m::Model,
                     coefs)
     _checkraise(ret)
 end
+
+
+##################################################
+# Complementary constraints
+##################################################
+function KN_set_compcons(m::Model,
+                         ccTypes::Vector{Cint},
+                         indexComps1::Vector{Cint},
+                         indexComps2::Vector{Cint})
+    # get number of constraints
+    nnc = length(ccTypes)
+    @assert ncc = length(indexComps1) == length(indexComps2)
+    ret = @kn_ccall(set_compcons,
+                    Cint,
+                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}),
+                    m.env.ptr_env.x,
+                    nnc,
+                    ccTypes,
+                    indexComps1,
+                    indexComps2)
+    _checkraise(ret)
+end
+

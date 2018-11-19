@@ -34,6 +34,7 @@ module KNITRO
     include("kn_variables.jl")
     include("kn_attributes.jl")
     include("kn_constraints.jl")
+    include("kn_residuals.jl")
     include("kn_solve.jl")
     include("kn_callbacks.jl")
 
