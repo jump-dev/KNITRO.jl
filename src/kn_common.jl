@@ -1,6 +1,10 @@
 # Common functions
 #
-#
+
+# TODO: add more case
+const KNLONG = Clonglong
+
+
 "A macro to make calling KNITRO's KN_* C API a little cleaner"
 macro kn_ccall(func, args...)
     f = Base.Meta.quot(Symbol("KN_$(func)"))

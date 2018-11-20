@@ -43,16 +43,12 @@ end
 # The signature of this function matches KNITRO.KN_eval_callback in knitro.py.
 # Only "objGrad" is set in the KNITRO.KN_eval_result structure.
 function callbackEvalG!(kc, cb, evalRequest, evalResult, userParams)
-    if evalRequest.type != KNITRO.KN_RC_EVALGA
-        println("*** callbackEvalG incorrectly called with eval type ", evalRequest.type)
-        return -1
-    end
     x = evalRequest.x
 
     # Evaluate gradient of nonlinear objective
     dTmp = x[2] - x[1]*x[1]
-    evalResult.objGrad[0] =(-400.0 * dTmp * x[1]) -(2.0 *(1.0 - x[1]))
-    evalResult.objGrad[1] = 200.0 * dTmp
+    evalResult.objGrad[1] =(-400.0 * dTmp * x[1]) -(2.0 *(1.0 - x[1]))
+    evalResult.objGrad[2] = 200.0 * dTmp
 
     return 0
 end
@@ -62,11 +58,7 @@ end
 #*------------------------------------------------------------------*
 # The signature of this function matches KNITRO.KN_eval_callback in knitro.py.
 # Only "hess" and "hessVec" are set in the KNITRO.KN_eval_result structure.
-function callbackEvalH(kc, cb, evalRequest, evalResult, userParams)
-    if evalRequest.type != KNITRO.KN_RC_EVALH && evalRequest.type != KNITRO.KN_RC_EVALH_NO_F
-        println("*** callbackEvalH incorrectly called with eval type ",  evalRequest.type)
-        return -1
-    end
+function callbackEvalH!(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
     # Scale objective component of hessian by sigma
     sigma = evalRequest.sigma
@@ -153,7 +145,7 @@ cb = KNITRO.KN_add_eval_callback(kc, true, callbackEvalF)
 #(i.e. Jacobian matrix) for efficiency(this is true even when using
 # finite-difference gradients).
 #= KNITRO.KN_set_cb_grad(kc, cb, objGradIndexVars = KNITRO.KN_DENSE, gradCallback = callbackEvalG) =#
-#= KNITRO.KN_set_cb_grad(kc, cb, KNITRO.KN_DENSE, callbackEvalG) =#
+KNITRO.KN_set_cb_grad(kc, cb, KNITRO.KN_DENSE, callbackEvalG!)
 
 # Add a callback function "callbackEvalH" to evaluate the Hessian
 #(i.e. second derivative matrix) of the objective.  If not specified,
@@ -163,7 +155,7 @@ cb = KNITRO.KN_add_eval_callback(kc, true, callbackEvalF)
 # Since the Hessian is symmetric, only the upper triangle is provided.
 # Again for simplicity, we specify it in dense(row major) form.
 #= KNITRO.KN_set_cb_hess(kc, cb, hessIndexVars1 = KNITRO.KN_DENSE_ROWMAJOR, hessCallback = callbackEvalH) =#
-#= KNITRO.KN_set_cb_hess(kc, cb, KNITRO.KN_DENSE_ROWMAJOR, callbackEvalH) =#
+KNITRO.KN_set_cb_hess(kc, cb, KNITRO.KN_DENSE_ROWMAJOR, callbackEvalH!)
 
 # Specify that the user is able to provide evaluations
 # of the hessian matrix without the objective component.

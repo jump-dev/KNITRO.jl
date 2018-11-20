@@ -1,10 +1,10 @@
 # Callbacks utilities
 mutable struct CallbackContext
     context::Ptr{Nothing}
-    model::Model
 end
-CallbackContext(model::Model) = CallbackContext(C_NULL, model)
+CallbackContext() = CallbackContext(C_NULL)
 
+##################################################
 # callback context getters
 # TODO: dry this code with a macro
 function KN_get_cb_number_cons(m::Model, cb::Ptr{Cvoid})
@@ -76,7 +76,7 @@ mutable struct EvalRequest
     threadID::Cint
     x::Array{Float64}
     lambda::Array{Float64}
-    sigma::Array{Float64}
+    sigma::Float64
     vec::Array{Float64}
 end
 
@@ -85,13 +85,15 @@ function EvalRequest(m::Model, evalRequest_::KN_eval_request)
     nx = KN_get_number_vars(m)
     nc = KN_get_number_cons(m)
 
+    # import scaling
+    sigma = (evalRequest_.sigma != C_NULL) ? unsafe_wrap(Array, evalRequest_.sigma, 1)[1] : 1.
     # we use only views to C arrays to avoid unnecessary copy
     return EvalRequest(evalRequest_.evalRequestCode,
                       evalRequest_.threadID,
                       unsafe_wrap(Array, evalRequest_.x, nx),
                       unsafe_wrap(Array, evalRequest_.lambda, nx + nc),
-                      zeros(Float64, 0), # TODO: not implemented
-                      zeros(Float64, 0)) # TODO: not implemented
+                      sigma,
+                      unsafe_wrap(Array, evalRequest_.vec, nx))
 end
 
 
@@ -138,7 +140,8 @@ end
 
 ##################################################
 # Callbacks wrappers
-function KN_eval_callback_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
+# 1/ for eval function
+function eval_fc_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
                                   evalRequest_::Ptr{Cvoid},
                                   evalResults_::Ptr{Cvoid},
                                   userdata_::Ptr{Cvoid})
@@ -168,6 +171,74 @@ function KN_eval_callback_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     return Cint(0)
 end
 
+function eval_ga_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
+                         evalRequest_::Ptr{Cvoid},
+                         evalResults_::Ptr{Cvoid},
+                         userdata_::Ptr{Cvoid})
+
+    # load evalRequest object
+    ptr0 = Ptr{KN_eval_request}(evalRequest_)
+    evalRequest = unsafe_load(ptr0)::KN_eval_request
+
+    if evalRequest.evalRequestCode != KN_RC_EVALGA
+        println("*** callbackEvalG incorrectly called with eval type ",
+                evalRequest.evalRequestCode)
+        return -1
+    end
+
+    # load evalResult object
+    ptr = Ptr{KN_eval_result}(evalResults_)
+    evalResult = unsafe_load(ptr)::KN_eval_result
+
+    # and eventually, load KNITRO's Julia Model
+    m = unsafe_pointer_to_objref(userdata_)::Model
+
+    request = EvalRequest(m, evalRequest)
+    result = EvalResult(m, ptr_cb, evalResult)
+
+    m.eval_g(ptr_model, ptr_cb, request, result, m.userdata)
+
+    return Cint(0)
+end
+
+function eval_hess_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
+                         evalRequest_::Ptr{Cvoid},
+                         evalResults_::Ptr{Cvoid},
+                         userdata_::Ptr{Cvoid})
+
+    # load evalRequest object
+    ptr0 = Ptr{KN_eval_request}(evalRequest_)
+    evalRequest = unsafe_load(ptr0)::KN_eval_request
+
+    if ((evalRequest.evalRequestCode != KNITRO.KN_RC_EVALH) &&
+        (evalRequest.evalRequestCode != KNITRO.KN_RC_EVALH_NO_F))
+        println("*** callbackEvalH incorrectly called with eval type ",
+                evalRequest.evalRequestCode)
+        return -1
+    end
+
+    # load evalResult object
+    ptr = Ptr{KN_eval_result}(evalResults_)
+    evalResult = unsafe_load(ptr)::KN_eval_result
+
+    # and eventually, load KNITRO's Julia Model
+    m = unsafe_pointer_to_objref(userdata_)::Model
+
+    request = EvalRequest(m, evalRequest)
+    result = EvalResult(m, ptr_cb, evalResult)
+
+    m.eval_h(ptr_model, ptr_cb, request, result, m.userdata)
+
+    return Cint(0)
+end
+
+
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+
+
 # User callback should be of the form:
 # callback(kc, cb, evalrequest, evalresult, usrparams)::Int
 
@@ -176,7 +247,7 @@ function KN_add_eval_callback(m::Model, evalObj::Bool, funccallback::Function)
     m.eval_f = funccallback
 
     # wrap eval_callback_wrapper as C function
-    f = @cfunction(KN_eval_callback_wrapper,  Cint,
+    c_f = @cfunction(eval_fc_wrapper, Cint,
                    (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}))
 
     # define callback context
@@ -185,26 +256,61 @@ function KN_add_eval_callback(m::Model, evalObj::Bool, funccallback::Function)
     # add callback to context
     ret = @kn_ccall(add_eval_callback_all, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}),
-                    m.env.ptr_env.x, f, rfptr)
+                    m.env.ptr_env.x, c_f, rfptr)
     _checkraise(ret)
-    cb = CallbackContext(rfptr.x, m)
+    cb = CallbackContext(rfptr.x)
 
     # now, we store the Knitro Model inside user params
     ret = @kn_ccall(set_cb_user_params, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Any),
                     m.env.ptr_env.x, cb.context, m)
 
-
     return cb
 end
 
-function KN_set_cb_grad(m::Model, cb::CallbackContext, gradcallback::Function)
-    error("Not implemented")
+
+function KN_set_cb_grad(m::Model, cb::CallbackContext, nV::Integer,
+                        gradcallback::Function)
+    # store grad function inside model:
+    m.eval_g = gradcallback
+
+    # wrap gradient wrapper as C function
+    c_grad_g = @cfunction(eval_ga_wrapper, Cint,
+                        (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}))
+
+    ret = @kn_ccall(set_cb_grad, Cint,
+                    (Ptr{Cvoid}, Ptr{Cvoid}, Cint, Ptr{Cint},
+                     Clong, Ptr{Cint}, Ptr{Cint}, Ptr{Cvoid}),
+                    m.env.ptr_env.x, cb.context, nV,
+                    C_NULL, 0, C_NULL, C_NULL,
+                    c_grad_g)
+    _checkraise(ret)
+
+    return nothing
 end
 
-function KN_set_cb_hess(m::Model, cb::CallbackContext, hesscallback::Function)
-    error("Not implemented")
+
+function KN_set_cb_hess(m::Model, cb::CallbackContext, nnzH::Integer,
+                        hesscallback::Function)
+    # store hessian function inside model:
+    println(nnzH)
+    m.eval_h = hesscallback
+
+    # wrap gradient wrapper as C function
+    c_hess = @cfunction(eval_hess_wrapper, Cint,
+                        (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}))
+
+    ret = @kn_ccall(set_cb_hess, Cint,
+                    (Ptr{Cvoid}, Ptr{Cvoid}, KNLONG, Ptr{Cint}, Ptr{Cint}, Ptr{Cvoid}),
+                    m.env.ptr_env.x, cb.context, nnzH,
+                    C_NULL, C_NULL, c_hess)
+    _checkraise(ret)
+
+    return nothing
 end
+
+
+
 
 ##################################################
 # Get callbacks info
