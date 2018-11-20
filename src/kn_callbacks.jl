@@ -6,42 +6,51 @@ end
 CallbackContext(model::Model) = CallbackContext(C_NULL, model)
 
 mutable struct KN_EvalRequest
-    type::Cint
     evalRequestCode::Cint
     threadID::Cint
-    x::Vector{Cdouble}
-    lambda::Vector{Cdouble}
-    sigma::Vector{Cdouble}
-    vec::Vector{Cdouble}
+    x::Ptr{Cdouble}
+    lambda::Ptr{Cdouble}
+    sigma::Ptr{Cdouble}
+    vec::Ptr{Cdouble}
 end
 
 mutable struct KN_EvalResult
-    obj::Cdouble
-    c::Cdouble
-    objGrad::Cdouble
-    jac::Cdouble
-    hess::Cdouble
-    hessVec::Cdouble
-    rsd::Cdouble
-    rsdJac::Cdouble
+    obj::Ptr{Cdouble}
+    c::Ptr{Cdouble}
+    objGrad::Ptr{Cdouble}
+    jac::Ptr{Cdouble}
+    hess::Ptr{Cdouble}
+    hessVec::Ptr{Cdouble}
+    rsd::Ptr{Cdouble}
+    rsdJac::Ptr{Cdouble}
 end
 
 
 function KN_eval_callback_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
-                                  evalRequest_::Ptr{Cvoid} ,
+                                  evalRequest_::Ptr{Cvoid},
                                   evalResults_::Ptr{Cvoid},
                                   userdata_::Ptr{Cvoid})
-    evalRequest = unsafe_load(evalRequests_)
+    println("Hello!!")
+    println(ptr_model)
+
+    # load evalRequest object
+    ptr0 = Ptr{KN_EvalRequest}(evalRequest_)
+    evalRequest = unsafe_load(ptr0)::KN_EvalRequest
+
     if evalRequest.evalRequestCode != KN_RC_EVALFC
-        println("*** callbackEvalF incorrectly called with eval type ", evalRequest.evalRequestCode)
+        println("*** callbackEvalF incorrectly called with eval type ",
+                evalRequest.evalRequestCode)
         return Cint(-1)
     end
 
+    # load evalResult object
+    ptr = Ptr{KN_EvalResult}(evalResults_)
+    evalResult = unsafe_load(ptr)::KN_EvalResult
+
     kp = unsafe_pointer_to_objref(userdata_)::Model
-    x = unsafe_load(evalResults_).c
+
 
     obj = kp.eval_f(ptr_model, ptr_cb, evalRequest, evalResults, kp.userdata)
-    unsafe_store!(evalResults_.obj, obj)
 
 
     return Cint(0)
@@ -64,10 +73,15 @@ function KN_add_eval_callback(m::Model, evalObj::Bool, funccallback::Function)
     # add callback to context
     ret = @kn_ccall(add_eval_callback_all, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}),
-                   m.env.ptr_env.x, f, rfptr)
-
-    cb = CallbackContext(rfptr.x, m)
+                    m.env.ptr_env.x, f, rfptr)
     _checkraise(ret)
+    cb = CallbackContext(rfptr.x, m)
+
+    # now, we store the Knitro Model inside user params
+    ret = @kn_ccall(set_cb_user_params, Cint,
+                    (Ptr{Cvoid}, Ptr{Cvoid}, Any),
+                    m.env.ptr_env.x, cb.context, m)
+
 
     return cb
 end

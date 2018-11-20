@@ -58,7 +58,7 @@ end
 # getters
 ##################################################
 function KN_get_number_vars(m::Model)
-    num_vars = Int32[0]
+    num_vars = Cint[0]
     ret = @kn_ccall(get_number_vars, Cint, (Ptr{Nothing}, Ptr{Cint}),
                     m.env.ptr_env.x, num_vars)
     _checkraise(ret)
@@ -66,7 +66,7 @@ function KN_get_number_vars(m::Model)
 end
 
 function KN_get_number_cons(m::Model)
-    num_cons = Int32[0]
+    num_cons = Cint[0]
     ret = @kn_ccall(get_number_cons, Cint, (Ptr{Nothing}, Ptr{Cint}),
                     m.env.ptr_env.x, num_cons)
     _checkraise(ret)
@@ -82,7 +82,7 @@ function KN_get_obj_value(m::Model)
 end
 
 function KN_get_obj_type(m::Model)
-    obj_type = Int32[0]
+    obj_type = Cint[0]
     ret = @kn_ccall(get_obj_type, Cint, (Ptr{Nothing}, Ptr{Cint}), m.env.ptr_env.x, obj_type)
     _checkraise(ret)
     return obj_type[1]

@@ -8,6 +8,8 @@ mutable struct Env
     end
 end
 
+Base.unsafe_convert(ptr::Type{Ptr{Cvoid}}, env::Env) = env.ptr_env.x::Ptr{Cvoid}
+
 function is_valid(env::Env)
     env.ptr_env.x != C_NULL
 end
