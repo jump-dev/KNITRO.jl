@@ -163,9 +163,7 @@ function KN_eval_callback_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     request = EvalRequest(m, evalRequest)
     result = EvalResult(m, ptr_cb, evalResult)
 
-    error("Foo")
-    obj = kp.eval_f(ptr_model, ptr_cb, evalRequest, evalResults, kp.userdata)
-
+    m.eval_f(ptr_model, ptr_cb, request, result, m.userdata)
 
     return Cint(0)
 end
