@@ -132,7 +132,7 @@ KNITRO.KN_add_con_quadratic_struct(kc, 1, 1, 1, 1.0)
 # However, for simplicity, we evaluate the whole objective
 # function through the callback.
 #= cb = KNITRO.KN_add_eval_callback(kc, evalObj = True, funcCallback = callbackEvalF) =#
-cb = KNITRO.KN_add_eval_callback(kc, true, callbackEvalF)
+cb = KNITRO.KN_add_eval_callback(kc, callbackEvalF)
 
 # Also add a callback function "callbackEvalG" to evaluate the
 # objective gradient.  If not provided, Knitro will approximate

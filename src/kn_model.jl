@@ -18,6 +18,7 @@ mutable struct Model
     eval_h::Function
     eval_hv::Function
     eval_mip_node::Function
+    user_callback::Function
 
 
     function Model(env::Env)

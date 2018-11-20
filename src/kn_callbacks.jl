@@ -238,11 +238,19 @@ end
 ################################################################################
 ################################################################################
 
+function KN_set_cb_user_params(m::Model, cb::CallbackContext)
+    # now, we store the Knitro Model inside user params
+    ret = @kn_ccall(set_cb_user_params, Cint,
+                    (Ptr{Cvoid}, Ptr{Cvoid}, Any),
+                    m.env.ptr_env.x, cb.context, m)
+    _checkraise(ret)
+end
+
 
 # User callback should be of the form:
 # callback(kc, cb, evalrequest, evalresult, usrparams)::Int
 
-function KN_add_eval_callback(m::Model, evalObj::Bool, funccallback::Function)
+function KN_add_eval_callback(m::Model, funccallback::Function)
     # store function inside model:
     m.eval_f = funccallback
 
@@ -259,11 +267,30 @@ function KN_add_eval_callback(m::Model, evalObj::Bool, funccallback::Function)
                     m.env.ptr_env.x, c_f, rfptr)
     _checkraise(ret)
     cb = CallbackContext(rfptr.x)
+    KN_set_cb_user_params(m, cb)
 
-    # now, we store the Knitro Model inside user params
-    ret = @kn_ccall(set_cb_user_params, Cint,
-                    (Ptr{Cvoid}, Ptr{Cvoid}, Any),
-                    m.env.ptr_env.x, cb.context, m)
+    return cb
+end
+function KN_add_eval_callback(m::Model, evalObj::Bool, indexCons::Vector{Cint},
+                              funccallback::Function)
+    nC = length(indexCons)
+    # store function inside model:
+    m.eval_f = funccallback
+
+    # wrap eval_callback_wrapper as C function
+    c_f = @cfunction(eval_fc_wrapper, Cint,
+                   (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}))
+
+    # define callback context
+    rfptr = Ref{Ptr{Cvoid}}()
+
+    # add callback to context
+    ret = @kn_ccall(add_eval_callback, Cint,
+                    (Ptr{Cvoid}, Cuchar, Cint, Ptr{Cint}, Ptr{Cvoid}, Ptr{Cvoid}),
+                    m.env.ptr_env.x, evalObj, nC, indexCons, c_f, rfptr)
+    _checkraise(ret)
+    cb = CallbackContext(rfptr.x)
+    KN_set_cb_user_params(m, cb)
 
     return cb
 end
@@ -310,8 +337,6 @@ function KN_set_cb_hess(m::Model, cb::CallbackContext, nnzH::Integer,
 end
 
 
-
-
 ##################################################
 # Get callbacks info
 ##################################################
@@ -345,4 +370,42 @@ function KN_get_number_HV_evals(m::Model)
                     m.env.ptr_env.x, fc_eval)
     _checkraise(ret)
     return fc_eval[1]
+end
+
+
+##################################################
+# MIP callback wrapper
+##################################################
+function user_callback_wrapper(ptr_model::Ptr{Cvoid},
+                               ptr_x::Ptr{Cdouble},
+                               ptr_lambda::Ptr{Cdouble},
+                               userdata_::Ptr{Cvoid})
+
+    # Load KNITRO's Julia Model
+    m = unsafe_pointer_to_objref(userdata_)::Model
+    nx = KN_get_number_vars(m)
+    nc = KN_get_number_cons(m)
+
+    x = unsafe_wrap(Array, ptr_x, nx),
+    lambda = unsafe_wrap(Array, ptr_lambda, nx + nc),
+    m.user_callback(ptr_model, x, lambda, m.userdata)
+
+    return Cint(0)
+end
+
+
+function KN_set_newpt_callback(m::Model, callback::Function)
+    # store callback function inside model:
+    m.user_callback = callback
+
+    # wrap user callback wrapper as C function
+    c_func = @cfunction(user_callback_wrapper, Cint,
+                        (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid}))
+
+    ret = @kn_ccall(set_newpt_callback, Cint,
+                    (Ptr{Cvoid}, Ptr{Cvoid}, Any),
+                    m.env.ptr_env.x, c_func, m)
+    _checkraise(ret)
+
+    return nothing
 end
