@@ -5,7 +5,63 @@ mutable struct CallbackContext
 end
 CallbackContext(model::Model) = CallbackContext(C_NULL, model)
 
-mutable struct KN_EvalRequest
+# callback context getters
+# TODO: dry this code with a macro
+function KN_get_cb_number_cons(m::Model, cb::Ptr{Cvoid})
+    num = Cint[0]
+    ret = @kn_ccall(get_cb_number_cons,
+                    Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
+                    m.env.ptr_env.x, cb, num)
+    _checkraise(ret)
+    return num[1]
+end
+function KN_get_cb_objgrad_nnz(m::Model, cb::Ptr{Cvoid})
+    num = Cint[0]
+    ret = @kn_ccall(get_cb_objgrad_nnz,
+                    Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
+                    m.env.ptr_env.x, cb, num)
+    _checkraise(ret)
+    return num[1]
+end
+function KN_get_cb_jacobian_nnz(m::Model, cb::Ptr{Cvoid})
+    num = Cint[0]
+    ret = @kn_ccall(get_cb_jacobian_nnz,
+                    Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
+                    m.env.ptr_env.x, cb, num)
+    _checkraise(ret)
+    return num[1]
+end
+function KN_get_cb_hessian_nnz(m::Model, cb::Ptr{Cvoid})
+    num = Cint[0]
+    ret = @kn_ccall(get_cb_hessian_nnz,
+                    Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
+                    m.env.ptr_env.x, cb, num)
+    _checkraise(ret)
+    return num[1]
+end
+function KN_get_cb_number_rsds(m::Model, cb::Ptr{Cvoid})
+    num = Cint[0]
+    ret = @kn_ccall(get_cb_number_rsds,
+                    Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
+                    m.env.ptr_env.x, cb, num)
+    _checkraise(ret)
+    return num[1]
+end
+function KN_get_cb_rsd_jacobian_nnz(m::Model, cb::Ptr{Cvoid})
+    num = Cint[0]
+    ret = @kn_ccall(get_cb_rsd_jacobian_nnz,
+                    Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
+                    m.env.ptr_env.x, cb, num)
+    _checkraise(ret)
+    return num[1]
+end
+
+
+##################################################
+# EvalRequest
+
+# low level EvalRequest structure
+mutable struct KN_eval_request
     evalRequestCode::Cint
     threadID::Cint
     x::Ptr{Cdouble}
@@ -14,7 +70,36 @@ mutable struct KN_EvalRequest
     vec::Ptr{Cdouble}
 end
 
-mutable struct KN_EvalResult
+# high level EvalRequest structure
+mutable struct EvalRequest
+    evalRequestCode::Cint
+    threadID::Cint
+    x::Array{Float64}
+    lambda::Array{Float64}
+    sigma::Array{Float64}
+    vec::Array{Float64}
+end
+
+# Import low level request to Julia object
+function EvalRequest(m::Model, evalRequest_::KN_eval_request)
+    nx = KN_get_number_vars(m)
+    nc = KN_get_number_cons(m)
+
+    # we use only views to C arrays to avoid unnecessary copy
+    return EvalRequest(evalRequest_.evalRequestCode,
+                      evalRequest_.threadID,
+                      unsafe_wrap(Array, evalRequest_.x, nx),
+                      unsafe_wrap(Array, evalRequest_.lambda, nx + nc),
+                      zeros(Float64, 0), # TODO: not implemented
+                      zeros(Float64, 0)) # TODO: not implemented
+end
+
+
+##################################################
+# EvalResult
+
+# low level EvalResult structure
+mutable struct KN_eval_result
     obj::Ptr{Cdouble}
     c::Ptr{Cdouble}
     objGrad::Ptr{Cdouble}
@@ -25,17 +110,42 @@ mutable struct KN_EvalResult
     rsdJac::Ptr{Cdouble}
 end
 
+# high level EvalRequest structure
+mutable struct EvalResult
+    obj::Array{Float64}
+    c::Array{Float64}
+    objGrad::Array{Float64}
+    jac::Array{Float64}
+    hess::Array{Float64}
+    hessVec::Array{Float64}
+    rsd::Array{Float64}
+    rsdJac::Array{Float64}
+end
 
+function EvalResult(m::Model, cb::Ptr{Cvoid}, evalResult_::KN_eval_result)
+    return EvalResult(
+         unsafe_wrap(Array, evalResult_.obj, 1),
+         unsafe_wrap(Array, evalResult_.c, KN_get_cb_number_cons(m, cb)),
+         unsafe_wrap(Array, evalResult_.objGrad, KN_get_cb_objgrad_nnz(m, cb)),
+         unsafe_wrap(Array, evalResult_.jac, KN_get_cb_jacobian_nnz(m, cb)),
+         unsafe_wrap(Array, evalResult_.hess, KN_get_cb_hessian_nnz(m, cb)),
+         unsafe_wrap(Array, evalResult_.hessVec, KN_get_number_vars(m)),
+         unsafe_wrap(Array, evalResult_.rsd, KN_get_cb_number_rsds(m, cb)),
+         unsafe_wrap(Array, evalResult_.rsdJac, KN_get_cb_rsd_jacobian_nnz(m, cb))
+        )
+end
+
+
+##################################################
+# Callbacks wrappers
 function KN_eval_callback_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
                                   evalRequest_::Ptr{Cvoid},
                                   evalResults_::Ptr{Cvoid},
                                   userdata_::Ptr{Cvoid})
-    println("Hello!!")
-    println(ptr_model)
 
     # load evalRequest object
-    ptr0 = Ptr{KN_EvalRequest}(evalRequest_)
-    evalRequest = unsafe_load(ptr0)::KN_EvalRequest
+    ptr0 = Ptr{KN_eval_request}(evalRequest_)
+    evalRequest = unsafe_load(ptr0)::KN_eval_request
 
     if evalRequest.evalRequestCode != KN_RC_EVALFC
         println("*** callbackEvalF incorrectly called with eval type ",
@@ -44,12 +154,16 @@ function KN_eval_callback_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     end
 
     # load evalResult object
-    ptr = Ptr{KN_EvalResult}(evalResults_)
-    evalResult = unsafe_load(ptr)::KN_EvalResult
+    ptr = Ptr{KN_eval_result}(evalResults_)
+    evalResult = unsafe_load(ptr)::KN_eval_result
 
-    kp = unsafe_pointer_to_objref(userdata_)::Model
+    # and eventually, load KNITRO's Julia Model
+    m = unsafe_pointer_to_objref(userdata_)::Model
 
+    request = EvalRequest(m, evalRequest)
+    result = EvalResult(m, ptr_cb, evalResult)
 
+    error("Foo")
     obj = kp.eval_f(ptr_model, ptr_cb, evalRequest, evalResults, kp.userdata)
 
 
@@ -57,8 +171,8 @@ function KN_eval_callback_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
 end
 
 # User callback should be of the form:
-# callback(kc, cb, evalrequest, evalresult, usrparams)
-#
+# callback(kc, cb, evalrequest, evalresult, usrparams)::Int
+
 function KN_add_eval_callback(m::Model, evalObj::Bool, funccallback::Function)
     # store function inside model:
     m.eval_f = funccallback
