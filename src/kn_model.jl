@@ -57,3 +57,9 @@ function KN_reset_params_to_defaults(m::Model)
     _checkraise(ret)
 end
 
+"Set tuner file."
+function KN_load_tuner_file(m::Model, filename::AbstractString)
+    ret = @kn_ccall(load_tuner_file, Cint, (Ptr{Nothing}, Ptr{Cchar}),
+                             m.env.ptr_env.x, filename)
+    _checkraise(ret)
+end

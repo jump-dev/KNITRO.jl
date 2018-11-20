@@ -194,6 +194,11 @@ function KN_set_param(m::Model, id::Integer, value::Integer)
                              m.env.ptr_env.x, id, value)
     _checkraise(ret)
 end
+function KN_set_param(m::Model, param::AbstractString, value::Integer)
+    ret = @kn_ccall(set_int_param_by_name, Cint, (Ptr{Nothing}, Ptr{Cchar}, Cint),
+                             m.env.ptr_env.x, param, value)
+    _checkraise(ret)
+end
 
 function KN_set_obj_scaling(m::Model, objScaleFactor::Cdouble)
     ret = @kn_ccall(set_obj_scaling, Cint, (Ptr{Nothing}, Cdouble),

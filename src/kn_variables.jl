@@ -65,6 +65,55 @@ end
 
 
 ##################################################
+## Variables types
+##################################################
+function KN_set_var_type(m::Model, indexVar::Integer, xType::Integer)
+    ret = @kn_ccall(set_var_type, Cint, (Ptr{Nothing}, Cint, Cint),
+                    m.env.ptr_env.x, indexVar, xType)
+    _checkraise(ret)
+end
+
+
+function KN_set_var_types(m::Model, valindex::Vector{Cint}, xTypes::Vector{Cdouble})
+    nvar = length(valindex)
+    @assert nvar == length(xTypes)
+    ret = @kn_ccall(set_var_types, Cint,
+                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, nvar, valindex, xTypes)
+    _checkraise(ret)
+end
+function KN_set_var_types(m::Model, xTypes::Vector{Cint})
+    ret = @kn_ccall(set_var_types_all, Cint, (Ptr{Nothing}, Ptr{Cint}),
+                    m.env.ptr_env.x, xTypes)
+    _checkraise(ret)
+end
+
+
+##################################################
+## Variables properties
+##################################################
+function KN_set_var_property(m::Model, indexVar::Integer, xProperty::Integer)
+    ret = @kn_ccall(set_var_property, Cint, (Ptr{Nothing}, Cint, Cint),
+                    m.env.ptr_env.x, indexVar, xProperty)
+    _checkraise(ret)
+end
+
+
+function KN_set_var_properties(m::Model, valindex::Vector{Cint}, xProperties::Vector{Cdouble})
+    nvar = length(valindex)
+    @assert nvar == length(xProperties)
+    ret = @kn_ccall(set_var_properties, Cint,
+                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, nvar, valindex, xProperties)
+    _checkraise(ret)
+end
+function KN_set_var_properties(m::Model, xProperties::Vector{Cint})
+    ret = @kn_ccall(set_var_properties_all, Cint, (Ptr{Nothing}, Ptr{Cint}),
+                    m.env.ptr_env.x, xProperties)
+    _checkraise(ret)
+end
+
+##################################################
 ## Initial values
 ##################################################
 function KN_set_var_primal_init_values(m::Model, xinitval::Vector{Cdouble})
