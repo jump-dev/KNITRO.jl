@@ -165,6 +165,7 @@ function eval_fc_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     return Cint(0)
 end
 
+# 2/ for gradient function
 function eval_ga_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
                          evalRequest_::Ptr{Cvoid},
                          evalResults_::Ptr{Cvoid},
@@ -189,6 +190,7 @@ function eval_ga_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     return Cint(0)
 end
 
+# 3/ for hessian function
 function eval_hess_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
                          evalRequest_::Ptr{Cvoid},
                          evalResults_::Ptr{Cvoid},
@@ -386,10 +388,10 @@ end
 
 
 ##################################################
-# MIP callback wrapper
+# User callbacks wrapper
 ##################################################
 # TODO: dry this function with a macro
-function user_callback_wrapper(ptr_model::Ptr{Cvoid},
+function newpt_wrapper(ptr_model::Ptr{Cvoid},
                                ptr_x::Ptr{Cdouble},
                                ptr_lambda::Ptr{Cdouble},
                                userdata_::Ptr{Cvoid})
@@ -412,7 +414,7 @@ function KN_set_newpt_callback(m::Model, callback::Function)
     m.user_callback = callback
 
     # wrap user callback wrapper as C function
-    c_func = @cfunction(user_callback_wrapper, Cint,
+    c_func = @cfunction(newpt_wrapper, Cint,
                         (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid}))
 
     ret = @kn_ccall(set_newpt_callback, Cint,
@@ -423,6 +425,37 @@ function KN_set_newpt_callback(m::Model, callback::Function)
     return nothing
 end
 
+function ms_process_wrapper(ptr_model::Ptr{Cvoid},
+                            ptr_x::Ptr{Cdouble},
+                            ptr_lambda::Ptr{Cdouble},
+                            userdata_::Ptr{Cvoid})
+
+    # Load KNITRO's Julia Model
+    m = unsafe_pointer_to_objref(userdata_)::Model
+    nx = KN_get_number_vars(m)
+    nc = KN_get_number_cons(m)
+
+    x = unsafe_wrap(Array, ptr_x, nx),
+    lambda = unsafe_wrap(Array, ptr_lambda, nx + nc),
+    m.ms_process(ptr_model, x, lambda, m.userdata)
+
+    return Cint(0)
+end
+
+
+function KN_set_ms_process_callback(m::Model, callback::Function)
+    # store callback function inside model:
+    m.ms_process = callback
+
+    # wrap user callback wrapper as C function
+    c_func = @cfunction(ms_process_wrapper, Cint,
+                        (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid}))
+
+    ret = @kn_ccall(set_ms_process_callback, Cint,
+                    (Ptr{Cvoid}, Ptr{Cvoid}, Any),
+                    m.env.ptr_env.x, c_func, m)
+    _checkraise(ret)
+end
 
 ##################################################
 # Residual callbacks

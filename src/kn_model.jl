@@ -18,6 +18,7 @@ mutable struct Model
     eval_h::Function
     eval_rsd::Function
     eval_rsdj::Function
+    ms_process::Function
     eval_mip_node::Function
     user_callback::Function
 
