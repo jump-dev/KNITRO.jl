@@ -287,7 +287,7 @@ end
 
 
 function KN_set_cb_grad(m::Model, cb::CallbackContext, gradcallback;
-                        nV::Cint=KN_DENSE, objGradIndexVars=C_NULL,
+                        nV::Integer=KN_DENSE, objGradIndexVars=C_NULL,
                         jacIndexCons=C_NULL, jacIndexVars=C_NULL)
     # check consistency of arguments
     if (nV == 0 || nV == KN_DENSE )
@@ -384,77 +384,6 @@ function KN_get_number_HV_evals(m::Model)
                     m.env.ptr_env.x, fc_eval)
     _checkraise(ret)
     return fc_eval[1]
-end
-
-
-##################################################
-# User callbacks wrapper
-##################################################
-# TODO: dry this function with a macro
-function newpt_wrapper(ptr_model::Ptr{Cvoid},
-                               ptr_x::Ptr{Cdouble},
-                               ptr_lambda::Ptr{Cdouble},
-                               userdata_::Ptr{Cvoid})
-
-    # Load KNITRO's Julia Model
-    m = unsafe_pointer_to_objref(userdata_)::Model
-    nx = KN_get_number_vars(m)
-    nc = KN_get_number_cons(m)
-
-    x = unsafe_wrap(Array, ptr_x, nx)
-    lambda = unsafe_wrap(Array, ptr_lambda, nx + nc)
-    m.user_callback(ptr_model, x, lambda, m)
-
-    return Cint(0)
-end
-
-
-function KN_set_newpt_callback(m::Model, callback::Function)
-    # store callback function inside model:
-    m.user_callback = callback
-
-    # wrap user callback wrapper as C function
-    c_func = @cfunction(newpt_wrapper, Cint,
-                        (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid}))
-
-    ret = @kn_ccall(set_newpt_callback, Cint,
-                    (Ptr{Cvoid}, Ptr{Cvoid}, Any),
-                    m.env.ptr_env.x, c_func, m)
-    _checkraise(ret)
-
-    return nothing
-end
-
-function ms_process_wrapper(ptr_model::Ptr{Cvoid},
-                            ptr_x::Ptr{Cdouble},
-                            ptr_lambda::Ptr{Cdouble},
-                            userdata_::Ptr{Cvoid})
-
-    # Load KNITRO's Julia Model
-    m = unsafe_pointer_to_objref(userdata_)::Model
-    nx = KN_get_number_vars(m)
-    nc = KN_get_number_cons(m)
-
-    x = unsafe_wrap(Array, ptr_x, nx)
-    lambda = unsafe_wrap(Array, ptr_lambda, nx + nc)
-    m.ms_process(ptr_model, x, lambda, m)
-
-    return Cint(0)
-end
-
-
-function KN_set_ms_process_callback(m::Model, callback::Function)
-    # store callback function inside model:
-    m.ms_process = callback
-
-    # wrap user callback wrapper as C function
-    c_func = @cfunction(ms_process_wrapper, Cint,
-                        (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid}))
-
-    ret = @kn_ccall(set_ms_process_callback, Cint,
-                    (Ptr{Cvoid}, Ptr{Cvoid}, Any),
-                    m.env.ptr_env.x, c_func, m)
-    _checkraise(ret)
 end
 
 ##################################################
@@ -556,4 +485,117 @@ function KN_set_cb_rsd_jac(m::Model, cb::CallbackContext, nnzJ::Integer, evalRJ:
     _checkraise(ret)
 
     return cb
+end
+
+
+##################################################
+# User callbacks wrapper
+##################################################
+# TODO: dry this function with a macro
+#--------------------
+# New estimate callback
+#--------------------
+function newpt_wrapper(ptr_model::Ptr{Cvoid},
+                               ptr_x::Ptr{Cdouble},
+                               ptr_lambda::Ptr{Cdouble},
+                               userdata_::Ptr{Cvoid})
+
+    # Load KNITRO's Julia Model
+    m = unsafe_pointer_to_objref(userdata_)::Model
+    nx = KN_get_number_vars(m)
+    nc = KN_get_number_cons(m)
+
+    x = unsafe_wrap(Array, ptr_x, nx)
+    lambda = unsafe_wrap(Array, ptr_lambda, nx + nc)
+    m.user_callback(ptr_model, x, lambda, m)
+
+    return Cint(0)
+end
+
+
+function KN_set_newpt_callback(m::Model, callback::Function)
+    # store callback function inside model:
+    m.user_callback = callback
+
+    # wrap user callback wrapper as C function
+    c_func = @cfunction(newpt_wrapper, Cint,
+                        (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid}))
+
+    ret = @kn_ccall(set_newpt_callback, Cint,
+                    (Ptr{Cvoid}, Ptr{Cvoid}, Any),
+                    m.env.ptr_env.x, c_func, m)
+    _checkraise(ret)
+
+    return nothing
+end
+
+#--------------------
+# Multistart callback
+#--------------------
+function ms_process_wrapper(ptr_model::Ptr{Cvoid},
+                            ptr_x::Ptr{Cdouble},
+                            ptr_lambda::Ptr{Cdouble},
+                            userdata_::Ptr{Cvoid})
+
+    # Load KNITRO's Julia Model
+    m = unsafe_pointer_to_objref(userdata_)::Model
+    nx = KN_get_number_vars(m)
+    nc = KN_get_number_cons(m)
+
+    x = unsafe_wrap(Array, ptr_x, nx)
+    lambda = unsafe_wrap(Array, ptr_lambda, nx + nc)
+    m.ms_process(ptr_model, x, lambda, m)
+
+    return Cint(0)
+end
+
+
+function KN_set_ms_process_callback(m::Model, callback::Function)
+    # store callback function inside model:
+    m.ms_process = callback
+
+    # wrap user callback wrapper as C function
+    c_func = @cfunction(ms_process_wrapper, Cint,
+                        (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid}))
+
+    ret = @kn_ccall(set_ms_process_callback, Cint,
+                    (Ptr{Cvoid}, Ptr{Cvoid}, Any),
+                    m.env.ptr_env.x, c_func, m)
+    _checkraise(ret)
+end
+
+
+#--------------------
+# MIP callback
+#--------------------
+function mip_node_callback_wrapper(ptr_model::Ptr{Cvoid},
+                                   ptr_x::Ptr{Cdouble},
+                                   ptr_lambda::Ptr{Cdouble},
+                                   userdata_::Ptr{Cvoid})
+
+    # Load KNITRO's Julia Model
+    m = unsafe_pointer_to_objref(userdata_)::Model
+    nx = KN_get_number_vars(m)
+    nc = KN_get_number_cons(m)
+
+    x = unsafe_wrap(Array, ptr_x, nx)
+    lambda = unsafe_wrap(Array, ptr_lambda, nx + nc)
+    m.mip_callback(ptr_model, x, lambda, m)
+
+    return Cint(0)
+end
+
+
+function KN_set_mip_node_callback(m::Model, callback::Function)
+    # store callback function inside model:
+    m.mip_callback = callback
+
+    # wrap user callback wrapper as C function
+    c_func = @cfunction(mip_node_callback_wrapper, Cint,
+                        (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid}))
+
+    ret = @kn_ccall(set_mip_node_callback, Cint,
+                    (Ptr{Cvoid}, Ptr{Cvoid}, Any),
+                    m.env.ptr_env.x, c_func, m)
+    _checkraise(ret)
 end

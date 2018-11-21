@@ -99,11 +99,11 @@ function KN_set_var_property(m::Model, indexVar::Integer, xProperty::Integer)
 end
 
 
-function KN_set_var_properties(m::Model, valindex::Vector{Cint}, xProperties::Vector{Cdouble})
+function KN_set_var_properties(m::Model, valindex::Vector{Cint}, xProperties::Vector{Cint})
     nvar = length(valindex)
     @assert nvar == length(xProperties)
     ret = @kn_ccall(set_var_properties, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cint}),
                     m.env.ptr_env.x, nvar, valindex, xProperties)
     _checkraise(ret)
 end
