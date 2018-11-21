@@ -110,18 +110,18 @@ end
 function callbackNewPoint(kc, x, lambda_, userParams)
 
     # Get the number of variables in the model
-    n = KNITRO.KN_get_number_vars(kc)
+    n = KNITRO.KN_get_number_vars(userParams)
 
     println(">> New point computed by Knitro:(", x, ")")
 
     # Query information about the current problem.
-    dFeasError = KNITRO.KN_get_abs_feas_error(kc)
-    println("Number FC evals= ", KNITRO.KN_get_number_FC_evals(kc))
+    dFeasError = KNITRO.KN_get_abs_feas_error(userParams)
+    println("Number FC evals= ", KNITRO.KN_get_number_FC_evals(userParams))
     println("Current feasError= " , dFeasError)
 
     # Demonstrate user-defined termination
     #(Uncomment to activate)
-    if KNITRO.KN_get_obj_value(kc) > 0.2 && dFeasError <= 1.0e-4
+    if KNITRO.KN_get_obj_value(userParams) > 0.2 && dFeasError <= 1.0e-4
         return KNITRO.KN_RC_USER_TERMINATION
     end
 
@@ -202,7 +202,7 @@ KNITRO.KN_set_obj_goal(kc, KNITRO.KN_OBJGOAL_MAXIMIZE)
 # Demonstrate setting a "newpt" callback.  the callback function
 # "callbackNewPoint" passed here is invoked after Knitro computes
 # a new estimate of the solution.
-#= KNITRO.KN_set_newpt_callback(kc, callbackNewPoint) =#
+KNITRO.KN_set_newpt_callback(kc, callbackNewPoint)
 
 # Set option to println output after every iteration.
 KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, KNITRO.KN_OUTLEV_ITER)

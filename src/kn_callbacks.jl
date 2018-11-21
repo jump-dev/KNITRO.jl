@@ -401,9 +401,9 @@ function newpt_wrapper(ptr_model::Ptr{Cvoid},
     nx = KN_get_number_vars(m)
     nc = KN_get_number_cons(m)
 
-    x = unsafe_wrap(Array, ptr_x, nx),
-    lambda = unsafe_wrap(Array, ptr_lambda, nx + nc),
-    m.user_callback(ptr_model, x, lambda, m.userdata)
+    x = unsafe_wrap(Array, ptr_x, nx)
+    lambda = unsafe_wrap(Array, ptr_lambda, nx + nc)
+    m.user_callback(ptr_model, x, lambda, m)
 
     return Cint(0)
 end
@@ -435,9 +435,9 @@ function ms_process_wrapper(ptr_model::Ptr{Cvoid},
     nx = KN_get_number_vars(m)
     nc = KN_get_number_cons(m)
 
-    x = unsafe_wrap(Array, ptr_x, nx),
-    lambda = unsafe_wrap(Array, ptr_lambda, nx + nc),
-    m.ms_process(ptr_model, x, lambda, m.userdata)
+    x = unsafe_wrap(Array, ptr_x, nx)
+    lambda = unsafe_wrap(Array, ptr_lambda, nx + nc)
+    m.ms_process(ptr_model, x, lambda, m)
 
     return Cint(0)
 end

@@ -92,9 +92,9 @@ end
 function  callbackMSProcess(kcSub, x, lambda_, userParams)
     # Print solution of the just completed multi-start solve.
 
-    n = KNITRO.KN_get_number_vars(kcSub)
+    n = KNITRO.KN_get_number_vars(userParams)
     println("callbackMSProcess: ")
-    println("    Last solution: obj= ", KNITRO.KN_get_obj_value(kcSub))
+    println("    Last solution: obj= ", KNITRO.KN_get_obj_value(userParams))
     for i in 1:n
         println("                   x[$i]= ", x[i])
     end
