@@ -150,12 +150,6 @@ function eval_fc_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     ptr0 = Ptr{KN_eval_request}(evalRequest_)
     evalRequest = unsafe_load(ptr0)::KN_eval_request
 
-    if evalRequest.evalRequestCode != KN_RC_EVALFC
-        println("*** callbackEvalF incorrectly called with eval type ",
-                evalRequest.evalRequestCode)
-        return Cint(-1)
-    end
-
     # load evalResult object
     ptr = Ptr{KN_eval_result}(evalResults_)
     evalResult = unsafe_load(ptr)::KN_eval_result
@@ -179,12 +173,6 @@ function eval_ga_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     # load evalRequest object
     ptr0 = Ptr{KN_eval_request}(evalRequest_)
     evalRequest = unsafe_load(ptr0)::KN_eval_request
-
-    if evalRequest.evalRequestCode != KN_RC_EVALGA
-        println("*** callbackEvalG incorrectly called with eval type ",
-                evalRequest.evalRequestCode)
-        return -1
-    end
 
     # load evalResult object
     ptr = Ptr{KN_eval_result}(evalResults_)
@@ -296,7 +284,7 @@ function KN_add_eval_callback(m::Model, evalObj::Bool, indexCons::Vector{Cint},
 end
 
 
-function KN_set_cb_grad(m::Model, cb::CallbackContext, gradcallback::Function;
+function KN_set_cb_grad(m::Model, cb::CallbackContext, gradcallback;
                         nV::Cint=KN_DENSE, objGradIndexVars=C_NULL,
                         jacIndexCons=C_NULL, jacIndexVars=C_NULL)
     # check consistency of arguments
@@ -312,12 +300,16 @@ function KN_set_cb_grad(m::Model, cb::CallbackContext, gradcallback::Function;
         nnzJ = KNLONG(length(jacIndexCons))
     end
 
-    # store grad function inside model:
-    m.eval_g = gradcallback
+    if gradcallback != nothing
+        # store grad function inside model:
+        m.eval_g = gradcallback
 
-    # wrap gradient wrapper as C function
-    c_grad_g = @cfunction(eval_ga_wrapper, Cint,
-                        (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}))
+        # wrap gradient wrapper as C function
+        c_grad_g = @cfunction(eval_ga_wrapper, Cint,
+                            (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}))
+    else
+        c_grad_g = C_NULL
+    end
 
     ret = @kn_ccall(set_cb_grad, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Cint, Ptr{Cint},
@@ -396,6 +388,7 @@ end
 ##################################################
 # MIP callback wrapper
 ##################################################
+# TODO: dry this function with a macro
 function user_callback_wrapper(ptr_model::Ptr{Cvoid},
                                ptr_x::Ptr{Cdouble},
                                ptr_lambda::Ptr{Cdouble},
