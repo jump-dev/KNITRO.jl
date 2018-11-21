@@ -296,8 +296,22 @@ function KN_add_eval_callback(m::Model, evalObj::Bool, indexCons::Vector{Cint},
 end
 
 
-function KN_set_cb_grad(m::Model, cb::CallbackContext, nV::Integer,
-                        gradcallback::Function)
+function KN_set_cb_grad(m::Model, cb::CallbackContext, gradcallback::Function;
+                        nV::Cint=KN_DENSE, objGradIndexVars=C_NULL,
+                        jacIndexCons=C_NULL, jacIndexVars=C_NULL)
+    # check consistency of arguments
+    if (nV == 0 || nV == KN_DENSE )
+        (objGradIndexVars != C_NULL) && error("objGradIndexVars must be set to C_NULL when nV = $nV")
+    else
+        @assert (objGradIndexVars != C_NULL) && (length(objGradIndexVars) == nV)
+    end
+
+    nnzJ = KNLONG(0)
+    if jacIndexCons != C_NULL && jacIndexVars != C_NULL
+        @assert length(jacIndexCons) == length(jacIndexVars)
+        nnzJ = KNLONG(length(jacIndexCons))
+    end
+
     # store grad function inside model:
     m.eval_g = gradcallback
 
@@ -307,9 +321,9 @@ function KN_set_cb_grad(m::Model, cb::CallbackContext, nV::Integer,
 
     ret = @kn_ccall(set_cb_grad, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Cint, Ptr{Cint},
-                     Clong, Ptr{Cint}, Ptr{Cint}, Ptr{Cvoid}),
+                     KNLONG, Ptr{Cint}, Ptr{Cint}, Ptr{Cvoid}),
                     m.env.ptr_env.x, cb.context, nV,
-                    C_NULL, 0, C_NULL, C_NULL,
+                    objGradIndexVars, nnzJ, jacIndexCons, jacIndexVars,
                     c_grad_g)
     _checkraise(ret)
 
@@ -317,10 +331,16 @@ function KN_set_cb_grad(m::Model, cb::CallbackContext, nV::Integer,
 end
 
 
-function KN_set_cb_hess(m::Model, cb::CallbackContext, nnzH::Integer,
-                        hesscallback::Function)
+function KN_set_cb_hess(m::Model, cb::CallbackContext, nnzH::Integer, hesscallback::Function;
+                        hessIndexVars1=C_NULL, hessIndexVars2=C_NULL)
+
+    if nnzH == KN_DENSE_ROWMAJOR || nnzH == KN_DENSE_COLMAJOR
+        @assert hessIndexVars1 == hessIndexVars2 == C_NULL
+    else
+        @assert hessIndexVars1 != C_NULL && hessIndexVars2 != C_NULL
+        @assert length(hessIndexVars1) == length(hessIndexVars2) == nnzH
+    end
     # store hessian function inside model:
-    println(nnzH)
     m.eval_h = hesscallback
 
     # wrap gradient wrapper as C function
@@ -330,7 +350,7 @@ function KN_set_cb_hess(m::Model, cb::CallbackContext, nnzH::Integer,
     ret = @kn_ccall(set_cb_hess, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, KNLONG, Ptr{Cint}, Ptr{Cint}, Ptr{Cvoid}),
                     m.env.ptr_env.x, cb.context, nnzH,
-                    C_NULL, C_NULL, c_hess)
+                    hessIndexVars1, hessIndexVars2, c_hess)
     _checkraise(ret)
 
     return nothing

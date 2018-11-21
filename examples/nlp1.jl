@@ -145,7 +145,7 @@ cb = KNITRO.KN_add_eval_callback(kc, callbackEvalF)
 #(i.e. Jacobian matrix) for efficiency(this is true even when using
 # finite-difference gradients).
 #= KNITRO.KN_set_cb_grad(kc, cb, objGradIndexVars = KNITRO.KN_DENSE, gradCallback = callbackEvalG) =#
-KNITRO.KN_set_cb_grad(kc, cb, KNITRO.KN_DENSE, callbackEvalG!)
+KNITRO.KN_set_cb_grad(kc, cb, callbackEvalG!)
 
 # Add a callback function "callbackEvalH" to evaluate the Hessian
 #(i.e. second derivative matrix) of the objective.  If not specified,
