@@ -16,7 +16,8 @@ mutable struct Model
     eval_grad_f::Function
     eval_jac_g::Function
     eval_h::Function
-    eval_hv::Function
+    eval_rsd::Function
+    eval_rsdj::Function
     eval_mip_node::Function
     user_callback::Function
 

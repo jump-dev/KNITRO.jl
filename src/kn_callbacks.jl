@@ -422,3 +422,105 @@ function KN_set_newpt_callback(m::Model, callback::Function)
 
     return nothing
 end
+
+
+##################################################
+# Residual callbacks
+##################################################
+function eval_rsd_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
+                          evalRequest_::Ptr{Cvoid},
+                          evalResults_::Ptr{Cvoid},
+                          userdata_::Ptr{Cvoid})
+
+    # load evalRequest object
+    ptr0 = Ptr{KN_eval_request}(evalRequest_)
+    evalRequest = unsafe_load(ptr0)::KN_eval_request
+
+    # load evalResult object
+    ptr = Ptr{KN_eval_result}(evalResults_)
+    evalResult = unsafe_load(ptr)::KN_eval_result
+
+    # and eventually, load KNITRO's Julia Model
+    m = unsafe_pointer_to_objref(userdata_)::Model
+
+    request = EvalRequest(m, evalRequest)
+    result = EvalResult(m, ptr_cb, evalResult)
+
+    m.eval_rsd(ptr_model, ptr_cb, request, result, m.userdata)
+
+    return Cint(0)
+end
+
+# TODO: add _one and _* support
+function KN_add_lsq_eval_callback(m::Model, rsdCallBack::Function)
+    # store function inside model:
+    m.eval_rsd = rsdCallBack
+
+    # wrap eval_callback_wrapper as C function
+    c_f = @cfunction(eval_rsd_wrapper, Cint,
+                   (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}))
+
+    # define callback context
+    rfptr = Ref{Ptr{Cvoid}}()
+
+    # add callback to context
+    ret = @kn_ccall(add_lsq_eval_callback_all, Cint,
+                    (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}),
+                    m.env.ptr_env.x, c_f, rfptr)
+    _checkraise(ret)
+    cb = CallbackContext(rfptr.x)
+    KN_set_cb_user_params(m, cb)
+
+    return cb
+end
+
+
+
+function eval_rj_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
+                          evalRequest_::Ptr{Cvoid},
+                          evalResults_::Ptr{Cvoid},
+                          userdata_::Ptr{Cvoid})
+
+    # load evalRequest object
+    ptr0 = Ptr{KN_eval_request}(evalRequest_)
+    evalRequest = unsafe_load(ptr0)::KN_eval_request
+
+    # load evalResult object
+    ptr = Ptr{KN_eval_result}(evalResults_)
+    evalResult = unsafe_load(ptr)::KN_eval_result
+
+    # and eventually, load KNITRO's Julia Model
+    m = unsafe_pointer_to_objref(userdata_)::Model
+
+    request = EvalRequest(m, evalRequest)
+    result = EvalResult(m, ptr_cb, evalResult)
+
+    m.eval_rsdj(ptr_model, ptr_cb, request, result, m.userdata)
+
+    return Cint(0)
+end
+
+function KN_set_cb_rsd_jac(m::Model, cb::CallbackContext, nnzJ::Integer, evalRJ::Function;
+                        jacIndexRsds=C_NULL, jacIndexVars=C_NULL)
+    # check consistency of arguments
+    if nnzJ == KN_DENSE_ROWMAJOR || nnzJ == KN_DENSE_COLMAJOR || nnzJ == 0
+        @assert jacIndexRsds == jacIndexVars == C_NULL
+    else
+        @assert hessIndexVars1 != C_NULL && hessIndexVars2 != C_NULL
+        @assert length(jacIndexCons) == length(jacIndexVars) == nnzJ
+    end
+
+    # store function inside model:
+    m.eval_rsdj = evalRJ
+    # wrap as C function
+    c_eval_rj = @cfunction(eval_rj_wrapper, Cint,
+                           (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}))
+    ret = @kn_ccall(set_cb_rsd_jac, Cint,
+                    (Ptr{Cvoid}, Ptr{Cvoid}, KNLONG, Ptr{Cint}, Ptr{Cint}, Ptr{Cvoid}),
+                    m.env.ptr_env.x, cb.context, nnzJ,
+                    jacIndexRsds, jacIndexVars, c_eval_rj)
+
+    _checkraise(ret)
+
+    return cb
+end

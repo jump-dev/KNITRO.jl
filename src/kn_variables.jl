@@ -113,6 +113,32 @@ function KN_set_var_properties(m::Model, xProperties::Vector{Cint})
     _checkraise(ret)
 end
 
+
+##################################################
+## Honor bounds
+##################################################
+function KN_set_var_honorbnds(m::Model, nindex::Integer, xHonorBound::Cint)
+    ret = @kn_ccall(set_var_honorbnd, Cint,
+                    (Ptr{Nothing}, Cint, Cint),
+                    m.env.ptr_env.x, nindex, xHonorBound)
+    _checkraise(ret)
+end
+
+
+function KN_set_var_honorbnds(m::Model, valindex::Vector{Cint}, xHonorBound::Vector{Cint})
+    nvar = length(valindex)
+    ret = @kn_ccall(set_var_honorbnds, Cint,
+                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cint}),
+                    m.env.ptr_env.x, nvar, valindex, xHonorBound)
+    _checkraise(ret)
+end
+function KN_set_var_honorbnds(m::Model, xHonorBound::Vector{Cint})
+    ret = @kn_ccall(set_var_honorbnds_all, Cint, (Ptr{Nothing}, Ptr{Cint}),
+                    m.env.ptr_env.x, xHonorBound)
+    _checkraise(ret)
+end
+
+
 ##################################################
 ## Initial values
 ##################################################
