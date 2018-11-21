@@ -1,4 +1,6 @@
+
 using MathProgBase, KNITRO, JuMP, Compat.Test
+
 
 function testmodel(m)
     @variable(m, x[1:3]>=0)
@@ -28,12 +30,16 @@ testmodel(m)
 ktrmod = internalmodel(m)
 MathProgBase.freemodel!(ktrmod)
 
+
 m = Model(solver=KnitroSolver(options_file=joinpath(dirname(@__FILE__), "tuner-fixed.opt")))
+
 testmodel(m)
 ktrmod = internalmodel(m)
 MathProgBase.freemodel!(ktrmod)
 
+
 m = Model(solver=KnitroSolver(tuner_file=joinpath(dirname(@__FILE__), "tuner-explore.opt")))
+
 testmodel(m)
 ktrmod = internalmodel(m)
 MathProgBase.freemodel!(ktrmod)
