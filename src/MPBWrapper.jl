@@ -12,7 +12,7 @@ KnitroSolver(;kwargs...) = KnitroSolver(kwargs)
 
 mutable struct KnitroMathProgModel <: MPB.AbstractNonlinearModel
     options
-    inner::KnitroProblem
+    inner::Model
 
     numVar::Int
     numConstr::Int
@@ -50,6 +50,48 @@ end
 
 MPB.NonlinearModel(s::KnitroSolver) = KnitroMathProgModel(;s.options...)
 MPB.LinearQuadraticModel(s::KnitroSolver) = NonlinearToLPQPBridge(NonlinearModel(s))
+
+function load!(m::KnitroMathProgModel, eval_f, eval_g, eval_h)
+    kc = m.inner
+
+    # define variables
+    KN_add_vars!(kc, m.numVar)
+    KN_set_var_lobnds(kc, m.varLB)
+    KN_set_var_upbnds(kc, m.varUB)
+
+    if m.initial_x != C_NULL
+        KN_set_var_primal_init_values(kc, m.initial_x)
+    end
+
+    # define constraints
+    KN_add_cons!(kc, m.numConstr)
+    KN_set_con_lobnds(kc, m.constrLB)
+    KN_set_con_upbnds(kc, m.constrUB)
+
+
+    # add func callbacks globally
+    cb = KN_add_eval_callback(kc, eval_f)
+
+    if m.nnzJ != 0
+        KN_set_cb_grad(kc, cb, eval_g, jacIndexCons=m.jac_con,
+                    jacIndexVars=m.jac_var)
+    else
+        KN_set_cb_grad(kc, cb, eval_g)
+    end
+
+    if m.nnzH != 0
+        KN_set_cb_hess(kc, cb, length(m.hess_row), eval_h,
+                       hessIndexVars1=m.hess_row,
+                       hessIndexVars2=m.hess_col)
+    else
+        KN_set_cb_hess(kc, cb, KN_DENSE_ROWMAJOR, eval_h)
+    end
+
+
+    # set sense
+    KN_set_obj_goal(kc, m.sense)
+end
+
 
 ###############################################################################
 # Begin interface implementation
@@ -118,106 +160,94 @@ function MPB.loadproblem!(m::KnitroMathProgModel,
 
     for i in 1:m.numVar
         if m.varLB[i] == -Inf
-            m.varLB[i] = -KTR_INFBOUND
+            m.varLB[i] = -KN_INFINITY
         end
         if m.varUB[i] == Inf
-            m.varUB[i] = KTR_INFBOUND
+            m.varUB[i] = KN_INFINITY
         end
     end
 
     for i in 1:m.numConstr
         if m.constrLB[i] == -Inf
-            m.constrLB[i] = -KTR_INFBOUND
+            m.constrLB[i] = -KN_INFINITY
         end
         if m.constrUB[i] == Inf
-            m.constrUB[i] = KTR_INFBOUND
+            m.constrUB[i] = KN_INFINITY
         end
     end
     m.initial_x = C_NULL
 
     @assert sense == :Min || sense == :Max
-    m.sense = (sense == :Min) ? KTR_OBJGOAL_MINIMIZE : KTR_OBJGOAL_MAXIMIZE
+    m.sense = (sense == :Min) ? KN_OBJGOAL_MINIMIZE : KN_OBJGOAL_MAXIMIZE
     # allow for the possibility of specializing to LINEAR or QUADRATIC?
     if isobjlinear(d)
-        m.objType = KTR_OBJTYPE_LINEAR
-        m.objFnType = KTR_FNTYPE_CONVEX
+        m.objType = KN_OBJTYPE_LINEAR
     elseif isobjquadratic(d)
-        m.objType = KTR_OBJTYPE_QUADRATIC
-        m.objFnType = KTR_FNTYPE_UNCERTAIN
+        m.objType = KN_OBJTYPE_QUADRATIC
     else
-        m.objType = KTR_OBJTYPE_GENERAL
-        m.objFnType = KTR_FNTYPE_UNCERTAIN
+        m.objType = KN_OBJTYPE_GENERAL
     end
 
-    m.constrType = fill(KTR_CONTYPE_GENERAL, m.numConstr)
-    m.constrFnType = fill(KTR_FNTYPE_UNCERTAIN, m.numConstr)
+    m.constrType = fill(KN_CONTYPE_GENERAL, m.numConstr)
     for i=1:m.numConstr
         if isconstrlinear(d, i)
-            m.constrType[i] = KTR_CONTYPE_LINEAR
-            m.constrFnType[i] = KTR_FNTYPE_CONVEX
+            m.constrType[i] = KN_CONTYPE_LINEAR
         end
     end
 
-    m.varType = fill(KTR_VARTYPE_CONTINUOUS, m.numVar)
+    m.varType = fill(KN_VARTYPE_CONTINUOUS, m.numVar)
 
     # Objective callback
-    eval_f_cb(x) = eval_f(d,x)
+    function eval_f_cb(kc, cb, evalRequest, evalResult, userParams)
+        evalResult.obj[1]= MPB.eval_f(d, evalRequest.x)
+        MPB.eval_g(d, evalResult.c, evalRequest.x)
+        return 0
+    end
 
     # Objective gradient callback
-    eval_grad_f_cb(x, grad_f) = eval_grad_f(d, grad_f, x)
-
-    # Constraint value callback
-    eval_g_cb(x, g) = eval_g(d, g, x)
-
-    # Jacobian callback
-    function eval_jac_g_cb(x, jac)
-        eval_jac_g(d, jac_tmp, x)
-        for i in 1:n_jac_indices
-            jac[i] = sum(jac_tmp[jac_indices[i]])
-        end
+    function eval_g_cb(kc, cb, evalRequest, evalResult, userParams)
+        MPB.eval_grad_f(d, evalResult.objGrad, evalRequest.x)
+        # to update
+        MPB.eval_jac_g(d, evalResult.jac, evalRequest.x)
+        return 0
     end
 
     # Hessian callback
-    function eval_h_cb(x, lambda, sigma, hess)
-        eval_hesslag(d, hess_tmp, x, sigma, lambda)
-        for i in 1:n_hess_indices
-            hess[i] = sum(hess_tmp[hess_indices[i]])
-        end
+    function eval_h_cb(kc, cb, evalRequest, evalResult, userParams)
+        MPB.eval_hesslag(d, evalResult.hess, evalRequest.x,
+                         evalRequest.sigma, evalRequest.lambda)
+        return 0
     end
 
-    # Hessian-vector callback
-    eval_hv_cb(x, lambda, sigma, hv) = begin
-        v = copy(hv)
-        eval_hesslag_prod(d, hv, x, v, sigma, lambda)
-    end
+    m.inner = KN_new()
 
-    m.inner = createProblem()
     defined_hessopt = false; hessopt_value = 0
     for (param,value) in m.options
         param = string(param)
-        if param == "KTR_PARAM_HESSOPT"
+        if param == "KN_PARAM_HESSOPT"
             defined_hessopt = true; hessopt_value = value
         end
         if param == "options_file"
-            loadOptionsFile(m.inner, value)
+            KN_load_param_file(m.inner, value)
         elseif param == "tuner_file"
-            loadTunerFile(m.inner, value)
+            KN_load_tuner_file(m.inner, value)
         else
-            if haskey(paramName2Indx, param) # KTR_PARAM_*
-                setOption(m.inner, paramName2Indx[param], value)
+            if haskey(KN_paramName2Indx, param) # KTR_PARAM_*
+                KN_set_param(m.inner, KN_paramName2Indx[param], value)
             else # string name
-                setOption(m.inner, param, value)
+                println(param)
+                KN_set_param(m.inner, param, value)
             end
         end
     end
 
     # check and define default hessian option
     if (!has_hessian && !defined_hessopt) || (!has_hessian && !in(hessopt_value,2:6))
-        setOption(m.inner,paramName2Indx["KTR_PARAM_HESSOPT"],6)
+        KN_set_param(m.inner,KN_paramName2Indx["KN_PARAM_HESSOPT"],6)
     end
 
-    setCallbacks(m.inner, eval_f_cb, eval_g_cb, eval_grad_f_cb, eval_jac_g_cb,
-                 eval_h_cb, eval_hv_cb)
+    # load inner problem in KNITRO
+    load!(m, eval_f_cb, eval_g_cb, eval_h_cb)
 end
 
 MPB.getsense(m::KnitroMathProgModel) = m.sense
@@ -225,52 +255,61 @@ MPB.numvar(m::KnitroMathProgModel) = m.numVar
 MPB.numconstr(m::KnitroMathProgModel) = m.numConstr
 
 function MPB.optimize!(m::KnitroMathProgModel)
-    if applicationReturnStatus(m.inner) == :Uninitialized
-        if all(x->x==KTR_VARTYPE_CONTINUOUS, m.varType)
-            initializeProblem(m.inner, m.sense, m.objType, m.varLB, m.varUB,
-                              m.constrType, m.constrLB, m.constrUB, m.jac_var,
-                              m.jac_con, m.hess_row, m.hess_col;
-                              initial_x = m.initial_x)
-        else
-            initializeProblem(m.inner, m.sense, m.objType, m.objFnType,
-                              m.varType, m.varLB, m.varUB, m.constrType,
-                              m.constrFnType, m.constrLB, m.constrUB,
-                              m.jac_var, m.jac_con, m.hess_row, m.hess_col;
-                              initial_x = m.initial_x)
-        end
-    elseif !m.hasbeenrestarted
-        restartProblem(m.inner)
-    end
+    # update variables' types
+    KN_set_var_properties(m.inner, m.varType)
     t = time()
-    solveProblem(m.inner)
+    KN_solve(m.inner)
     m.solve_time = time() - t
     m.hasbeenrestarted = false
+
+    # udpate inner model with new solution
+    nStatus, objSol, x, lambda_ =  KNITRO.KN_get_solution(m.inner)
+    m.inner.status = nStatus
+    m.inner.obj_val = objSol
+    m.inner.lambda = lambda_
+    m.inner.x = x
 end
 
 function MPB.status(m::KnitroMathProgModel)
-    applicationReturnStatus(m.inner)
+    kp = m.inner
+    if kp.status == -1
+        # chosen not to clash with any of the KTR_RC_* codes
+        return :Uninitialized
+    elseif kp.status == 101
+        # chosen not to clash with any of the KTR_RC_* codes
+        return :Initialized
+    elseif kp.status == 0
+        return :Optimal
+    elseif -109 <= kp.status <= -100
+        return :FeasibleApproximate
+    elseif -209 <= kp.status <= -200
+        return :Infeasible
+    elseif kp.status == -300
+        return :Unbounded
+    elseif -419 <= kp.status <= -400
+        return :UserLimit
+    elseif -599 <= kp.status <= -500
+        return :KnitroError
+    else
+        return :Undefined
+    end
 end
 
-MPB.getobjval(m::KnitroMathProgModel) = m.inner.obj_val[1]
-MPB.getobjbound(m::KnitroMathProgModel) = get_mip_relaxation_bnd(m.inner)
+MPB.getobjval(m::KnitroMathProgModel) = KN_get_obj_value(m.inner)
+MPB.getobjbound(m::KnitroMathProgModel) = KN_get_mip_relaxation_bnd(m.inner)
 MPB.getsolution(m::KnitroMathProgModel) = m.inner.x
-MPB.getconstrsolution(m::KnitroMathProgModel) = m.inner.g
-MPB.getreducedcosts(m::KnitroMathProgModel) =
-    -1 .* m.inner.lambda[m.numConstr + 1:end]
+MPB.getconstrsolution(m::KnitroMathProgModel) = KN_get_con_values(m.inner)
+MPB.getreducedcosts(m::KnitroMathProgModel) = -1 .* m.inner.lambda[m.numConstr + 1:end]
 MPB.getconstrduals(m::KnitroMathProgModel) = -1 .* m.inner.lambda[1:m.numConstr]
 MPB.getrawsolver(m::KnitroMathProgModel) = m.inner
 MPB.getsolvetime(m::KnitroMathProgModel) = m.solve_time
 
 function warmstart(m::KnitroMathProgModel, x)
     m.initial_x = [Float64(i) for i in x]
-    if applicationReturnStatus(m.inner) != :Uninitialized
-        restartProblem(m.inner, m.initial_x, m.inner.lambda)
-        m.hasbeenrestarted = true
-    end
 end
 
 MPB.setwarmstart!(m::KnitroMathProgModel, x) = warmstart(m,x)
 MPB.setvartype!(m::KnitroMathProgModel, typ::Vector{Symbol}) =
-    (m.varType = map(t->rev_var_type_map[t], typ))
+    (m.varType = map(t->KN_rev_var_type_map[t], typ))
 
-MPB.freemodel!(m::KnitroMathProgModel) = freeProblem(m.inner)
+MPB.freemodel!(m::KnitroMathProgModel) = KN_free(m.inner)

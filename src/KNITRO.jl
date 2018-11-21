@@ -40,5 +40,5 @@ module KNITRO
 
 
     # wrapper with MathProgBase
-    #= include("MPBWrapper.jl") =#
+    include("MPBWrapper.jl")
 end

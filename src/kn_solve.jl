@@ -2,6 +2,7 @@
 
 function KN_solve(m::Model)
     ret = @kn_ccall(solve, Cint, (Ptr{Nothing},), m.env.ptr_env.x)
+    m.status = ret
     # For KN_solve, we do not return an error if ret is different of 0
     return ret
 end

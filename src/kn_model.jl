@@ -11,6 +11,10 @@ mutable struct Model
     mip::Bool # whether it is a Mixed Integer Problem
     userdata::Dict
 
+    x::Vector{Float64}  # Starting and final solution
+    lambda::Vector{Float64}
+    obj_val::Float64  # (length 1) Final objective
+
     eval_f::Function
     eval_g::Function
     eval_grad_f::Function
@@ -24,7 +28,7 @@ mutable struct Model
 
 
     function Model(env::Env)
-        model = new(env, Int32(0), Int32(100), false, Dict())
+        model = new(env, Int32(0), Int32(-1), false, Dict())
 
         res = @kn_ccall(new, Cint, (Ptr{Nothing},), env.ptr_env)
         if res != 0
