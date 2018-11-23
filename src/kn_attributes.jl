@@ -113,6 +113,14 @@ function KN_get_con_values(m::Model)
     _checkraise(ret)
     return consvals
 end
+function KN_get_con_values(m::Model, cIndex::Integer)
+    nc = 1
+    consvals = zeros(Cdouble, nc)
+    ret = @kn_ccall(get_con_value, Cint, (Ptr{Nothing}, Cint, Ptr{Cdouble}),
+                    m.env.ptr_env.x, cIndex, consvals)
+    _checkraise(ret)
+    return consvals[1]
+end
 
 function KN_get_con_types(m::Model)
     nc = KN_get_number_cons(m)

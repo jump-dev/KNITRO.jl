@@ -23,7 +23,7 @@ end
 ##################################################
 
 # lower bounds
-function KN_set_var_lobnd(m::Model, nindex::Integer, val::Cdouble)
+function KN_set_var_lobnds(m::Model, nindex::Integer, val::Cdouble)
     ret = @kn_ccall(set_var_lobnd, Cint, (Ptr{Nothing}, Cint, Cdouble), m.env.ptr_env.x, nindex, val)
     _checkraise(ret)
 end
@@ -44,7 +44,7 @@ end
 
 
 # upper bounds
-function KN_set_var_upbnd(m::Model, nindex::Integer, val::Cdouble)
+function KN_set_var_upbnds(m::Model, nindex::Integer, val::Cdouble)
     ret = @kn_ccall(set_var_upbnd, Cint, (Ptr{Nothing}, Cint, Cdouble), m.env.ptr_env.x, nindex, val)
     _checkraise(ret)
 end

@@ -9,19 +9,15 @@ mutable struct Model
     eval_status::Int32 # scalar input used only for reverse comms
     status::Int32  # Final status
     mip::Bool # whether it is a Mixed Integer Problem
+
+    eval_f::Dict
+    eval_g::Dict
+    eval_h::Dict
+    eval_rsd::Dict
+    eval_jac_rsd::Dict
+
     userdata::Dict
 
-    x::Vector{Float64}  # Starting and final solution
-    lambda::Vector{Float64}
-    obj_val::Float64  # (length 1) Final objective
-
-    eval_f::Function
-    eval_g::Function
-    eval_grad_f::Function
-    eval_jac_g::Function
-    eval_h::Function
-    eval_rsd::Function
-    eval_rsdj::Function
     ms_process::Function
     mip_callback::Function
     user_callback::Function
@@ -30,7 +26,8 @@ mutable struct Model
 
 
     function Model(env::Env)
-        model = new(env, Int32(0), Int32(-1), false, Dict())
+        model = new(env, Int32(0), Int32(-1), false, Dict(),
+                    Dict(), Dict(), Dict(), Dict(), Dict())
 
         res = @kn_ccall(new, Cint, (Ptr{Nothing},), env.ptr_env)
         if res != 0

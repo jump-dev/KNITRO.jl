@@ -8,13 +8,19 @@ CallbackContext() = CallbackContext(C_NULL)
 # Utils
 ##################################################
 function KN_set_cb_user_params(m::Model, cb::CallbackContext, userParams)
+    # we have to store the model in the C model to use callbacks
+    # function. So, we store the userParams inside the model
+    if m !== userParams
+        m.userdata[:data] = userParams
+    end
+
     ret = @kn_ccall(set_cb_user_params, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Any),
-                    m.env.ptr_env.x, cb.context, userParams)
+                    m.env.ptr_env.x, cb.context, m)
     _checkraise(ret)
 end
 
-function KN_set_cb_gradopt(m::Model, cb::CallbackContext, gradopt::Int)
+function KN_set_cb_gradopt(m::Model, cb::CallbackContext, gradopt::Integer)
     ret = @kn_ccall(set_cb_gradopt, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Cint),
                     m.env.ptr_env.x, cb.context, gradopt)
@@ -209,7 +215,7 @@ function eval_fc_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     request = EvalRequest(m, evalRequest)
     result = EvalResult(m, ptr_cb, evalResult)
 
-    m.eval_f(ptr_model, ptr_cb, request, result, m.userdata)
+    m.eval_f[ptr_cb](ptr_model, ptr_cb, request, result, m.userdata)
 
     return Cint(0)
 end
@@ -234,7 +240,7 @@ function eval_ga_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     request = EvalRequest(m, evalRequest)
     result = EvalResult(m, ptr_cb, evalResult)
 
-    m.eval_g(ptr_model, ptr_cb, request, result, m.userdata)
+    m.eval_g[ptr_cb](ptr_model, ptr_cb, request, result, m.userdata)
 
     return Cint(0)
 end
@@ -259,7 +265,7 @@ function eval_hess_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     request = EvalRequest(m, evalRequest)
     result = EvalResult(m, ptr_cb, evalResult)
 
-    m.eval_h(ptr_model, ptr_cb, request, result, m.userdata)
+    m.eval_h[ptr_cb](ptr_model, ptr_cb, request, result, m.userdata)
 
     return Cint(0)
 end
@@ -276,9 +282,6 @@ end
 # callback(kc, cb, evalrequest, evalresult, usrparams)::Int
 
 function KN_add_eval_callback(m::Model, funccallback::Function)
-    # store function inside model:
-    m.eval_f = funccallback
-
     # wrap eval_callback_wrapper as C function
     c_f = @cfunction(eval_fc_wrapper, Cint,
                    (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}))
@@ -292,6 +295,11 @@ function KN_add_eval_callback(m::Model, funccallback::Function)
                     m.env.ptr_env.x, c_f, rfptr)
     _checkraise(ret)
     cb = CallbackContext(rfptr.x)
+
+    # store function in callback environment:
+    m.eval_f[cb.context] = funccallback
+
+    # store model in user params to access callback in C
     KN_set_cb_user_params(m, cb, m)
 
     return cb
@@ -299,8 +307,6 @@ end
 function KN_add_eval_callback(m::Model, evalObj::Bool, indexCons::Vector{Cint},
                               funccallback::Function)
     nC = length(indexCons)
-    # store function inside model:
-    m.eval_f = funccallback
 
     # wrap eval_callback_wrapper as C function
     c_f = @cfunction(eval_fc_wrapper, Cint,
@@ -315,6 +321,10 @@ function KN_add_eval_callback(m::Model, evalObj::Bool, indexCons::Vector{Cint},
                     m.env.ptr_env.x, evalObj, nC, indexCons, c_f, rfptr)
     _checkraise(ret)
     cb = CallbackContext(rfptr.x)
+
+    # store function in callback environment:
+    m.eval_f[cb.context] = funccallback
+
     KN_set_cb_user_params(m, cb, m)
 
     return cb
@@ -339,7 +349,7 @@ function KN_set_cb_grad(m::Model, cb::CallbackContext, gradcallback;
 
     if gradcallback != nothing
         # store grad function inside model:
-        m.eval_g = gradcallback
+        m.eval_g[cb.context] = gradcallback
 
         # wrap gradient wrapper as C function
         c_grad_g = @cfunction(eval_ga_wrapper, Cint,
@@ -370,7 +380,7 @@ function KN_set_cb_hess(m::Model, cb::CallbackContext, nnzH::Integer, hesscallba
         @assert length(hessIndexVars1) == length(hessIndexVars2) == nnzH
     end
     # store hessian function inside model:
-    m.eval_h = hesscallback
+    m.eval_h[cb.context] = hesscallback
 
     # wrap gradient wrapper as C function
     c_hess = @cfunction(eval_hess_wrapper, Cint,
@@ -443,7 +453,7 @@ function eval_rsd_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     request = EvalRequest(m, evalRequest)
     result = EvalResult(m, ptr_cb, evalResult)
 
-    m.eval_rsd(ptr_model, ptr_cb, request, result, m.userdata)
+    m.eval_rsd[ptr_cb](ptr_model, ptr_cb, request, result, m.userdata)
 
     return Cint(0)
 end
@@ -451,7 +461,7 @@ end
 # TODO: add _one and _* support
 function KN_add_lsq_eval_callback(m::Model, rsdCallBack::Function)
     # store function inside model:
-    m.eval_rsd = rsdCallBack
+    m.eval_rsd[cb.context] = rsdCallBack
 
     # wrap eval_callback_wrapper as C function
     c_f = @cfunction(eval_rsd_wrapper, Cint,
@@ -492,7 +502,7 @@ function eval_rj_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     request = EvalRequest(m, evalRequest)
     result = EvalResult(m, ptr_cb, evalResult)
 
-    m.eval_rsdj(ptr_model, ptr_cb, request, result, m.userdata)
+    m.eval_jac_rsd[ptr_cb](ptr_model, ptr_cb, request, result, m.userdata)
 
     return Cint(0)
 end
@@ -508,7 +518,7 @@ function KN_set_cb_rsd_jac(m::Model, cb::CallbackContext, nnzJ::Integer, evalRJ:
     end
 
     # store function inside model:
-    m.eval_rsdj = evalRJ
+    m.eval_jac_rsd[cb.context] = evalRJ
     # wrap as C function
     c_eval_rj = @cfunction(eval_rj_wrapper, Cint,
                            (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}))
