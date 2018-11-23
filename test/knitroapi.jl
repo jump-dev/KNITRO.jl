@@ -268,6 +268,7 @@ println()
 
     # Define callback functions.
     cb = KNITRO.KN_add_eval_callback(kc, evalAll)
+
     KNITRO.KN_set_cb_grad(kc, cb, evalAll)
     KNITRO.KN_set_cb_hess(kc, cb, KNITRO.KN_DENSE_ROWMAJOR, evalAll)
 
@@ -287,6 +288,7 @@ println()
 
     # Add complementarity constraints.
     KNITRO.KN_set_compcons(kc, [KNITRO.KN_CCTYPE_VARVAR], Int32[0], Int32[1])
+
 
     # Solve the problem.
     KNITRO.KN_solve(kc)

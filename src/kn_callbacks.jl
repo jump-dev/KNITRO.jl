@@ -215,7 +215,18 @@ function eval_fc_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     request = EvalRequest(m, evalRequest)
     result = EvalResult(m, ptr_cb, evalResult)
 
-    m.eval_f[ptr_cb](ptr_model, ptr_cb, request, result, m.userdata)
+    # FIXME: we encounter a problem when other callbacks are instantiate
+    # (eg mip_node_callback or ms_process_callback) --> the pointer
+    # adress specified in `ptr_cb` differs from the adress of the original
+    # context defined in the global scope.
+    try
+        m.eval_f[ptr_cb](ptr_model, ptr_cb, request, result, m.userdata)
+    catch
+        # if the pointer in not the same, we consider the first
+        # callback in eval_f
+        f = first(m.eval_f)[2]
+        f(ptr_model, ptr_cb, request, result, m.userdata)
+    end
 
     return Cint(0)
 end
@@ -240,7 +251,14 @@ function eval_ga_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     request = EvalRequest(m, evalRequest)
     result = EvalResult(m, ptr_cb, evalResult)
 
-    m.eval_g[ptr_cb](ptr_model, ptr_cb, request, result, m.userdata)
+    try
+        m.eval_g[ptr_cb](ptr_model, ptr_cb, request, result, m.userdata)
+    catch
+        # if the pointer in not the same, we consider the first
+        # callback in eval_f
+        f = first(m.eval_g)[2]
+        f(ptr_model, ptr_cb, request, result, m.userdata)
+    end
 
     return Cint(0)
 end
@@ -265,7 +283,14 @@ function eval_hess_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     request = EvalRequest(m, evalRequest)
     result = EvalResult(m, ptr_cb, evalResult)
 
-    m.eval_h[ptr_cb](ptr_model, ptr_cb, request, result, m.userdata)
+    try
+        m.eval_h[ptr_cb](ptr_model, ptr_cb, request, result, m.userdata)
+    catch
+        # if the pointer in not the same, we consider the first
+        # callback in eval_f
+        f = first(m.eval_h)[2]
+        f(ptr_model, ptr_cb, request, result, m.userdata)
+    end
 
     return Cint(0)
 end
@@ -453,15 +478,20 @@ function eval_rsd_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     request = EvalRequest(m, evalRequest)
     result = EvalResult(m, ptr_cb, evalResult)
 
-    m.eval_rsd[ptr_cb](ptr_model, ptr_cb, request, result, m.userdata)
+    try
+        m.eval_rsd[ptr_cb](ptr_model, ptr_cb, request, result, m.userdata)
+    catch
+        # if the pointer in not the same, we consider the first
+        # callback in eval_f
+        f = first(m.eval_rsd)[2]
+        f(ptr_model, ptr_cb, request, result, m.userdata)
+    end
 
     return Cint(0)
 end
 
 # TODO: add _one and _* support
 function KN_add_lsq_eval_callback(m::Model, rsdCallBack::Function)
-    # store function inside model:
-    m.eval_rsd[cb.context] = rsdCallBack
 
     # wrap eval_callback_wrapper as C function
     c_f = @cfunction(eval_rsd_wrapper, Cint,
@@ -476,6 +506,10 @@ function KN_add_lsq_eval_callback(m::Model, rsdCallBack::Function)
                     m.env.ptr_env.x, c_f, rfptr)
     _checkraise(ret)
     cb = CallbackContext(rfptr.x)
+
+    # store function inside model:
+    m.eval_rsd[cb.context] = rsdCallBack
+
     KN_set_cb_user_params(m, cb, m)
 
     return cb
@@ -502,7 +536,14 @@ function eval_rj_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     request = EvalRequest(m, evalRequest)
     result = EvalResult(m, ptr_cb, evalResult)
 
-    m.eval_jac_rsd[ptr_cb](ptr_model, ptr_cb, request, result, m.userdata)
+    try
+        m.eval_jac_rsd[ptr_cb](ptr_model, ptr_cb, request, result, m.userdata)
+    catch
+        # if the pointer in not the same, we consider the first
+        # callback in eval_f
+        f = first(m.eval_jac_rsd)[2]
+        f(ptr_model, ptr_cb, request, result, m.userdata)
+    end
 
     return Cint(0)
 end
