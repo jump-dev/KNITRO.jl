@@ -176,7 +176,6 @@ KNITRO.KN_set_param(kc, "algorithm", KNITRO.KN_ALG_BAR_DIRECT)
 # This option handles how the barrier parameter is updated each
 # iteration in the barrier/interior-point solver.
 println("Changing a user option and re-solving...")
-i = 0
 for i in 1:6
     KNITRO.KN_set_param(kc, "bar_murule", i)
     # Reset original initial point
@@ -201,24 +200,21 @@ KNITRO.KN_set_param(kc, "algorithm", KNITRO.KN_ALG_ACT_CG)
 tmpbound = 0.5
 i = 0
 
-while true
-    i += 1
-    if i > 0
-        # Modify bound for next solve.
-        tmpbound += 0.1
-        KNITRO.KN_set_var_upbnds(kc, 0, tmpbound)
-    end
+for i = 1:20
+    # Modify bound for next solve.
+    tmpbound = 0.1*i
+    KNITRO.KN_set_var_upbnds(kc, 0, tmpbound)
 
     nStatus = KNITRO.KN_solve(kc)
     if nStatus != 0
         @printf("\n  x0 upper bound=%e - Knitro failed to solve, status = %d", tmpbound, nStatus)
     else
         nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
-        @printf("\n  x0 upper bound=%e - solved in %2d iters, x0=%e, objective=%e", tmpbound, KNITRO.KN_get_number_iters(kc), x[0], objSol)
+        @printf("\n  x0 upper bound=%e - solved in %2d iters, x0=%e, objective=%e",
+                tmpbound, KNITRO.KN_get_number_iters(kc), x[1], objSol)
     end
 
-    i += 1
-    if nStatus != 0 || x[0] < tmpbound - 1e-4
+    if nStatus != 0 || x[1] < tmpbound - 1e-4
         break
     end
 end
@@ -232,12 +228,9 @@ KNITRO.KN_set_var_upbnds(kc, 0, 0.5)
 println("\nChanging a constraint bound and re-solving...")
 tmpbound = 1.0
 i = 0
-while true
-    if i > 0
-        # Modify bound for next solve.
-        tmpbound -= 0.1
-        KNITRO.KN_set_con_lobnds(kc, 0, tmpbound)
-    end
+for i = 1:20
+    tmpbound = 1. - 0.1*i
+    KNITRO.KN_set_con_lobnds(kc, 0, tmpbound)
     nStatus = KNITRO.KN_solve(kc)
     if nStatus != 0
         @printf("\n  c0 lower bound=%e - Knitro failed to solve, status = %d", tmpbound, nStatus)
@@ -246,8 +239,7 @@ while true
         @printf("\n  c0 lower bound=%e - solved in %2d iters, c0=%e, objective=%e",
                tmpbound, KNITRO.KN_get_number_iters(kc), c0, KNITRO.KN_get_obj_value(kc))
     end
-    i += 1
-    if nStatus != 0 or c0 > tmpbound + 1e-4
+    if nStatus != 0 || c0 > tmpbound + 1e-4
         break
     end
 end
