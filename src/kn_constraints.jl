@@ -297,3 +297,49 @@ function KN_set_compcon_names(m::Model, names::Vector{String})
                     m.env.ptr_env.x, names)
     _checkraise(ret)
 end
+
+##################################################
+## Feasibility tolerance
+##################################################
+function KN_set_con_feastols(m::Model, nindex::Integer, cFeasTol::Cdouble)
+    ret = @kn_ccall(set_con_feastol, Cint, (Ptr{Nothing}, Cint, Cdouble),
+                    m.env.ptr_env.x, nindex, cFeasTol)
+    _checkraise(ret)
+end
+
+
+function KN_set_con_feastols(m::Model, cIndex::Vector{Cint}, cFeasTols::Vector{Cdouble})
+    ncon = length(cIndex)
+    @assert length(cFeasTols) == ncon
+    ret = @kn_ccall(set_con_feastols, Cint,
+                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, ncon, cIndex, cFeasTols)
+    _checkraise(ret)
+end
+function KN_set_con_feastols(m::Model, cFeasTols::Vector{Cdouble})
+    ret = @kn_ccall(set_con_feastols_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, cFeasTols)
+    _checkraise(ret)
+end
+
+
+function KN_set_compcon_feastols(m::Model, nindex::Integer, cFeasTol::Cdouble)
+    ret = @kn_ccall(set_compcon_feastol, Cint, (Ptr{Nothing}, Cint, Cdouble),
+                    m.env.ptr_env.x, nindex, cFeasTol)
+    _checkraise(ret)
+end
+
+
+function KN_set_compcon_feastols(m::Model, cIndex::Vector{Cint}, cFeasTols::Vector{Cdouble})
+    ncon = length(cIndex)
+    @assert length(cFeasTols) == ncon
+    ret = @kn_ccall(set_compcon_feastols, Cint,
+                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, ncon, cIndex, cFeasTols)
+    _checkraise(ret)
+end
+function KN_set_compcon_feastols(m::Model, cFeasTols::Vector{Cdouble})
+    ret = @kn_ccall(set_compcon_feastols_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, cFeasTols)
+    _checkraise(ret)
+end

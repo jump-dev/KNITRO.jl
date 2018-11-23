@@ -5,7 +5,51 @@ end
 CallbackContext() = CallbackContext(C_NULL)
 
 ##################################################
+# Utils
+##################################################
+function KN_set_cb_user_params(m::Model, cb::CallbackContext, userParams)
+    ret = @kn_ccall(set_cb_user_params, Cint,
+                    (Ptr{Cvoid}, Ptr{Cvoid}, Any),
+                    m.env.ptr_env.x, cb.context, userParams)
+    _checkraise(ret)
+end
+
+function KN_set_cb_gradopt(m::Model, cb::CallbackContext, gradopt::Int)
+    ret = @kn_ccall(set_cb_gradopt, Cint,
+                    (Ptr{Cvoid}, Ptr{Cvoid}, Cint),
+                    m.env.ptr_env.x, cb.context, gradopt)
+    _checkraise(ret)
+end
+
+
+#--------------------
+# Set relative step size
+#--------------------
+function KN_set_cb_relstepsizes(m::Model, cb::CallbackContext, nindex::Integer, xRelStepSize::Cdouble)
+    ret = @kn_ccall(set_cb_relstepsize, Cint, (Ptr{Nothing}, Ptr{Nothing}, Cint, Cdouble),
+                    m.env.ptr_env.x, cb.context, nindex, xRelStepSize)
+    _checkraise(ret)
+end
+
+
+function KN_set_cb_relstepsizes(m::Model, cb::CallbackContext, xIndex::Vector{Cint}, xRelStepSizes::Vector{Cdouble})
+    ncon = length(xIndex)
+    @assert length(xRelStepSizes) == ncon
+    ret = @kn_ccall(set_cb_relstepsizes, Cint,
+                    (Ptr{Nothing}, Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, cb.context, ncon, xIndex, xRelStepSizes)
+    _checkraise(ret)
+end
+function KN_set_cb_relstepsizes(m::Model, cb::CallbackContext, xRelStepSizes::Vector{Cdouble})
+    ret = @kn_ccall(set_cb_relstepsizes_all, Cint, (Ptr{Nothing}, Ptr{Nothing}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, cb.context, xRelStepSizes)
+    _checkraise(ret)
+end
+
+
+#--------------------
 # callback context getters
+#--------------------
 # TODO: dry this code with a macro
 function KN_get_cb_number_cons(m::Model, cb::Ptr{Cvoid})
     num = Cint[0]
@@ -15,6 +59,7 @@ function KN_get_cb_number_cons(m::Model, cb::Ptr{Cvoid})
     _checkraise(ret)
     return num[1]
 end
+
 function KN_get_cb_objgrad_nnz(m::Model, cb::Ptr{Cvoid})
     num = Cint[0]
     ret = @kn_ccall(get_cb_objgrad_nnz,
@@ -23,6 +68,7 @@ function KN_get_cb_objgrad_nnz(m::Model, cb::Ptr{Cvoid})
     _checkraise(ret)
     return num[1]
 end
+
 function KN_get_cb_jacobian_nnz(m::Model, cb::Ptr{Cvoid})
     num = Cint[0]
     ret = @kn_ccall(get_cb_jacobian_nnz,
@@ -31,6 +77,7 @@ function KN_get_cb_jacobian_nnz(m::Model, cb::Ptr{Cvoid})
     _checkraise(ret)
     return num[1]
 end
+
 function KN_get_cb_hessian_nnz(m::Model, cb::Ptr{Cvoid})
     num = Cint[0]
     ret = @kn_ccall(get_cb_hessian_nnz,
@@ -39,6 +86,7 @@ function KN_get_cb_hessian_nnz(m::Model, cb::Ptr{Cvoid})
     _checkraise(ret)
     return num[1]
 end
+
 function KN_get_cb_number_rsds(m::Model, cb::Ptr{Cvoid})
     num = Cint[0]
     ret = @kn_ccall(get_cb_number_rsds,
@@ -47,6 +95,7 @@ function KN_get_cb_number_rsds(m::Model, cb::Ptr{Cvoid})
     _checkraise(ret)
     return num[1]
 end
+
 function KN_get_cb_rsd_jacobian_nnz(m::Model, cb::Ptr{Cvoid})
     num = Cint[0]
     ret = @kn_ccall(get_cb_rsd_jacobian_nnz,
@@ -221,13 +270,6 @@ end
 ################################################################################
 ################################################################################
 
-function KN_set_cb_user_params(m::Model, cb::CallbackContext)
-    # now, we store the Knitro Model inside user params
-    ret = @kn_ccall(set_cb_user_params, Cint,
-                    (Ptr{Cvoid}, Ptr{Cvoid}, Any),
-                    m.env.ptr_env.x, cb.context, m)
-    _checkraise(ret)
-end
 
 
 # User callback should be of the form:
@@ -250,7 +292,7 @@ function KN_add_eval_callback(m::Model, funccallback::Function)
                     m.env.ptr_env.x, c_f, rfptr)
     _checkraise(ret)
     cb = CallbackContext(rfptr.x)
-    KN_set_cb_user_params(m, cb)
+    KN_set_cb_user_params(m, cb, m)
 
     return cb
 end
@@ -273,7 +315,7 @@ function KN_add_eval_callback(m::Model, evalObj::Bool, indexCons::Vector{Cint},
                     m.env.ptr_env.x, evalObj, nC, indexCons, c_f, rfptr)
     _checkraise(ret)
     cb = CallbackContext(rfptr.x)
-    KN_set_cb_user_params(m, cb)
+    KN_set_cb_user_params(m, cb, m)
 
     return cb
 end
@@ -424,7 +466,7 @@ function KN_add_lsq_eval_callback(m::Model, rsdCallBack::Function)
                     m.env.ptr_env.x, c_f, rfptr)
     _checkraise(ret)
     cb = CallbackContext(rfptr.x)
-    KN_set_cb_user_params(m, cb)
+    KN_set_cb_user_params(m, cb, m)
 
     return cb
 end
@@ -461,8 +503,8 @@ function KN_set_cb_rsd_jac(m::Model, cb::CallbackContext, nnzJ::Integer, evalRJ:
     if nnzJ == KN_DENSE_ROWMAJOR || nnzJ == KN_DENSE_COLMAJOR || nnzJ == 0
         @assert jacIndexRsds == jacIndexVars == C_NULL
     else
-        @assert hessIndexVars1 != C_NULL && hessIndexVars2 != C_NULL
-        @assert length(jacIndexCons) == length(jacIndexVars) == nnzJ
+        @assert jacIndexRsds != C_NULL && jacIndexVars != C_NULL
+        @assert length(jacIndexRsds) == length(jacIndexVars) == nnzJ
     end
 
     # store function inside model:
@@ -656,4 +698,3 @@ function KN_set_puts_callback(m::Model, callback::Function)
                     (Ptr{Cvoid}, Ptr{Cvoid}, Any),
                     m.env.ptr_env.x, c_func, m)
 end
-

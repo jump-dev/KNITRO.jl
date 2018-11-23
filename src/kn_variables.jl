@@ -226,3 +226,28 @@ function KN_set_var_scalings(m::Model,
 end
 KN_set_var_scalings(m::Model, xScaleFactors::Vector{Cdouble}) =
     KN_set_var_scalings(m, xScaleFactors, zeros(Cdouble, length(xScaleFactors)))
+
+
+##################################################
+## Feasibility tolerance
+##################################################
+function KN_set_var_feastols(m::Model, nindex::Integer, xFeasTol::Cdouble)
+    ret = @kn_ccall(set_var_feastol, Cint, (Ptr{Nothing}, Cint, Cdouble),
+                    m.env.ptr_env.x, nindex, xFeasTol)
+    _checkraise(ret)
+end
+
+
+function KN_set_var_feastols(m::Model, xIndex::Vector{Cint}, xFeasTols::Vector{Cdouble})
+    nvar = length(xIndex)
+    @assert length(xFeasTols) == nvar
+    ret = @kn_ccall(set_var_feastols, Cint,
+                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, nvar, xIndex, xFeasTols)
+    _checkraise(ret)
+end
+function KN_set_var_feastols(m::Model, xFeasTols::Vector{Cdouble})
+    ret = @kn_ccall(set_var_feastols_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, xFeasTols)
+    _checkraise(ret)
+end

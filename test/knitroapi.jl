@@ -458,6 +458,7 @@ KNITRO.KN_set_param(kc, "gradopt", 1)
 # END:   Some specific parameter settings
 
 function evalR(kc, cb, evalRequest, evalResult, userParams)
+    x = evalRequest.x
     evalResult.rsd[1] = x[1] * x[2]^1.309 - 2.138
     evalResult.rsd[2] = x[1] * x[2]^1.471 - 3.421
     evalResult.rsd[3] = x[1] * x[2]^1.49 - 3.597
@@ -468,6 +469,7 @@ function evalR(kc, cb, evalRequest, evalResult, userParams)
 end
 
 function evalJ(kc, cb, evalRequest, evalResult, userParams)
+    x = evalRequest.x
     evalResult.rsdJac[1] = x[2]^1.309
     evalResult.rsdJac[2] = x[1] * log(1.309) * x[2]^1.309
     evalResult.rsdJac[3] = x[2]^1.471
@@ -485,7 +487,7 @@ end
 
 # Add the variables and set their bounds.
 nV = 2
-KNITRO.KN_add_vars(kc, nV)
+KNITRO.KN_add_vars!(kc, nV)
 KNITRO.KN_set_var_lobnds(kc,  [ -1.0, -1.0 ])
 KNITRO.KN_set_var_upbnds(kc,  [ 1.0, 1.0 ])
 KNITRO.KN_set_var_primal_init_values(kc,  [ 1.0, 5.0 ])
@@ -495,7 +497,10 @@ KNITRO.KN_add_rsds!(kc, 6)
 
 # Define callbacks
 cb = KNITRO.KN_add_lsq_eval_callback(kc,  evalR)
-KNITRO.KN_set_cb_rsd_jac(kc, cb, jacIndexRsds = [ 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5 ], jacIndexVars = [ 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1 ], rsdJacCallback = evalJ)
+nnzJ = 12
+KNITRO.KN_set_cb_rsd_jac(kc, cb, nnzJ, evalJ,
+                         jacIndexRsds=Int32[ 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5 ],
+                         jacIndexVars=Int32[ 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1 ])
 
 # Solve the problem.
 KNITRO.KN_solve(kc)
