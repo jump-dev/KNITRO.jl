@@ -6,7 +6,6 @@
 # grep "#  define" knitro.h | awk '{ printf("const %s = Int32(%s)\n",$3,$4) }'
 
 
-
 const KNTRUE = Int32(1)
 const KNFALSE = Int32(0)
 const KN_INFINITY = Float64(1.0e20)

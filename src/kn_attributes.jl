@@ -1,10 +1,5 @@
 # Knitro model attributes
 
-##################################################
-# Low level attribute getters/setters
-##################################################
-
-
 
 ##################################################
 # objective
@@ -13,7 +8,7 @@
 # set objective sense
 function KN_set_obj_goal(m::Model, objgoal::Cint)
     ret = @kn_ccall(set_obj_goal, Cint, (Ptr{Nothing}, Cint),
-                             m.env.ptr_env.x, objgoal)
+                    m.env.ptr_env.x, objgoal)
     _checkraise(ret)
 end
 
@@ -23,21 +18,22 @@ function KN_add_obj_linear_struct(m::Model,
     nnz = length(objIndices)
 
     ret = @kn_ccall(add_obj_linear_struct, Cint,
-                            (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
-                            m.env.ptr_env.x,
-                            nnz,
-                            objIndices,
-                            objCoefs)
+                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env.ptr_env.x,
+                    nnz,
+                    objIndices,
+                    objCoefs)
     _checkraise(ret)
 end
 
 
 # quadratic part of objective
 function KN_add_obj_quadratic_struct(m::Model,
-                                  indexVars1::Vector{Cint},
-                                  indexVars2::Vector{Cint},
-                                  coefs::Vector{Cdouble})
+                                     indexVars1::Vector{Cint},
+                                     indexVars2::Vector{Cint},
+                                     coefs::Vector{Cdouble})
     nnz = length(indexVars1)
+    @assert nnz = length(indexVars2) == length(coefs)
 
     ret = @kn_ccall(add_obj_quadratic_struct, Cint,
                     (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
@@ -66,6 +62,7 @@ function KN_set_obj_name(m::Model, name::AbstractString)
                     m.env.ptr_env.x, name)
     _checkraise(ret)
 end
+
 
 ##################################################
 # Generic getters
@@ -113,6 +110,7 @@ function KN_get_con_values(m::Model)
     _checkraise(ret)
     return consvals
 end
+
 function KN_get_con_values(m::Model, cIndex::Integer)
     nc = 1
     consvals = zeros(Cdouble, nc)
@@ -361,7 +359,6 @@ function KN_set_mip_branching_priorities(m::Model, nindex::Integer, xPriorities:
     _checkraise(ret)
 end
 
-
 function KN_set_mip_branching_priorities(m::Model, xIndex::Vector{Cint}, xPriorities::Vector{Cint})
     nvar = length(xIndex)
     @assert nvar == length(xPriorities)
@@ -370,12 +367,12 @@ function KN_set_mip_branching_priorities(m::Model, xIndex::Vector{Cint}, xPriori
                     m.env.ptr_env.x, nvar, xIndex, xPriorities)
     _checkraise(ret)
 end
+
 function KN_set_mip_branching_priorities(m::Model, xPriorities::Vector{Cint})
     ret = @kn_ccall(set_mip_branching_priorities_all, Cint, (Ptr{Nothing}, Ptr{Cint}),
                     m.env.ptr_env.x, xPriorities)
     _checkraise(ret)
 end
-
 
 
 #--------------------
@@ -388,7 +385,6 @@ function KN_set_mip_intvar_strategies(m::Model, nindex::Integer, xStrategies::Ci
     _checkraise(ret)
 end
 
-
 function KN_set_mip_intvar_strategies(m::Model, xIndex::Vector{Cint}, xStrategies::Vector{Cint})
     nvar = length(xIndex)
     @assert nvar == length(xStrategies)
@@ -397,6 +393,7 @@ function KN_set_mip_intvar_strategies(m::Model, xIndex::Vector{Cint}, xStrategie
                     m.env.ptr_env.x, nvar, xIndex, xStrategies)
     _checkraise(ret)
 end
+
 function KN_set_mip_intvar_strategies(m::Model, xStrategies::Vector{Cint})
     ret = @kn_ccall(set_mip_intvar_strategies_all, Cint, (Ptr{Nothing}, Ptr{Cint}),
                     m.env.ptr_env.x, xStrategies)
@@ -405,49 +402,51 @@ end
 
 
 
-
-
-
 ##################################################
 # Parameters
 ##################################################
+#------------------------------
 # Setters
 #------------------------------
 # Int params
 function KN_set_param(m::Model, id::Integer, value::Integer)
     ret = @kn_ccall(set_int_param, Cint, (Ptr{Nothing}, Cint, Cint),
-                             m.env.ptr_env.x, id, value)
+                    m.env.ptr_env.x, id, value)
     _checkraise(ret)
 end
+
 function KN_set_param(m::Model, param::AbstractString, value::Integer)
     ret = @kn_ccall(set_int_param_by_name, Cint, (Ptr{Nothing}, Ptr{Cchar}, Cint),
-                             m.env.ptr_env.x, param, value)
+                    m.env.ptr_env.x, param, value)
     _checkraise(ret)
 end
 
 # Double params
 function KN_set_param(m::Model, id::Integer, value::Cdouble)
     ret = @kn_ccall(set_double_param, Cint, (Ptr{Nothing}, Cint, Cdouble),
-                             m.env.ptr_env.x, id, value)
+                    m.env.ptr_env.x, id, value)
     _checkraise(ret)
 end
+
 function KN_set_param(m::Model, param::AbstractString, value::Cdouble)
     ret = @kn_ccall(set_double_param_by_name, Cint, (Ptr{Nothing}, Ptr{Cchar}, Cdouble),
-                             m.env.ptr_env.x, param, value)
+                    m.env.ptr_env.x, param, value)
     _checkraise(ret)
 end
 
 # Char params
 function KN_set_param(m::Model, id::Integer, value::AbstractString)
     ret = @kn_ccall(set_char_param, Cint, (Ptr{Nothing}, Cint, Ptr{Cchar}),
-                             m.env.ptr_env.x, id, value)
+                    m.env.ptr_env.x, id, value)
     _checkraise(ret)
 end
+
 function KN_set_param(m::Model, param::AbstractString, value::AbstractString)
     ret = @kn_ccall(set_char_param_by_name, Cint, (Ptr{Nothing}, Ptr{Cchar}, Ptr{Cchar}),
-                             m.env.ptr_env.x, param, value)
+                    m.env.ptr_env.x, param, value)
     _checkraise(ret)
 end
+
 
 #------------------------------
 # Getters
@@ -457,14 +456,15 @@ end
 function KN_get_int_param(m::Model, id::Integer)
     res = Cint[0]
     ret = @kn_ccall(get_int_param, Cint, (Ptr{Nothing}, Cint, Ptr{Cint}),
-                             m.env.ptr_env.x, id, res)
+                    m.env.ptr_env.x, id, res)
     _checkraise(ret)
     return res[1]
 end
+
 function KN_get_int_param(m::Model, param::AbstractString)
     res = Cint[0]
     ret = @kn_ccall(get_int_param_by_name, Cint, (Ptr{Nothing}, Ptr{Cchar}, Ptr{Cint}),
-                             m.env.ptr_env.x, param, res)
+                    m.env.ptr_env.x, param, res)
     _checkraise(ret)
     return res[1]
 end
@@ -473,14 +473,15 @@ end
 function KN_get_double_param(m::Model, id::Integer)
     res = Cdouble[0.]
     ret = @kn_ccall(get_double_param, Cint, (Ptr{Nothing}, Cint, Ptr{Cdouble}),
-                             m.env.ptr_env.x, id, res)
+                    m.env.ptr_env.x, id, res)
     _checkraise(ret)
     return res[1]
 end
+
 function KN_get_double_param(m::Model, param::AbstractString)
     res = Cdouble[0.]
     ret = @kn_ccall(get_double_param_by_name, Cint, (Ptr{Nothing}, Ptr{Cchar}, Ptr{Cdouble}),
-                             m.env.ptr_env.x, param, res)
+                    m.env.ptr_env.x, param, res)
     _checkraise(ret)
     return res[1]
 end
@@ -493,7 +494,7 @@ function KN_get_param_name(m::Model, id::Integer)
     output_size = 128
     res = " "^output_size
     ret = @kn_ccall(get_param_name, Cint, (Ptr{Nothing}, Cint, Ptr{Cchar}, Csize_t),
-                             m.env.ptr_env.x, id, res, output_size)
+                    m.env.ptr_env.x, id, res, output_size)
     _checkraise(ret)
     return format_output(res)
 end
@@ -502,7 +503,7 @@ function KN_get_param_doc(m::Model, id::Integer)
     output_size = 128
     res = " "^output_size
     ret = @kn_ccall(get_param_doc, Cint, (Ptr{Nothing}, Cint, Ptr{Cchar}, Csize_t),
-                             m.env.ptr_env.x, id, res, output_size)
+                    m.env.ptr_env.x, id, res, output_size)
     _checkraise(ret)
     return format_output(res)
 end
@@ -510,7 +511,7 @@ end
 function KN_get_param_type(m::Model, id::Integer)
     res = Cint[0]
     ret = @kn_ccall(get_param_type, Cint, (Ptr{Nothing}, Cint, Ptr{Cint}),
-                             m.env.ptr_env.x, id, res)
+                    m.env.ptr_env.x, id, res)
     _checkraise(ret)
     return res[1]
 end
@@ -518,7 +519,7 @@ end
 function KN_get_num_param_values(m::Model, id::Integer)
     res = Cint[0]
     ret = @kn_ccall(get_num_param_values, Cint, (Ptr{Nothing}, Cint, Ptr{Cint}),
-                             m.env.ptr_env.x, id, res)
+                    m.env.ptr_env.x, id, res)
     _checkraise(ret)
     return res[1]
 end
@@ -528,7 +529,7 @@ function KN_get_param_value_doc(m::Model, id::Integer, value_id::Integer)
     res = " "^output_size
     ret = @kn_ccall(get_param_value_doc, Cint,
                     (Ptr{Nothing}, Cint, Cint, Ptr{Cchar}, Csize_t),
-                             m.env.ptr_env.x, id, value_id, res, output_size)
+                    m.env.ptr_env.x, id, value_id, res, output_size)
     _checkraise(ret)
     return format_output(res)
 end
@@ -536,7 +537,7 @@ end
 function KN_get_param_id(m::Model, name::AbstractString)
     res = Cint[0]
     ret = @kn_ccall(get_param_id, Cint, (Ptr{Nothing}, Ptr{Cchar}, Ptr{Cint}),
-                             m.env.ptr_env.x, name, res)
+                    m.env.ptr_env.x, name, res)
     _checkraise(ret)
     return res[1]
 end

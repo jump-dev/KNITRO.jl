@@ -10,7 +10,6 @@ function KN_add_rsds!(m::Model, ncons::Integer)
     return ptr_cons
 end
 
-
 function KN_add_rsd!(m::Model)
     ptr_cons = Cint[0]
     ret = @kn_ccall(add_rsd, Cint, (Ptr{Nothing}, Ptr{Cint}), m.env.ptr_env.x, ptr_cons)
@@ -58,7 +57,8 @@ function KN_add_rsd_linear_struct(m::Model,
                     coefs)
     _checkraise(ret)
 end
-KN_add_rsd_linear_struct(m::Model, indexRsd::Integer, indexVar::Integer, coef::Float64) =  KN_add_rsd_linear_struct(m, indexRsd, Int32[indexVar], [coef])
+KN_add_rsd_linear_struct(m::Model, indexRsd::Integer, indexVar::Integer, coef::Float64) =
+    KN_add_rsd_linear_struct(m, indexRsd, Int32[indexVar], [coef])
 
 
 ##################################################
@@ -75,6 +75,7 @@ function KN_add_rsd_constants(m::Model, indexRsds::Vector{Cint}, constants::Vect
                     constants)
     _checkraise(ret)
 end
+
 function KN_add_rsd_constants(m::Model, constants::Vector{Cdouble})
     nnc = length(constants)
     ret = @kn_ccall(add_rsd_constants_all, Cint,
@@ -82,6 +83,7 @@ function KN_add_rsd_constants(m::Model, constants::Vector{Cdouble})
                     m.env.ptr_env.x, constants)
     _checkraise(ret)
 end
+
 function KN_add_rsd_constant(m::Model, indexRsd::Integer, constant::Cdouble)
     ret = @kn_ccall(add_rsd_constant, Cint,
                     (Ptr{Nothing}, Cint, Cdouble),

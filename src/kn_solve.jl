@@ -7,11 +7,9 @@ function KN_solve(m::Model)
     return ret
 end
 
-
 ##################################################
 # Solution status and info
 ##################################################
-# TODO
 function KN_get_solution(m::Model)
     nx = KN_get_number_vars(m)
     nc = KN_get_number_cons(m)

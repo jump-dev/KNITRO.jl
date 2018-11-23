@@ -1,7 +1,7 @@
 # Common functions
-#
 
-# TODO: add more case
+
+# KNITRO special types
 const KNLONG = Clonglong
 
 
@@ -21,6 +21,7 @@ function _checkraise(ret::Cint)
     end
 end
 
+"Format output returned by KNITRO as proper Julia string."
 function format_output(output::AbstractString)
     # remove trailing whitespace
     res = strip(output)

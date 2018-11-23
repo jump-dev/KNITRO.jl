@@ -10,7 +10,6 @@ function KN_add_cons!(m::Model, ncons::Integer)
     return ptr_cons
 end
 
-
 function KN_add_con!(m::Model)
     ptr_cons = Cint[0]
     ret = @kn_ccall(add_con, Cint, (Ptr{Nothing}, Ptr{Cint}), m.env.ptr_env.x, ptr_cons)
@@ -45,7 +44,6 @@ function KN_set_con_eqbnds(m::Model, eqBnds::Vector{Cdouble})
 end
 
 
-
 ####################
 # Inequality constraints
 # Upper bounds
@@ -68,8 +66,6 @@ function KN_set_con_upbnds(m::Model, consIndex::Vector{Cint}, upBounds::Vector{C
                     m.env.ptr_env.x, ncons, consIndex, upBounds)
     _checkraise(ret)
 end
-
-
 
 # Lower bounds
 function KN_set_con_lobnd(m::Model, indexCons::Integer, bnds::Cdouble)
@@ -142,6 +138,7 @@ function KN_add_con_linear_struct(m::Model,
                     jacCoefs)
     _checkraise(ret)
 end
+
 function KN_add_con_linear_struct(m::Model,
                                   indexCon::Integer,
                                   indexVar::Vector{Cint},
@@ -161,14 +158,12 @@ function KN_add_con_linear_struct(m::Model,
 end
 KN_add_con_linear_struct(m::Model, indexCon::Integer, indexVar::Integer, coef::Float64) =  KN_add_con_linear_struct(m, indexCon, Int32[indexVar], [coef])
 
-
-
 # add constraint quadratic structure
 function KN_add_con_quadratic_struct(m::Model,
-                                  indexCons::Vector{Cint},
-                                  indexVars1::Vector{Cint},
-                                  indexVars2::Vector{Cint},
-                                  coefs::Vector{Cdouble})
+                                     indexCons::Vector{Cint},
+                                     indexVars1::Vector{Cint},
+                                     indexVars2::Vector{Cint},
+                                     coefs::Vector{Cdouble})
     # get number of constraints
     nnz = length(indexVars1)
     ret = @kn_ccall(add_con_quadratic_struct,
@@ -184,10 +179,10 @@ function KN_add_con_quadratic_struct(m::Model,
 end
 
 function KN_add_con_quadratic_struct(m::Model,
-                                  indexCons::Integer,
-                                  indexVars1::Vector{Cint},
-                                  indexVars2::Vector{Cint},
-                                  coefs::Vector{Cdouble})
+                                     indexCons::Integer,
+                                     indexVars1::Vector{Cint},
+                                     indexVars2::Vector{Cint},
+                                     coefs::Vector{Cdouble})
     # get number of constraints
     nnz = length(indexVars1)
     ret = @kn_ccall(add_con_quadratic_struct_one,
@@ -261,7 +256,6 @@ function KN_set_con_names(m::Model, nindex::Integer, name::String)
     _checkraise(ret)
 end
 
-
 function KN_set_con_names(m::Model, conIndex::Vector{Cint}, names::Vector{String})
     ncon = length(conIndex)
     ret = @kn_ccall(set_con_names, Cint,
@@ -269,13 +263,12 @@ function KN_set_con_names(m::Model, conIndex::Vector{Cint}, names::Vector{String
                     m.env.ptr_env.x, ncon, conIndex, names)
     _checkraise(ret)
 end
+
 function KN_set_con_names(m::Model, names::Vector{String})
     ret = @kn_ccall(set_con_names_all, Cint, (Ptr{Nothing}, Ptr{Ptr{Cchar}}),
                     m.env.ptr_env.x, names)
     _checkraise(ret)
 end
-
-
 
 function KN_set_compcon_names(m::Model, nindex::Integer, name::String)
     ret = @kn_ccall(set_compcon_name, Cint,
@@ -284,7 +277,6 @@ function KN_set_compcon_names(m::Model, nindex::Integer, name::String)
     _checkraise(ret)
 end
 
-
 function KN_set_compcon_names(m::Model, conIndex::Vector{Cint}, names::Vector{String})
     ncon = length(conIndex)
     ret = @kn_ccall(set_compcon_names, Cint,
@@ -292,6 +284,7 @@ function KN_set_compcon_names(m::Model, conIndex::Vector{Cint}, names::Vector{St
                     m.env.ptr_env.x, ncon, conIndex, names)
     _checkraise(ret)
 end
+
 function KN_set_compcon_names(m::Model, names::Vector{String})
     ret = @kn_ccall(set_compcon_names_all, Cint, (Ptr{Nothing}, Ptr{Ptr{Cchar}}),
                     m.env.ptr_env.x, names)
@@ -307,7 +300,6 @@ function KN_set_con_feastols(m::Model, nindex::Integer, cFeasTol::Cdouble)
     _checkraise(ret)
 end
 
-
 function KN_set_con_feastols(m::Model, cIndex::Vector{Cint}, cFeasTols::Vector{Cdouble})
     ncon = length(cIndex)
     @assert length(cFeasTols) == ncon
@@ -316,19 +308,18 @@ function KN_set_con_feastols(m::Model, cIndex::Vector{Cint}, cFeasTols::Vector{C
                     m.env.ptr_env.x, ncon, cIndex, cFeasTols)
     _checkraise(ret)
 end
+
 function KN_set_con_feastols(m::Model, cFeasTols::Vector{Cdouble})
     ret = @kn_ccall(set_con_feastols_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
                     m.env.ptr_env.x, cFeasTols)
     _checkraise(ret)
 end
 
-
 function KN_set_compcon_feastols(m::Model, nindex::Integer, cFeasTol::Cdouble)
     ret = @kn_ccall(set_compcon_feastol, Cint, (Ptr{Nothing}, Cint, Cdouble),
                     m.env.ptr_env.x, nindex, cFeasTol)
     _checkraise(ret)
 end
-
 
 function KN_set_compcon_feastols(m::Model, cIndex::Vector{Cint}, cFeasTols::Vector{Cdouble})
     ncon = length(cIndex)
@@ -338,6 +329,7 @@ function KN_set_compcon_feastols(m::Model, cIndex::Vector{Cint}, cFeasTols::Vect
                     m.env.ptr_env.x, ncon, cIndex, cFeasTols)
     _checkraise(ret)
 end
+
 function KN_set_compcon_feastols(m::Model, cFeasTols::Vector{Cdouble})
     ret = @kn_ccall(set_compcon_feastols_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
                     m.env.ptr_env.x, cFeasTols)
