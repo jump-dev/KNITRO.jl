@@ -31,6 +31,14 @@ function KN_set_con_eqbnd(m::Model, indexCons::Integer, bnds::Cdouble)
 end
 KN_set_con_eqbnds(m::Model, indexCons::Integer, bnds::Cdouble) = KN_set_con_eqbnd(m, indexCons, bnds)
 
+function KN_set_con_eqbnds(m::Model, consIndex::Vector{Cint}, eqBounds::Vector{Cdouble})
+    ncons = length(consIndex)
+    ret = @kn_ccall(set_con_eqbnds, Cint,
+                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, ncons, consIndex, eqBounds)
+    _checkraise(ret)
+end
+
 function KN_set_con_eqbnds(m::Model, eqBnds::Vector{Cdouble})
     ret = @kn_ccall(set_con_eqbnds_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}), m.env.ptr_env.x, eqBnds)
     _checkraise(ret)
@@ -53,7 +61,17 @@ function KN_set_con_upbnds(m::Model, upBnds::Vector{Cdouble})
     _checkraise(ret)
 end
 
+function KN_set_con_upbnds(m::Model, consIndex::Vector{Cint}, upBounds::Vector{Cdouble})
+    ncons = length(consIndex)
+    ret = @kn_ccall(set_con_upbnds, Cint,
+                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, ncons, consIndex, upBounds)
+    _checkraise(ret)
+end
 
+
+
+# Lower bounds
 function KN_set_con_lobnd(m::Model, indexCons::Integer, bnds::Cdouble)
     ret = @kn_ccall(set_con_lobnd, Cint, (Ptr{Nothing}, Cint, Cdouble),
                     m.env.ptr_env.x, indexCons, bnds)
@@ -67,7 +85,40 @@ function KN_set_con_lobnds(m::Model, loBnds::Vector{Cdouble})
     _checkraise(ret)
 end
 
+function KN_set_con_lobnds(m::Model, consIndex::Vector{Cint}, loBounds::Vector{Cdouble})
+    ncons = length(consIndex)
+    ret = @kn_ccall(set_con_lobnds, Cint,
+                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, ncons, consIndex, loBounds)
+    _checkraise(ret)
+end
 
+
+
+##################################################
+# Constraint scalings
+##################################################
+
+function KN_set_con_scalings(m::Model, nindex::Integer, cScaleFactors::Cdouble)
+    ret = @kn_ccall(set_con_scaling, Cint,
+                    (Ptr{Nothing}, Cint, Cdouble),
+                    m.env.ptr_env.x, nindex, cScaleFactors)
+    _checkraise(ret)
+end
+
+function KN_set_con_scalings(m::Model, indexCon::Vector{Cint}, cScaleFactors::Vector{Cdouble})
+    nvar = length(indexCon)
+    ret = @kn_ccall(set_con_scalings, Cint,
+                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, nvar, indexCon, cScaleFactors)
+    _checkraise(ret)
+end
+
+function KN_set_con_scalings(m::Model, cScaleFactors::Vector{Cdouble})
+    ret = @kn_ccall(set_con_scalings_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, cScaleFactors)
+    _checkraise(ret)
+end
 
 ##################################################
 # Constraint structure
@@ -175,3 +226,27 @@ function KN_set_compcons(m::Model,
     _checkraise(ret)
 end
 
+##################################################
+# Complementary constraint scalings
+##################################################
+
+function KN_set_compcon_scalings(m::Model, nindex::Integer, cScaleFactors::Cdouble)
+    ret = @kn_ccall(set_compcon_scaling, Cint,
+                    (Ptr{Nothing}, Cint, Cdouble),
+                    m.env.ptr_env.x, nindex, cScaleFactors)
+    _checkraise(ret)
+end
+
+function KN_set_compcon_scalings(m::Model, indexCompCon::Vector{Cint}, cScaleFactors::Vector{Cdouble})
+    nvar = length(indexCompCon)
+    ret = @kn_ccall(set_compcon_scalings, Cint,
+                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, nvar, indexCompCon, cScaleFactors)
+    _checkraise(ret)
+end
+
+function KN_set_compcon_scalings(m::Model, cScaleFactors::Vector{Cdouble})
+    ret = @kn_ccall(set_compcon_scalings_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, cScaleFactors)
+    _checkraise(ret)
+end

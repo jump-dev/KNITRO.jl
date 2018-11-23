@@ -166,3 +166,39 @@ function KN_set_var_dual_init_values(m::Model, indx::Integer, xinitval::Cdouble)
                     (Ptr{Nothing}, Cint, Cdouble), m.env.ptr_env.x, indx, xinitval)
     _checkraise(ret)
 end
+
+
+##################################################
+## Scalings
+##################################################
+function KN_set_var_scalings(m::Model, nindex::Integer,
+                             xScaleFactors::Cdouble, xScaleCenters::Cdouble)
+    ret = @kn_ccall(set_var_scaling, Cint,
+                    (Ptr{Nothing}, Cint, Cdouble, Cdouble),
+                    m.env.ptr_env.x, nindex, xScaleFactors, xScaleCenters)
+    _checkraise(ret)
+end
+KN_set_var_scalings(m::Model, nindex::Integer, xScaleFactors::Cdouble) =
+    KN_set_var_scalings(m, nindex, xScaleFactors, 0.)
+
+
+function KN_set_var_scalings(m::Model, valindex::Vector{Cint},
+                             xScaleFactors::Vector{Cdouble}, xScaleCenters::Vector{Cdouble})
+    nvar = length(valindex)
+    @assert nvar = length(xScaleFactors) == length(xScaleCenters)
+    ret = @kn_ccall(set_var_scalings, Cint,
+                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, nvar, valindex, xScaleFactors, xScaleCenters)
+    _checkraise(ret)
+end
+KN_set_var_scalings(m::Model, xIndex::Vector{Cint}, xScaleFactors::Vector{Cdouble}) =
+    KN_set_var_scalings(m, xIndex, xScaleFactors, zeros(Cdouble, length(xScaleFactors)))
+
+function KN_set_var_scalings(m::Model,
+                             xScaleFactors::Vector{Cdouble}, xScaleCenters::Vector{Cdouble})
+    ret = @kn_ccall(set_var_scalings_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, xScaleFactors, xScaleCenters)
+    _checkraise(ret)
+end
+KN_set_var_scalings(m::Model, xScaleFactors::Vector{Cdouble}) =
+    KN_set_var_scalings(m, xScaleFactors, zeros(Cdouble, length(xScaleFactors)))
