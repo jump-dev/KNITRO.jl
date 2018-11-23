@@ -21,6 +21,13 @@ function _checkraise(ret::Cint)
     end
 end
 
+function format_output(output::AbstractString)
+    # remove trailing whitespace
+    res = strip(output)
+    # remove special characters
+    res = strip(res, '\0')
+end
+
 "Return the current KNITRO version."
 function get_release()
     len = 15

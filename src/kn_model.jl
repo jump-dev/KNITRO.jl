@@ -57,6 +57,14 @@ function KN_load_param_file(m::Model, filename::AbstractString)
     _checkraise(ret)
 end
 
+# parameters
+"Save current parameters in the given file"
+function KN_save_param_file(m::Model, filename::AbstractString)
+    ret = @kn_ccall(save_param_file, Cint, (Ptr{Nothing}, Ptr{Cchar}),
+                             m.env.ptr_env.x, filename)
+    _checkraise(ret)
+end
+
 "Reset all parameters to default values"
 function KN_reset_params_to_defaults(m::Model)
     ret = @kn_ccall(reset_params_to_defaults, Cint, (Ptr{Nothing}, ),

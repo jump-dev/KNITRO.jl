@@ -255,8 +255,6 @@ MPB.numvar(m::KnitroMathProgModel) = m.numVar
 MPB.numconstr(m::KnitroMathProgModel) = m.numConstr
 
 function MPB.optimize!(m::KnitroMathProgModel)
-    # update variables' types
-    KN_set_var_properties(m.inner, m.varType)
     t = time()
     KN_solve(m.inner)
     m.solve_time = time() - t

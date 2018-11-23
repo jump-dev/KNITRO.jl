@@ -265,6 +265,9 @@ end
 ##################################################
 # Parameters
 ##################################################
+# Setters
+#------------------------------
+# Int params
 function KN_set_param(m::Model, id::Integer, value::Integer)
     ret = @kn_ccall(set_int_param, Cint, (Ptr{Nothing}, Cint, Cint),
                              m.env.ptr_env.x, id, value)
@@ -274,4 +277,120 @@ function KN_set_param(m::Model, param::AbstractString, value::Integer)
     ret = @kn_ccall(set_int_param_by_name, Cint, (Ptr{Nothing}, Ptr{Cchar}, Cint),
                              m.env.ptr_env.x, param, value)
     _checkraise(ret)
+end
+
+# Double params
+function KN_set_param(m::Model, id::Integer, value::Cdouble)
+    ret = @kn_ccall(set_double_param, Cint, (Ptr{Nothing}, Cint, Cdouble),
+                             m.env.ptr_env.x, id, value)
+    _checkraise(ret)
+end
+function KN_set_param(m::Model, param::AbstractString, value::Cdouble)
+    ret = @kn_ccall(set_double_param_by_name, Cint, (Ptr{Nothing}, Ptr{Cchar}, Cdouble),
+                             m.env.ptr_env.x, param, value)
+    _checkraise(ret)
+end
+
+# Char params
+function KN_set_param(m::Model, id::Integer, value::AbstractString)
+    ret = @kn_ccall(set_char_param, Cint, (Ptr{Nothing}, Cint, Ptr{Cchar}),
+                             m.env.ptr_env.x, id, value)
+    _checkraise(ret)
+end
+function KN_set_param(m::Model, param::AbstractString, value::AbstractString)
+    ret = @kn_ccall(set_char_param_by_name, Cint, (Ptr{Nothing}, Ptr{Cchar}, Ptr{Cchar}),
+                             m.env.ptr_env.x, param, value)
+    _checkraise(ret)
+end
+
+#------------------------------
+# Getters
+#------------------------------
+
+# Int params
+function KN_get_int_param(m::Model, id::Integer)
+    res = Cint[0]
+    ret = @kn_ccall(get_int_param, Cint, (Ptr{Nothing}, Cint, Ptr{Cint}),
+                             m.env.ptr_env.x, id, res)
+    _checkraise(ret)
+    return res[1]
+end
+function KN_get_int_param(m::Model, param::AbstractString)
+    res = Cint[0]
+    ret = @kn_ccall(get_int_param_by_name, Cint, (Ptr{Nothing}, Ptr{Cchar}, Ptr{Cint}),
+                             m.env.ptr_env.x, param, res)
+    _checkraise(ret)
+    return res[1]
+end
+
+# Double params
+function KN_get_double_param(m::Model, id::Integer)
+    res = Cdouble[0.]
+    ret = @kn_ccall(get_double_param, Cint, (Ptr{Nothing}, Cint, Ptr{Cdouble}),
+                             m.env.ptr_env.x, id, res)
+    _checkraise(ret)
+    return res[1]
+end
+function KN_get_double_param(m::Model, param::AbstractString)
+    res = Cdouble[0.]
+    ret = @kn_ccall(get_double_param_by_name, Cint, (Ptr{Nothing}, Ptr{Cchar}, Ptr{Cdouble}),
+                             m.env.ptr_env.x, param, res)
+    _checkraise(ret)
+    return res[1]
+end
+
+
+#------------------------------
+# Params information
+#------------------------------
+function KN_get_param_name(m::Model, id::Integer)
+    output_size = 128
+    res = " "^output_size
+    ret = @kn_ccall(get_param_name, Cint, (Ptr{Nothing}, Cint, Ptr{Cchar}, Csize_t),
+                             m.env.ptr_env.x, id, res, output_size)
+    _checkraise(ret)
+    return format_output(res)
+end
+
+function KN_get_param_doc(m::Model, id::Integer)
+    output_size = 128
+    res = " "^output_size
+    ret = @kn_ccall(get_param_doc, Cint, (Ptr{Nothing}, Cint, Ptr{Cchar}, Csize_t),
+                             m.env.ptr_env.x, id, res, output_size)
+    _checkraise(ret)
+    return format_output(res)
+end
+
+function KN_get_param_type(m::Model, id::Integer)
+    res = Cint[0]
+    ret = @kn_ccall(get_param_type, Cint, (Ptr{Nothing}, Cint, Ptr{Cint}),
+                             m.env.ptr_env.x, id, res)
+    _checkraise(ret)
+    return res[1]
+end
+
+function KN_get_num_param_values(m::Model, id::Integer)
+    res = Cint[0]
+    ret = @kn_ccall(get_num_param_values, Cint, (Ptr{Nothing}, Cint, Ptr{Cint}),
+                             m.env.ptr_env.x, id, res)
+    _checkraise(ret)
+    return res[1]
+end
+
+function KN_get_param_value_doc(m::Model, id::Integer, value_id::Integer)
+    output_size = 128
+    res = " "^output_size
+    ret = @kn_ccall(get_param_value_doc, Cint,
+                    (Ptr{Nothing}, Cint, Cint, Ptr{Cchar}, Csize_t),
+                             m.env.ptr_env.x, id, value_id, res, output_size)
+    _checkraise(ret)
+    return format_output(res)
+end
+
+function KN_get_param_id(m::Model, name::AbstractString)
+    res = Cint[0]
+    ret = @kn_ccall(get_param_id, Cint, (Ptr{Nothing}, Ptr{Cchar}, Ptr{Cint}),
+                             m.env.ptr_env.x, name, res)
+    _checkraise(ret)
+    return res[1]
 end

@@ -200,13 +200,6 @@ function eval_hess_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     ptr0 = Ptr{KN_eval_request}(evalRequest_)
     evalRequest = unsafe_load(ptr0)::KN_eval_request
 
-    if ((evalRequest.evalRequestCode != KNITRO.KN_RC_EVALH) &&
-        (evalRequest.evalRequestCode != KNITRO.KN_RC_EVALH_NO_F))
-        println("*** callbackEvalH incorrectly called with eval type ",
-                evalRequest.evalRequestCode)
-        return -1
-    end
-
     # load evalResult object
     ptr = Ptr{KN_eval_result}(evalResults_)
     evalResult = unsafe_load(ptr)::KN_eval_result

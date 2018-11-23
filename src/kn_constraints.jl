@@ -52,13 +52,6 @@ function KN_set_con_upbnds(m::Model, upBnds::Vector{Cdouble})
     ret = @kn_ccall(set_con_upbnds_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}), m.env.ptr_env.x, upBnds)
     _checkraise(ret)
 end
-function KN_set_con_upbnd(m::Model, indexcons::Integer, upbd::Cdouble)
-    ret = @kn_ccall(set_con_upbnd, Cint,
-                    (Ptr{Nothing}, Cint, Cdouble),
-                    m.env.ptr_env.x, indexcons, upbd)
-    _checkraise(ret)
-end
-
 
 
 function KN_set_con_lobnd(m::Model, indexCons::Integer, bnds::Cdouble)
