@@ -319,16 +319,6 @@ function load_tuner_file(kp::KnitroProblem, filename::AbstractString)
     end
 end
 
-"""
-Returns the current KNITRO version.
-"""
-function get_release()
-    len = 15
-    out = zeros(Cchar,len)
-
-    @ktr_ccall(get_release, Any, (Cint, Ptr{Cchar}), len, out)
-    return strip(bytestring(convert(Vector{UInt8},out)),'\0')
-end
 
 """
 Set an array of absolute feasibility tolerances (one for each

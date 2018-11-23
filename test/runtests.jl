@@ -1,4 +1,10 @@
 using Compat.Test
 
-include("testexamples.jl")
-include("mathprogtest.jl")
+
+@testset "Test C API" begin
+    include("knitroapi.jl")
+end
+
+@testset "Test examples" begin
+    include("testexamples.jl")
+end

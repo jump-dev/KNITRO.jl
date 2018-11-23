@@ -6,6 +6,7 @@ module KNITRO
     import Compat: Sys
 
 
+
     function __init__()
         if Sys.islinux()
             # fixes missing symbols in libknitro.so
@@ -18,11 +19,11 @@ module KNITRO
 
 
     # Wrapper of old API (soon deprecated)
-    #= #1= include("ktr_model.jl") =#
-    #= #1= include("ktr_callbacks.jl") =1# =#
-    #= #1= include("ktr_functions.jl") =1# =#
-    #= #1= include("ktr_defines.jl") =1# =#
-    #= #1= include("ktr_params.jl") =1# =#
+    include("ktr_model.jl")
+    include("ktr_callbacks.jl")
+    include("ktr_functions.jl")
+    include("ktr_defines.jl")
+    include("ktr_params.jl")
 
     # Wrapper of new API (KNITRO's version > 11.0)
     include("kn_common.jl")
