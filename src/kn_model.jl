@@ -25,6 +25,8 @@ mutable struct Model
     ms_process::Function
     mip_callback::Function
     user_callback::Function
+    ms_initpt_callback::Function
+    puts_callback::Function
 
 
     function Model(env::Env)

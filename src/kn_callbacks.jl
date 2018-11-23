@@ -592,3 +592,68 @@ function KN_set_mip_node_callback(m::Model, callback::Function)
                     m.env.ptr_env.x, c_func, m)
     _checkraise(ret)
 end
+
+
+#--------------------
+# Multistart procedure callback
+#--------------------
+function ms_initpt_wrapper(ptr_model::Ptr{Cvoid},
+                           nSolveNumber::Cint,
+                           ptr_x::Ptr{Cdouble},
+                           ptr_lambda::Ptr{Cdouble},
+                           userdata_::Ptr{Cvoid})
+
+    # Load KNITRO's Julia Model
+    m = unsafe_pointer_to_objref(userdata_)::Model
+    nx = KN_get_number_vars(m)
+    nc = KN_get_number_cons(m)
+
+    x = unsafe_wrap(Array, ptr_x, nx)
+    lambda = unsafe_wrap(Array, ptr_lambda, nx + nc)
+    m.ms_initpt_callback(ptr_model, nSolveNumber, x, lambda, m)
+
+    return Cint(0)
+end
+
+
+function KN_set_ms_initpt_callback(m::Model, callback::Function)
+    # store callback function inside model:
+    m.ms_initpt_callback = callback
+
+    # wrap user callback wrapper as C function
+    c_func = @cfunction(ms_initpt_wrapper, Cint,
+                        (Ptr{Cvoid}, Cint, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid}))
+
+    ret = @kn_ccall(set_ms_initpt_callback, Cint,
+                    (Ptr{Cvoid}, Ptr{Cvoid}, Any),
+                    m.env.ptr_env.x, c_func, m)
+    _checkraise(ret)
+end
+
+
+#--------------------
+# Puts callback
+#--------------------
+function puts_callback_wrapper(str::Ptr{Cchar}, userdata_::Ptr{Cvoid})
+
+    # Load KNITRO's Julia Model
+    m = unsafe_pointer_to_objref(userdata_)::Model
+    res = m.puts_callback(unsafe_string(str), m.userdata)
+
+    return Cint(res)
+end
+
+
+function KN_set_puts_callback(m::Model, callback::Function)
+    # store callback function inside model:
+    m.puts_callback = callback
+
+    # wrap user callback wrapper as C function
+    c_func = @cfunction(puts_callback_wrapper, Cint,
+                        (Ptr{Cchar}, Ptr{Cvoid}))
+
+    ret = @kn_ccall(set_puts_callback, Cint,
+                    (Ptr{Cvoid}, Ptr{Cvoid}, Any),
+                    m.env.ptr_env.x, c_func, m)
+end
+

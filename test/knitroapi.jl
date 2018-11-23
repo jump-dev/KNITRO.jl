@@ -210,13 +210,13 @@ println()
 kc = KNITRO.KN_new()
 println(kc)
 
-#= function prettyPrinting(str, userParams) =#
-#=     s = "KNITRO.KNITRO-Python: " + str[:len(str)-1] =#
-#=     println(s) =#
-#=     return length(s) =#
-#= end =#
+function prettyPrinting(str, userParams)
+    s = "KNITRO-Julia: " * str
+    println(s)
+    return length(s)
+end
 
-#= KNITRO.KN_set_puts_callback(kc, prettyPrinting) =#
+KNITRO.KN_set_puts_callback(kc, prettyPrinting)
 
 # START: Some specific parameter settings
 KNITRO.KN_set_param(kc, "presolve", 0)
@@ -268,12 +268,12 @@ KNITRO.KN_set_ms_process_callback(kc, callback("ms_process"))
 function ms_initpt_callbackFn(kc, nSolveNumber, x, lambda_, userParams)
     println("ms_initpt_callback ", nSolveNumber)
     x[:] = [1, 1, 1.1 + 0.1 * nSolveNumber]
-    lambda_[:] = [1, 1, 1, 1]
+    lambda_[:] = [1., 1, 1, 1]
     return 0
 end
 
 # Set multistart initial point callback
-#= KNITRO.KN_set_ms_initpt_callback(kc, ms_initpt_callbackFn) =#
+KNITRO.KN_set_ms_initpt_callback(kc, ms_initpt_callbackFn)
 
 # Add complementarity constraints.
 KNITRO.KN_set_compcons(kc, [KNITRO.KN_CCTYPE_VARVAR], Int32[0], Int32[1])
