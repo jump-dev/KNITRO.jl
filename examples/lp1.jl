@@ -35,7 +35,7 @@ kc = KNITRO.KN_new()
 # Note: unset bounds assumed to be infinite.
 xIndices = KNITRO.KN_add_vars!(kc, 4)
 for x in xIndices
-    KNITRO.KN_set_var_lobnd(kc, x, 0.0)
+    KNITRO.KN_set_var_lobnds(kc, x, 0.0)
 end
 
 # Add the constraints and set the rhs and coefficients.

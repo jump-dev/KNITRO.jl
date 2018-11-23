@@ -148,7 +148,7 @@ cb = KNITRO.KN_add_eval_callback(kc, true, cIndices, callbackEvalFCGA)
 # function evaluations.
 cbjacIndexCons = Int32[0, 1, 1]
 cbjacIndexVars = Int32[0, 0, 3]
-error = KNITRO.KN_set_cb_grad(kc, cb, nothing, jacIndexCons=cbjacIndexCons, jacIndexVars=cbjacIndexVars)
+KNITRO.KN_set_cb_grad(kc, cb, nothing, jacIndexCons=cbjacIndexCons, jacIndexVars=cbjacIndexVars)
 
 # Set nonlinear Hessian provided through callbacks. Since the
 # Hessian is symmetric, only the upper triangle is provided.

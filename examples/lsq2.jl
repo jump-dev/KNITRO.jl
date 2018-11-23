@@ -103,7 +103,7 @@ KNITRO.KN_add_vars!(kc, n)
 # reasonable upper bound on variable x[1] and set the
 # "honorbnds" option for this variable to enforce
 # that all trial x[1] values satisfy this bound.
-KNITRO.KN_set_var_upbnd(kc, 1, 100.0)
+KNITRO.KN_set_var_upbnds(kc, 1, 100.0)
 KNITRO.KN_set_var_honorbnds(kc, 1, KNITRO.KN_HONORBNDS_ALWAYS)
 
 # Add the residuals.
