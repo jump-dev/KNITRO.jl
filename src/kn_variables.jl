@@ -138,6 +138,30 @@ function KN_set_var_honorbnds(m::Model, xHonorBound::Vector{Cint})
     _checkraise(ret)
 end
 
+##################################################
+## Naming variables
+##################################################
+function KN_set_var_names(m::Model, nindex::Integer, name::String)
+    ret = @kn_ccall(set_var_name, Cint,
+                    (Ptr{Nothing}, Cint, Ptr{Cchar}),
+                    m.env.ptr_env.x, nindex, name)
+    _checkraise(ret)
+end
+
+
+function KN_set_var_names(m::Model, varIndex::Vector{Cint}, names::Vector{String})
+    nvar = length(varIndex)
+    ret = @kn_ccall(set_var_names, Cint,
+                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Ptr{Char}}),
+                    m.env.ptr_env.x, nvar, varIndex, names)
+    _checkraise(ret)
+end
+function KN_set_var_names(m::Model, names::Vector{String})
+    ret = @kn_ccall(set_var_names_all, Cint, (Ptr{Nothing}, Ptr{Ptr{Cchar}}),
+                    m.env.ptr_env.x, names)
+    _checkraise(ret)
+end
+
 
 ##################################################
 ## Initial values

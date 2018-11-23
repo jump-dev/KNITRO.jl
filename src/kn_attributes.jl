@@ -61,6 +61,11 @@ function KN_set_obj_scaling(m::Model, objScaleFactor::Cdouble)
     _checkraise(ret)
 end
 
+function KN_set_obj_name(m::Model, name::AbstractString)
+    ret = @kn_ccall(set_obj_name, Cint, (Ptr{Nothing}, Ptr{Cchar}),
+                    m.env.ptr_env.x, name)
+    _checkraise(ret)
+end
 
 ##################################################
 # Generic getters
@@ -171,8 +176,34 @@ end
 
 
 ##################################################
-# Jacobian utils
+# Fetch solution utils
 ##################################################
+#--------------------
+# Objective gradient
+#--------------------
+function KN_get_objgrad_nnz(m::Model)
+    res = Cint[0]
+    ret = @kn_ccall(get_objgrad_nnz, Cint, (Ptr{Nothing}, Ptr{Cint}),
+                    m.env.ptr_env.x, res)
+    _checkraise(ret)
+    return res[1]
+end
+
+function KN_get_objgrad_values(m::Model)
+    nnz = KN_get_objgrad_nnz(m)
+    indexVars = zeros(Cint, nnz)
+    objGrad = zeros(Cdouble, nnz)
+    ret = @kn_ccall(get_objgrad_values, Cint,
+                    (Ptr{Nothing}, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, indexVars, objGrad)
+    _checkraise(ret)
+    return indexVars, objGrad
+end
+
+
+#--------------------
+# Jacobian
+#--------------------
 function KN_get_jacobian_nnz(m::Model)
     res = Cint[0]
     ret = @kn_ccall(get_jacobian_nnz, Cint, (Ptr{Nothing}, Ptr{Cint}),
@@ -193,10 +224,61 @@ function KN_get_jacobian_values(m::Model)
     return jacvars, jaccons, jaccoef
 end
 
+#--------------------
+# Rsd Jacobian
+#--------------------
+function KN_get_rsd_jacobian_nnz(m::Model)
+    res = Cint[0]
+    ret = @kn_ccall(get_rsd_jacobian_nnz, Cint, (Ptr{Nothing}, Ptr{Cint}),
+                    m.env.ptr_env.x, res)
+    _checkraise(ret)
+    return res[1]
+end
+
+function KN_get_rsd_jacobian_values(m::Model)
+    nnz = KN_get_rsd_jacobian_nnz(m)
+    jacvars = zeros(Cint, nnz)
+    jaccons = zeros(Cint, nnz)
+    jaccoef = zeros(Cdouble, nnz)
+    ret = @kn_ccall(get_rsd_jacobian_values, Cint,
+                    (Ptr{Nothing}, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, jacvars, jaccons, jaccoef)
+    _checkraise(ret)
+    return jacvars, jaccons, jaccoef
+end
+
+
+#--------------------
+# Hessian
+#--------------------
+function KN_get_hessian_nnz(m::Model)
+    res = Cint[0]
+    ret = @kn_ccall(get_hessian_nnz, Cint, (Ptr{Nothing}, Ptr{Cint}),
+                    m.env.ptr_env.x, res)
+    _checkraise(ret)
+    return res[1]
+end
+
+function KN_get_hessian_values(m::Model)
+    nnz = KN_get_hessian_nnz(m)
+    indexVars1 = zeros(Cint, nnz)
+    indexVars2 = zeros(Cint, nnz)
+    hess = zeros(Cdouble, nnz)
+    ret = @kn_ccall(get_hessian_values, Cint,
+                    (Ptr{Nothing}, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, indexVars1, indexVars2, hess)
+    _checkraise(ret)
+    return indexVars1, indexVars2, hess
+end
+
+
 
 ##################################################
 # MIP utils
 ##################################################
+#--------------------
+# Getters
+#--------------------
 function KN_get_mip_number_nodes(m::Model)
     res = Cint[0]
     ret = @kn_ccall(get_mip_number_nodes, Cint, (Ptr{Nothing}, Ptr{Cint}),
@@ -260,6 +342,62 @@ function KN_get_mip_incumbent_x(m::Model)
     _checkraise(ret)
     return res[1]
 end
+
+#--------------------
+# Branching priorities
+#--------------------
+function KN_set_mip_branching_priorities(m::Model, nindex::Integer, xPriorities::Cint)
+    ret = @kn_ccall(set_mip_branching_priority, Cint,
+                    (Ptr{Nothing}, Cint, Cint),
+                    m.env.ptr_env.x, nindex, xPriorities)
+    _checkraise(ret)
+end
+
+
+function KN_set_mip_branching_priorities(m::Model, xIndex::Vector{Cint}, xPriorities::Vector{Cint})
+    nvar = length(xIndex)
+    @assert nvar == length(xPriorities)
+    ret = @kn_ccall(set_mip_branching_priorities, Cint,
+                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cint}),
+                    m.env.ptr_env.x, nvar, xIndex, xPriorities)
+    _checkraise(ret)
+end
+function KN_set_mip_branching_priorities(m::Model, xPriorities::Vector{Cint})
+    ret = @kn_ccall(set_mip_branching_priorities_all, Cint, (Ptr{Nothing}, Ptr{Cint}),
+                    m.env.ptr_env.x, xPriorities)
+    _checkraise(ret)
+end
+
+
+
+#--------------------
+# Intvar strategies
+#--------------------
+function KN_set_mip_intvar_strategies(m::Model, nindex::Integer, xStrategies::Cint)
+    ret = @kn_ccall(set_mip_intvar_strategy, Cint,
+                    (Ptr{Nothing}, Cint, Cint),
+                    m.env.ptr_env.x, nindex, xStrategies)
+    _checkraise(ret)
+end
+
+
+function KN_set_mip_intvar_strategies(m::Model, xIndex::Vector{Cint}, xStrategies::Vector{Cint})
+    nvar = length(xIndex)
+    @assert nvar == length(xStrategies)
+    ret = @kn_ccall(set_mip_intvar_strategies, Cint,
+                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cint}),
+                    m.env.ptr_env.x, nvar, xIndex, xStrategies)
+    _checkraise(ret)
+end
+function KN_set_mip_intvar_strategies(m::Model, xStrategies::Vector{Cint})
+    ret = @kn_ccall(set_mip_intvar_strategies_all, Cint, (Ptr{Nothing}, Ptr{Cint}),
+                    m.env.ptr_env.x, xStrategies)
+    _checkraise(ret)
+end
+
+
+
+
 
 
 ##################################################

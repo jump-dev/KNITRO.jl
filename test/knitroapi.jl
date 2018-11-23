@@ -331,10 +331,10 @@ KNITRO.KN_set_var_honorbnds(kc,
                              KNITRO.KN_HONORBNDS_INITPT,
                              KNITRO.KN_HONORBNDS_NO])
 
-KNITRO.KN_set_var_scalings(kc, xScaleFactors = [1,2,3], xScaleCenters = [1,1,1])
-KNITRO.KN_set_con_scalings(kc, cScaleFactors = [0.5])
-KNITRO.KN_set_compcon_scalings(kc, ccScaleFactors = [2])
-KNITRO.KN_set_obj_scaling(kc, 10)
+KNITRO.KN_set_var_scalings(kc, Int32[1,2,3],  [1.,1,1])
+KNITRO.KN_set_con_scalings(kc,  [0.5])
+KNITRO.KN_set_compcon_scalings(kc, [2.])
+KNITRO.KN_set_obj_scaling(kc, 10.)
 
 KNITRO.KN_solve(kc)
 
@@ -364,7 +364,7 @@ KNITRO.KN_set_param(kc, "hessopt", 2)
 
 function evalF_evalGA(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
-    evalRequestCode = evalRequest.type
+    evalRequestCode = evalRequest.evalRequestCode
 
     if evalRequestCode == KNITRO.KN_RC_EVALFC
         # Evaluate nonlinear objective
@@ -397,21 +397,21 @@ KNITRO.KN_set_var_dual_init_values(kc, [1., 1, 1, 1])
 # Add the constraints and set their lower bounds.
 nC = 1
 KNITRO.KN_add_cons!(kc, nC)
-KNITRO.KN_set_con_lobnds(kc,  [0.1])
-KNITRO.KN_set_con_upbnds(kc,  [2*2*0.99])
+KNITRO.KN_set_con_lobnds(kc, [0.1])
+KNITRO.KN_set_con_upbnds(kc, [2*2*0.99])
 
 # Load quadratic structure x1*x2 for the constraint.
 KNITRO.KN_add_con_quadratic_struct(kc, 0, 1, 2, 1.0)
 
 # Define callback functions.
 cb = KNITRO.KN_add_eval_callback(kc, evalF_evalGA)
-KNITRO.KN_set_cb_grad(kc, cb, objGradIndexVars = KNITRO.KN_DENSE, gradCallback = evalF_evalGA)
+KNITRO.KN_set_cb_grad(kc, cb, evalF_evalGA)
 
 # Define complementarity constraints
 KNITRO.KN_set_compcons(kc, [KNITRO.KN_CCTYPE_VARVAR], Int32[0], Int32[1])
 
 # Set MIP parameters
-KNITRO.KN_set_mip_branching_priorities(kc, [0, 1, 2])
+KNITRO.KN_set_mip_branching_priorities(kc, Int32[0, 1, 2])
 # KNITRO.KN_set_mip_intvar_strategies(kc, 2, KNITRO.KN_MIP_INTVAR_STRATEGY_MPEC) # not compatible with MPEC constraint as a variable cannot be involved in two different complementarity constraints.
 KNITRO.KN_set_mip_node_callback(kc, callback("mip_node"))
 

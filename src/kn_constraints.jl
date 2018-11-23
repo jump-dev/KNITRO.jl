@@ -250,3 +250,50 @@ function KN_set_compcon_scalings(m::Model, cScaleFactors::Vector{Cdouble})
                     m.env.ptr_env.x, cScaleFactors)
     _checkraise(ret)
 end
+
+##################################################
+## Naming constraints
+##################################################
+function KN_set_con_names(m::Model, nindex::Integer, name::String)
+    ret = @kn_ccall(set_con_name, Cint,
+                    (Ptr{Nothing}, Cint, Ptr{Cchar}),
+                    m.env.ptr_env.x, nindex, name)
+    _checkraise(ret)
+end
+
+
+function KN_set_con_names(m::Model, conIndex::Vector{Cint}, names::Vector{String})
+    ncon = length(conIndex)
+    ret = @kn_ccall(set_con_names, Cint,
+                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Ptr{Char}}),
+                    m.env.ptr_env.x, ncon, conIndex, names)
+    _checkraise(ret)
+end
+function KN_set_con_names(m::Model, names::Vector{String})
+    ret = @kn_ccall(set_con_names_all, Cint, (Ptr{Nothing}, Ptr{Ptr{Cchar}}),
+                    m.env.ptr_env.x, names)
+    _checkraise(ret)
+end
+
+
+
+function KN_set_compcon_names(m::Model, nindex::Integer, name::String)
+    ret = @kn_ccall(set_compcon_name, Cint,
+                    (Ptr{Nothing}, Cint, Ptr{Cchar}),
+                    m.env.ptr_env.x, nindex, name)
+    _checkraise(ret)
+end
+
+
+function KN_set_compcon_names(m::Model, conIndex::Vector{Cint}, names::Vector{String})
+    ncon = length(conIndex)
+    ret = @kn_ccall(set_compcon_names, Cint,
+                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Ptr{Char}}),
+                    m.env.ptr_env.x, ncon, conIndex, names)
+    _checkraise(ret)
+end
+function KN_set_compcon_names(m::Model, names::Vector{String})
+    ret = @kn_ccall(set_compcon_names_all, Cint, (Ptr{Nothing}, Ptr{Ptr{Cchar}}),
+                    m.env.ptr_env.x, names)
+    _checkraise(ret)
+end
