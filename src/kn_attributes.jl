@@ -4,7 +4,6 @@
 ##################################################
 # objective
 ##################################################
-
 # set objective sense
 function KN_set_obj_goal(m::Model, objgoal::Cint)
     ret = @kn_ccall(set_obj_goal, Cint, (Ptr{Nothing}, Cint),
@@ -16,7 +15,6 @@ function KN_add_obj_linear_struct(m::Model,
                                   objIndices::Vector{Cint},
                                   objCoefs::Vector{Cdouble})
     nnz = length(objIndices)
-
     ret = @kn_ccall(add_obj_linear_struct, Cint,
                     (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
                     m.env.ptr_env.x,
@@ -26,7 +24,6 @@ function KN_add_obj_linear_struct(m::Model,
     _checkraise(ret)
 end
 
-
 # quadratic part of objective
 function KN_add_obj_quadratic_struct(m::Model,
                                      indexVars1::Vector{Cint},
@@ -34,7 +31,6 @@ function KN_add_obj_quadratic_struct(m::Model,
                                      coefs::Vector{Cdouble})
     nnz = length(indexVars1)
     @assert nnz = length(indexVars2) == length(coefs)
-
     ret = @kn_ccall(add_obj_quadratic_struct, Cint,
                     (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
                     m.env.ptr_env.x,
@@ -69,7 +65,6 @@ function KN_set_obj_name(m::Model, name::AbstractString)
     _checkraise(ret)
 end
 
-
 ##################################################
 # Generic getters
 ##################################################
@@ -103,7 +98,6 @@ function KN_get_obj_type(m::Model)
     _checkraise(ret)
     return obj_type[1]
 end
-
 
 ##################################################
 # Constraints getters
@@ -186,7 +180,6 @@ function KN_get_rel_opt_error(m::Model)
     return res[1]
 end
 
-
 ##################################################
 # Fetch solution utils
 ##################################################
@@ -211,7 +204,6 @@ function KN_get_objgrad_values(m::Model)
     _checkraise(ret)
     return indexVars, objGrad
 end
-
 
 #--------------------
 # Jacobian
@@ -259,7 +251,6 @@ function KN_get_rsd_jacobian_values(m::Model)
     return jacvars, jaccons, jaccoef
 end
 
-
 #--------------------
 # Hessian
 #--------------------
@@ -282,7 +273,6 @@ function KN_get_hessian_values(m::Model)
     _checkraise(ret)
     return indexVars1, indexVars2, hess
 end
-
 
 
 ##################################################
@@ -380,7 +370,6 @@ function KN_set_mip_branching_priorities(m::Model, xPriorities::Vector{Cint})
     _checkraise(ret)
 end
 
-
 #--------------------
 # Intvar strategies
 #--------------------
@@ -405,7 +394,6 @@ function KN_set_mip_intvar_strategies(m::Model, xStrategies::Vector{Cint})
                     m.env.ptr_env.x, xStrategies)
     _checkraise(ret)
 end
-
 
 
 ##################################################
@@ -453,7 +441,6 @@ function KN_set_param(m::Model, param::AbstractString, value::AbstractString)
     _checkraise(ret)
 end
 
-
 #------------------------------
 # Getters
 #------------------------------
@@ -491,7 +478,6 @@ function KN_get_double_param(m::Model, param::AbstractString)
     _checkraise(ret)
     return res[1]
 end
-
 
 #------------------------------
 # Params information

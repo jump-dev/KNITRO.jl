@@ -44,22 +44,22 @@ function evalAll(kc, cb, evalRequest, evalResult, userParams)
 
     if evalRequestCode == KNITRO.KN_RC_EVALFC
         # Evaluate nonlinear objective
-        evalResult.obj[1] = x[1] ^ 2 * x[3] + x[2] ^ 3 * x[3] ^ 2
+        evalResult.obj[1] = x[1]^2 * x[3] + x[2]^3 * x[3]^2
     elseif evalRequestCode == KNITRO.KN_RC_EVALGA
         evalResult.objGrad[1] = 2 * x[1] * x[3]
-        evalResult.objGrad[2] = 3 * x[2] ^ 2 * x[3] ^ 2
-        evalResult.objGrad[3] = x[1] ^ 2 + 2 * x[2] ^ 3 * x[3]
+        evalResult.objGrad[2] = 3 * x[2]^2 * x[3]^2
+        evalResult.objGrad[3] = x[1]^2 + 2 * x[2]^3 * x[3]
     elseif evalRequestCode == KNITRO.KN_RC_EVALH
         evalResult.hess[1] = 2 * x[3]
         evalResult.hess[2] = 2 * x[1]
-        evalResult.hess[3] = 6 * x[2] * x[3] ^ 2
-        evalResult.hess[4] = 6 * x[2] ^ 2 * x[3]
-        evalResult.hess[5] = 2 * x[2] ^ 3
+        evalResult.hess[3] = 6 * x[2] * x[3]^2
+        evalResult.hess[4] = 6 * x[2]^2 * x[3]
+        evalResult.hess[5] = 2 * x[2]^3
     elseif evalRequestCode == KNITRO.KN_RC_EVALHV
         vec = evalRequest.vec
-        evalResult.hessVec[1] =(2 * x[3]) * vec[1] +(2 * x[1]) * vec[3]
-        evalResult.hessVec[2] =(6 * x[2] * x[3] ^ 2) * vec[2] +(6 * x[2] ^ 2 * x[3]) * vec[3]
-        evalResult.hessVec[3] =(2 * x[1]) * vec[1] +(6 * x[2] ^ 2 * x[3]) * vec[2] +(2 * x[2] ^ 3) * vec[3]
+        evalResult.hessVec[1] = (2 * x[3]) * vec[1] + (2 * x[1]) * vec[3]
+        evalResult.hessVec[2] = (6 * x[2] * x[3]^2) * vec[2] + (6 * x[2]^2 * x[3]) * vec[3]
+        evalResult.hessVec[3] = (2 * x[1]) * vec[1] + (6 * x[2]^2 * x[3]) * vec[2] + (2 * x[2]^3) * vec[3]
 
     elseif evalRequestCode == KNITRO.KN_RC_EVALH_NO_F
         evalResult.hess[1] = 0
@@ -151,19 +151,19 @@ println()
 
     # Add the variables and set their bounds.
     nV = 3
-    KNITRO.KN_add_vars!(kc, nV)
+    KNITRO.KN_add_vars(kc, nV)
     KNITRO.KN_set_var_lobnds(kc, [0, 0.1, 0])
     KNITRO.KN_set_var_upbnds(kc, [0., 2, 2])
 
     # Define an initial point.
     KNITRO.KN_set_var_primal_init_values(kc, [1., 1, 1.5])
-    KNITRO.KN_set_var_dual_init_values(kc,   [1., 1, 1, 1])
+    KNITRO.KN_set_var_dual_init_values(kc,  [1., 1, 1, 1])
 
     # Add the constraints and set their bounds.
     nC = 1
-    KNITRO.KN_add_cons!(kc, nC)
-    KNITRO.KN_set_con_lobnds(kc,  [0.1])
-    KNITRO.KN_set_con_upbnds(kc,  [2*2*0.99])
+    KNITRO.KN_add_cons(kc, nC)
+    KNITRO.KN_set_con_lobnds(kc, [0.1])
+    KNITRO.KN_set_con_upbnds(kc, [2 * 2 * 0.99])
 
     # Load quadratic structure x1*x2 for the constraint.
     KNITRO.KN_add_con_quadratic_struct(kc, 0, 1, 2, 1.0)
@@ -190,8 +190,8 @@ println()
     KNITRO.KN_solve(kc)
 
     # Restart with new variable bounds
-    KNITRO.KN_set_var_lobnds(kc,  Float64[0., 0, 0])
-    KNITRO.KN_set_var_upbnds(kc,  Float64[2., 2, 2])
+    KNITRO.KN_set_var_lobnds(kc, Float64[0., 0, 0])
+    KNITRO.KN_set_var_upbnds(kc, Float64[2., 2, 2])
     KNITRO.KN_solve(kc)
 
     # Retrieve relevant solve information
@@ -249,7 +249,7 @@ println()
 
     # Add the variables and set their bounds.
     nV = 3
-    KNITRO.KN_add_vars!(kc, nV)
+    KNITRO.KN_add_vars(kc, nV)
     KNITRO.KN_set_var_lobnds(kc, [0, 0.1, 0])
     KNITRO.KN_set_var_upbnds(kc, [0., 2, 2])
 
@@ -259,9 +259,9 @@ println()
 
     # Add the constraints and set their lower bounds.
     nC = 1
-    KNITRO.KN_add_cons!(kc, nC)
-    KNITRO.KN_set_con_lobnds(kc,  [0.1])
-    KNITRO.KN_set_con_upbnds(kc,  [2*2*0.99])
+    KNITRO.KN_add_cons(kc, nC)
+    KNITRO.KN_set_con_lobnds(kc, [0.1])
+    KNITRO.KN_set_con_upbnds(kc, [2 * 2 * 0.99])
 
     # Load quadratic structure x1*x2 for the constraint.
     KNITRO.KN_add_con_quadratic_struct(kc, 0, 1, 2, 1.0)
@@ -316,9 +316,9 @@ println()
 
     # Add the variables and set their bounds.
     nV = 3
-    KNITRO.KN_add_vars!(kc, nV)
-    KNITRO.KN_set_var_lobnds(kc,  [0, 0.1, 0])
-    KNITRO.KN_set_var_upbnds(kc,  [0., 2, 2])
+    KNITRO.KN_add_vars(kc, nV)
+    KNITRO.KN_set_var_lobnds(kc, [0, 0.1, 0])
+    KNITRO.KN_set_var_upbnds(kc, [0., 2, 2])
 
     # Define an initial point.
     KNITRO.KN_set_var_primal_init_values(kc, [1, 1, 1.5])
@@ -326,9 +326,9 @@ println()
 
     # Add the constraints and set their lower bounds.
     nC = 1
-    KNITRO.KN_add_cons!(kc, nC)
+    KNITRO.KN_add_cons(kc, nC)
     KNITRO.KN_set_con_lobnds(kc, [0.1])
-    KNITRO.KN_set_con_upbnds(kc, [2*2*0.99])
+    KNITRO.KN_set_con_upbnds(kc, [2 * 2 * 0.99])
 
     # Load quadratic structure x1*x2 for the constraint.
     KNITRO.KN_add_con_quadratic_struct(kc, 0, 1, 2, 1.0)
@@ -345,8 +345,8 @@ println()
                                 KNITRO.KN_HONORBNDS_INITPT,
                                 KNITRO.KN_HONORBNDS_NO])
 
-    KNITRO.KN_set_var_scalings(kc, Int32[1,2,3],  [1.,1,1])
-    KNITRO.KN_set_con_scalings(kc,  [0.5])
+    KNITRO.KN_set_var_scalings(kc, Int32[1,2,3], [1.,1,1])
+    KNITRO.KN_set_con_scalings(kc, [0.5])
     KNITRO.KN_set_compcon_scalings(kc, [2.])
     KNITRO.KN_set_obj_scaling(kc, 10.)
 
@@ -385,11 +385,11 @@ println()
 
         if evalRequestCode == KNITRO.KN_RC_EVALFC
             # Evaluate nonlinear objective
-            evalResult.obj[1] = x[1] ^ 2 * x[3] + x[2] ^ 3 * x[3] ^ 2
+            evalResult.obj[1] = x[1]^2 * x[3] + x[2]^3 * x[3]^2
         elseif evalRequestCode == KNITRO.KN_RC_EVALGA
             evalResult.objGrad[1] = 2 * x[1] * x[3]
-            evalResult.objGrad[2] = 3 * x[2] ^ 2 * x[3] ^ 2
-            evalResult.objGrad[3] = x[1] ^ 2 + 2 * x[2] ^ 3 * x[3]
+            evalResult.objGrad[2] = 3 * x[2]^2 * x[3]^2
+            evalResult.objGrad[3] = x[1]^2 + 2 * x[2]^3 * x[3]
         else
             return KNITRO.KN_RC_CALLBACK_ERR
         end
@@ -402,10 +402,10 @@ println()
 
     # Add the variables and set their bounds.
     nV = 3
-    KNITRO.KN_add_vars!(kc, nV)
-    KNITRO.KN_set_var_lobnds(kc,  [0, 0.1, 0])
-    KNITRO.KN_set_var_upbnds(kc,  [0., 2, 2])
-    KNITRO.KN_set_var_types(kc,  [KNITRO.KN_VARTYPE_CONTINUOUS, KNITRO.KN_VARTYPE_INTEGER, KNITRO.KN_VARTYPE_INTEGER])
+    KNITRO.KN_add_vars(kc, nV)
+    KNITRO.KN_set_var_lobnds(kc, [0, 0.1, 0])
+    KNITRO.KN_set_var_upbnds(kc, [0., 2, 2])
+    KNITRO.KN_set_var_types(kc, [KNITRO.KN_VARTYPE_CONTINUOUS, KNITRO.KN_VARTYPE_INTEGER, KNITRO.KN_VARTYPE_INTEGER])
 
     # Define an initial point.
     KNITRO.KN_set_var_primal_init_values(kc, [1, 1, 1.5])
@@ -413,9 +413,9 @@ println()
 
     # Add the constraints and set their lower bounds.
     nC = 1
-    KNITRO.KN_add_cons!(kc, nC)
+    KNITRO.KN_add_cons(kc, nC)
     KNITRO.KN_set_con_lobnds(kc, [0.1])
-    KNITRO.KN_set_con_upbnds(kc, [2*2*0.99])
+    KNITRO.KN_set_con_upbnds(kc, [2 * 2 * 0.99])
 
     # Load quadratic structure x1*x2 for the constraint.
     KNITRO.KN_add_con_quadratic_struct(kc, 0, 1, 2, 1.0)
@@ -433,17 +433,17 @@ println()
     KNITRO.KN_set_mip_node_callback(kc, callback("mip_node"))
 
     # Set var, con and obj names
-    KNITRO.KN_set_var_names(kc,  ["myvar1", "myvar2", "myvar3"])
-    KNITRO.KN_set_con_names(kc,  ["mycon1"])
-    KNITRO.KN_set_obj_name(kc,  "myobj")
+    KNITRO.KN_set_var_names(kc, ["myvar1", "myvar2", "myvar3"])
+    KNITRO.KN_set_con_names(kc, ["mycon1"])
+    KNITRO.KN_set_obj_name(kc, "myobj")
 
     # Set feasibility tolerances
-    KNITRO.KN_set_var_feastols(kc,  [0.1, 0.001, 0.1])
+    KNITRO.KN_set_var_feastols(kc, [0.1, 0.001, 0.1])
     KNITRO.KN_set_con_feastols(kc, [0.1])
-    KNITRO.KN_set_compcon_feastols(kc,  [0.1])
+    KNITRO.KN_set_compcon_feastols(kc, [0.1])
 
     # Set finite differences step size
-    KNITRO.KN_set_cb_relstepsizes(kc, cb,  [0.1, 0.001, 0.1])
+    KNITRO.KN_set_cb_relstepsizes(kc, cb, [0.1, 0.001, 0.1])
 
     # Solve the problem.
     KNITRO.KN_solve(kc)
@@ -507,16 +507,16 @@ println()
 
     # Add the variables and set their bounds.
     nV = 2
-    KNITRO.KN_add_vars!(kc, nV)
-    KNITRO.KN_set_var_lobnds(kc,  [ -1.0, -1.0 ])
-    KNITRO.KN_set_var_upbnds(kc,  [ 1.0, 1.0 ])
-    KNITRO.KN_set_var_primal_init_values(kc,  [ 1.0, 5.0 ])
+    KNITRO.KN_add_vars(kc, nV)
+    KNITRO.KN_set_var_lobnds(kc, [ -1.0, -1.0 ])
+    KNITRO.KN_set_var_upbnds(kc, [ 1.0, 1.0 ])
+    KNITRO.KN_set_var_primal_init_values(kc, [ 1.0, 5.0 ])
 
     # Add the residuals
-    KNITRO.KN_add_rsds!(kc, 6)
+    KNITRO.KN_add_rsds(kc, 6)
 
     # Define callbacks
-    cb = KNITRO.KN_add_lsq_eval_callback(kc,  evalR)
+    cb = KNITRO.KN_add_lsq_eval_callback(kc, evalR)
     nnzJ = 12
     KNITRO.KN_set_cb_rsd_jac(kc, cb, nnzJ, evalJ,
                             jacIndexRsds=Int32[ 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5 ],

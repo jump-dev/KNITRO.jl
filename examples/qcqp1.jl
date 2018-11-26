@@ -32,23 +32,23 @@ KNITRO.KN_load_param_file(kc, "examples/knitro.opt")
 
 # Add the variables and set their bounds and initial values.
 # Note: unset bounds assumed to be infinite.
-KNITRO.KN_add_vars!(kc, 3)
+KNITRO.KN_add_vars(kc, 3)
 KNITRO.KN_set_var_lobnds(kc, [0., 0., 0.])
 KNITRO.KN_set_var_primal_init_values(kc,  [2.0, 2.0, 2.0])
 
 # Add the constraints and set their bounds.
-KNITRO.KN_add_cons!(kc, 2)
+KNITRO.KN_add_cons(kc, 2)
 KNITRO.KN_set_con_eqbnds(kc, 0, 56.0)
 KNITRO.KN_set_con_lobnds(kc, 1, 25.0)
 
 # Add coefficients for linear constraint.
-lconIndexVars = Int32[  0,    1,   2]
+lconIndexVars = Int32[0, 1, 2]
 lconCoefs     = [8.0, 14.0, 7.0]
 KNITRO.KN_add_con_linear_struct(kc, 0, lconIndexVars, lconCoefs)
 
 # Add coefficients for quadratic constraint
-qconIndexVars1 = Int32[  0,   1,   2]
-qconIndexVars2 = Int32[  0,   1,   2]
+qconIndexVars1 = Int32[0, 1, 2]
+qconIndexVars2 = Int32[0, 1, 2]
 qconCoefs      = [1.0, 1.0, 1.0]
 KNITRO.KN_add_con_quadratic_struct(kc, 1, qconIndexVars1, qconIndexVars2, qconCoefs)
 
@@ -59,8 +59,8 @@ KNITRO.KN_set_obj_goal(kc, KNITRO.KN_OBJGOAL_MINIMIZE)
 KNITRO.KN_add_obj_constant(kc, 1000.0)
 
 # Set quadratic objective structure.
-qobjIndexVars1 = Int32[   0,    1,    2,    0,    0]
-qobjIndexVars2 = Int32[   0,    1,    2,    1,    2]
+qobjIndexVars1 = Int32[0, 1, 2, 0, 0]
+qobjIndexVars2 = Int32[0, 1, 2, 1, 2]
 qobjCoefs      = [-1.0, -2.0, -1.0, -1.0, -1.0]
 
 KNITRO.KN_add_obj_quadratic_struct(kc, qobjIndexVars1, qobjIndexVars2, qobjCoefs)

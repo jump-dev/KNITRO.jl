@@ -35,8 +35,8 @@ function callbackEvalF(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
 
     # Evaluate nonlinear objective
-    dTmp = x[2] - x[1]*x[1]
-    evalResult.obj[1] = 100.0 *(dTmp*dTmp) +((1.0 - x[1])*(1.0 - x[1]))
+    dTmp = x[2] - x[1] * x[1]
+    evalResult.obj[1] = 100.0 * (dTmp * dTmp) + ((1.0 - x[1]) * (1.0 - x[1]))
 
     return 0
 end
@@ -50,8 +50,8 @@ function callbackEvalG!(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
 
     # Evaluate gradient of nonlinear objective
-    dTmp = x[2] - x[1]*x[1]
-    evalResult.objGrad[1] =(-400.0 * dTmp * x[1]) -(2.0 *(1.0 - x[1]))
+    dTmp = x[2] - x[1] * x[1]
+    evalResult.objGrad[1] = (-400.0 * dTmp * x[1]) - (2.0 * (1.0 - x[1]))
     evalResult.objGrad[2] = 200.0 * dTmp
 
     return 0
@@ -75,8 +75,8 @@ function callbackEvalH!(kc, cb, evalRequest, evalResult, userParams)
     # Note: The Hessian terms for the quadratic constraints
     #       will be added internally by Knitro to form
     #       the full Hessian of the Lagrangian.
-    evalResult.hess[1] = sigma *((-400.0 * x[2]) +(1200.0 * x[1]*x[1]) + 2.0) #(0,0)
-    evalResult.hess[2] = sigma *(-400.0 * x[1]) #(0,1)
+    evalResult.hess[1] = sigma * ((-400.0 * x[2]) + (1200.0 * x[1] * x[1]) + 2.0) #(0,0)
+    evalResult.hess[2] = sigma * (-400.0 * x[1]) #(0,1)
     evalResult.hess[3] = sigma * 200.0           #(1,1)
 
     return 0
@@ -100,12 +100,12 @@ KNITRO.KN_load_param_file(kc, "examples/knitro.opt")
 # Note: any unset lower bounds are assumed to be
 # unbounded below and any unset upper bounds are
 # assumed to be unbounded above.
-KNITRO.KN_add_vars!(kc, 2)
+KNITRO.KN_add_vars(kc, 2)
 KNITRO.KN_set_var_lobnds(kc, [-KNITRO.KN_INFINITY, -KNITRO.KN_INFINITY]) # not necessary since infinite
 KNITRO.KN_set_var_upbnds(kc, [0.5, KNITRO.KN_INFINITY])
 
 # Add the constraints and set their lower bounds
-KNITRO.KN_add_cons!(kc, 2)
+KNITRO.KN_add_cons(kc, 2)
 KNITRO.KN_set_con_lobnds(kc, [1.0, 0.0])
 
 # Both constraints are quadratic so we can directly load all the

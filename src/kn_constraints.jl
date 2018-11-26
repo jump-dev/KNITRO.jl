@@ -3,14 +3,14 @@
 
 ##################################################
 # Constraint definition
-function KN_add_cons!(m::Model, ncons::Integer)
+function KN_add_cons(m::Model, ncons::Integer)
     ptr_cons = zeros(Cint, ncons)
     ret = @kn_ccall(add_cons, Cint, (Ptr{Nothing}, Cint, Ptr{Cint}), m.env.ptr_env.x, ncons, ptr_cons)
     _checkraise(ret)
     return ptr_cons
 end
 
-function KN_add_con!(m::Model)
+function KN_add_con(m::Model)
     ptr_cons = Cint[0]
     ret = @kn_ccall(add_con, Cint, (Ptr{Nothing}, Ptr{Cint}), m.env.ptr_env.x, ptr_cons)
     _checkraise(ret)

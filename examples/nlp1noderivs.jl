@@ -37,8 +37,8 @@ function callbackEvalF(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
 
     # Evaluate nonlinear objective
-    dTmp = x[2] - x[1]*x[1]
-    evalResult.obj[1] = 100.0 *(dTmp*dTmp) +((1.0 - x[1])*(1.0 - x[1]))
+    dTmp = x[2] - x[1] * x[1]
+    evalResult.obj[1] = 100.0 * (dTmp * dTmp) + ((1.0 - x[1]) * (1.0 - x[1]))
 
     return 0
 end
@@ -61,7 +61,7 @@ KNITRO.KN_load_param_file(kc, "examples/knitro.opt")
 # unbounded below and any unset upper bounds are
 # assumed to be unbounded above.
 n = 2
-KNITRO.KN_add_vars!(kc, n)
+KNITRO.KN_add_vars(kc, n)
 KNITRO.KN_set_var_lobnds(kc, [-KNITRO.KN_INFINITY, -KNITRO.KN_INFINITY]) # not necessary since infinite
 KNITRO.KN_set_var_upbnds(kc, [0.5, KNITRO.KN_INFINITY])
 # Define an initial point.  If not set, Knitro will generate one.
@@ -69,7 +69,7 @@ KNITRO.KN_set_var_primal_init_values(kc, [-2.0, 1.0])
 
 # Add the constraints and set their lower bounds
 m = 2
-KNITRO.KN_add_cons!(kc, m)
+KNITRO.KN_add_cons(kc, m)
 KNITRO.KN_set_con_lobnds(kc, [1.0, 0.0])
 
 # Both constraints are quadratic so we can directly load all the

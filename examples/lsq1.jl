@@ -45,11 +45,11 @@ kc = KNITRO.KN_new()
 # unbounded below and any unset upper bounds are
 # assumed to be unbounded above.
 n = 3 # # of variables/parameters
-KNITRO.KN_add_vars!(kc, n)
+KNITRO.KN_add_vars(kc, n)
 
 # Add the residuals.
 m = 5 # # of residuals
-KNITRO.KN_add_rsds!(kc, m)
+KNITRO.KN_add_rsds(kc, m)
 
 # Set the array of constants, y, in the residuals
 KNITRO.KN_add_rsd_constants(kc, [1.0, 0.5, 0.0, 0.5, 2.0])

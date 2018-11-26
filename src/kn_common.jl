@@ -35,5 +35,5 @@ function get_release()
     out = zeros(Cchar,len)
 
     @kn_ccall(get_release, Cvoid, (Cint, Ptr{Cchar}), len, out)
-    return String(strip(String(convert(Vector{UInt8},out)),'\0'))
+    return String(strip(String(convert(Vector{UInt8},out)), '\0'))
 end

@@ -3,14 +3,14 @@
 
 ##################################################
 # Residuals definition
-function KN_add_rsds!(m::Model, ncons::Integer)
+function KN_add_rsds(m::Model, ncons::Integer)
     ptr_cons = zeros(Cint, ncons)
     ret = @kn_ccall(add_rsds, Cint, (Ptr{Nothing}, Cint, Ptr{Cint}), m.env.ptr_env.x, ncons, ptr_cons)
     _checkraise(ret)
     return ptr_cons
 end
 
-function KN_add_rsd!(m::Model)
+function KN_add_rsd(m::Model)
     ptr_cons = Cint[0]
     ret = @kn_ccall(add_rsd, Cint, (Ptr{Nothing}, Ptr{Cint}), m.env.ptr_env.x, ptr_cons)
     _checkraise(ret)

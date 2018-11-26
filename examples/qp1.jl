@@ -38,12 +38,12 @@ KNITRO.KN_load_param_file(kc, "examples/knitro.opt")
 
 # Add the variables and set their bounds.
 # Note: unset bounds assumed to be infinite.
-KNITRO.KN_add_vars!(kc, 3)
+KNITRO.KN_add_vars(kc, 3)
 KNITRO.KN_set_var_lobnds(kc, [0.0, 0.0, -3.0])
 KNITRO.KN_set_var_upbnds(kc, 2, 2.0)
 
 # Add the constraint and set the bound and coefficient.
-KNITRO.KN_add_cons!(kc, 1)
+KNITRO.KN_add_cons(kc, 1)
 KNITRO.KN_set_con_upbnd(kc, 0, 5.0)
 KNITRO.KN_add_con_linear_struct(kc, 0, 2, -6.0)
 

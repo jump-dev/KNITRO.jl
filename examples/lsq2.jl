@@ -68,15 +68,15 @@ function callbackEvalRJ(kc, cb, evalRequest, evalResult, userParams)
     end
 
     # Evaluate non-zero residual Jacobian elements(row major order).
-    evalResult.rsdJac[1] = x[2]^1.309
-    evalResult.rsdJac[2] = x[1] * log(1.309) * x[2]^1.309
-    evalResult.rsdJac[3] = x[2]^1.471
-    evalResult.rsdJac[4] = x[1] * log(1.471) * x[2]^1.471
-    evalResult.rsdJac[5] = x[2]^1.49
-    evalResult.rsdJac[6] = x[1] * log(1.49) * x[2]^1.49
-    evalResult.rsdJac[7] = x[2]^1.565
-    evalResult.rsdJac[8] = x[1] * log(1.565) * x[2]^1.565
-    evalResult.rsdJac[9] = x[2]^1.611
+    evalResult.rsdJac[1]  = x[2]^1.309
+    evalResult.rsdJac[2]  = x[1] * log(1.309) * x[2]^1.309
+    evalResult.rsdJac[3]  = x[2]^1.471
+    evalResult.rsdJac[4]  = x[1] * log(1.471) * x[2]^1.471
+    evalResult.rsdJac[5]  = x[2]^1.49
+    evalResult.rsdJac[6]  = x[1] * log(1.49) * x[2]^1.49
+    evalResult.rsdJac[7]  = x[2]^1.565
+    evalResult.rsdJac[8]  = x[1] * log(1.565) * x[2]^1.565
+    evalResult.rsdJac[9]  = x[2]^1.611
     evalResult.rsdJac[10] = x[1] * log(1.611) * x[2]^1.611
     evalResult.rsdJac[11] = x[2]^1.68
     evalResult.rsdJac[12] = x[1] * log(1.68) * x[2]^1.68
@@ -96,7 +96,7 @@ kc = KNITRO.KN_new()
 # unbounded below and any unset upper bounds are
 # assumed to be unbounded above.
 n = 2 # # of variables/parameters
-KNITRO.KN_add_vars!(kc, n)
+KNITRO.KN_add_vars(kc, n)
 
 # In order to prevent the possiblity of numerical
 # overflow from very large numbers, we set a
@@ -108,7 +108,7 @@ KNITRO.KN_set_var_honorbnds(kc, 1, KNITRO.KN_HONORBNDS_ALWAYS)
 
 # Add the residuals.
 m = 6 # # of residuals
-KNITRO.KN_add_rsds!(kc, m)
+KNITRO.KN_add_rsds(kc, m)
 
 # Set the array of constants in the residuals
 KNITRO.KN_add_rsd_constants(kc, [-2.138, -3.421, -3.597, -4.34, -4.882, -5.66])

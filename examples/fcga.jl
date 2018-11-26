@@ -109,13 +109,13 @@ kc = KNITRO.KN_new()
 # Note: any unset lower bounds are assumed to be
 # unbounded below and any unset upper bounds are
 # assumed to be unbounded above.
-vars = KNITRO.KN_add_vars!(kc, 4)
+vars = KNITRO.KN_add_vars(kc, 4)
 for x in vars
     KNITRO.KN_set_var_primal_init_values(kc, x, 0.8)
 end
 
 # Add the constraints and set the rhs and coefficients
-KNITRO.KN_add_cons!(kc, 3)
+KNITRO.KN_add_cons(kc, 3)
 KNITRO.KN_set_con_eqbnds(kc, [1.0, 0.0, 0.0]);
 
 # Coefficients for 2 linear terms

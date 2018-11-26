@@ -27,19 +27,19 @@ kc = KNITRO.KN_new()
 
 # Illustrate how to override default options by reading from
 # the knitro.opt file.
-#= KNITRO.KN_load_param_file(kc, "examples/knitro.opt") =#
+KNITRO.KN_load_param_file(kc, "examples/knitro.opt")
 
 # Initialize Knitro with the problem definition.
 
 # Add the variables and set their bounds.
 # Note: unset bounds assumed to be infinite.
-xIndices = KNITRO.KN_add_vars!(kc, 4)
+xIndices = KNITRO.KN_add_vars(kc, 4)
 for x in xIndices
     KNITRO.KN_set_var_lobnds(kc, x, 0.0)
 end
 
 # Add the constraints and set the rhs and coefficients.
-cons = KNITRO.KN_add_cons!(kc, 2)
+cons = KNITRO.KN_add_cons(kc, 2)
 KNITRO.KN_set_con_eqbnds(kc,  [5., 8.])
 # Add Jacobian structure and coefficients.
 # First constraint

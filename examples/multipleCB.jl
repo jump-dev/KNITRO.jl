@@ -38,7 +38,7 @@ function callbackEvalObj(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
 
     # Evaluate nonlinear term in objective
-    evalResult.obj[1] = x[xind[1]]*x[xind[2]]*x[xind[3]]*x[xind[4]]
+    evalResult.obj[1] = x[xind[1]] * x[xind[2]] * x[xind[3]] * x[xind[4]]
 
     return 0
 end
@@ -55,7 +55,7 @@ function callbackEvalC0(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
 
     # Evaluate nonlinear terms in constraint, c0
-    evalResult.c[1] = x[xind[1]]*x[xind[1]]*x[xind[1]]
+    evalResult.c[1] = x[xind[1]] * x[xind[1]] * x[xind[1]]
 
     return 0
 end
@@ -72,7 +72,7 @@ function callbackEvalC1(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
 
     # Evaluate nonlinear terms in constraint, c1
-    evalResult.c[1] = x[xind[1]]*x[xind[1]]*x[xind[4]]
+    evalResult.c[1] = x[xind[1]] * x[xind[1]] * x[xind[4]]
 
     return 0
 end
@@ -93,10 +93,10 @@ function callbackEvalObjGrad(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
 
     # Evaluate nonlinear terms in objective gradient
-    evalResult.objGrad[xind[1]] = x[xind[2]]*x[xind[3]]*x[xind[4]]
-    evalResult.objGrad[xind[2]] = x[xind[1]]*x[xind[3]]*x[xind[4]]
-    evalResult.objGrad[xind[3]] = x[xind[1]]*x[xind[2]]*x[xind[4]]
-    evalResult.objGrad[xind[4]] = x[xind[1]]*x[xind[2]]*x[xind[3]]
+    evalResult.objGrad[xind[1]] = x[xind[2]] * x[xind[3]] * x[xind[4]]
+    evalResult.objGrad[xind[2]] = x[xind[1]] * x[xind[3]] * x[xind[4]]
+    evalResult.objGrad[xind[3]] = x[xind[1]] * x[xind[2]] * x[xind[4]]
+    evalResult.objGrad[xind[4]] = x[xind[1]] * x[xind[2]] * x[xind[3]]
 
     return 0
 end
@@ -113,7 +113,7 @@ function callbackEvalC0Grad(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
 
     # Evaluate nonlinear terms in c0 constraint gradients
-    evalResult.jac[1] = 3.0*x[xind[1]]*x[xind[1]] #* derivative of x0^3 term  wrt x0
+    evalResult.jac[1] = 3.0 * x[xind[1]] * x[xind[1]] # *  derivative of x0^3 term  wrt x0
 
     return 0
 end
@@ -132,13 +132,13 @@ kc = KNITRO.KN_new()
 # Note: any unset lower bounds are assumed to be
 # unbounded below and any unset upper bounds are
 # assumed to be unbounded above.
-xIndices = KNITRO.KN_add_vars!(kc, 4)
+xIndices = KNITRO.KN_add_vars(kc, 4)
 for x in xIndices
     KNITRO.KN_set_var_primal_init_values(kc, x, 0.8)
 end
 
 # Add the constraints and set the rhs and coefficients
-cIndices = KNITRO.KN_add_cons!(kc, 3)
+cIndices = KNITRO.KN_add_cons(kc, 3)
 KNITRO.KN_set_con_eqbnds(kc, cIndices[1], 1.0)
 KNITRO.KN_set_con_eqbnds(kc, cIndices[2], 0.0)
 KNITRO.KN_set_con_eqbnds(kc, cIndices[3], 0.0)

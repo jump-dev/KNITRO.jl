@@ -1,7 +1,7 @@
 # Variables utilities
 
 "Add variable to model."
-function KN_add_var!(m::Model)
+function KN_add_var(m::Model)
     ptr_int = Cint[0]
     ret = @kn_ccall(add_var, Cint, (Ptr{Nothing}, Ptr{Cint}), m.env.ptr_env.x, ptr_int)
     _checkraise(ret)
@@ -9,7 +9,7 @@ function KN_add_var!(m::Model)
 end
 
 
-function KN_add_vars!(m::Model, nvars::Int)
+function KN_add_vars(m::Model, nvars::Int)
     ptr_int = zeros(Cint, nvars)
     ret = @kn_ccall(add_vars, Cint, (Ptr{Nothing}, Cint, Ptr{Cint}), m.env.ptr_env.x, nvars, ptr_int)
     _checkraise(ret)

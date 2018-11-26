@@ -31,11 +31,11 @@ function callbackEvalFC(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
 
     # Evaluate nonlinear term in objective
-    evalResult.obj[1] = x[1]*x[2]*x[3]*x[4]
+    evalResult.obj[1] = x[1] * x[2] * x[3] * x[4]
 
     # Evaluate nonlinear terms in constraints
-    evalResult.c[1] = x[1]*x[1]*x[1]
-    evalResult.c[2] = x[1]*x[1]*x[4]
+    evalResult.c[1] = x[1] * x[1] * x[1]
+    evalResult.c[2] = x[1] * x[1] * x[4]
 
     return 0
 end
@@ -49,15 +49,15 @@ function callbackEvalGA(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
 
     # Evaluate nonlinear term in objective gradient
-    evalResult.objGrad[1] = x[2]*x[3]*x[4]
-    evalResult.objGrad[2] = x[1]*x[3]*x[4]
-    evalResult.objGrad[3] = x[1]*x[2]*x[4]
-    evalResult.objGrad[4] = x[1]*x[2]*x[3]
+    evalResult.objGrad[1] = x[2] * x[3] * x[4]
+    evalResult.objGrad[2] = x[1] * x[3] * x[4]
+    evalResult.objGrad[3] = x[1] * x[2] * x[4]
+    evalResult.objGrad[4] = x[1] * x[2] * x[3]
 
     # Evaluate nonlinear terms in constraint gradients(Jacobian)
-    evalResult.jac[1] = 3.0*x[1]*x[1] # derivative of x0^3 term  wrt x0
-    evalResult.jac[2] = 2.0*x[1]*x[4] # derivative of x0^2*x3 term  wrt x0
-    evalResult.jac[3] = x[1]*x[1]     # derivative of x0^2*x3 terms wrt x3
+    evalResult.jac[1] = 3.0 * x[1] * x[1] # derivative of x0^3 term  wrt x0
+    evalResult.jac[2] = 2.0 * x[1] * x[4] # derivative of x0^2 * x3 term  wrt x0
+    evalResult.jac[3] = x[1] * x[1]       # derivative of x0^2 * x3 terms wrt x3
 
     return 0
 end
@@ -76,18 +76,18 @@ function callbackEvalH(kc, cb, evalRequest, evalResult, userParams)
     # Evaluate nonlinear term in the Hessian of the Lagrangian.
     # Note: If sigma=0, some computations can be avoided.
     if sigma > 0.0 # Evaluate the full Hessian of the Lagrangian
-        evalResult.hess[1] = lambda_[1]*6.0*x[1] + lambda_[2]*2.0*x[4]
-        evalResult.hess[2] = sigma*x[3]*x[4]
-        evalResult.hess[3] = sigma*x[2]*x[4]
-        evalResult.hess[4] = sigma*x[2]*x[3] + lambda_[2]*2.0*x[1]
-        evalResult.hess[5] = sigma*x[1]*x[4]
-        evalResult.hess[6] = sigma*x[1]*x[3]
-        evalResult.hess[7] = sigma*x[1]*x[2]
+        evalResult.hess[1] = lambda_[1] * 6.0 * x[1] + lambda_[2] * 2.0 * x[4]
+        evalResult.hess[2] = sigma * x[3] * x[4]
+        evalResult.hess[3] = sigma * x[2] * x[4]
+        evalResult.hess[4] = sigma * x[2] * x[3] + lambda_[2] * 2.0 * x[1]
+        evalResult.hess[5] = sigma * x[1] * x[4]
+        evalResult.hess[6] = sigma * x[1] * x[3]
+        evalResult.hess[7] = sigma * x[1] * x[2]
     else # sigma=0, do not include objective component
-        evalResult.hess[1] = lambda_[1]*6.0*x[1] + lambda_[2]*2.0*x[4]
+        evalResult.hess[1] = lambda_[1] * 6.0 * x[1] + lambda_[2] * 2.0 * x[4]
         evalResult.hess[2] = 0.0
         evalResult.hess[3] = 0.0
-        evalResult.hess[4] = lambda_[2]*2.0*x[1]
+        evalResult.hess[4] = lambda_[2] * 2.0 * x[1]
         evalResult.hess[5] = 0.0
         evalResult.hess[6] = 0.0
         evalResult.hess[7] = 0.0
@@ -141,13 +141,13 @@ kc = KNITRO.KN_new()
 # Note: any unset lower bounds are assumed to be
 # unbounded below and any unset upper bounds are
 # assumed to be unbounded above.
-xIndices = KNITRO.KN_add_vars!(kc, 4)
+xIndices = KNITRO.KN_add_vars(kc, 4)
 for x in xIndices
     KNITRO.KN_set_var_primal_init_values(kc, x, 0.8)
 end
 
 # Add the constraints and set the rhs and coefficients
-KNITRO.KN_add_cons!(kc, 3)
+KNITRO.KN_add_cons(kc, 3)
 KNITRO.KN_set_con_eqbnds(kc, [1.0, 0.0, 0.0])
 
 # Coefficients for 2 linear terms

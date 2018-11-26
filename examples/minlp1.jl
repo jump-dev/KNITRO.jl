@@ -43,11 +43,11 @@ function callbackEvalFC(kc, cb, evalRequest, evalResult, userParams)
     # Evaluate nonlinear objective structure
     dTmp1 = x[1] - x[2] + 1.0
     dTmp2 = x[2] + 1.0
-    evalResult.obj[1] = -18.0*log(dTmp2) - 19.2*log(dTmp1)
+    evalResult.obj[1] = -18.0 * log(dTmp2) - 19.2 * log(dTmp1)
 
     # Evaluate nonlinear constraint structure
-    evalResult.c[1] = 0.8*log(dTmp2) + 0.96*log(dTmp1)
-    evalResult.c[2] = log(dTmp2) + 1.2*log(dTmp1)
+    evalResult.c[1] = 0.8 * log(dTmp2) + 0.96 * log(dTmp1)
+    evalResult.c[2] = log(dTmp2) + 1.2 * log(dTmp1)
 
     return 0
 end
@@ -64,14 +64,14 @@ function callbackEvalGA(kc, cb, evalRequest, evalResult, userParams)
     dTmp1 = x[1] - x[2] + 1.0
     dTmp2 = x[2] + 1.0
     evalResult.objGrad[1] = -(19.2 / dTmp1)
-    evalResult.objGrad[2] =(-18.0 / dTmp2) +(19.2 / dTmp1)
+    evalResult.objGrad[2] = (-18.0 / dTmp2) + (19.2 / dTmp1)
 
     # Gradient of nonlinear structure in constraint 0.
     evalResult.jac[1] = 0.96 / dTmp1                      # wrt x0
-    evalResult.jac[2] =(-0.96 / dTmp1) +(0.8 / dTmp2)   # wrt x1
+    evalResult.jac[2] = (-0.96 / dTmp1) + (0.8 / dTmp2)   # wrt x1
     # Gradient of nonlinear structure in constraint 1.
     evalResult.jac[3] = 1.2 / dTmp1                       # wrt x0
-    evalResult.jac[4] =(-1.2 / dTmp1) +(1.0 / dTmp2)    # wrt x1
+    evalResult.jac[4] = (-1.2 / dTmp1) + (1.0 / dTmp2)    # wrt x1
 
     return 0
 end
@@ -92,13 +92,13 @@ function callbackEvalH(kc, cb, evalRequest, evalResult, userParams)
     #       nonzero elements in the upper triangle(plus diagonal).
     dTmp1 = x[1] - x[2] + 1.0
     dTmp2 = x[2] + 1.0
-    evalResult.hess[1] = sigma*(19.2 /(dTmp1*dTmp1)) +
-                            lambda_[1]*(-0.96 /(dTmp1*dTmp1)) + lambda_[2]*(-1.2 /(dTmp1*dTmp1))
-    evalResult.hess[2] = sigma*(-19.2 /(dTmp1*dTmp1)) +
-                            lambda_[1]*(0.96 /(dTmp1*dTmp1)) + lambda_[2]*(1.2 /(dTmp1*dTmp1))
-    evalResult.hess[3] = sigma*((19.2 /(dTmp1*dTmp1)) +(18.0 /(dTmp2*dTmp2))) +
-                            lambda_[1]*((-0.96 /(dTmp1*dTmp1)) -(0.8 /(dTmp2*dTmp2))) +
-                            lambda_[2]*((-1.2 /(dTmp1*dTmp1)) -(1.0 /(dTmp2*dTmp2)))
+    evalResult.hess[1] = sigma * (19.2 /(dTmp1 * dTmp1)) +
+                            lambda_[1] * (-0.96 / (dTmp1 * dTmp1)) + lambda_[2] * (-1.2 / (dTmp1 * dTmp1))
+    evalResult.hess[2] = sigma * (-19.2 /(dTmp1 * dTmp1)) +
+                            lambda_[1] * (0.96 / (dTmp1 * dTmp1)) + lambda_[2] * (1.2 / (dTmp1 * dTmp1))
+    evalResult.hess[3] = sigma * ((19.2 / (dTmp1 * dTmp1)) +(18.0 / (dTmp2 * dTmp2))) +
+                            lambda_[1] * ((-0.96 / (dTmp1 * dTmp1)) -(0.8 / (dTmp2 * dTmp2))) +
+                            lambda_[2] * ((-1.2 / (dTmp1 * dTmp1)) -(1.0 / (dTmp2 * dTmp2)))
 
     return 0
 end
@@ -162,7 +162,7 @@ KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_MIP_MAXNODES, 10000)
 # unbounded below and any unset upper bounds are
 # assumed to be unbounded above.
 n = 6
-KNITRO.KN_add_vars!(kc, n)
+KNITRO.KN_add_vars(kc, n)
 KNITRO.KN_set_var_lobnds(kc, zeros(Float64, n))
 KNITRO.KN_set_var_upbnds(kc, [2., 2., 1., 1., 1., 1.])
 KNITRO.KN_set_var_types(kc, [KNITRO.KN_VARTYPE_CONTINUOUS,
@@ -176,12 +176,12 @@ KNITRO.KN_set_var_types(kc, [KNITRO.KN_VARTYPE_CONTINUOUS,
 # problem.  We mark them as linear variables, which may
 # help Knitro do more extensive presolving resulting in
 # faster solves.
-for i in 2:n-1
+for i in 2:(n-1)
     KNITRO.KN_set_var_property(kc, i, KNITRO.KN_VAR_LINEAR)
 end
 
 # Add the constraints and set their bounds
-KNITRO.KN_add_cons!(kc, 6)
+KNITRO.KN_add_cons(kc, 6)
 KNITRO.KN_set_con_lobnds(kc,  [0, -2,
                                -KNITRO.KN_INFINITY,
                                -KNITRO.KN_INFINITY,
