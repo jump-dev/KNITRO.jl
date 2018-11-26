@@ -269,3 +269,9 @@ end
 
 # Delete the Knitro solver instance.
 KNITRO.KN_free(kc)
+
+@testset "Exemple minlp1" begin
+    @test nStatus == 0
+    @test objSol ≈ 6.0097589
+    @test x ≈ [1.30097589, 0., 1., 0., 1., 0.] atol=1e-5
+end

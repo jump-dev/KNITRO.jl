@@ -21,6 +21,7 @@
 
 
 using KNITRO
+using Test
 
 #*------------------------------------------------------------------*
 #*     FUNCTION callbackEvalF                                       *
@@ -40,7 +41,7 @@ end
 #*------------------------------------------------------------------*
 #*     FUNCTION callbackEvalG                                       *
 #*------------------------------------------------------------------*
-# The signature of this function matches KNITRO.KN_eval_callback in knitro.py.
+# The signature of this function matches KN_eval_callback in knitro.h.
 # Only "objGrad" is set in the KNITRO.KN_eval_result structure.
 function callbackEvalG!(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
@@ -56,8 +57,8 @@ end
 #*------------------------------------------------------------------*
 #*     FUNCTION callbackEvalH                                       *
 #*------------------------------------------------------------------*
-# The signature of this function matches KNITRO.KN_eval_callback in knitro.py.
-# Only "hess" and "hessVec" are set in the KNITRO.KN_eval_result structure.
+# The signature of this function matches KN_eval_callback in knitro.h.
+# Only "hess" and "hessVec" are set in the KN_eval_result structure.
 function callbackEvalH!(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
     # Scale objective component of hessian by sigma
@@ -144,7 +145,6 @@ cb = KNITRO.KN_add_eval_callback(kc, callbackEvalF)
 # the non-zero sparsity structure of the constraint gradients
 #(i.e. Jacobian matrix) for efficiency(this is true even when using
 # finite-difference gradients).
-#= KNITRO.KN_set_cb_grad(kc, cb, objGradIndexVars = KNITRO.KN_DENSE, gradCallback = callbackEvalG) =#
 KNITRO.KN_set_cb_grad(kc, cb, callbackEvalG!)
 
 # Add a callback function "callbackEvalH" to evaluate the Hessian
@@ -154,7 +154,6 @@ KNITRO.KN_set_cb_grad(kc, cb, callbackEvalG!)
 # can greatly improve Knitro performance and is recommended if possible.
 # Since the Hessian is symmetric, only the upper triangle is provided.
 # Again for simplicity, we specify it in dense(row major) form.
-#= KNITRO.KN_set_cb_hess(kc, cb, hessIndexVars1 = KNITRO.KN_DENSE_ROWMAJOR, hessCallback = callbackEvalH) =#
 KNITRO.KN_set_cb_hess(kc, cb, KNITRO.KN_DENSE_ROWMAJOR, callbackEvalH!)
 
 # Specify that the user is able to provide evaluations
@@ -170,7 +169,7 @@ KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_DERIVCHECK, KNITRO.KN_DERIVCHECK_ALL)
 
 # Solve the problem.
 #
-# Return status codes are defined in "knitro.py" and described
+# Return status codes are defined in "knitro.h" and described
 # in the Knitro manual.
 nStatus = KNITRO.KN_solve(kc)
 
@@ -189,5 +188,11 @@ end
 println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
 println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
 
-#= # Delete the Knitro solver instance. =#
+# Delete the Knitro solver instance.
 KNITRO.KN_free(kc)
+
+@testset "Exemple HS15 nlp1" begin
+    @test nStatus == 0
+    @test objSol  ≈ 306.5
+    @test x ≈ [0.5, 2]
+end

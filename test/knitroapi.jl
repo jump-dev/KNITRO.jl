@@ -181,18 +181,21 @@ println()
     KNITRO.KN_set_compcons(kc, [KNITRO.KN_CCTYPE_VARVAR], Int32[0], Int32[1])
 
     # Solve the problem.
-    KNITRO.KN_solve(kc)
+    status = KNITRO.KN_solve(kc)
+    @test status == 0
 
     # Restart using the previous solution.
     nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
     KNITRO.KN_set_var_primal_init_values(kc, x)
     KNITRO.KN_set_var_dual_init_values(kc, lambda_)
-    KNITRO.KN_solve(kc)
+    status = KNITRO.KN_solve(kc)
+    @test status == 0
 
     # Restart with new variable bounds
     KNITRO.KN_set_var_lobnds(kc, Float64[0., 0, 0])
     KNITRO.KN_set_var_upbnds(kc, Float64[2., 2, 2])
-    KNITRO.KN_solve(kc)
+    status = KNITRO.KN_solve(kc)
+    @test status == 0
 
     # Retrieve relevant solve information
     println("FC_evals       = ", KNITRO.KN_get_number_FC_evals(kc))
@@ -212,6 +215,8 @@ println()
     println("objSol         = ", objSol)
     println("x              = ", x)
     println("lambda_        = ", lambda_)
+
+    @test objSol ≈ 31.363199 atol=1e-5
 
     KNITRO.KN_free(kc)
 end
@@ -291,7 +296,9 @@ println()
 
 
     # Solve the problem.
-    KNITRO.KN_solve(kc)
+    status = KNITRO.KN_solve(kc)
+
+    @test status == 0
 
     KNITRO.KN_free(kc)
 
@@ -350,7 +357,8 @@ println()
     KNITRO.KN_set_compcon_scalings(kc, [2.])
     KNITRO.KN_set_obj_scaling(kc, 10.)
 
-    KNITRO.KN_solve(kc)
+    status = KNITRO.KN_solve(kc)
+    @test status == 0
 
     # Retrieve derivatives values
     println("objGrad = ", KNITRO.KN_get_objgrad_values(kc))
@@ -446,7 +454,8 @@ println()
     KNITRO.KN_set_cb_relstepsizes(kc, cb, [0.1, 0.001, 0.1])
 
     # Solve the problem.
-    KNITRO.KN_solve(kc)
+    status = KNITRO.KN_solve(kc)
+    @test status == 0
 
     println("number of nodes         = ", KNITRO.KN_get_mip_number_nodes(kc))
     println("number of solves        = ", KNITRO.KN_get_mip_number_solves(kc))
@@ -523,7 +532,8 @@ println()
                             jacIndexVars=Int32[ 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1 ])
 
     # Solve the problem.
-    KNITRO.KN_solve(kc)
+    status = KNITRO.KN_solve(kc)
+    @test status == 0
 
     println("jac     = ", KNITRO.KN_get_rsd_jacobian_values(kc))
 
@@ -532,6 +542,9 @@ println()
     println("objSol  = ", objSol)
     println("x       = ", x)
     println("lambda_ = ", lambda_)
+
+    @test objSol ≈ 30.920944 atol=1e-5
+    @test x ≈ [1., 1.] atol=1e-5
 
     KNITRO.KN_free(kc)
 end

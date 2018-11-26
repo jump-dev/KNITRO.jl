@@ -67,7 +67,7 @@ KNITRO.KN_add_obj_quadratic_struct(kc, qobjIndexVars1, qobjIndexVars2, qobjCoefs
 
 # Solve the problem.
 #
-# Return status codes are defined in "knitro.py" and described
+# Return status codes are defined in "knitro.h" and described
 # in the Knitro manual.
 nStatus = KNITRO.KN_solve(kc)
 
@@ -83,3 +83,9 @@ println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
 
 # Delete the Knitro solver instance.
 KNITRO.KN_free(kc)
+
+@testset "Example QCQP1" begin
+    @test nStatus == 0
+    @test objSol ≈ 951.
+    @test x ≈ [7., 0., 0.]
+end

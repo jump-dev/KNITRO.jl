@@ -222,3 +222,9 @@ println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
 
 # Delete the Knitro solver instance.
 KNITRO.KN_free(kc)
+
+@testset "Exemple HS15 multistart" begin
+    @test nStatus == 0
+    @test objSol  ≈ 306.5
+    @test x ≈ [0.5, 2]
+end

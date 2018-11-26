@@ -17,15 +17,11 @@
 
 using KNITRO
 
-#*------------------------------------------------------------------*
-#*     FUNCTION pow                                                 *
-#*------------------------------------------------------------------*
-# This function mimics the behaviour of the std:pow function in C
 
 #*------------------------------------------------------------------*
 #*     FUNCTION callbackEvalR                                       *
 #*------------------------------------------------------------------*
-# The signature of this function matches KNITRO.KN_eval_callback in knitro.py.
+# The signature of this function matches KNITRO.KN_eval_callback in knitro.h.
 # Only "rsd" is set in the KNITRO.KN_eval_result structure.
 function callbackEvalR(kc, cb, evalRequest, evalResult, userParams)
     if evalRequest.evalRequestCode != KNITRO.KN_RC_EVALR
@@ -53,7 +49,7 @@ end
 #*------------------------------------------------------------------*
 #*     FUNCTION callbackEvalRJ                                      *
 #*------------------------------------------------------------------*
-# The signature of this function matches KNITRO.KN_eval_callback in knitro.py.
+# The signature of this function matches KNITRO.KN_eval_callback in knitro.h.
 # Only "rsdJac" is set in the KNITRO.KN_eval_result structure.
 function callbackEvalRJ(kc, cb, evalRequest, evalResult, userParams)
     if evalRequest.evalRequestCode != KNITRO.KN_RC_EVALRJ
@@ -131,7 +127,7 @@ KNITRO.KN_set_cb_rsd_jac(kc, cb, KNITRO.KN_DENSE_ROWMAJOR, callbackEvalRJ)
 
 # Solve the problem.
 #
-# Return status codes are defined in "knitro.py" and described
+# Return status codes are defined in "knitro.h" and described
 # in the Knitro manual.
 
 nRC = KNITRO.KN_solve(kc)
@@ -140,7 +136,7 @@ if nRC != 0
     println("Knitro failed to solve the problem, status = ", nRC)
 else
     # An example of obtaining solution information.
-    # Return status codes are defined in "knitro.py" and described
+    # Return status codes are defined in "knitro.h" and described
     # in the Knitro manual.
     nStatus, obj, x, lambda_ = KNITRO.KN_get_solution(kc)
     println("Knitro successful. The optimal solution is:")

@@ -20,13 +20,13 @@
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
-using KNITRO
+using KNITRO, Test
 
 #*------------------------------------------------------------------*
 #*     FUNCTION EVALUATION CALLBACKS                                *
 #*------------------------------------------------------------------*
 
-# The signature of this function matches KNITRO.KN_eval_callback in knitro.py.
+# The signature of this function matches KNITRO.KN_eval_callback in knitro.h.
 # Only "obj" is set in the KNITRO.KN_eval_result structure.
 function callbackEvalObj(kc, cb, evalRequest, evalResult, userParams)
     xind = userParams[:data]
@@ -43,7 +43,7 @@ function callbackEvalObj(kc, cb, evalRequest, evalResult, userParams)
     return 0
 end
 
-# The signature of this function matches KNITRO.KN_eval_callback in knitro.py.
+# The signature of this function matches KNITRO.KN_eval_callback in knitro.h.
 # Only "c0" is set in the KNITRO.KN_eval_result structure.
 function callbackEvalC0(kc, cb, evalRequest, evalResult, userParams)
     xind = userParams[:data]
@@ -60,7 +60,7 @@ function callbackEvalC0(kc, cb, evalRequest, evalResult, userParams)
     return 0
 end
 
-# The signature of this function matches KNITRO.KN_eval_callback in knitro.py.
+# The signature of this function matches KNITRO.KN_eval_callback in knitro.h.
 # Only "c1" is set in the KNITRO.KN_eval_result structure.
 function callbackEvalC1(kc, cb, evalRequest, evalResult, userParams)
     xind = userParams[:data]
@@ -81,7 +81,7 @@ end
 #*     GRADIENT EVALUATION CALLBACKS                                *
 #*------------------------------------------------------------------*
 
-# The signature of this function matches KNITRO.KN_eval_callback in knitro.py.
+# The signature of this function matches KNITRO.KN_eval_callback in knitro.h.
 # Only "objGrad" is set in the KNITRO.KN_eval_result structure.
 function callbackEvalObjGrad(kc, cb, evalRequest, evalResult, userParams)
     xind = userParams[:data]
@@ -101,7 +101,7 @@ function callbackEvalObjGrad(kc, cb, evalRequest, evalResult, userParams)
     return 0
 end
 
-# The signature of this function matches KNITRO.KN_eval_callback in knitro.py.
+# The signature of this function matches KNITRO.KN_eval_callback in knitro.h.
 # Only gradient of c0 is set in the KNITRO.KN_eval_result structure.
 function callbackEvalC0Grad(kc, cb, evalRequest, evalResult, userParams)
     xind = userParams[:data]
@@ -204,7 +204,7 @@ KNITRO.KN_set_param(kc, "hessopt", KNITRO.KN_HESSOPT_BFGS)
 
 # Solve the problem.
 #
-# Return status codes are defined in "knitro.py" and described
+# Return status codes are defined in "knitro.h" and described
 # in the Knitro manual.
 nStatus = KNITRO.KN_solve(kc)
 
@@ -220,3 +220,9 @@ println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
 
 # Delete the Knitro solver instance.
 KNITRO.KN_free(kc)
+
+@testset "Exemple multipleCB" begin
+    @test nStatus == 0
+    @test objSol ≈ 0.25
+    @test x ≈ [0.793701, 0.707107, 0.529732, 0.840896] atol=1e-5
+end

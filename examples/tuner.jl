@@ -21,12 +21,12 @@
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
-using KNITRO
+using KNITRO, Test
 
 #*------------------------------------------------------------------*
 #*     FUNCTION callbackEvalF                                       *
 #*------------------------------------------------------------------*
-# The signature of this function matches KNITRO.KN_eval_callback in knitro.py.
+# The signature of this function matches KNITRO.KN_eval_callback in knitro.h.
 # Only "obj" is set in the KNITRO.KN_eval_result structure.
 function callbackEvalF(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
@@ -41,7 +41,7 @@ end
 #*------------------------------------------------------------------*
 #*     FUNCTION callbackEvalG                                       *
 #*------------------------------------------------------------------*
-# The signature of this function matches KNITRO.KN_eval_callback in knitro.py.
+# The signature of this function matches KNITRO.KN_eval_callback in knitro.h.
 # Only "objGrad" is set in the KNITRO.KN_eval_result structure.
 function callbackEvalG(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
@@ -58,7 +58,7 @@ end
 #*------------------------------------------------------------------*
 #*     FUNCTION callbackEvalH                                       *
 #*------------------------------------------------------------------*
-# The signature of this function matches KNITRO.KN_eval_callback in knitro.py.
+# The signature of this function matches KNITRO.KN_eval_callback in knitro.h.
 # Only "hess" and "hessVec" are set in the KNITRO.KN_eval_result structure.
 function callbackEvalH(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
@@ -187,7 +187,7 @@ end
 
 # Solve the problem.
 #
-# Return status codes are defined in "knitro.py" and described
+# Return status codes are defined in "knitro.h" and described
 # in the Knitro manual.
 nStatus = KNITRO.KN_solve(kc)
 
@@ -209,3 +209,9 @@ println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
 
 # Delete the Knitro solver instance.
 KNITRO.KN_free(kc)
+
+@testset "Example HS15 Tuner" begin
+    @test nStatus == 0
+    # we have two possible final positions
+    @test isapprox(objSol, 306.5, atol=1e-1) || isapprox(objSol, 360.4, atol=.1)
+end

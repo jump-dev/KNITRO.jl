@@ -20,12 +20,12 @@
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
-using KNITRO
+using KNITRO, Test
 
 #*------------------------------------------------------------------*
 #*     FUNCTION callbackEvalFC                                      *
 #*------------------------------------------------------------------*
-# The signature of this function matches KNITRO.KN_eval_callback in knitro.py.
+# The signature of this function matches KNITRO.KN_eval_callback in knitro.h.
 # Only "obj" and "c" are set in the KNITRO.KN_eval_result structure.
 function callbackEvalFC(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
@@ -43,7 +43,7 @@ end
 #*------------------------------------------------------------------*
 #*     FUNCTION callbackEvalGA                                      *
 #*------------------------------------------------------------------*
-# The signature of this function matches KNITRO.KN_eval_callback in knitro.py.
+# The signature of this function matches KNITRO.KN_eval_callback in knitro.h.
 # Only "objGrad" and "jac" are set in the KNITRO.KN_eval_result structure.
 function callbackEvalGA(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
@@ -65,7 +65,7 @@ end
 #*------------------------------------------------------------------*
 #*     FUNCTION callbackEvalH                                       *
 #*------------------------------------------------------------------*
-# The signature of this function matches KNITRO.KN_eval_callback in knitro.py.
+# The signature of this function matches KNITRO.KN_eval_callback in knitro.h.
 # Only "hess" or "hessVec" are set in the KNITRO.KN_eval_result structure.
 function callbackEvalH(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
@@ -100,7 +100,7 @@ end
 #*     FUNCTION callbackNewPoint                                    *
 #*------------------------------------------------------------------*
 # The signature of this function matches KNITRO.KN_user_callback in
-# knitro.py.  Nothing should be modified.  This example printlns out
+# knitro.h.  Nothing should be modified.  This example printlns out
 # that Knitro has iterated to a new point(x, lambda) that it
 # considers an improvement over the previous iterate, and printlns
 # out the current feasibility error and number of evaluations.
@@ -209,7 +209,7 @@ KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, KNITRO.KN_OUTLEV_ITER)
 
 # Solve the problem.
 #
-# Return status codes are defined in "knitro.py" and described
+# Return status codes are defined in "knitro.h" and described
 # in the Knitro manual.
 nStatus = KNITRO.KN_solve(kc)
 
@@ -225,3 +225,9 @@ println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
 
 # Delete the Knitro solver instance.
 KNITRO.KN_free(kc)
+
+@testset "Exemple HS40 nlp2" begin
+    @test nStatus == 0
+    @test objSol ≈ 0.25
+    @test x ≈ [0.793701, 0.707107, 0.529732, 0.840896] atol=1e-5
+end
