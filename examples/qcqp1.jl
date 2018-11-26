@@ -7,8 +7,7 @@
 #  This example demonstrates how to use Knitro to solve the following
 #  simple quadratically constrained quadratic programming problem(QCQP).
 #
-#  min   1000 - x0^2 - 2 x1^2 - x2^2 - x0 x1 - x0 x2
-#  s.t.  8 x0 + 14 x1 + 7 x2 = 56
+#  min   1000 - x0^2 - 2 x1^2 - x2^2 - x0 x1 - x0 x2 #  s.t.  8 x0 + 14 x1 + 7 x2 = 56
 #        x0^2 + x1^2 + x2^2 >= 25
 #        x0 >= 0, x1 >= 0, x2 >= 0
 #

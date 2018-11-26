@@ -13,7 +13,7 @@
 #                  2*x0 + 0.5*x1 + x3  = 8
 #                 0 <= (x0, x1, x2, x3)
 #  The optimal solution is:
-#     obj=17.333 x=[3.667,1.333,0,0]
+#     obj=-17.333 x=[3.667,1.333,0,0]
 #
 #  The purpose is to illustrate how to invoke Knitro using the C
 #  language API.
@@ -50,7 +50,6 @@ jacCoefs = [1.0, 1.0, 1.0]
 jacIndexCons = [jacIndexCons; Int32[1, 1, 1]]
 jacIndexVars = [jacIndexVars; Int32[0, 1, 3]]
 jacCoefs = [jacCoefs; [2.0, 0.5, 1.0]]
-#= KNITRO.KN_add_con_linear_struct(kc, jacIndexCons, jacIndexVars, jacCoefs) =#
 KNITRO.KN_add_con_linear_struct(kc, 0, Int32[0, 1, 2], [1., 1., 1.])
 KNITRO.KN_add_con_linear_struct(kc, 1, Int32[0, 1, 3], [2., .5, 1.])
 

@@ -32,7 +32,7 @@
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
-using KNITRO
+using KNITRO, Test
 
 #*------------------------------------------------------------------*
 #*     main                                                         *
@@ -128,3 +128,9 @@ println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
 
 # Delete the Knitro solver instance.
 KNITRO.KN_free(kc)
+
+@testset "Example MPEC 1" begin
+    @test nStatus == 0
+    @test objSol ≈ 17.
+    @test x ≈ [1., 0., 3.5, 0., 0., 0., 3., 6.]
+end

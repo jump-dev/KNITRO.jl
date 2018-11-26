@@ -185,7 +185,7 @@ function KN_add_con_linear_struct(m::Model,
     @assert nnz == length(jacIndexVars) == length(jacCoefs)
     ret = @kn_ccall(add_con_linear_struct,
                     Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
+                    (Ptr{Nothing}, KNLONG, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
                     m.env.ptr_env.x,
                     nnz,
                     jacIndexCons,
@@ -203,7 +203,7 @@ function KN_add_con_linear_struct(m::Model,
     @assert nnz == length(coefs)
     ret = @kn_ccall(add_con_linear_struct_one,
                     Cint,
-                    (Ptr{Nothing}, Cint, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    (Ptr{Nothing}, KNLONG, Cint, Ptr{Cint}, Ptr{Cdouble}),
                     m.env.ptr_env.x,
                     nnz,
                     indexCon,
@@ -224,9 +224,10 @@ function KN_add_con_quadratic_struct(m::Model,
                                      coefs::Vector{Cdouble})
     # get number of constraints
     nnz = length(indexVars1)
+    @assert nnz == length(indexCons) == length(indexVars2) == length(coefs)
     ret = @kn_ccall(add_con_quadratic_struct,
                     Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
+                    (Ptr{Nothing}, KNLONG, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
                     m.env.ptr_env.x,
                     nnz,
                     indexCons,
@@ -243,9 +244,10 @@ function KN_add_con_quadratic_struct(m::Model,
                                      coefs::Vector{Cdouble})
     # get number of constraints
     nnz = length(indexVars1)
+    @assert nnz == length(indexVars2) == length(coefs)
     ret = @kn_ccall(add_con_quadratic_struct_one,
                     Cint,
-                    (Ptr{Nothing}, Cint, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
+                    (Ptr{Nothing}, KNLONG, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
                     m.env.ptr_env.x,
                     nnz,
                     indexCons,
@@ -282,7 +284,7 @@ function KN_set_compcons(m::Model,
                          indexComps2::Vector{Cint})
     # get number of constraints
     nnc = length(ccTypes)
-    @assert ncc = length(indexComps1) == length(indexComps2)
+    @assert nnc == length(indexComps1) == length(indexComps2)
     ret = @kn_ccall(set_compcons,
                     Cint,
                     (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}),

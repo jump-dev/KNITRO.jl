@@ -25,7 +25,7 @@ using KNITRO
 
 # Used to specify whether linear and quadratic objective
 # terms are loaded separately or together in this example.
-bSeparate = true
+bSeparate = false
 
 # Create a new Knitro solver instance.
 kc = KNITRO.KN_new()
@@ -96,10 +96,10 @@ println("  optimal primal values x  = ",  x)
 println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
 println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
 # Delete the Knitro solver instance.
-KNITRO.KN_free(kc)
+#= KNITRO.KN_free(kc) =#
 
 @testset "Exemple QP1" begin
     @test nStatus == 0
-    @test objSol ≈ -0.4861 atol=1e-5
+    @test objSol ≈ -0.4861 atol=1e-4
     @test x ≈ [0., 0., -5/6] atol=1e-5
 end

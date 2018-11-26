@@ -15,8 +15,9 @@ function KN_add_obj_linear_struct(m::Model,
                                   objIndices::Vector{Cint},
                                   objCoefs::Vector{Cdouble})
     nnz = length(objIndices)
+    @assert nnz == length(objCoefs)
     ret = @kn_ccall(add_obj_linear_struct, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    (Ptr{Nothing}, KNLONG, Ptr{Cint}, Ptr{Cdouble}),
                     m.env.ptr_env.x,
                     nnz,
                     objIndices,
@@ -30,9 +31,9 @@ function KN_add_obj_quadratic_struct(m::Model,
                                      indexVars2::Vector{Cint},
                                      coefs::Vector{Cdouble})
     nnz = length(indexVars1)
-    @assert nnz = length(indexVars2) == length(coefs)
+    @assert nnz == length(indexVars2) == length(coefs)
     ret = @kn_ccall(add_obj_quadratic_struct, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
+                    (Ptr{Nothing}, KNLONG, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
                     m.env.ptr_env.x,
                     nnz,
                     indexVars1,
@@ -209,8 +210,8 @@ end
 # Jacobian
 #--------------------
 function KN_get_jacobian_nnz(m::Model)
-    res = Cint[0]
-    ret = @kn_ccall(get_jacobian_nnz, Cint, (Ptr{Nothing}, Ptr{Cint}),
+    res = KNLONG[0]
+    ret = @kn_ccall(get_jacobian_nnz, Cint, (Ptr{Nothing}, Ptr{KNLONG}),
                     m.env.ptr_env.x, res)
     _checkraise(ret)
     return res[1]
@@ -232,8 +233,8 @@ end
 # Rsd Jacobian
 #--------------------
 function KN_get_rsd_jacobian_nnz(m::Model)
-    res = Cint[0]
-    ret = @kn_ccall(get_rsd_jacobian_nnz, Cint, (Ptr{Nothing}, Ptr{Cint}),
+    res = KNLONG[0]
+    ret = @kn_ccall(get_rsd_jacobian_nnz, Cint, (Ptr{Nothing}, Ptr{KNLONG}),
                     m.env.ptr_env.x, res)
     _checkraise(ret)
     return res[1]
@@ -255,8 +256,8 @@ end
 # Hessian
 #--------------------
 function KN_get_hessian_nnz(m::Model)
-    res = Cint[0]
-    ret = @kn_ccall(get_hessian_nnz, Cint, (Ptr{Nothing}, Ptr{Cint}),
+    res = KNLONG[0]
+    ret = @kn_ccall(get_hessian_nnz, Cint, (Ptr{Nothing}, Ptr{KNLONG}),
                     m.env.ptr_env.x, res)
     _checkraise(ret)
     return res[1]
