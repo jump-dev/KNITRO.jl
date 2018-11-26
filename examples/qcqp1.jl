@@ -85,6 +85,6 @@ KNITRO.KN_free(kc)
 
 @testset "Example QCQP1" begin
     @test nStatus == 0
-    @test objSol ≈ 951.
-    @test x ≈ [7., 0., 0.]
+    @test objSol ≈ 936.
+    @test x ≈ [0., 0., 8.]
 end

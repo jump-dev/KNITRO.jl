@@ -9,15 +9,6 @@ mutable struct Model
     env::Env
     eval_status::Int32 # scalar input used only for reverse comms
     status::Int32  # Final status
-
-    # we store oracle callbacks in dictionnary to handle
-    # different callback environment
-    eval_f::Dict
-    eval_g::Dict
-    eval_h::Dict
-    eval_rsd::Dict
-    eval_jac_rsd::Dict
-
     userdata::Dict
 
     # special callbacks (undefined by default)
@@ -30,8 +21,7 @@ mutable struct Model
 
     # constructor
     function Model(env::Env)
-        model = new(env, Int32(0), Int32(-1), Dict(),
-                    Dict(), Dict(), Dict(), Dict(), Dict())
+        model = new(env, Int32(0), Int32(-1), Dict())
 
         res = @kn_ccall(new, Cint, (Ptr{Nothing},), env.ptr_env)
         if res != 0
