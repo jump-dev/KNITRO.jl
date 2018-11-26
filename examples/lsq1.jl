@@ -31,7 +31,7 @@
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
-using KNITRO
+using KNITRO, Test
 
 #*------------------------------------------------------------------*
 #*     main                                                         *
@@ -86,7 +86,7 @@ KNITRO.KN_add_rsd_linear_struct(kc, indexRsds, indexVars, coefs)
 
 # Solve the problem.
 #
-# Return status codes are defined in "knitro.py" and described
+# Return status codes are defined in "knitro.h" and described
 # in the Knitro manual.
 
 nRC = KNITRO.KN_solve(kc)
@@ -95,7 +95,7 @@ if nRC != 0
     println("Knitro failed to solve the problem, status = ",  nRC)
 else
     # An example of obtaining solution information.
-    # Return status codes are defined in "knitro.py" and described
+    # Return status codes are defined in "knitro.h" and described
     # in the Knitro manual.
     nStatus, obj, x, lambda_ = KNITRO.KN_get_solution(kc)
     println("Knitro successful. The optimal solution is:")
@@ -106,3 +106,9 @@ end
 
 # Delete the knitro solver instance.
 KNITRO.KN_free(kc)
+
+@testset "Example LSQ1" begin
+    @test nStatus == 0
+    # we found only a loose approximation
+    @test x ≈ [0.086, 0.4, 1.4] atol=1e-1
+end

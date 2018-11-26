@@ -110,7 +110,7 @@ KNITRO.KN_set_compcons(kc, ccTypes, indexComps1, indexComps2)
 
 # Solve the problem.
 #
-# Return status codes are defined in "knitro.py" and described
+# Return status codes are defined in "knitro.h" and described
 # in the Knitro manual.
 nStatus = KNITRO.KN_solve(kc)
 println("Knitro converged with final status = ", nStatus)

@@ -35,7 +35,7 @@ using KNITRO
 #*------------------------------------------------------------------*
 #*     FUNCTION callbackEvalFC                                      *
 #*------------------------------------------------------------------*
-# The signature of this function matches KNITRO.KN_eval_callback in knitro.py.
+# The signature of this function matches KNITRO.KN_eval_callback in knitro.h.
 # Only "obj" and "c" are set in the KNITRO.KN_eval_result structure.
 function callbackEvalFC(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
@@ -55,7 +55,7 @@ end
 #*------------------------------------------------------------------*
 #*     FUNCTION callbackEvalGA                                      *
 #*------------------------------------------------------------------*
-# The signature of this function matches KNITRO.KN_eval_callback in knitro.py.
+# The signature of this function matches KNITRO.KN_eval_callback in knitro.h.
 # Only "objGrad" and "jac" are set in the KNITRO.KN_eval_result structure.
 function callbackEvalGA(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
@@ -255,7 +255,7 @@ KNITRO.KN_set_mip_node_callback(kc, callbackProcessNode)
 
 # Solve the problem.
 #
-# Return status codes are defined in "knitro.py" and described
+# Return status codes are defined in "knitro.h" and described
 # in the Knitro manual.
 
 nStatus = KNITRO.KN_solve(kc)

@@ -44,7 +44,7 @@ end
 #*------------------------------------------------------------------*
 #*     FUNCTION callbackEvalG                                       *
 #*------------------------------------------------------------------*
-# The signature of this function matches KNITRO.KN_eval_callback in knitro.py.
+# The signature of this function matches KNITRO.KN_eval_callback in knitro.h.
 # Only "objGrad" is set in the KNITRO.KN_eval_result structure.
 function callbackEvalG!(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
@@ -60,7 +60,7 @@ end
 #*------------------------------------------------------------------*
 #*     FUNCTION callbackEvalH                                       *
 #*------------------------------------------------------------------*
-# The signature of this function matches KNITRO.KN_eval_callback in knitro.py.
+# The signature of this function matches KNITRO.KN_eval_callback in knitro.h.
 # Only "hess" and "hessVec" are set in the KNITRO.KN_eval_result structure.
 function callbackEvalH!(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
@@ -86,7 +86,7 @@ end
 #*------------------------------------------------------------------*
 #*     FUNCTION callbackMSProcess                                   *
 #*------------------------------------------------------------------*
-# The signature of this function matches KNITRO.KN_user_callback in knitro.py.
+# The signature of this function matches KNITRO.KN_user_callback in knitro.h.
 # Argument "kcSub" is the context pointer for the last multi-start
 # subproblem solved inside Knitro.
 function  callbackMSProcess(kcSub, x, lambda_, userParams)
@@ -200,7 +200,7 @@ end
 
 # Solve the problem.
 #
-# Return status codes are defined in "knitro.py" and described
+# Return status codes are defined in "knitro.h" and described
 # in the Knitro manual.
 
 nStatus = KNITRO.KN_solve(kc)

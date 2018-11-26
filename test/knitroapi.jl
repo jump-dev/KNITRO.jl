@@ -488,29 +488,29 @@ println()
 
     function evalR(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
-    evalResult.rsd[1] = x[1] * x[2]^1.309 - 2.138
-    evalResult.rsd[2] = x[1] * x[2]^1.471 - 3.421
-    evalResult.rsd[3] = x[1] * x[2]^1.49 - 3.597
-    evalResult.rsd[4] = x[1] * x[2]^1.565 - 4.34
-    evalResult.rsd[5] = x[1] * x[2]^1.611 - 4.882
-    evalResult.rsd[6] = x[1] * x[2]^1.68 - 5.66
+    evalResult.rsd[1] = x[1] * 1.309^x[2] - 2.138
+    evalResult.rsd[2] = x[1] * 1.471^x[2] - 3.421
+    evalResult.rsd[3] = x[1] * 1.49^x[2] - 3.597
+    evalResult.rsd[4] = x[1] * 1.565^x[2] - 4.34
+    evalResult.rsd[5] = x[1] * 1.611^x[2] - 4.882
+    evalResult.rsd[6] = x[1] * 1.68^x[2] - 5.66
     return 0
     end
 
     function evalJ(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
-    evalResult.rsdJac[1] = x[2]^1.309
-    evalResult.rsdJac[2] = x[1] * log(1.309) * x[2]^1.309
-    evalResult.rsdJac[3] = x[2]^1.471
-    evalResult.rsdJac[4] = x[1] * log(1.471) * x[2]^1.471
-    evalResult.rsdJac[5] = x[2]^1.49
-    evalResult.rsdJac[6] = x[1] * log(1.49) * x[2]^1.49
-    evalResult.rsdJac[7] = x[2]^1.565
-    evalResult.rsdJac[8] = x[1] * log(1.565) * x[2]^1.565
-    evalResult.rsdJac[9] = x[2]^1.611
-    evalResult.rsdJac[10] = x[1] * log(1.611) * x[2]^1.611
-    evalResult.rsdJac[11] = x[2]^1.68
-    evalResult.rsdJac[12] = x[1] * log(1.68) * x[2]^1.68
+    evalResult.rsdJac[1] = 1.309^x[2]
+    evalResult.rsdJac[2] = x[1] * log(1.309) * 1.309^x[2]
+    evalResult.rsdJac[3] = 1.471^x[2]
+    evalResult.rsdJac[4] = x[1] * log(1.471) * 1.471^x[2]
+    evalResult.rsdJac[5] = 1.49^x[2]
+    evalResult.rsdJac[6] = x[1] * log(1.49) * 1.49^x[2]
+    evalResult.rsdJac[7] = 1.565^x[2]
+    evalResult.rsdJac[8] = x[1] * log(1.565) * 1.565^x[2]
+    evalResult.rsdJac[9] = 1.611^x[2]
+    evalResult.rsdJac[10] = x[1] * log(1.611) * 1.611^x[2]
+    evalResult.rsdJac[11] = 1.68^x[2]
+    evalResult.rsdJac[12] = x[1] * log(1.68) * 1.68^x[2]
     return 0
     end
 
@@ -543,7 +543,7 @@ println()
     println("x       = ", x)
     println("lambda_ = ", lambda_)
 
-    @test objSol ≈ 30.920944 atol=1e-5
+    @test objSol ≈ 21.5848 atol=1e-4
     @test x ≈ [1., 1.] atol=1e-5
 
     KNITRO.KN_free(kc)

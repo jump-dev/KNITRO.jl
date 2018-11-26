@@ -36,12 +36,12 @@ function callbackEvalR(kc, cb, evalRequest, evalResult, userParams)
     end
 
     # Evaluate nonlinear residual components
-    evalResult.rsd[1] = x[1] * x[2]^1.309
-    evalResult.rsd[2] = x[1] * x[2]^1.471
-    evalResult.rsd[3] = x[1] * x[2]^1.49
-    evalResult.rsd[4] = x[1] * x[2]^1.565
-    evalResult.rsd[5] = x[1] * x[2]^1.611
-    evalResult.rsd[6] = x[1] * x[2]^1.68
+    evalResult.rsd[1] = x[1] * 1.309^x[2]
+    evalResult.rsd[2] = x[1] * 1.471^x[2]
+    evalResult.rsd[3] = x[1] * 1.49^x[2]
+    evalResult.rsd[4] = x[1] * 1.565^x[2]
+    evalResult.rsd[5] = x[1] * 1.611^x[2]
+    evalResult.rsd[6] = x[1] * 1.68^x[2]
 
     return 0
 end
@@ -64,18 +64,18 @@ function callbackEvalRJ(kc, cb, evalRequest, evalResult, userParams)
     end
 
     # Evaluate non-zero residual Jacobian elements(row major order).
-    evalResult.rsdJac[1]  = x[2]^1.309
-    evalResult.rsdJac[2]  = x[1] * log(1.309) * x[2]^1.309
-    evalResult.rsdJac[3]  = x[2]^1.471
-    evalResult.rsdJac[4]  = x[1] * log(1.471) * x[2]^1.471
-    evalResult.rsdJac[5]  = x[2]^1.49
-    evalResult.rsdJac[6]  = x[1] * log(1.49) * x[2]^1.49
-    evalResult.rsdJac[7]  = x[2]^1.565
-    evalResult.rsdJac[8]  = x[1] * log(1.565) * x[2]^1.565
-    evalResult.rsdJac[9]  = x[2]^1.611
-    evalResult.rsdJac[10] = x[1] * log(1.611) * x[2]^1.611
-    evalResult.rsdJac[11] = x[2]^1.68
-    evalResult.rsdJac[12] = x[1] * log(1.68) * x[2]^1.68
+    evalResult.rsdJac[1]  = 1.309^x[2]
+    evalResult.rsdJac[2]  = x[1] * log(1.309) * 1.309^x[2]
+    evalResult.rsdJac[3]  = 1.471^x[2]
+    evalResult.rsdJac[4]  = x[1] * log(1.471) * 1.471^x[2]
+    evalResult.rsdJac[5]  = 1.49^x[2]
+    evalResult.rsdJac[6]  = x[1] * log(1.49) * 1.49^x[2]
+    evalResult.rsdJac[7]  = 1.565^x[2]
+    evalResult.rsdJac[8]  = x[1] * log(1.565) * 1.565^x[2]
+    evalResult.rsdJac[9]  = 1.611^x[2]
+    evalResult.rsdJac[10] = x[1] * log(1.611) * 1.611^x[2]
+    evalResult.rsdJac[11] = 1.68^x[2]
+    evalResult.rsdJac[12] = x[1] * log(1.68) * 1.68^x[2]
 
     return 0
 end
@@ -132,13 +132,11 @@ KNITRO.KN_set_cb_rsd_jac(kc, cb, KNITRO.KN_DENSE_ROWMAJOR, callbackEvalRJ)
 
 nRC = KNITRO.KN_solve(kc)
 
-if nRC != 0
-    println("Knitro failed to solve the problem, status = ", nRC)
-else
-    # An example of obtaining solution information.
-    # Return status codes are defined in "knitro.h" and described
-    # in the Knitro manual.
-    nStatus, obj, x, lambda_ = KNITRO.KN_get_solution(kc)
+# An example of obtaining solution information.
+# Return status codes are defined in "knitro.h" and described
+# in the Knitro manual.
+nStatus, obj, x, lambda_ = KNITRO.KN_get_solution(kc)
+if nStatus != 0
     println("Knitro successful. The optimal solution is:")
     for i in 1:n
         println("x[$i]= ", x[i])
@@ -147,3 +145,9 @@ end
 
 # Delete the knitro solver instance.
 KNITRO.KN_free(kc)
+
+@testset "Example LSQ2" begin
+    @test nStatus == 0
+    @test obj ≈ 0.00216 atol=1e-4
+    @test x ≈ [0.76886, 3.86041] atol=1e-4
+ end
