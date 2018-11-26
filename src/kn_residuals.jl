@@ -40,6 +40,7 @@ function KN_add_rsd_linear_struct(m::Model,
                     coefs)
     _checkraise(ret)
 end
+
 function KN_add_rsd_linear_struct(m::Model,
                                   indexRsd::Integer,
                                   indexVar::Vector{Cint},
@@ -60,6 +61,36 @@ end
 KN_add_rsd_linear_struct(m::Model, indexRsd::Integer, indexVar::Integer, coef::Float64) =
     KN_add_rsd_linear_struct(m, indexRsd, Int32[indexVar], [coef])
 
+##################################################
+# Residuals getters
+##################################################
+function KN_get_rsd_values(m::Model)
+    nc = KN_get_number_cons(m)
+    rsdvals = zeros(Cdouble, nc)
+    ret = @kn_ccall(get_rsd_values_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, rsdvals)
+    _checkraise(ret)
+    return rsdvals
+end
+
+function KN_get_rsd_values(m::Model, indexRsds::Vector{Cint})
+    nc = length(indexRsds)
+    rsdvals = zeros(Cdouble, nc)
+    ret = @kn_ccall(get_rsd_values, Cint,
+                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, nc, indexRsds, rsdvals)
+    _checkraise(ret)
+    return rsdvals
+end
+
+function KN_get_rsd_values(m::Model, indexRsd::Integer)
+    nc = 1
+    rsdvals = zeros(Cdouble, nc)
+    ret = @kn_ccall(get_rsd_value, Cint, (Ptr{Nothing}, Cint, Ptr{Cdouble}),
+                    m.env.ptr_env.x, indexRsd, rsdvals)
+    _checkraise(ret)
+    return rsdvals
+end
 
 ##################################################
 # Residuals constants

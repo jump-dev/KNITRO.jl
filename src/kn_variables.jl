@@ -147,7 +147,6 @@ function KN_set_var_names(m::Model, nindex::Integer, name::String)
     _checkraise(ret)
 end
 
-
 function KN_set_var_names(m::Model, varIndex::Vector{Cint}, names::Vector{String})
     nvar = length(varIndex)
     ret = @kn_ccall(set_var_names, Cint,
@@ -155,6 +154,7 @@ function KN_set_var_names(m::Model, varIndex::Vector{Cint}, names::Vector{String
                     m.env.ptr_env.x, nvar, varIndex, names)
     _checkraise(ret)
 end
+
 function KN_set_var_names(m::Model, names::Vector{String})
     ret = @kn_ccall(set_var_names_all, Cint, (Ptr{Nothing}, Ptr{Ptr{Cchar}}),
                     m.env.ptr_env.x, names)
@@ -252,5 +252,30 @@ end
 function KN_set_var_feastols(m::Model, xFeasTols::Vector{Cdouble})
     ret = @kn_ccall(set_var_feastols_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
                     m.env.ptr_env.x, xFeasTols)
+    _checkraise(ret)
+end
+
+
+##################################################
+## Fix bounds
+##################################################
+function KN_set_var_fxbnds(m::Model, nindex::Integer, xFxBnd::Cdouble)
+    ret = @kn_ccall(set_var_fxbnd, Cint, (Ptr{Nothing}, Cint, Cdouble),
+                    m.env.ptr_env.x, nindex, xFxBnd)
+    _checkraise(ret)
+end
+
+function KN_set_var_fxbnds(m::Model, xIndex::Vector{Cint}, xFxBnds::Vector{Cdouble})
+    nvar = length(xIndex)
+    @assert length(xFxBnds) == nvar
+    ret = @kn_ccall(set_var_fxbnds, Cint,
+                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, nvar, xIndex, xFxBnds)
+    _checkraise(ret)
+end
+
+function KN_set_var_fxbnds(m::Model, xFxBnds::Vector{Cdouble})
+    ret = @kn_ccall(set_var_fxbnds_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, xFxBnds)
     _checkraise(ret)
 end

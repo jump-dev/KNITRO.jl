@@ -57,6 +57,12 @@ function KN_set_obj_scaling(m::Model, objScaleFactor::Cdouble)
     _checkraise(ret)
 end
 
+function KN_set_obj_property(m::Model, objProperty::Cint)
+    ret = @kn_ccall(set_obj_property, Cint, (Ptr{Nothing}, Cint),
+                    m.env.ptr_env.x, objProperty)
+    _checkraise(ret)
+end
+
 function KN_set_obj_name(m::Model, name::AbstractString)
     ret = @kn_ccall(set_obj_name, Cint, (Ptr{Nothing}, Ptr{Cchar}),
                     m.env.ptr_env.x, name)
