@@ -31,7 +31,7 @@ function MathProgBase.eval_hesslag(d::Myquad,h,x,σ,μ)
     h[2] = 2*σ
 end
 
-m = MathProgBase.NonlinearModel(KnitroSolver(KN_PARAM_OUTLEV=2))
+m = MathProgBase.NonlinearModel(KnitroSolver(KTR_PARAM_OUTLEV=2))
 MathProgBase.loadproblem!(m, 2, 0, -3. * ones(2), 3. * ones(2), Float64[], Float64[], :Min, Myquad())
 MathProgBase.setwarmstart!(m,rand(2))
 MathProgBase.optimize!(m)

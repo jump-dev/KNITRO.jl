@@ -24,13 +24,13 @@ using KNITRO.KNITRO, JuMP #, Base.Test
  #  The solution is (1.30098, 0, 1, 0, 1, 0).
  ##
 
-m = Model(solver=KnitroSolver(mip_method = KNITRO.KN_MIP_METHOD_BB,
-                              algorithm = KNITRO.KN_ALG_ACT_CG,
-                              outmode = KNITRO.KN_OUTMODE_SCREEN,
-                              KN_PARAM_OUTLEV = KNITRO.KN_OUTLEV_ALL,
-                              KN_PARAM_MIP_OUTINTERVAL = 1,
-                              KN_PARAM_MIP_MAXNODES = 10000,
-                              KN_PARAM_HESSIAN_NO_F = KNITRO.KN_HESSIAN_NO_F_ALLOW))
+m = Model(solver=KnitroSolver(mip_method = KNITRO.KTR_MIP_METHOD_BB,
+                              algorithm = KNITRO.KTR_ALG_ACT_CG,
+                              outmode = KNITRO.KTR_OUTMODE_SCREEN,
+                              KTR_PARAM_OUTLEV = KNITRO.KTR_OUTLEV_ALL,
+                              KTR_PARAM_MIP_OUTINTERVAL = 1,
+                              KTR_PARAM_MIP_MAXNODES = 10000,
+                              KTR_PARAM_HESSIAN_NO_F = KNITRO.KTR_HESSIAN_NO_F_ALLOW))
 x_U = [2,2,1]
 @variable(m, x_U[i] >= x[i=1:3] >= 0)
 @variable(m, y[4:6], Bin)
