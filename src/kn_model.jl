@@ -7,8 +7,6 @@
 mutable struct Model
     # KNITRO context environment
     env::Env
-    eval_status::Int32 # scalar input used only for reverse comms
-    status::Int32  # Final status
     userdata::Dict
 
     # special callbacks (undefined by default)
@@ -21,7 +19,7 @@ mutable struct Model
 
     # constructor
     function Model(env::Env)
-        model = new(env, Int32(0), Int32(-1), Dict())
+        model = new(env, Dict())
 
         res = @kn_ccall(new, Cint, (Ptr{Nothing},), env.ptr_env)
         if res != 0
