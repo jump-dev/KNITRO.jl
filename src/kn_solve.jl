@@ -31,3 +31,4 @@ end
 get_status(m::Model) = KN_get_solution(m)[1]
 get_objective(m::Model) = KN_get_solution(m)[2]
 get_solution(m::Model) = KN_get_solution(m)[3]
+get_dual(m::Model) = KN_get_solution(m)[4]

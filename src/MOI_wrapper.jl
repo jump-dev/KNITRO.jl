@@ -25,8 +25,8 @@ ordered, that is no deletion or swap has occured.
 """
 function canonical_quadratic_reduction(func::MOI.ScalarQuadraticFunction)
     quad_columns_1, quad_columns_2, quad_coefficients = (
-        [term.variable_index_1 for term in func.quadratic_terms],
-        [term.variable_index_2 for term in func.quadratic_terms],
+        [term.variable_index_1.value for term in func.quadratic_terms],
+        [term.variable_index_2.value for term in func.quadratic_terms],
         [term.coefficient for term in func.quadratic_terms]
     )
     return quad_columns_1, quad_columns_2, quad_coefficients
@@ -43,9 +43,14 @@ order:
 Warning: we assume in this function that all variables are correctly
 ordered, that is no deletion or swap has occured.
 """
-function canonical_linear_reduction(func::Union{MOI.ScalarAffineFunction, MOI.ScalarQuadraticFunction})
-    affine_columns = [term.variable_index for term in func.affine_terms]
+function canonical_linear_reduction(func::MOI.ScalarQuadraticFunction)
+    affine_columns = [term.variable_index.value for term in func.affine_terms]
     affine_coefficients = [term.coefficient for term in func.affine_terms]
+    return affine_columns, affine_coefficients
+end
+function canonical_linear_reduction(func::MOI.ScalarAffineFunction)
+    affine_columns = [term.variable_index.value for term in func.terms]
+    affine_coefficients = [term.coefficient for term in func.terms]
     return affine_columns, affine_coefficients
 end
 
@@ -87,18 +92,15 @@ MOI.features_available(::EmptyNLPEvaluator) = [:Grad, :Jac, :Hess]
 MOI.initialize(::EmptyNLPEvaluator, features) = nothing
 MOI.eval_objective(::EmptyNLPEvaluator, x) = NaN
 function MOI.eval_constraint(::EmptyNLPEvaluator, g, x)
-    @assert length(g) == 0
     return
 end
 MOI.eval_objective_gradient(::EmptyNLPEvaluator, g, x) = nothing
 MOI.jacobian_structure(::EmptyNLPEvaluator) = Tuple{Int64,Int64}[]
 MOI.hessian_lagrangian_structure(::EmptyNLPEvaluator) = Tuple{Int64,Int64}[]
 function MOI.eval_constraint_jacobian(::EmptyNLPEvaluator, J, x)
-    @assert length(J) == 0
     return
 end
 function MOI.eval_hessian_lagrangian(::EmptyNLPEvaluator, H, x, σ, μ)
-    @assert length(H) == 0
     return
 end
 
@@ -133,7 +135,6 @@ function MOI.get(model::Optimizer, ::MOI.ListOfVariableIndices)
     return [MOI.VariableIndex(i) for i in 1:length(model.variable_info)]
 end
 
-
 function MOI.set(model::Optimizer, ::MOI.ObjectiveSense,
                  sense::MOI.OptimizationSense)
     model.sense = sense
@@ -147,9 +148,11 @@ end
 
 function MOI.empty!(model::Optimizer)
     # free KNITRO model properly
-    KN_free(model.inner)
-    # set null pointer to inner model
-    model.inner = nothing
+    if model.inner != nothing
+        KN_free(model.inner)
+        # set null pointer to inner model
+        model.inner = KN_new()
+    end
     empty!(model.variable_info)
     model.nlp_data = empty_nlp_data()
     model.sense = MOI.FeasibilitySense
@@ -325,7 +328,7 @@ function MOI.set(model::Optimizer, ::MOI.VariablePrimalStart,
                  vi::MOI.VariableIndex, value::Real)
     check_inbounds(model, vi)
     model.variable_info[vi.value].start = value
-    KN_set_var_primal_init_values(model.inner, vi.value-1, value)
+    KN_set_var_primal_init_values(model.inner, vi.value-1, Cdouble(value))
     return
 end
 
@@ -483,12 +486,14 @@ function parse_cons_linear_struct(model::Optimizer)
             push!(indexCons, fill(index_cons, length(currentvars))...)
             push!(indexVars, currentvars...)
             push!(coefs, currentcoefs...)
+            index_cons += 1
         end
 
 
-        index_cons += 1
     end
 
+    # convert 1-indexing to 0-indexing
+    indexVars .-= 1
     return indexCons, indexVars, coefs
 end
 
@@ -509,10 +514,13 @@ function parse_cons_quadratic_struct(model::Optimizer)
             push!(indexVars1, currentvars1...)
             push!(indexVars2, currentvars2...)
             push!(coefs, currentcoefs...)
+            index_cons += 1
         end
 
-        index_cons += 1
     end
+    # convert 1-indexing to 0-indexing
+    indexVars1 .-= 1
+    indexVars2 .-= 1
 
     return indexCons, indexVars1, indexVars2, coefs
 end
@@ -599,7 +607,11 @@ function MOI.optimize!(model::Optimizer)
     if has_hessian
         # Hessian callback
         function eval_h_cb(kc, cb, evalRequest, evalResult, userParams)
-            eval_hessian_lagrangian(model, evalResult.hess, evalRequest.x)
+            MOI.eval_hessian_lagrangian(model.nlp_data.evaluator,
+                                        evalResult.hess,
+                                        evalRequest.x,
+                                        evalRequest.sigma,
+                                        evalRequest.lambda)
         end
     else
         eval_h_cb = nothing
@@ -610,6 +622,8 @@ function MOI.optimize!(model::Optimizer)
     lconIndexCons, lconIndexVars, lconCoefs = parse_cons_linear_struct(model)
     # store linear structure directly inside KNITRO
     if length(lconCoefs) > 0
+        println(lconIndexCons)
+        println(lconIndexVars)
         KN_add_con_linear_struct(model.inner, lconIndexCons, lconIndexVars, lconCoefs)
     end
 
@@ -629,7 +643,7 @@ function MOI.optimize!(model::Optimizer)
     end
 
     # add NLP structure
-    # here, we assume that the full objective is evaluate in eval_f
+    # here, we assume that the full objective is evaluated in eval_f
     cb = KN_add_eval_callback(model.inner, eval_f_cb)
 
     # get jacobian structure
@@ -638,8 +652,9 @@ function MOI.optimize!(model::Optimizer)
     if nnzJ == 0
         KN_set_cb_grad(model.inner, cb, eval_grad_cb)
     else
-        jacIndexCons = [i for (i, _) in jacob_structure]
-        jacIndexVars = [j for (_, j) in jacob_structure]
+        # take care to convert 1-indexing to 0-indexing!
+        jacIndexCons = [i-1 for (i, _) in jacob_structure]
+        jacIndexVars = [j-1 for (_, j) in jacob_structure]
         KN_set_cb_grad(model.inner, cb, eval_grad_cb,
                        jacIndexCons=jacIndexCons, jacIndexVars=jacIndexVars)
     end
@@ -648,8 +663,9 @@ function MOI.optimize!(model::Optimizer)
         # get hessian structure
         hessian_structure = MOI.hessian_lagrangian_structure(model.nlp_data.evaluator)
         nnzH = length(hessian_structure)
-        hessIndexVars1 = [i for (i, _) in hessian_structure]
-        hessIndexVars2 = [j for (_, j) in hessian_structure]
+        # take care to convert 1-indexing to 0-indexing!
+        hessIndexVars1 = [i-1 for (i, _) in hessian_structure]
+        hessIndexVars2 = [j-1 for (_, j) in hessian_structure]
 
         KN_set_cb_hess(model.inner, cb, nnzH, eval_h_cb,
                        hessIndexVars1=hessIndexVars1,
@@ -677,21 +693,18 @@ end
 
 function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
     # TODO: clean
+    if model.inner == nothing
+        return MOI.OptimizeNotCalled
+    end
     status = get_status(model.inner)
-    if status == -1
-        # chosen not to clash with any of the KTR_RC_* codes
-        return :Uninitialized
-    elseif status == 101
-        # chosen not to clash with any of the KTR_RC_* codes
-        return :Initialized
-    elseif status == 0
+    if status == 0
         return MOI.Success
     elseif -109 <= status <= -100
-        return :FeasibleApproximate
+        return MOI.Success
     elseif -209 <= status <= -200
         return MOI.Success
     elseif status == -300
-        return :Unbounded
+        return MOI.UnboundedNoResult
     elseif -419 <= status <= -400
         return MOI.Interrupted
     elseif -599 <= status <= -500
@@ -701,7 +714,7 @@ function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
     end
 end
 
-# KNITRO always has an iterate available.
+# TODO
 function MOI.get(model::Optimizer, ::MOI.ResultCount)
     return (model.inner !== nothing) ? 1 : 0
 end
@@ -710,17 +723,21 @@ function MOI.get(model::Optimizer, ::MOI.PrimalStatus)
     if model.inner === nothing
         return MOI.NoSolution
     end
-    status = ApplicationReturnStatus[get_status(model.inner)]
-    if status == :Solve_Succeeded
+    status = get_status(model.inner)
+    if status == 0
         return MOI.FeasiblePoint
-    elseif status == :Feasible_Point_Found
+    elseif -109 <= status <= -100
         return MOI.FeasiblePoint
-    elseif status == :Solved_To_Acceptable_Level
-        # Solutions are only guaranteed to satisfy the "acceptable" convergence
-        # tolerances.
-        return MOI.NearlyFeasiblePoint
-    elseif status == :Infeasible_Problem_Detected
+    elseif -209 <= status <= -200
         return MOI.InfeasiblePoint
+    elseif status == -300
+        return MOI.NoSolution
+    elseif -409 <= status <= -400
+        return MOI.FeasiblePoint
+    elseif -419 <= status <= -410
+        return MOI.InfeasiblePoint
+    elseif -599 <= status <= -500
+        return MOI.UnknownResultStatus
     else
         return MOI.UnknownResultStatus
     end
@@ -730,17 +747,20 @@ function MOI.get(model::Optimizer, ::MOI.DualStatus)
     if model.inner === nothing
         return MOI.NoSolution
     end
-    status = ApplicationReturnStatus[model.inner.status]
-    if status == :Solve_Succeeded
+    status = get_status(model.inner)
+    if status == 0
         return MOI.FeasiblePoint
-    elseif status == :Feasible_Point_Found
+    elseif -109 <= status <= -100
         return MOI.FeasiblePoint
-    elseif status == :Solved_To_Acceptable_Level
-        # Solutions are only guaranteed to satisfy the "acceptable" convergence
-        # tolerances.
-        return MOI.NearlyFeasiblePoint
-    elseif status == :Infeasible_Problem_Detected
-        # TODO: What is the interpretation of the dual in this case?
+    elseif -209 <= status <= -200
+        return MOI.InfeasiblePoint
+    elseif status == -300
+        return MOI.NoSolution
+    elseif -409 <= status <= -400
+        return MOI.FeasiblePoint
+    elseif -419 <= status <= -410
+        return MOI.InfeasiblePoint
+    elseif -599 <= status <= -500
         return MOI.UnknownResultStatus
     else
         return MOI.UnknownResultStatus
@@ -777,7 +797,8 @@ macro define_constraint_primal(function_type, set_type, prefix)
             if !(1 <= ci.value <= length(model.$(constraint_array)))
                 error("Invalid constraint index ", ci.value)
             end
-            return model.inner.g[ci.value + $offset_function(model)]
+            g = KN_get_con_values(model.inner)
+            return g[ci.value + $offset_function(model)]
         end
     end
 end
@@ -806,7 +827,8 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
     if !has_upper_bound(model, vi)
         error("Variable $vi has no upper bound -- ConstraintPrimal not defined.")
     end
-    return model.inner.x[vi.value]
+    x = get_solution(model.inner)
+    return x[vi.value]
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
@@ -820,7 +842,8 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
     if !has_lower_bound(model, vi)
         error("Variable $vi has no lower bound -- ConstraintPrimal not defined.")
     end
-    return model.inner.x[vi.value]
+    x = get_solution(model.inner)
+    return x[vi.value]
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
@@ -834,7 +857,8 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
     if !is_fixed(model, vi)
         error("Variable $vi is not fixed -- ConstraintPrimal not defined.")
     end
-    return model.inner.x[vi.value]
+    x = get_solution(model.inner)
+    return x[vi.value]
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
@@ -844,9 +868,12 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
         error("ConstraintDual not available.")
     end
     @assert 1 <= ci.value <= length(model.linear_le_constraints)
+
     # TODO: Unable to find documentation in Ipopt about the signs of duals.
     # Rescaling by -1 here seems to pass the MOI tests.
-    return -1 * model.inner.mult_g[ci.value + linear_le_offset(model)]
+    offset = linear_le_offset(model) + length(model.variable_info)
+    lambda = get_dual(model.inner)
+    return lambda[ci.value + offset]
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
@@ -858,7 +885,9 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
     @assert 1 <= ci.value <= length(model.linear_ge_constraints)
     # TODO: Unable to find documentation in Ipopt about the signs of duals.
     # Rescaling by -1 here seems to pass the MOI tests.
-    return -1 * model.inner.mult_g[ci.value + linear_ge_offset(model)]
+    offset = linear_ge_offset(model) + length(model.variable_info)
+    lambda = get_dual(model.inner)
+    return lambda[ci.value + offset]
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
@@ -870,7 +899,9 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
     @assert 1 <= ci.value <= length(model.linear_eq_constraints)
     # TODO: Rescaling by -1 for consistency, but I don't know if this is covered
     # by tests.
-    return -1 * model.inner.mult_g[ci.value + linear_eq_offset(model)]
+    offset = linear_eq_offset(model) + length(model.variable_info)
+    lambda = get_dual(model.inner)
+    return lambda[ci.value + offset]
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
@@ -885,7 +916,8 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
         error("Variable $vi has no upper bound -- ConstraintDual not defined.")
     end
     # MOI convention is for feasible LessThan duals to be nonpositive.
-    return -1 * model.inner.mult_x_U[vi.value]
+    lambda = get_dual(model.inner)
+    return lambda[vi.value]
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
@@ -899,7 +931,8 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
     if !has_lower_bound(model, vi)
         error("Variable $vi has no lower bound -- ConstraintDual not defined.")
     end
-    return model.inner.mult_x_L[vi.value]
+    lambda = get_dual(model.inner)
+    return lambda[vi.value]
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
@@ -913,12 +946,15 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
     if !is_fixed(model, vi)
         error("Variable $vi is not fixed -- ConstraintDual not defined.")
     end
-    return model.inner.mult_x_L[vi.value] - model.inner.mult_x_U[vi.value]
+    lambda = get_dual(model.inner)
+    return lambda[vi.value]
 end
 
 function MOI.get(model::Optimizer, ::MOI.NLPBlockDual)
     if model.inner === nothing
         error("NLPBlockDual not available.")
     end
-    return -1 * model.inner.mult_g[(1 + nlp_constraint_offset(model)):end]
+    offset = nlp_constraint_offset(model) + length(model.variable_info)
+    lambda = get_dual(model.inner)
+    return lambda[ci.value + offset]
 end

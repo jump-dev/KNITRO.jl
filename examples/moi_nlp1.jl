@@ -29,7 +29,7 @@ struct HS15 <: MOI.AbstractNLPEvaluator
 end
 
 
-MOI.features_available(d::HS15) = [:Grad, :Jac]
+MOI.features_available(d::HS15) = [:Grad]
 MOI.initialize(d::HS15, features) = nothing
 
 MOI.jacobian_structure(d::HS15) = []
@@ -88,12 +88,24 @@ for i in 1:2
     MOI.set(solver, MOI.VariablePrimalStart(), v[i], start[i])
 end
 
-#= MOI.add_constraints( =#
-
 # Add the constraints and set their lower bounds
-#= m = 2 =#
-#= MOI.add_constraints(solver, m) =#
-#= KNITRO.KN_set_con_lobnds(kc, [1.0, 0.0]) =#
+m = 2
+# first constraint: x0 * x1 >= 1
+c1 = MOI.ScalarQuadraticFunction{Float64}(
+        MOI.ScalarAffineTerm.(0.0, v),
+        [MOI.ScalarQuadraticTerm(1., v[1], v[2])],
+        0.)
+MOI.add_constraint(solver, c1, MOI.GreaterThan{Float64}(1.))
+
+# second constraint: x0 + x1^2 >= 0
+c2 = MOI.ScalarQuadraticFunction(
+                                 [MOI.ScalarAffineTerm(1.0, v[1])],
+        [MOI.ScalarQuadraticTerm(1., v[2], v[2])],
+        0.)
+MOI.add_constraint(solver, c2, MOI.GreaterThan(0.))
+
+
+KNITRO.KN_set_con_lobnds(solver.inner, [1.0, 0.0])
 
 MOI.set(solver, MOI.ObjectiveSense(), MOI.MinSense)
 # define NLP structure
