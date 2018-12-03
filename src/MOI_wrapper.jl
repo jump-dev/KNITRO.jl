@@ -43,7 +43,7 @@ order:
 Warning: we assume in this function that all variables are correctly
 ordered, that is no deletion or swap has occured.
 """
-function canonical_linear_reduction(func::Union{MOI.ScalarLinearFunction, MOI.ScalarQuadraticFunction})
+function canonical_linear_reduction(func::Union{MOI.ScalarAffineFunction, MOI.ScalarQuadraticFunction})
     affine_columns = [term.variable_index for term in func.affine_terms]
     affine_coefficients = [term.coefficient for term in func.affine_terms]
     return affine_columns, affine_coefficients
@@ -106,7 +106,7 @@ end
 empty_nlp_data() = MOI.NLPBlockData([], EmptyNLPEvaluator(), false)
 
 
-Optimizer(;options...) = Optimizer(KN_new(), [], empty_nlp_data(), MOI.FeasibilitySense, nothing, [], [], [], [], [], [], 0, Dict(), options)
+Optimizer(;options...) = Optimizer(KN_new(), [], empty_nlp_data(), MOI.FeasibilitySense, nothing, [], [], [], [], [], [], options)
 
 MOI.supports(::Optimizer, ::MOI.NLPBlock) = true
 MOI.supports(::Optimizer, ::MOI.ObjectiveFunction{MOI.SingleVariable}) = true
@@ -240,7 +240,7 @@ function MOI.add_constraint(model::Optimizer, v::MOI.SingleVariable, lt::MOI.Les
     model.variable_info[vi.value].upper_bound = lt.upper
     model.variable_info[vi.value].has_upper_bound = true
     # we assume that MOI's indexing is the same as KNITRO's indexing
-    KN_set_var_upbnds(model.inner, vi.value, lt.value)
+    KN_set_var_upbnds(model.inner, vi.value-1, lt.upper)
     return MOI.ConstraintIndex{MOI.SingleVariable, MOI.LessThan{Float64}}(vi.value)
 end
 
@@ -259,7 +259,7 @@ function MOI.add_constraint(model::Optimizer, v::MOI.SingleVariable, gt::MOI.Gre
     model.variable_info[vi.value].lower_bound = gt.lower
     model.variable_info[vi.value].has_lower_bound = true
     # we assume that MOI's indexing is the same as KNITRO's indexing
-    KN_set_var_lobnds(model.inner, vi.value, gt.value)
+    KN_set_var_lobnds(model.inner, vi.value-1, gt.lower)
     return MOI.ConstraintIndex{MOI.SingleVariable, MOI.GreaterThan{Float64}}(vi.value)
 end
 
@@ -267,7 +267,7 @@ function MOI.add_constraint(model::Optimizer, v::MOI.SingleVariable, eq::MOI.Equ
     vi = v.variable
     check_inbounds(model, vi)
     if isnan(eq.value)
-        error("Invalid fixed value $(gt.lower).")
+        error("Invalid fixed value $(eq.value).")
     end
     if has_lower_bound(model, vi)
         error("Variable $vi has a lower bound. Cannot be fixed.")
@@ -282,7 +282,7 @@ function MOI.add_constraint(model::Optimizer, v::MOI.SingleVariable, eq::MOI.Equ
     model.variable_info[vi.value].upper_bound = eq.value
     model.variable_info[vi.value].is_fixed = true
     # we assume that MOI's indexing is the same as KNITRO's indexing
-    KN_set_var_fxbnds(model.inner, vi.value, eq.value)
+    KN_set_var_fxbnds(model.inner, vi.value-1, eq.value)
     return MOI.ConstraintIndex{MOI.SingleVariable, MOI.EqualTo{Float64}}(vi.value)
 end
 
@@ -325,18 +325,18 @@ function MOI.set(model::Optimizer, ::MOI.VariablePrimalStart,
                  vi::MOI.VariableIndex, value::Real)
     check_inbounds(model, vi)
     model.variable_info[vi.value].start = value
-    KN_set_var_primal_init_values(model.inner, vi.value, value)
+    KN_set_var_primal_init_values(model.inner, vi.value-1, value)
     return
 end
 
 function MOI.supports(::Optimizer, ::MOI.ConstraintDualStart,
-                      ::Type{MOI.VariableIndex})
+                      ::Type{MOI.ConstraintIndex})
     return true
 end
-function MOI.set(model::Optimizer, ::MOI.VariablePrimalStart,
+function MOI.set(model::Optimizer, ::MOI.ConstraintDualStart,
                  ci::MOI.ConstraintIndex, value::Real)
     check_inbounds(model, ci)
-    KN_set_con_dual_init_values(model.inner, ci.value, value)
+    KN_set_con_dual_init_values(model.inner, ci.value-1, value)
     return
 end
 
@@ -418,6 +418,13 @@ function eval_objective(model::Optimizer, x)
     end
 end
 
+function eval_constraint(model::Optimizer, g, x)
+    return MOI.eval_constraint(model.nlp_data.evaluator, g, x)
+end
+function eval_constraint_jacobian(model::Optimizer, g, x)
+    return MOI.eval_constraint_jacobian(model.nlp_data.evaluator, g, x)
+end
+
 function fill_gradient!(grad, x, var::MOI.SingleVariable)
     fill!(grad, 0.0)
     grad[var.variable.value] = 1.0
@@ -459,10 +466,9 @@ function eval_objective_gradient(model::Optimizer, grad, x)
 end
 
 function parse_cons_linear_struct(model::Optimizer)
-
-    indexCons = []
-    indexVars = []
-    coefs = []
+    indexCons = Int32[]
+    indexVars = Int32[]
+    coefs = Float64[]
 
     index_cons = 0
     for constraint_expr in [model.linear_le_constraints,
@@ -472,10 +478,13 @@ function parse_cons_linear_struct(model::Optimizer)
                             model.quadratic_ge_constraints,
                             model.quadratic_eq_constraints]
 
-        currentvars, currentcoefs = canonical_linear_reduction(constraint_expr)
-        push!(indexCons, fill(index_cons, length(currentvars))...)
-        push!(indexVars, currentvars...)
-        push!(coefs, currentcoefs...)
+        for (func, set) in constraint_expr
+            currentvars, currentcoefs = canonical_linear_reduction(func)
+            push!(indexCons, fill(index_cons, length(currentvars))...)
+            push!(indexVars, currentvars...)
+            push!(coefs, currentcoefs...)
+        end
+
 
         index_cons += 1
     end
@@ -483,22 +492,24 @@ function parse_cons_linear_struct(model::Optimizer)
     return indexCons, indexVars, coefs
 end
 
-function parse_cons_quad_struct(model::Optimizer)
-    indexCons = []
-    indexVars1 = []
-    indexVars2 = []
-    coefs = []
+function parse_cons_quadratic_struct(model::Optimizer)
+    indexCons = Int32[]
+    indexVars1 = Int32[]
+    indexVars2 = Int32[]
+    coefs = Float64[]
 
     index_cons = get_number_linear_constraints(model)
     for constraint_expr in [model.quadratic_le_constraints,
                             model.quadratic_ge_constraints,
                             model.quadratic_eq_constraints]
 
-        currentvars1, currentvars2, currentcoefs = canonical_quad_reduction(constraint_expr)
-        push!(indexCons, fill(index_cons, length(currentvars1))...)
-        push!(indexVars1, currentvars1...)
-        push!(indexVars2, currentvars2...)
-        push!(coefs, currentcoefs...)
+        for (func, set) in constraint_expr
+            currentvars1, currentvars2, currentcoefs = canonical_quadratic_reduction(func)
+            push!(indexCons, fill(index_cons, length(currentvars1))...)
+            push!(indexVars1, currentvars1...)
+            push!(indexVars2, currentvars2...)
+            push!(coefs, currentcoefs...)
+        end
 
         index_cons += 1
     end
@@ -581,8 +592,8 @@ function MOI.optimize!(model::Optimizer)
     function eval_grad_cb(kc, cb, evalRequest, evalResult, userParams)
         # evaluate non-linear term in objective gradient
         eval_objective_gradient(model, evalResult.objGrad, evalRequest.x)
-        eval_constraint_jacobian(model, evalResult.objGrad, evalRequest.x)
-        eval_objective_gradient(model, evalResult.jac, evalRequest.x)
+        # evaluate non linear part of jacobian
+        eval_constraint_jacobian(model, evalResult.jac, evalRequest.x)
     end
 
     if has_hessian
@@ -598,43 +609,49 @@ function MOI.optimize!(model::Optimizer)
     # do something similar as canonical reduction
     lconIndexCons, lconIndexVars, lconCoefs = parse_cons_linear_struct(model)
     # store linear structure directly inside KNITRO
-    KN_add_con_linear_struct(model.inner, lconIndexCons, lconIndexVars, lconCoefs)
+    if length(lconCoefs) > 0
+        KN_add_con_linear_struct(model.inner, lconIndexCons, lconIndexVars, lconCoefs)
+    end
 
     # add quadratic structure
-    qconIndexCons, qconIndexVars1, qconIndexVars2, lconCoefs = parse_cons_quadratic_struct(model)
-    # store quadratic structure directly inside KNITRO
-    KN_add_con_quadratic_struct(model.inner, qconIndexCons,
-                                qconIndexVars1, qconIndexVars2,
-                                qconCoefs)
+    qconIndexCons, qconIndexVars1, qconIndexVars2, qconCoefs = parse_cons_quadratic_struct(model)
+    if length(qconCoefs) > 0
+        # store quadratic structure directly inside KNITRO
+        KN_add_con_quadratic_struct(model.inner, qconIndexCons,
+                                    qconIndexVars1, qconIndexVars2, qconCoefs)
+    end
 
     # eventually, get constraints upper and lower bounds
-    cons_lb, cons_ub = constraints_bounds(model)
-    KN_set_con_upbnds(m, cons_ub)
-    KN_set_con_lobnds(m, cons_lb)
+    cons_lb, cons_ub = constraint_bounds(model)
+    if length(cons_lb) > 0
+        KN_set_con_upbnds(model.inner, cons_ub)
+        KN_set_con_lobnds(model.inner, cons_lb)
+    end
 
     # add NLP structure
     # here, we assume that the full objective is evaluate in eval_f
-    cb = KN_add_eval_callback(kc, eval_f_cb)
+    cb = KN_add_eval_callback(model.inner, eval_f_cb)
 
     # get jacobian structure
-    nnzJ = length()
+    jacob_structure = MOI.jacobian_structure(model.nlp_data.evaluator)
+    nnzJ = length(jacob_structure)
     if nnzJ == 0
-        KN_set_cb_grad(kc, cb, eval_grad_cb)
+        KN_set_cb_grad(model.inner, cb, eval_grad_cb)
     else
-        jacob_structure = MOI.jacobian_structure(d)
-        jacIndexCons =
-        jacIndexVars =
-        KN_set_cb_grad(kc, cb, eval_grad_cb,
+        jacIndexCons = [i for (i, _) in jacob_structure]
+        jacIndexVars = [j for (_, j) in jacob_structure]
+        KN_set_cb_grad(model.inner, cb, eval_grad_cb,
                        jacIndexCons=jacIndexCons, jacIndexVars=jacIndexVars)
     end
 
     if has_hessian
-        nnzH = length()
         # get hessian structure
-        hessIndexVars1 =
-        hessIndexVars2 =
+        hessian_structure = MOI.hessian_lagrangian_structure(model.nlp_data.evaluator)
+        nnzH = length(hessian_structure)
+        hessIndexVars1 = [i for (i, _) in hessian_structure]
+        hessIndexVars2 = [j for (_, j) in hessian_structure]
 
-        KN_set_cb_hess(kc, cb, nnzH, eval_hessian_cb,
+        KN_set_cb_hess(model.inner, cb, nnzH, eval_h_cb,
                        hessIndexVars1=hessIndexVars1,
                        hessIndexVars2=hessIndexVars2)
     end
@@ -642,16 +659,17 @@ function MOI.optimize!(model::Optimizer)
     # set KNITRO option
     for (name,value) in model.options
         sname = string(name)
-        if name == "option_file"
-            KN_load_param_file(m.inner, value)
-        elseif name == "tuner_file"
-            KN_load_tuner_file(m.inner, value)
+        if sname == "option_file"
+            KN_load_param_file(model.inner, value)
+        elseif sname == "tuner_file"
+            KN_load_tuner_file(model.inner, value)
         else
-            if haskey(KN_paramName2Indx, name) # KN_PARAM_*
-                set_param(m.inner, paramName2Indx[name], value)
+            if haskey(KN_paramName2Indx, sname) # KN_PARAM_*
+                KN_set_param(model.inner, paramName2Indx[sname], value)
             else # string name
-                set_param(model.inner, sname, value)
+                KN_set_param(model.inner, sname, value)
             end
+        end
     end
 
     KN_solve(model.inner)

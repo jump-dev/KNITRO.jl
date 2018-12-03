@@ -39,7 +39,7 @@ module KNITRO
     include("kn_solve.jl")
     include("kn_callbacks.jl")
 
-    include("MOIWrapper.jl")
+    include("MOI_wrapper.jl")
 
 
     # wrapper with MathProgBase
