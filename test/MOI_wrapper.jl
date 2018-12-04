@@ -19,7 +19,7 @@ MOIU.@model(KnitroModelData,
 # Without fixed_variable_treatment set, duals are not computed for variables
 # that have lower_bound == upper_bound.
 const optimizer = KNITRO.Optimizer()
-const config = MOIT.TestConfig(atol=1e-4)
+const config = MOIT.TestConfig(atol=1e-4, rtol=1e-4)
 
 #= @testset "MOI Linear tests" begin =#
 #=     exclude = ["linear8a", # Behavior in infeasible case doesn't match test. =#
@@ -36,17 +36,16 @@ const config = MOIT.TestConfig(atol=1e-4)
 
 #= MOI.empty!(optimizer) =#
 
-#= @testset "MOI QP/QCQP tests" begin =#
-#=     qp_optimizer = MOIU.CachingOptimizer(IpoptModelData{Float64}(), optimizer) =#
-#=     MOIT.qptest(qp_optimizer, config) =#
-#=     exclude = ["qcp1", # VectorAffineFunction not supported. =#
-#=               ] =#
-#=     MOIT.qcptest(qp_optimizer, config, exclude) =#
-#= end =#
+@testset "MOI QP/QCQP tests" begin
+    qp_optimizer = MOIU.CachingOptimizer(KnitroModelData{Float64}(), optimizer)
+    MOIT.qptest(qp_optimizer, config)
+    exclude = ["qcp1", # VectorAffineFunction not supported.
+              ]
+    MOIT.qcptest(qp_optimizer, config, exclude)
+end
 
-#= MOI.empty!(optimizer) =#
+MOI.empty!(optimizer)
 
 @testset "MOI NLP tests" begin
     MOIT.nlptest(optimizer, config)
-
 end

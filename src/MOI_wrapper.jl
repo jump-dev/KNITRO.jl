@@ -12,7 +12,7 @@ const MOI = MathOptInterface
 # import legacy from LinQuadOptInterface to ease the integration
 # of KNITRO quadratic and linear facilities
 """
-    canonical_quadratic_reduction(func::Quad)
+    canonical_quadratic_reduction(func::ScalarQuadraticFunction)
 
 Reduce a ScalarQuadraticFunction into three arrays, returned in the following
 order:
@@ -25,8 +25,8 @@ ordered, that is no deletion or swap has occured.
 """
 function canonical_quadratic_reduction(func::MOI.ScalarQuadraticFunction)
     quad_columns_1, quad_columns_2, quad_coefficients = (
-        [term.variable_index_1.value for term in func.quadratic_terms],
-        [term.variable_index_2.value for term in func.quadratic_terms],
+        Int32[term.variable_index_1.value for term in func.quadratic_terms],
+        Int32[term.variable_index_2.value for term in func.quadratic_terms],
         [term.coefficient for term in func.quadratic_terms]
     )
     return quad_columns_1, quad_columns_2, quad_coefficients
@@ -37,19 +37,19 @@ end
 
 Reduce a ScalarQuadraticFunction into two arrays, returned in the following
 order:
- 1. a vector of quadratic column indices
+ 1. a vector of linear column indices
  2. a vector of linear coefficients
 
 Warning: we assume in this function that all variables are correctly
 ordered, that is no deletion or swap has occured.
 """
 function canonical_linear_reduction(func::MOI.ScalarQuadraticFunction)
-    affine_columns = [term.variable_index.value for term in func.affine_terms]
+    affine_columns = Int32[term.variable_index.value for term in func.affine_terms]
     affine_coefficients = [term.coefficient for term in func.affine_terms]
     return affine_columns, affine_coefficients
 end
 function canonical_linear_reduction(func::MOI.ScalarAffineFunction)
-    affine_columns = [term.variable_index.value for term in func.terms]
+    affine_columns = Int32[term.variable_index.value for term in func.terms]
     affine_coefficients = [term.coefficient for term in func.terms]
     return affine_columns, affine_coefficients
 end
@@ -392,6 +392,7 @@ function eval_function(aff::MOI.ScalarAffineFunction, x)
 end
 
 function eval_function(quad::MOI.ScalarQuadraticFunction, x)
+    error("Deprecated")
     function_value = quad.constant
     for term in quad.affine_terms
         function_value += term.coefficient*x[term.variable_index.value]
@@ -560,6 +561,40 @@ function constraint_bounds(model::Optimizer)
     return constraint_lb, constraint_ub
 end
 
+function add_objective!(model::Optimizer, objective::MOI.ScalarQuadraticFunction)
+    # we parse the expression passed in arguments:
+    qobjindex1, qobjindex2, qcoefs = canonical_quadratic_reduction(objective)
+    lobjindex, lcoefs = canonical_linear_reduction(objective)
+    # take care of julia's 1-indexing
+    lobjindex .-= 1
+    qobjindex1 .-= 1
+    qobjindex2 .-= 1
+    # need to convert MOI convention to KNITRO convention
+    for i in 1:length(qcoefs)
+        if qobjindex1[i] == qobjindex2[i]
+            qcoefs[i] *= .5
+        end
+    end
+    # we load the objective inside KNITRO
+    KN_add_obj_quadratic_struct(model.inner, qobjindex1, qobjindex2, qcoefs)
+    #= KN_add_obj_linear_struct(model.inner, lobjindex, lcoefs) =#
+    KN_add_obj_constant(model.inner, objective.constant)
+end
+function add_objective!(model::Optimizer, objective::MOI.ScalarAffineFunction)
+    # we parse the expression passed in arguments:
+    lobjindex, lcoefs = canonical_linear_reduction(objective)
+    # take care of julia's 1-indexing
+    lobjindex .-= 1
+    # we load the objective inside KNITRO
+    KN_add_obj_linear_struct(model.inner, lobjindex, lcoefs)
+    KN_add_obj_constant(model.inner, objective.constant)
+end
+function add_objective!(model::Optimizer, objective::MOI.SingleVariable)
+    # we load the objective inside KNITRO
+    KN_add_obj_constant(model.inner, objective.value)
+end
+
+
 function MOI.optimize!(model::Optimizer)
     # TODO: Reuse model.inner for incremental solves if possible.
     num_variables = length(model.variable_info)
@@ -585,38 +620,6 @@ function MOI.optimize!(model::Optimizer)
     # inside KNITRO
     num_nlp_constraints > 0 && KN_add_cons(model.inner, num_nlp_constraints)
 
-    # the callbacks must match the signature of the callbacks
-    # defined in knitro.h.
-    # Objective callback (set both objective and constraint evaluation
-    function eval_f_cb(kc, cb, evalRequest, evalResult, userParams)
-        # evaluate objective:
-        evalResult.obj[1] = eval_objective(model, evalRequest.x)
-        # evaluate nonlinear term in constraint
-        eval_constraint(model, evalResult.c, evalRequest.x)
-        return 0
-    end
-
-    # Objective gradient callback
-    function eval_grad_cb(kc, cb, evalRequest, evalResult, userParams)
-        # evaluate non-linear term in objective gradient
-        eval_objective_gradient(model, evalResult.objGrad, evalRequest.x)
-        # evaluate non linear part of jacobian
-        eval_constraint_jacobian(model, evalResult.jac, evalRequest.x)
-    end
-
-    if has_hessian
-        # Hessian callback
-        function eval_h_cb(kc, cb, evalRequest, evalResult, userParams)
-            MOI.eval_hessian_lagrangian(model.nlp_data.evaluator,
-                                        evalResult.hess,
-                                        evalRequest.x,
-                                        evalRequest.sigma,
-                                        evalRequest.lambda)
-        end
-    else
-        eval_h_cb = nothing
-    end
-
     # add linear structure
     # do something similar as canonical reduction
     lconIndexCons, lconIndexVars, lconCoefs = parse_cons_linear_struct(model)
@@ -628,6 +631,12 @@ function MOI.optimize!(model::Optimizer)
     # add quadratic structure
     qconIndexCons, qconIndexVars1, qconIndexVars2, qconCoefs = parse_cons_quadratic_struct(model)
     if length(qconCoefs) > 0
+        # need to convert MOI convention to KNITRO convention
+        for i in 1:length(qconCoefs)
+            if qconIndexVars1[i] == qconIndexVars2[i]
+                qconCoefs[i] *= .5
+            end
+        end
         # store quadratic structure directly inside KNITRO
         KN_add_con_quadratic_struct(model.inner, qconIndexCons,
                                     qconIndexVars1, qconIndexVars2, qconCoefs)
@@ -640,36 +649,77 @@ function MOI.optimize!(model::Optimizer)
         KN_set_con_lobnds(model.inner, cons_lb)
     end
 
-    # add NLP structure
-    # here, we assume that the full objective is evaluated in eval_f
-    if model.nlp_data.has_objective
+    # add NLP structure if specified
+    # TODO: dry this in dedicated function
+    if ~isa(model.nlp_data.evaluator, EmptyNLPEvaluator)
+        # the callbacks must match the signature of the callbacks
+        # defined in knitro.h.
+        # Objective callback (set both objective and constraint evaluation
+        function eval_f_cb(kc, cb, evalRequest, evalResult, userParams)
+            # evaluate objective:
+            evalResult.obj[1] = eval_objective(model, evalRequest.x)
+            # evaluate nonlinear term in constraint
+            eval_constraint(model, evalResult.c, evalRequest.x)
+            return 0
+        end
+
+        # Objective gradient callback
+        function eval_grad_cb(kc, cb, evalRequest, evalResult, userParams)
+            # evaluate non-linear term in objective gradient
+            eval_objective_gradient(model, evalResult.objGrad, evalRequest.x)
+            # evaluate non linear part of jacobian
+            eval_constraint_jacobian(model, evalResult.jac, evalRequest.x)
+        end
+
+        if has_hessian
+            # Hessian callback
+            function eval_h_cb(kc, cb, evalRequest, evalResult, userParams)
+                MOI.eval_hessian_lagrangian(model.nlp_data.evaluator,
+                                            evalResult.hess,
+                                            evalRequest.x,
+                                            evalRequest.sigma,
+                                            evalRequest.lambda)
+            end
+        else
+            eval_h_cb = nothing
+        end
+        # here, we assume that the full objective is evaluated in eval_f
         cb = KN_add_eval_callback(model.inner, eval_f_cb)
-    end
 
-    # get jacobian structure
-    jacob_structure = MOI.jacobian_structure(model.nlp_data.evaluator)
-    nnzJ = length(jacob_structure)
-    if nnzJ == 0
-        KN_set_cb_grad(model.inner, cb, eval_grad_cb)
+        # get jacobian structure
+        jacob_structure = MOI.jacobian_structure(model.nlp_data.evaluator)
+        nnzJ = length(jacob_structure)
+        if nnzJ == 0
+            KN_set_cb_grad(model.inner, cb, eval_grad_cb)
+        else
+            # take care to convert 1-indexing to 0-indexing!
+            # KNITRO supports only Int32 array for integer
+            jacIndexCons = Int32[i-1 for (i, _) in jacob_structure]
+            jacIndexVars = Int32[j-1 for (_, j) in jacob_structure]
+            KN_set_cb_grad(model.inner, cb, eval_grad_cb,
+                        jacIndexCons=jacIndexCons, jacIndexVars=jacIndexVars)
+        end
+
+        if has_hessian
+            # get hessian structure
+            hessian_structure = MOI.hessian_lagrangian_structure(model.nlp_data.evaluator)
+            nnzH = length(hessian_structure)
+            # take care to convert 1-indexing to 0-indexing!
+            # KNITRO supports only Int32 array for integer
+            hessIndexVars1 = Int32[i-1 for (i, _) in hessian_structure]
+            hessIndexVars2 = Int32[j-1 for (_, j) in hessian_structure]
+
+            KN_set_cb_hess(model.inner, cb, nnzH, eval_h_cb,
+                        hessIndexVars1=hessIndexVars1,
+                        hessIndexVars2=hessIndexVars2)
+        end
+
+    # if no NLPdata, we test if we can fetch directly the objective
+    # as an expression.
+    elseif model.objective !== nothing
+        add_objective!(model, model.objective)
     else
-        # take care to convert 1-indexing to 0-indexing!
-        jacIndexCons = Int32[i-1 for (i, _) in jacob_structure]
-        jacIndexVars = Int32[j-1 for (_, j) in jacob_structure]
-        KN_set_cb_grad(model.inner, cb, eval_grad_cb,
-                       jacIndexCons=jacIndexCons, jacIndexVars=jacIndexVars)
-    end
-
-    if has_hessian
-        # get hessian structure
-        hessian_structure = MOI.hessian_lagrangian_structure(model.nlp_data.evaluator)
-        nnzH = length(hessian_structure)
-        # take care to convert 1-indexing to 0-indexing!
-        hessIndexVars1 = Int32[i-1 for (i, _) in hessian_structure]
-        hessIndexVars2 = Int32[j-1 for (_, j) in hessian_structure]
-
-        KN_set_cb_hess(model.inner, cb, nnzH, eval_h_cb,
-                       hessIndexVars1=hessIndexVars1,
-                       hessIndexVars2=hessIndexVars2)
+        error("Model specified does not have a valid objective.")
     end
 
     # set KNITRO option
