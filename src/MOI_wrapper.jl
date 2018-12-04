@@ -374,6 +374,9 @@ quadratic_eq_offset(model::Optimizer) = quadratic_ge_offset(model) + length(mode
 nlp_constraint_offset(model::Optimizer) = quadratic_eq_offset(model) + length(model.quadratic_eq_constraints)
 get_number_linear_constraints(model::Optimizer) = quadratic_le_offset(model)
 
+number_variables(model::Optimizer) = length(model.variable_info)
+number_constraints(model::Optimizer) = length(model.nlp_data.constraint_bounds) + nlp_constraint_offset(model)
+
 # Convenience functions used only in optimize!
 
 function eval_function(var::MOI.SingleVariable, x)
@@ -594,10 +597,9 @@ function add_objective!(model::Optimizer, objective::MOI.SingleVariable)
     KN_add_obj_constant(model.inner, objective.value)
 end
 
-
 function MOI.optimize!(model::Optimizer)
     # TODO: Reuse model.inner for incremental solves if possible.
-    num_variables = length(model.variable_info)
+    num_variables = number_variables(model::Optimizer)
     num_linear_le_constraints = length(model.linear_le_constraints)
     num_linear_ge_constraints = length(model.linear_ge_constraints)
     num_linear_eq_constraints = length(model.linear_eq_constraints)
@@ -919,11 +921,9 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
     end
     @assert 1 <= ci.value <= length(model.linear_le_constraints)
 
-    # TODO: Unable to find documentation in Ipopt about the signs of duals.
-    # Rescaling by -1 here seems to pass the MOI tests.
-    offset = linear_le_offset(model) + length(model.variable_info)
+    offset = linear_le_offset(model)
     lambda = get_dual(model.inner)
-    return lambda[ci.value + offset]
+    return -1. * lambda[ci.value + offset]
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
@@ -933,11 +933,9 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
         error("ConstraintDual not available.")
     end
     @assert 1 <= ci.value <= length(model.linear_ge_constraints)
-    # TODO: Unable to find documentation in Ipopt about the signs of duals.
-    # Rescaling by -1 here seems to pass the MOI tests.
-    offset = linear_ge_offset(model) + length(model.variable_info)
+    offset = linear_ge_offset(model)
     lambda = get_dual(model.inner)
-    return lambda[ci.value + offset]
+    return -1. * lambda[ci.value + offset]
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
@@ -947,11 +945,9 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
         error("ConstraintDual not available.")
     end
     @assert 1 <= ci.value <= length(model.linear_eq_constraints)
-    # TODO: Rescaling by -1 for consistency, but I don't know if this is covered
-    # by tests.
-    offset = linear_eq_offset(model) + length(model.variable_info)
+    offset = linear_eq_offset(model)
     lambda = get_dual(model.inner)
-    return lambda[ci.value + offset]
+    return -1. * lambda[ci.value + offset]
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
@@ -966,8 +962,9 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
         error("Variable $vi has no upper bound -- ConstraintDual not defined.")
     end
     # MOI convention is for feasible LessThan duals to be nonpositive.
+    offset = number_constraints(model)
     lambda = get_dual(model.inner)
-    return lambda[vi.value]
+    return -1. * lambda[vi.value + offset]
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
@@ -981,8 +978,9 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
     if !has_lower_bound(model, vi)
         error("Variable $vi has no lower bound -- ConstraintDual not defined.")
     end
+    offset = number_constraints(model)
     lambda = get_dual(model.inner)
-    return lambda[vi.value]
+    return -1. * lambda[vi.value + offset]
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
@@ -996,15 +994,16 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
     if !is_fixed(model, vi)
         error("Variable $vi is not fixed -- ConstraintDual not defined.")
     end
+    offset = number_constraints(model)
     lambda = get_dual(model.inner)
-    return lambda[vi.value]
+    return -1. * lambda[vi.value + offset]
 end
 
 function MOI.get(model::Optimizer, ::MOI.NLPBlockDual)
     if model.inner === nothing
         error("NLPBlockDual not available.")
     end
-    offset = nlp_constraint_offset(model) + length(model.variable_info)
+    offset = nlp_constraint_offset(model)
     lambda = get_dual(model.inner)
-    return lambda[ci.value + offset]
+    return -1. * lambda[ci.value + offset]
 end
