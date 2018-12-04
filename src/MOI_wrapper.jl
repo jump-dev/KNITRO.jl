@@ -96,6 +96,8 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     quadratic_le_constraints::Vector{Tuple{MOI.ScalarQuadraticFunction{Float64}, MOI.LessThan{Float64}}}
     quadratic_ge_constraints::Vector{Tuple{MOI.ScalarQuadraticFunction{Float64}, MOI.GreaterThan{Float64}}}
     quadratic_eq_constraints::Vector{Tuple{MOI.ScalarQuadraticFunction{Float64}, MOI.EqualTo{Float64}}}
+    number_zeroone_constraints::Int
+    number_integer_constraints::Int
     options
 end
 
@@ -120,7 +122,8 @@ end
 empty_nlp_data() = MOI.NLPBlockData([], EmptyNLPEvaluator(), false)
 
 
-Optimizer(;options...) = Optimizer(KN_new(), [], empty_nlp_data(), MOI.FeasibilitySense, nothing, [], [], [], [], [], [], options)
+Optimizer(;options...) = Optimizer(KN_new(), [], empty_nlp_data(),
+                                   MOI.FeasibilitySense, nothing, [], [], [], [], [], [], 0, 0, options)
 
 MOI.supports(::Optimizer, ::MOI.NLPBlock) = true
 MOI.supports(::Optimizer, ::MOI.ObjectiveFunction{MOI.SingleVariable}) = true
@@ -145,6 +148,15 @@ function MOI.copy_to(model::Optimizer, src::MOI.ModelLike; copy_names = false)
 end
 
 MOI.get(model::Optimizer, ::MOI.NumberOfVariables) = length(model.variable_info)
+MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.ScalarAffineFunction{Float64}, MOI.EqualTo{Float64}}) =
+    length(model.linear_eq_constraints)
+MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.ScalarAffineFunction{Float64}, MOI.LessThan{Float64}}) =
+    length(model.linear_le_constraints)
+MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.ScalarAffineFunction{Float64}, MOI.GreaterThan{Float64}}) =
+    length(model.linear_ge_constraints)
+MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.SingleVariable, MOI.ZeroOne}) =
+    model.number_zeroone_constraints
+
 
 function MOI.get(model::Optimizer, ::MOI.ListOfVariableIndices)
     return [MOI.VariableIndex(i) for i in 1:length(model.variable_info)]
@@ -172,6 +184,8 @@ function MOI.empty!(model::Optimizer)
     model.nlp_data = empty_nlp_data()
     model.sense = MOI.FeasibilitySense
     model.objective = nothing
+    model.number_zeroone_constraints = 0
+    model.number_integer_constraints = 0
     empty!(model.linear_le_constraints)
     empty!(model.linear_ge_constraints)
     empty!(model.linear_eq_constraints)
@@ -338,11 +352,16 @@ end
 function MOI.add_constraint(model::Optimizer, v::MOI.SingleVariable, ::MOI.ZeroOne)
     vi = v.variable
     check_inbounds(model, vi)
+    model.number_zeroone_constraints += 1
+    # we have to made the bounds explicit for KNITRO
+    KN_set_var_lobnds(model.inner, vi.value-1, 0.)
+    KN_set_var_upbnds(model.inner, vi.value-1, 1.)
     KN_set_var_type(model.inner, vi.value-1, KN_VARTYPE_BINARY)
 end
 function MOI.add_constraint(model::Optimizer, v::MOI.SingleVariable, ::MOI.Integer)
     vi = v.variable
     check_inbounds(model, vi)
+    model.number_integer_constraints += 1
     KN_set_var_type(model.inner, vi.value-1, KN_VARTYPE_INTEGER)
 end
 
