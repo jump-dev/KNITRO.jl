@@ -1,10 +1,28 @@
+#--------------------------------------------------
 # import KNITRO's MOIWrapper
 # This file is largely inspired from:
 # https://github.com/JuliaOpt/Ipopt.jl/blob/master/src/MOIWrapper.jl
 # The authors are indebted to the developpers of Ipopt.jl for
 # the current MOI wrapper.
 #
+#--------------------------------------------------
+# Specifications
+#--------------------------------------------------
+# The MOI wrapper works only for KNITRO version >= 11.0
 #
+# - linear coefs are handled directly by KNITRO, via
+#  `KN_add_con_linear_struct , KN_add_obj_linear_struct
+#
+# - quadratic coefs are also handled directly by KNITRO, via
+#  `KN_add_con_quad_struct , KN_add_obj_quad_struct
+#
+# - NLP data are handled via KNITRO's callbacks
+#
+# NB: if `model.nlp_data`is empty, KNITRO would not use any
+#     callbacks during the resolving.
+#
+#--------------------------------------------------
+
 import MathOptInterface
 const MOI = MathOptInterface
 
@@ -701,9 +719,9 @@ function MOI.optimize!(model::Optimizer)
     # as an expression.
     elseif model.objective !== nothing
         add_objective!(model, model.objective)
-    else
-        error("Model specified does not have a valid objective.")
     end
+    # otherwise, we assume that the objective is equal to zero
+    # to perform feasibility test
 
     # set KNITRO option
     for (name,value) in model.options
@@ -945,7 +963,7 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
     # MOI convention is for feasible LessThan duals to be nonpositive.
     offset = number_constraints(model)
     lambda = get_dual(model.inner)
-    return -1. * lambda[vi.value + offset]
+    return lambda[vi.value + offset]
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
