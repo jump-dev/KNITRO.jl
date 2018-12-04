@@ -8,6 +8,18 @@
 import MathOptInterface
 const MOI = MathOptInterface
 
+const SF = Union{MOI.SingleVariable,
+                 MOI.ScalarAffineFunction{Float64},
+                 MOI.VectorOfVariables,
+                 MOI.VectorAffineFunction{Float64}}
+
+const SS = Union{MOI.EqualTo{Float64},
+                 MOI.GreaterThan{Float64},
+                 MOI.LessThan{Float64},
+                 MOI.Zeros,
+                 MOI.Nonnegatives,
+                 MOI.Nonpositives}
+
 ##################################################
 # import legacy from LinQuadOptInterface to ease the integration
 # of KNITRO quadratic and linear facilities
@@ -124,6 +136,9 @@ MOI.supports_constraint(::Optimizer, ::Type{MOI.ScalarAffineFunction{Float64}}, 
 MOI.supports_constraint(::Optimizer, ::Type{MOI.ScalarQuadraticFunction{Float64}}, ::Type{MOI.LessThan{Float64}}) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.ScalarQuadraticFunction{Float64}}, ::Type{MOI.GreaterThan{Float64}}) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.ScalarQuadraticFunction{Float64}}, ::Type{MOI.EqualTo{Float64}}) = true
+MOI.supports_constraint(::Optimizer, ::Type{MOI.SingleVariable}, ::Type{MOI.ZeroOne}) = true
+MOI.supports_constraint(::Optimizer, ::Type{MOI.SingleVariable}, ::Type{MOI.Integer}) = true
+MOI.supports_constraint(::Optimizer, ::Type{<:SF}, ::Type{<:SS}) = true
 
 function MOI.copy_to(model::Optimizer, src::MOI.ModelLike; copy_names = false)
     return MOI.Utilities.default_copy_to(model, src, copy_names)
@@ -318,6 +333,19 @@ end
 @define_add_constraint(MOI.ScalarQuadraticFunction{Float64},
                        MOI.EqualTo{Float64}, quadratic_eq_constraints)
 
+
+# define integer and boolean constraints
+function MOI.add_constraint(model::Optimizer, v::MOI.SingleVariable, ::MOI.ZeroOne)
+    vi = v.variable
+    check_inbounds(model, vi)
+    KN_set_var_type(model.inner, vi.value-1, KN_VARTYPE_BINARY)
+end
+function MOI.add_constraint(model::Optimizer, v::MOI.SingleVariable, ::MOI.Integer)
+    vi = v.variable
+    check_inbounds(model, vi)
+    KN_set_var_type(model.inner, vi.value-1, KN_VARTYPE_INTEGER)
+end
+
 #--------------------------------------------------
 # Primal and dual warmstart
 function MOI.supports(::Optimizer, ::MOI.VariablePrimalStart,
@@ -378,41 +406,6 @@ number_variables(model::Optimizer) = length(model.variable_info)
 number_constraints(model::Optimizer) = length(model.nlp_data.constraint_bounds) + nlp_constraint_offset(model)
 
 # Convenience functions used only in optimize!
-
-function eval_function(var::MOI.SingleVariable, x)
-    return x[var.variable.value]
-end
-
-function eval_function(aff::MOI.ScalarAffineFunction, x)
-    function_value = aff.constant
-    for term in aff.terms
-        # Note the implicit assumtion that VariableIndex values match up with
-        # x indices. This is valid because in this wrapper ListOfVariableIndices
-        # is always [1, ..., NumberOfVariables].
-        function_value += term.coefficient*x[term.variable_index.value]
-    end
-    return function_value
-end
-
-function eval_function(quad::MOI.ScalarQuadraticFunction, x)
-    error("Deprecated")
-    function_value = quad.constant
-    for term in quad.affine_terms
-        function_value += term.coefficient*x[term.variable_index.value]
-    end
-    for term in quad.quadratic_terms
-        row_idx = term.variable_index_1
-        col_idx = term.variable_index_2
-        coefficient = term.coefficient
-        if row_idx == col_idx
-            function_value += 0.5*coefficient*x[row_idx.value]*x[col_idx.value]
-        else
-            function_value += coefficient*x[row_idx.value]*x[col_idx.value]
-        end
-    end
-    return function_value
-end
-
 function eval_objective(model::Optimizer, x)
     @assert !(model.nlp_data.has_objective && model.objective !== nothing)
     if model.nlp_data.has_objective
@@ -432,42 +425,11 @@ function eval_constraint_jacobian(model::Optimizer, g, x)
     return MOI.eval_constraint_jacobian(model.nlp_data.evaluator, g, x)
 end
 
-function fill_gradient!(grad, x, var::MOI.SingleVariable)
-    fill!(grad, 0.0)
-    grad[var.variable.value] = 1.0
-end
-
-function fill_gradient!(grad, x, aff::MOI.ScalarAffineFunction{Float64})
-    fill!(grad, 0.0)
-    for term in aff.terms
-        grad[term.variable_index.value] += term.coefficient
-    end
-end
-
-function fill_gradient!(grad, x, quad::MOI.ScalarQuadraticFunction{Float64})
-    fill!(grad, 0.0)
-    for term in quad.affine_terms
-        grad[term.variable_index.value] += term.coefficient
-    end
-    for term in quad.quadratic_terms
-        row_idx = term.variable_index_1
-        col_idx = term.variable_index_2
-        coefficient = term.coefficient
-        if row_idx == col_idx
-            grad[row_idx.value] += coefficient*x[row_idx.value]
-        else
-            grad[row_idx.value] += coefficient*x[col_idx.value]
-            grad[col_idx.value] += coefficient*x[row_idx.value]
-        end
-    end
-end
-
 function eval_objective_gradient(model::Optimizer, grad, x)
+    # TODO: clean
     @assert !(model.nlp_data.has_objective && model.objective !== nothing)
     if model.nlp_data.has_objective
         MOI.eval_objective_gradient(model.nlp_data.evaluator, grad, x)
-    elseif model.objective !== nothing
-        fill_gradient!(grad, x, model.objective)
     end
     return
 end
