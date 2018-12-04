@@ -622,8 +622,6 @@ function MOI.optimize!(model::Optimizer)
     lconIndexCons, lconIndexVars, lconCoefs = parse_cons_linear_struct(model)
     # store linear structure directly inside KNITRO
     if length(lconCoefs) > 0
-        println(lconIndexCons)
-        println(lconIndexVars)
         KN_add_con_linear_struct(model.inner, lconIndexCons, lconIndexVars, lconCoefs)
     end
 
@@ -644,7 +642,9 @@ function MOI.optimize!(model::Optimizer)
 
     # add NLP structure
     # here, we assume that the full objective is evaluated in eval_f
-    cb = KN_add_eval_callback(model.inner, eval_f_cb)
+    if model.nlp_data.has_objective
+        cb = KN_add_eval_callback(model.inner, eval_f_cb)
+    end
 
     # get jacobian structure
     jacob_structure = MOI.jacobian_structure(model.nlp_data.evaluator)
@@ -653,8 +653,8 @@ function MOI.optimize!(model::Optimizer)
         KN_set_cb_grad(model.inner, cb, eval_grad_cb)
     else
         # take care to convert 1-indexing to 0-indexing!
-        jacIndexCons = [i-1 for (i, _) in jacob_structure]
-        jacIndexVars = [j-1 for (_, j) in jacob_structure]
+        jacIndexCons = Int32[i-1 for (i, _) in jacob_structure]
+        jacIndexVars = Int32[j-1 for (_, j) in jacob_structure]
         KN_set_cb_grad(model.inner, cb, eval_grad_cb,
                        jacIndexCons=jacIndexCons, jacIndexVars=jacIndexVars)
     end
@@ -664,8 +664,8 @@ function MOI.optimize!(model::Optimizer)
         hessian_structure = MOI.hessian_lagrangian_structure(model.nlp_data.evaluator)
         nnzH = length(hessian_structure)
         # take care to convert 1-indexing to 0-indexing!
-        hessIndexVars1 = [i-1 for (i, _) in hessian_structure]
-        hessIndexVars2 = [j-1 for (_, j) in hessian_structure]
+        hessIndexVars1 = Int32[i-1 for (i, _) in hessian_structure]
+        hessIndexVars2 = Int32[j-1 for (_, j) in hessian_structure]
 
         KN_set_cb_hess(model.inner, cb, nnzH, eval_h_cb,
                        hessIndexVars1=hessIndexVars1,
