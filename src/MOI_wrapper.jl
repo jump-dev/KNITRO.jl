@@ -59,6 +59,15 @@ function canonical_quadratic_reduction(func::MOI.ScalarQuadraticFunction)
         Int32[term.variable_index_2.value for term in func.quadratic_terms],
         [term.coefficient for term in func.quadratic_terms]
     )
+    # take care of difference between MOI standards and KNITRO ones
+    for i in 1:length(quad_coefficients)
+        if quad_columns_1[i] == quad_columns_2[i]
+            quad_coefficients[i] *= .5
+        end
+    end
+    # take care that Julia is 1-indexed
+    quad_columns_1 .-= 1
+    quad_columns_2 .-= 1
     return quad_columns_1, quad_columns_2, quad_coefficients
 end
 
@@ -76,11 +85,13 @@ ordered, that is no deletion or swap has occured.
 function canonical_linear_reduction(func::MOI.ScalarQuadraticFunction)
     affine_columns = Int32[term.variable_index.value for term in func.affine_terms]
     affine_coefficients = [term.coefficient for term in func.affine_terms]
+    affine_columns .-= 1
     return affine_columns, affine_coefficients
 end
 function canonical_linear_reduction(func::MOI.ScalarAffineFunction)
     affine_columns = Int32[term.variable_index.value for term in func.terms]
     affine_coefficients = [term.coefficient for term in func.terms]
+    affine_columns .-= 1
     return affine_columns, affine_coefficients
 end
 
@@ -103,10 +114,14 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     # we only keep in memory some information about variables
     # as we cannot delete variables, we do not have to store an index
     variable_info::Vector{VariableInfo}
+    # specify if NLP is loaded inside KNITRO to avoid double definition
+    nlp_loaded::Bool
     nlp_data::MOI.NLPBlockData
     sense::MOI.OptimizationSense
+    # TODO: remove
     objective::Union{MOI.SingleVariable,MOI.ScalarAffineFunction{Float64},MOI.ScalarQuadraticFunction{Float64},Nothing}
     # linear constraint
+    # TODO: replace
     linear_le_constraints::Vector{Tuple{MOI.ScalarAffineFunction{Float64}, MOI.LessThan{Float64}}}
     linear_ge_constraints::Vector{Tuple{MOI.ScalarAffineFunction{Float64}, MOI.GreaterThan{Float64}}}
     linear_eq_constraints::Vector{Tuple{MOI.ScalarAffineFunction{Float64}, MOI.EqualTo{Float64}}}
@@ -116,6 +131,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     quadratic_eq_constraints::Vector{Tuple{MOI.ScalarQuadraticFunction{Float64}, MOI.EqualTo{Float64}}}
     number_zeroone_constraints::Int
     number_integer_constraints::Int
+    constraint_mapping::Dict{MOI.ConstraintIndex, Union{Cint, Vector{Cint}}}
 end
 
 struct EmptyNLPEvaluator <: MOI.AbstractNLPEvaluator end
@@ -142,8 +158,9 @@ empty_nlp_data() = MOI.NLPBlockData([], EmptyNLPEvaluator(), false)
 function Optimizer(;options...)
     # create KNITRO context
     kc = KN_new()
-    model = Optimizer(kc, [], empty_nlp_data(), MOI.FeasibilitySense,
-                      nothing, [], [], [], [], [], [], 0, 0)
+    model = Optimizer(kc, [], false, empty_nlp_data(), MOI.FeasibilitySense,
+                      nothing, [], [], [], [], [], [], 0, 0,
+                      Dict{MOI.ConstraintIndex, Int}())
 
     # set KNITRO option
     for (name,value) in options
@@ -358,8 +375,9 @@ function MOI.add_constraint(model::Optimizer, v::MOI.SingleVariable, eq::MOI.Equ
     return MOI.ConstraintIndex{MOI.SingleVariable, MOI.EqualTo{Float64}}(vi.value)
 end
 
-#--------------------------------------------------
-# generic constraint definition
+##################################################
+# Generic constraint definition
+##################################################
 macro define_add_constraint(function_type, set_type, array_name)
     quote
         function MOI.add_constraint(model::Optimizer, func::$function_type, set::$set_type)
@@ -367,23 +385,75 @@ macro define_add_constraint(function_type, set_type, array_name)
             push!(model.$(array_name), (func, set))
             # we add a constraint in KNITRO
             KN_add_con(model.inner)
-            return MOI.ConstraintIndex{$function_type, $set_type}(length(model.$(array_name)))
+            num_cons = number_constraints(model)
+
+            ci = MOI.ConstraintIndex{$function_type, $set_type}(length(model.$(array_name)))
+            # take care that julia is 1-indexing!
+            model.constraint_mapping[ci] = num_cons - 1
+            return ci
         end
     end
 end
 
+function MOI.add_constraint(model::Optimizer, func::MOI.ScalarAffineFunction{Float64},
+                            set::MOI.LessThan{Float64})
+    check_inbounds(model, func)
+    # we add a constraint in KNITRO
+    KN_add_con(model.inner)
+    num_cons = number_constraints(model)
+    # add upper bound
+    KN_set_con_upbnd(model.inner, num_cons-1, set.upper - func.constant)
+    # parse structure of constraint
+    indexvars, coefs = canonical_linear_reduction(func)
+    KN_add_con_linear_struct(model.inner, num_cons-1, indexvars, coefs)
+    # add constraints to index
+    ci = MOI.ConstraintIndex{typeof(func), typeof(set)}(num_cons)
+    # take care that julia is 1-indexing!
+    model.constraint_mapping[ci] = num_cons - 1
+    return ci
+end
+
+function MOI.add_constraint(model::Optimizer, func::MOI.ScalarAffineFunction{Float64},
+                            set::MOI.GreaterThan{Float64})
+    check_inbounds(model, func)
+    # we add a constraint in KNITRO
+    ci = KN_add_con(model.inner)
+    # add upper bound
+    KN_set_con_lobnd(model.inner, ci, set.lower - func.constant)
+    # parse structure of constraint
+    indexvars, coefs = canonical_linear_reduction(func)
+    KN_add_con_linear_struct(model.inner, ci, indexvars, coefs)
+    # add constraints to index
+    consi = MOI.ConstraintIndex{typeof(func), typeof(set)}(ci)
+    model.constraint_mapping[consi] = ci
+    return consi
+end
+
+function MOI.add_constraint(model::Optimizer, func::MOI.ScalarQuadraticFunction{Float64},
+                            set::MOI.GreaterThan{Float64})
+    check_inbounds(model, func)
+    # we add a constraint in KNITRO
+    num_cons = KN_add_con(model.inner)
+    # add upper bound
+    KN_set_con_lobnd(model.inner, num_cons, set.lower - func.constant)
+    # parse linear structure of constraint
+    indexvars, coefs = canonical_linear_reduction(func)
+    KN_add_con_linear_struct(model.inner, num_cons, indexvars, coefs)
+    # parse quadratic term
+    qvar1, qvar2, qcoefs = canonical_quadratic_reduction(func)
+    KN_add_con_quadratic_struct(model.inner, num_cons, qvar1, qvar2, qcoefs)
+    # add constraints to index
+    ci = MOI.ConstraintIndex{typeof(func), typeof(set)}(num_cons)
+    # take care that julia is 1-indexing!
+    model.constraint_mapping[ci] = num_cons
+    return ci
+end
 # we pass only ScalarAffineFunction and ScalarQuadraticFunction as
 # NLP constraints are specified in callbacks
-@define_add_constraint(MOI.ScalarAffineFunction{Float64}, MOI.LessThan{Float64},
-                       linear_le_constraints)
-@define_add_constraint(MOI.ScalarAffineFunction{Float64},
-                       MOI.GreaterThan{Float64}, linear_ge_constraints)
 @define_add_constraint(MOI.ScalarAffineFunction{Float64}, MOI.EqualTo{Float64},
                        linear_eq_constraints)
 @define_add_constraint(MOI.ScalarQuadraticFunction{Float64},
                        MOI.LessThan{Float64}, quadratic_le_constraints)
-@define_add_constraint(MOI.ScalarQuadraticFunction{Float64},
-                       MOI.GreaterThan{Float64}, quadratic_ge_constraints)
 @define_add_constraint(MOI.ScalarQuadraticFunction{Float64},
                        MOI.EqualTo{Float64}, quadratic_eq_constraints)
 
@@ -405,8 +475,9 @@ function MOI.add_constraint(model::Optimizer, v::MOI.SingleVariable, ::MOI.Integ
     KN_set_var_type(model.inner, vi.value-1, KN_VARTYPE_INTEGER)
 end
 
-#--------------------------------------------------
+##################################################
 # Primal and dual warmstart
+##################################################
 function MOI.supports(::Optimizer, ::MOI.VariablePrimalStart,
                       ::Type{MOI.VariableIndex})
     return true
@@ -432,15 +503,55 @@ end
 
 function MOI.set(model::Optimizer, ::MOI.NLPBlock, nlp_data::MOI.NLPBlockData)
     model.nlp_data = nlp_data
+    # we need to load the NLP constraints inside KNITRO
+    num_nlp_constraints = length(nlp_data.constraint_bounds)
+    if  num_nlp_constraints > 0
+        KN_add_cons(model.inner, num_nlp_constraints)
+        # add constraint to index
+        num_cons = number_constraints(model)
+        ci = MOI.ConstraintIndex{MOI.NLPBlockData, MOI.EqualTo}(num_cons)
+        # take care that julia is 1-indexing!
+        model.constraint_mapping[ci] = collect((num_cons+1):(num_cons+num_nlp_constraints))
+    end
     return
 end
 
+##################################################
+# Objective definition
+##################################################
+function add_objective!(model::Optimizer, objective::MOI.ScalarQuadraticFunction)
+    # we parse the expression passed in arguments:
+    qobjindex1, qobjindex2, qcoefs = canonical_quadratic_reduction(objective)
+    lobjindex, lcoefs = canonical_linear_reduction(objective)
+    # take care of julia's 1-indexing
+    # need to convert MOI convention to KNITRO convention
+    for i in 1:length(qcoefs)
+        if qobjindex1[i] == qobjindex2[i]
+            qcoefs[i] *= .5
+        end
+    end
+    # we load the objective inside KNITRO
+    KN_add_obj_quadratic_struct(model.inner, qobjindex1, qobjindex2, qcoefs)
+    #= KN_add_obj_linear_struct(model.inner, lobjindex, lcoefs) =#
+    KN_add_obj_constant(model.inner, objective.constant)
+end
+function add_objective!(model::Optimizer, objective::MOI.ScalarAffineFunction)
+    # we parse the expression passed in arguments:
+    lobjindex, lcoefs = canonical_linear_reduction(objective)
+    # we load the objective inside KNITRO
+    KN_add_obj_linear_struct(model.inner, lobjindex, lcoefs)
+    KN_add_obj_constant(model.inner, objective.constant)
+end
+function add_objective!(model::Optimizer, objective::MOI.SingleVariable)
+    # we load the objective inside KNITRO
+    KN_add_obj_constant(model.inner, objective.value)
+end
 function MOI.set(model::Optimizer, ::MOI.ObjectiveFunction,
                  func::Union{MOI.SingleVariable, MOI.ScalarAffineFunction,
                              MOI.ScalarQuadraticFunction})
     check_inbounds(model, func)
     # we test if we can fetch directly the objective as an expression.
-    add_objective!(model, model.objective)
+    add_objective!(model, func)
     model.objective = func
     return
 end
@@ -464,7 +575,7 @@ nlp_constraint_offset(model::Optimizer) = quadratic_eq_offset(model) + length(mo
 get_number_linear_constraints(model::Optimizer) = quadratic_le_offset(model)
 
 number_variables(model::Optimizer) = length(model.variable_info)
-number_constraints(model::Optimizer) = length(model.nlp_data.constraint_bounds) + nlp_constraint_offset(model)
+number_constraints(model::Optimizer) = KN_get_number_cons(model.inner)
 
 # Convenience functions used only in optimize!
 function eval_objective(model::Optimizer, x)
@@ -493,63 +604,6 @@ function eval_objective_gradient(model::Optimizer, grad, x)
         MOI.eval_objective_gradient(model.nlp_data.evaluator, grad, x)
     end
     return
-end
-
-function parse_cons_linear_struct(model::Optimizer)
-    indexCons = Int32[]
-    indexVars = Int32[]
-    coefs = Float64[]
-
-    index_cons = 0
-    for constraint_expr in [model.linear_le_constraints,
-                            model.linear_ge_constraints,
-                            model.linear_eq_constraints,
-                            model.quadratic_le_constraints,
-                            model.quadratic_ge_constraints,
-                            model.quadratic_eq_constraints]
-
-        for (func, set) in constraint_expr
-            currentvars, currentcoefs = canonical_linear_reduction(func)
-            push!(indexCons, fill(index_cons, length(currentvars))...)
-            push!(indexVars, currentvars...)
-            push!(coefs, currentcoefs...)
-            index_cons += 1
-        end
-
-
-    end
-
-    # convert 1-indexing to 0-indexing
-    indexVars .-= 1
-    return indexCons, indexVars, coefs
-end
-
-function parse_cons_quadratic_struct(model::Optimizer)
-    indexCons = Int32[]
-    indexVars1 = Int32[]
-    indexVars2 = Int32[]
-    coefs = Float64[]
-
-    index_cons = get_number_linear_constraints(model)
-    for constraint_expr in [model.quadratic_le_constraints,
-                            model.quadratic_ge_constraints,
-                            model.quadratic_eq_constraints]
-
-        for (func, set) in constraint_expr
-            currentvars1, currentvars2, currentcoefs = canonical_quadratic_reduction(func)
-            push!(indexCons, fill(index_cons, length(currentvars1))...)
-            push!(indexVars1, currentvars1...)
-            push!(indexVars2, currentvars2...)
-            push!(coefs, currentcoefs...)
-            index_cons += 1
-        end
-
-    end
-    # convert 1-indexing to 0-indexing
-    indexVars1 .-= 1
-    indexVars2 .-= 1
-
-    return indexCons, indexVars1, indexVars2, coefs
 end
 
 # get constraints upper and lower bounds
@@ -587,39 +641,6 @@ function constraint_bounds(model::Optimizer)
     return constraint_lb, constraint_ub
 end
 
-function add_objective!(model::Optimizer, objective::MOI.ScalarQuadraticFunction)
-    # we parse the expression passed in arguments:
-    qobjindex1, qobjindex2, qcoefs = canonical_quadratic_reduction(objective)
-    lobjindex, lcoefs = canonical_linear_reduction(objective)
-    # take care of julia's 1-indexing
-    lobjindex .-= 1
-    qobjindex1 .-= 1
-    qobjindex2 .-= 1
-    # need to convert MOI convention to KNITRO convention
-    for i in 1:length(qcoefs)
-        if qobjindex1[i] == qobjindex2[i]
-            qcoefs[i] *= .5
-        end
-    end
-    # we load the objective inside KNITRO
-    KN_add_obj_quadratic_struct(model.inner, qobjindex1, qobjindex2, qcoefs)
-    #= KN_add_obj_linear_struct(model.inner, lobjindex, lcoefs) =#
-    KN_add_obj_constant(model.inner, objective.constant)
-end
-function add_objective!(model::Optimizer, objective::MOI.ScalarAffineFunction)
-    # we parse the expression passed in arguments:
-    lobjindex, lcoefs = canonical_linear_reduction(objective)
-    # take care of julia's 1-indexing
-    lobjindex .-= 1
-    # we load the objective inside KNITRO
-    KN_add_obj_linear_struct(model.inner, lobjindex, lcoefs)
-    KN_add_obj_constant(model.inner, objective.constant)
-end
-function add_objective!(model::Optimizer, objective::MOI.SingleVariable)
-    # we load the objective inside KNITRO
-    KN_add_obj_constant(model.inner, objective.value)
-end
-
 function MOI.optimize!(model::Optimizer)
     # TODO: Reuse model.inner for incremental solves if possible.
     num_variables = number_variables(model::Optimizer)
@@ -639,44 +660,17 @@ function MOI.optimize!(model::Optimizer)
     has_hessian && push!(init_feat, :Hess)
     num_nlp_constraints > 0 && push!(init_feat, :Jac)
 
+    # TODO: move
     MOI.initialize(evaluator, init_feat)
 
-    # first, we need to add the remaining NLP constraints
-    # inside KNITRO
-    num_nlp_constraints > 0 && KN_add_cons(model.inner, num_nlp_constraints)
-
-    # add linear structure
-    # do something similar as canonical reduction
-    lconIndexCons, lconIndexVars, lconCoefs = parse_cons_linear_struct(model)
-    # store linear structure directly inside KNITRO
-    if length(lconCoefs) > 0
-        KN_add_con_linear_struct(model.inner, lconIndexCons, lconIndexVars, lconCoefs)
-    end
-
-    # add quadratic structure
-    qconIndexCons, qconIndexVars1, qconIndexVars2, qconCoefs = parse_cons_quadratic_struct(model)
-    if length(qconCoefs) > 0
-        # need to convert MOI convention to KNITRO convention
-        for i in 1:length(qconCoefs)
-            if qconIndexVars1[i] == qconIndexVars2[i]
-                qconCoefs[i] *= .5
-            end
-        end
-        # store quadratic structure directly inside KNITRO
-        KN_add_con_quadratic_struct(model.inner, qconIndexCons,
-                                    qconIndexVars1, qconIndexVars2, qconCoefs)
-    end
-
-    # eventually, get constraints upper and lower bounds
-    cons_lb, cons_ub = constraint_bounds(model)
-    if length(cons_lb) > 0
-        KN_set_con_upbnds(model.inner, cons_ub)
-        KN_set_con_lobnds(model.inner, cons_lb)
-    end
 
     # add NLP structure if specified
-    # TODO: dry this in dedicated function
-    if ~isa(model.nlp_data.evaluator, EmptyNLPEvaluator)
+    # FIXME: ideally, the following code should be moved
+    # inside set(::Optimizer, ::NLPBlockData) function.
+    # However, we encounter an error if we do so, because currently
+    # the definition of eval_*_cb functions should be in the same
+    # scope as KN_solve (may be due to a closure limitation)
+    if ~isa(model.nlp_data.evaluator, EmptyNLPEvaluator) && !model.nlp_loaded
         # the callbacks must match the signature of the callbacks
         # defined in knitro.h.
         # Objective callback (set both objective and constraint evaluation
@@ -738,10 +732,9 @@ function MOI.optimize!(model::Optimizer)
                         hessIndexVars1=hessIndexVars1,
                         hessIndexVars2=hessIndexVars2)
         end
-    end
 
-    # otherwise, we assume that the objective is equal to zero
-    # to perform feasibility test
+        model.nlp_loaded = true
+    end
 
     KN_solve(model.inner)
 end

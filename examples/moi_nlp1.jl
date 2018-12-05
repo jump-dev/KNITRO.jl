@@ -99,13 +99,10 @@ MOI.add_constraint(solver, c1, MOI.GreaterThan{Float64}(1.))
 
 # second constraint: x0 + x1^2 >= 0
 c2 = MOI.ScalarQuadraticFunction(
-                                 [MOI.ScalarAffineTerm(1.0, v[1])],
+                                 [MOI.ScalarAffineTerm(2.0, v[1])],
         [MOI.ScalarQuadraticTerm(1., v[2], v[2])],
         0.)
 MOI.add_constraint(solver, c2, MOI.GreaterThan(0.))
-
-
-KNITRO.KN_set_con_lobnds(solver.inner, [1.0, 0.0])
 
 MOI.set(solver, MOI.ObjectiveSense(), MOI.MinSense)
 # define NLP structure
