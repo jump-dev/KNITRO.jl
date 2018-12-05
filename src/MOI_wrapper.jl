@@ -25,7 +25,6 @@
 
 import MathOptInterface
 const MOI = MathOptInterface
-const MOIU = MathOptInterface.Utilities
 
 const SF = Union{MOI.SingleVariable,
                  MOI.ScalarAffineFunction{Float64},
@@ -146,6 +145,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     number_integer_constraints::Int
     # constraint mappings
     constraint_mapping::Dict{MOI.ConstraintIndex, Union{Cint, Vector{Cint}}}
+    options::Dict
 end
 
 struct EmptyNLPEvaluator <: MOI.AbstractNLPEvaluator end
@@ -168,16 +168,9 @@ end
 
 empty_nlp_data() = MOI.NLPBlockData([], EmptyNLPEvaluator(), false)
 
-
-function Optimizer(;options...)
-    # create KNITRO context
-    kc = KN_new()
-    model = Optimizer(kc, [], 0, false, empty_nlp_data(), MOI.FeasibilitySense,
-                      0, 0, 0, 0, 0, 0, 0, 0,
-                      Dict{MOI.ConstraintIndex, Int}())
-
+function set_options(model::Optimizer)
     # set KNITRO option
-    for (name,value) in options
+    for (name,value) in model.options
         sname = string(name)
         if sname == "option_file"
             KN_load_param_file(model.inner, value)
@@ -191,8 +184,16 @@ function Optimizer(;options...)
             end
         end
     end
+end
 
+function Optimizer(;options...)
+    # create KNITRO context
+    kc = KN_new()
+    model = Optimizer(kc, [], 0, false, empty_nlp_data(), MOI.FeasibilitySense,
+                      0, 0, 0, 0, 0, 0, 0, 0,
+                      Dict{MOI.ConstraintIndex, Int}(), options)
 
+    set_options(model)
     return model
 end
 
@@ -215,6 +216,8 @@ MOI.supports_constraint(::Optimizer, ::Type{MOI.SingleVariable}, ::Type{MOI.Zero
 MOI.supports_constraint(::Optimizer, ::Type{MOI.SingleVariable}, ::Type{MOI.Integer}) = true
 MOI.supports_constraint(::Optimizer, ::Type{<:SF}, ::Type{<:SS}) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.VectorAffineFunction{Float64}}, ::Type{MOI.Nonnegatives}) = true
+MOI.supports_constraint(::Optimizer, ::Type{MOI.VectorAffineFunction{Float64}}, ::Type{MOI.Zeros}) = true
+MOI.supports_constraint(::Optimizer, ::Type{MOI.VectorAffineFunction{Float64}}, ::Type{MOI.Nonpositives}) = true
 
 function MOI.copy_to(model::Optimizer, src::MOI.ModelLike; copy_names = false)
     return MOI.Utilities.default_copy_to(model, src, copy_names)
@@ -231,6 +234,10 @@ MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.SingleVariable, MOI.Zero
     model.number_zeroone_constraints
 MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.VectorAffineFunction{Float64}, MOI.Nonnegatives}) =
 sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{MOI.VectorAffineFunction{Float64}, MOI.Nonnegatives})
+MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.VectorAffineFunction{Float64}, MOI.Nonpositives}) =
+sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{MOI.VectorAffineFunction{Float64}, MOI.Nonpositives})
+MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.VectorAffineFunction{Float64}, MOI.Zeros}) =
+sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{MOI.VectorAffineFunction{Float64}, MOI.Zeros})
 
 
 function MOI.get(model::Optimizer, ::MOI.ListOfVariableIndices)
@@ -267,6 +274,7 @@ function MOI.empty!(model::Optimizer)
     model.quadratic_le_constraints = 0
     model.quadratic_ge_constraints = 0
     model.quadratic_eq_constraints = 0
+    set_options(model)
 end
 
 function MOI.is_empty(model::Optimizer)
@@ -541,7 +549,7 @@ function MOI.add_constraint(model::Optimizer, func::MOI.ScalarQuadraticFunction{
     return ci
 end
 
-function MOI.add_constraint(model::Optimizer, func::MOI.VectorAffineFunction, ::MOI.Nonnegatives)
+function MOI.add_constraint(model::Optimizer, func::MOI.VectorAffineFunction, set::MOI.AbstractVectorSet)
     # TODO: add check inbounds for VectorAffineFunction
     previous_col_number = number_constraints(model)
     num_cols = length(func.constants)
@@ -555,7 +563,15 @@ function MOI.add_constraint(model::Optimizer, func::MOI.VectorAffineFunction, ::
 
     # load inside KNITRO
     KN_add_con_linear_struct(model.inner, indexcols, indexvars, coefs)
-    KN_set_con_lobnds(model.inner, index_cons, - func.constants)
+    if isa(set, MOI.Nonnegatives)
+        KN_set_con_lobnds(model.inner, index_cons, - func.constants)
+    elseif isa(set, MOI.Nonpositives)
+        KN_set_con_upbnds(model.inner, index_cons, - func.constants)
+    elseif isa(set, MOI.Zeros)
+        KN_set_con_eqbnds(model.inner, index_cons, - func.constants)
+    else
+        error("Unvalid set $set for VectorAffineFunction constraint")
+    end
     # add constraints to index
     ci = MOI.ConstraintIndex{typeof(func), MOI.Nonnegatives}(index_cons[1])
     model.constraint_mapping[ci] = index_cons
@@ -959,7 +975,7 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
     @assert 0 <= ci.value <= number_constraints(model) - 1
     index = model.constraint_mapping[ci] + 1
     lambda = get_dual(model.inner)
-    return -1. * lambda[index]
+    return lambda[index]
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintDual,

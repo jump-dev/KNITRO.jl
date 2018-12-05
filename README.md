@@ -26,7 +26,7 @@ Artelys. Please contact the usual Artelys support if you encounter
 any problem.*
 
 
-MathOptInterace Interface
+MathOptInterface Interface
 ======================
 
 **Note: MathOptInterface works only with the new KNITRO's API `KN`.**
