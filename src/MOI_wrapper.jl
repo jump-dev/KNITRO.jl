@@ -439,6 +439,8 @@ function MOI.set(model::Optimizer, ::MOI.ObjectiveFunction,
                  func::Union{MOI.SingleVariable, MOI.ScalarAffineFunction,
                              MOI.ScalarQuadraticFunction})
     check_inbounds(model, func)
+    # we test if we can fetch directly the objective as an expression.
+    add_objective!(model, model.objective)
     model.objective = func
     return
 end
@@ -680,18 +682,18 @@ function MOI.optimize!(model::Optimizer)
         # Objective callback (set both objective and constraint evaluation
         function eval_f_cb(kc, cb, evalRequest, evalResult, userParams)
             # evaluate objective:
-            evalResult.obj[1] = eval_objective(model, evalRequest.x)
+            evalResult.obj[1] = MOI.eval_objective(model.nlp_data.evaluator, evalRequest.x)
             # evaluate nonlinear term in constraint
-            eval_constraint(model, evalResult.c, evalRequest.x)
+            MOI.eval_constraint(model.nlp_data.evaluator, evalResult.c, evalRequest.x)
             return 0
         end
 
         # Objective gradient callback
         function eval_grad_cb(kc, cb, evalRequest, evalResult, userParams)
             # evaluate non-linear term in objective gradient
-            eval_objective_gradient(model, evalResult.objGrad, evalRequest.x)
+            MOI.eval_objective_gradient(model.nlp_data.evaluator, evalResult.objGrad, evalRequest.x)
             # evaluate non linear part of jacobian
-            eval_constraint_jacobian(model, evalResult.jac, evalRequest.x)
+            MOI.eval_constraint_jacobian(model.nlp_data.evaluator, evalResult.jac, evalRequest.x)
         end
 
         if has_hessian
@@ -736,12 +738,8 @@ function MOI.optimize!(model::Optimizer)
                         hessIndexVars1=hessIndexVars1,
                         hessIndexVars2=hessIndexVars2)
         end
-
-    # if no NLPdata, we test if we can fetch directly the objective
-    # as an expression.
-    elseif model.objective !== nothing
-        add_objective!(model, model.objective)
     end
+
     # otherwise, we assume that the objective is equal to zero
     # to perform feasibility test
 
