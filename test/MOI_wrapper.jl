@@ -14,7 +14,7 @@ MOIU.@model(KnitroModelData,
             (MOI.SingleVariable,),
             (MOI.ScalarAffineFunction, MOI.ScalarQuadraticFunction),
             (MOI.VectorOfVariables,),
-            (MOI.VectorAffineFunction,))
+            (MOI.VectorAffineFunction, ))
 
 const optimizer = KNITRO.Optimizer(outlev=0)
 const config = MOIT.TestConfig(atol=1e-4, rtol=1e-4)
@@ -30,17 +30,15 @@ const config = MOIT.TestConfig(atol=1e-4, rtol=1e-4)
 #=     linear_optimizer = MOI.Bridges.SplitInterval{Float64}( =#
 #=                         MOIU.CachingOptimizer(KnitroModelData{Float64}(), optimizer) =#
 #=                                                          ) =#
-#=     MOIT.contlineartest(linear_optimizer, config, exclude) =#
+#=     MOIT.linear1test(linear_optimizer, config) =#
 #= end =#
 
-MOI.empty!(optimizer)
+#= MOI.empty!(optimizer) =#
 
 @testset "MOI QP/QCQP tests" begin
     qp_optimizer = MOIU.CachingOptimizer(KnitroModelData{Float64}(), optimizer)
-    #= MOIT.qptest(qp_optimizer, config) =#
-    exclude = ["qcp1", # VectorAffineFunction not supported.
-              ]
-    MOIT.qcptest(qp_optimizer, config, exclude)
+    MOIT.qptest(qp_optimizer, config)
+    MOIT.qcptest(qp_optimizer, config)
 end
 
 MOI.empty!(optimizer)
