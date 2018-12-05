@@ -116,7 +116,6 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     quadratic_eq_constraints::Vector{Tuple{MOI.ScalarQuadraticFunction{Float64}, MOI.EqualTo{Float64}}}
     number_zeroone_constraints::Int
     number_integer_constraints::Int
-    options
 end
 
 struct EmptyNLPEvaluator <: MOI.AbstractNLPEvaluator end
@@ -140,8 +139,31 @@ end
 empty_nlp_data() = MOI.NLPBlockData([], EmptyNLPEvaluator(), false)
 
 
-Optimizer(;options...) = Optimizer(KN_new(), [], empty_nlp_data(),
-                                   MOI.FeasibilitySense, nothing, [], [], [], [], [], [], 0, 0, options)
+function Optimizer(;options...)
+    # create KNITRO context
+    kc = KN_new()
+    model = Optimizer(kc, [], empty_nlp_data(), MOI.FeasibilitySense,
+                      nothing, [], [], [], [], [], [], 0, 0)
+
+    # set KNITRO option
+    for (name,value) in options
+        sname = string(name)
+        if sname == "option_file"
+            KN_load_param_file(model.inner, value)
+        elseif sname == "tuner_file"
+            KN_load_tuner_file(model.inner, value)
+        else
+            if haskey(KN_paramName2Indx, sname) # KN_PARAM_*
+                KN_set_param(model.inner, paramName2Indx[sname], value)
+            else # string name
+                KN_set_param(model.inner, sname, value)
+            end
+        end
+    end
+
+
+    return model
+end
 
 MOI.supports(::Optimizer, ::MOI.NLPBlock) = true
 MOI.supports(::Optimizer, ::MOI.ObjectiveFunction{MOI.SingleVariable}) = true
@@ -722,22 +744,6 @@ function MOI.optimize!(model::Optimizer)
     end
     # otherwise, we assume that the objective is equal to zero
     # to perform feasibility test
-
-    # set KNITRO option
-    for (name,value) in model.options
-        sname = string(name)
-        if sname == "option_file"
-            KN_load_param_file(model.inner, value)
-        elseif sname == "tuner_file"
-            KN_load_tuner_file(model.inner, value)
-        else
-            if haskey(KN_paramName2Indx, sname) # KN_PARAM_*
-                KN_set_param(model.inner, paramName2Indx[sname], value)
-            else # string name
-                KN_set_param(model.inner, sname, value)
-            end
-        end
-    end
 
     KN_solve(model.inner)
 end
