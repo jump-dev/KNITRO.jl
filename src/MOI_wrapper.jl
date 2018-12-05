@@ -274,6 +274,7 @@ function MOI.empty!(model::Optimizer)
     model.quadratic_le_constraints = 0
     model.quadratic_ge_constraints = 0
     model.quadratic_eq_constraints = 0
+    model.constraint_mapping = Dict()
     set_options(model)
 end
 
@@ -573,7 +574,7 @@ function MOI.add_constraint(model::Optimizer, func::MOI.VectorAffineFunction, se
         error("Unvalid set $set for VectorAffineFunction constraint")
     end
     # add constraints to index
-    ci = MOI.ConstraintIndex{typeof(func), MOI.Nonnegatives}(index_cons[1])
+    ci = MOI.ConstraintIndex{typeof(func), typeof(set)}(index_cons[1])
     model.constraint_mapping[ci] = index_cons
     return ci
 end
@@ -832,7 +833,7 @@ function MOI.get(model::Optimizer, ::MOI.DualStatus)
     elseif -109 <= status <= -100
         return MOI.FeasiblePoint
     elseif -209 <= status <= -200
-        return MOI.InfeasiblePoint
+        return MOI.InfeasibilityCertificate
     elseif status == -300
         return MOI.NoSolution
     elseif -409 <= status <= -400
@@ -884,19 +885,6 @@ end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
                     ci::MOI.ConstraintIndex)
-    if model.inner === nothing
-        error("ConstraintPrimal not available.")
-    end
-    if !(0 <= ci.value <= number_constraints(model) - 1)
-        error("Invalid constraint index ", ci.value)
-    end
-    g = KN_get_con_values(model.inner)
-    index = model.constraint_mapping[ci] + 1
-    return g[index]
-end
-
-function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
-                 ci::MOI.ConstraintIndex{MOI.VectorAffineFunction{Float64}, MOI.Nonnegatives})
     if model.inner === nothing
         error("ConstraintPrimal not available.")
     end
