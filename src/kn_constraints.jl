@@ -262,11 +262,11 @@ KN_add_con_quadratic_struct(m, indexCons, Cint[indexVar1], Cint[indexVar2], Cdou
 #------------------------------
 # Conic structure
 #------------------------------
-function KN_add_L2norm(m::Model, indexCon::Integer, nCoords::Integer, nnz::Integer,
+function KN_add_con_L2norm(m::Model, indexCon::Integer, nCoords::Integer, nnz::Integer,
                        indexCoords::Vector{Cint}, indexVars::Vector{Cint},
                        coefs::Vector{Cdouble}, constants::Vector{Cdouble})
-    @assert lenght(coefs) == length(indexVars) == length(indexCoords) == nnz
-    ret = @kn_ccall(add_L2norm,
+    @assert length(coefs) == length(indexVars) == length(indexCoords) == nnz
+    ret = @kn_ccall(add_con_L2norm,
                     Cint,
                     (Ptr{Nothing}, Cint, Cint, KNLONG, Ptr{Cint}, Ptr{Cint},
                      Ptr{Cdouble}, Ptr{Cdouble}),

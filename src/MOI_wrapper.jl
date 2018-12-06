@@ -197,6 +197,7 @@ function Optimizer(;options...)
     return model
 end
 
+# TODO: dry supports with macros
 MOI.supports(::Optimizer, ::MOI.NLPBlock) = true
 MOI.supports(::Optimizer, ::MOI.ObjectiveFunction{MOI.SingleVariable}) = true
 MOI.supports(::Optimizer, ::MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}) = true
@@ -218,6 +219,7 @@ MOI.supports_constraint(::Optimizer, ::Type{<:SF}, ::Type{<:SS}) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.VectorAffineFunction{Float64}}, ::Type{MOI.Nonnegatives}) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.VectorAffineFunction{Float64}}, ::Type{MOI.Zeros}) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.VectorAffineFunction{Float64}}, ::Type{MOI.Nonpositives}) = true
+MOI.supports_constraint(::Optimizer, ::Type{MOI.VectorAffineFunction{Float64}}, ::Type{MOI.SecondOrderCone}) = true
 
 function MOI.copy_to(model::Optimizer, src::MOI.ModelLike; copy_names = false)
     return MOI.Utilities.default_copy_to(model, src, copy_names)
@@ -232,12 +234,15 @@ MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.ScalarAffineFunction{Flo
     model.linear_ge_constraints
 MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.SingleVariable, MOI.ZeroOne}) =
     model.number_zeroone_constraints
+# TODO: a bit hacky, but that should work for MOI Test
 MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.VectorAffineFunction{Float64}, MOI.Nonnegatives}) =
 sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{MOI.VectorAffineFunction{Float64}, MOI.Nonnegatives})
 MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.VectorAffineFunction{Float64}, MOI.Nonpositives}) =
 sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{MOI.VectorAffineFunction{Float64}, MOI.Nonpositives})
 MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.VectorAffineFunction{Float64}, MOI.Zeros}) =
 sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{MOI.VectorAffineFunction{Float64}, MOI.Zeros})
+MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.VectorAffineFunction{Float64}, MOI.SecondOrderCone}) =
+sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{MOI.VectorAffineFunction{Float64}, MOI.SecondOrderCone})
 
 
 function MOI.get(model::Optimizer, ::MOI.ListOfVariableIndices)
@@ -579,6 +584,25 @@ function MOI.add_constraint(model::Optimizer, func::MOI.VectorAffineFunction, se
     return ci
 end
 
+function MOI.add_constraint(model::Optimizer, func::MOI.VectorAffineFunction, set::MOI.SecondOrderCone)
+    # TODO: add check inbounds for VectorAffineFunction
+    previous_col_number = number_constraints(model)
+    ncoords = length(func.constants)
+    # add constraints inside KNITRO
+    index_con = KN_add_con(model.inner)
+
+    # parse vector affine expression
+    indexcoords, indexvars, coefs = canonical_vector_affine_reduction(func)
+    constants = func.constants
+    # load Second Order Conic constraint
+    KN_add_con_L2norm(model.inner, index_con, ncoords, length(indexcoords),
+                  indexcoords, indexvars, coefs, constants)
+    # add constraints to index
+    ci = MOI.ConstraintIndex{typeof(func), typeof(set)}(index_con)
+    model.constraint_mapping[ci] = index_con
+    return ci
+end
+
 # define integer and boolean constraints
 function MOI.add_constraint(model::Optimizer, v::MOI.SingleVariable, ::MOI.ZeroOne)
     vi = v.variable
@@ -589,6 +613,7 @@ function MOI.add_constraint(model::Optimizer, v::MOI.SingleVariable, ::MOI.ZeroO
     KN_set_var_upbnds(model.inner, vi.value-1, 1.)
     KN_set_var_type(model.inner, vi.value-1, KN_VARTYPE_BINARY)
 end
+
 function MOI.add_constraint(model::Optimizer, v::MOI.SingleVariable, ::MOI.Integer)
     vi = v.variable
     check_inbounds(model, vi)
@@ -633,7 +658,6 @@ function MOI.set(model::Optimizer, ::MOI.NLPBlock, nlp_data::MOI.NLPBlockData)
     num_nlp_constraints = length(nlp_data.constraint_bounds)
     num_nlp_constraints > 0 && push!(init_feat, :Jac)
 
-    # TODO: move
     MOI.initialize(evaluator, init_feat)
     # we need to load the NLP constraints inside KNITRO
     if  num_nlp_constraints > 0
