@@ -5,8 +5,6 @@ module KNITRO
     using Compat.Libdl, Compat.SparseArrays
     import Compat: Sys
 
-
-
     function __init__()
         if Sys.islinux()
             # fixes missing symbols in libknitro.so
@@ -25,14 +23,14 @@ module KNITRO
             ccall(($f,libknitro), $(args...))
         end
     end
-	"Load KNITRO version number via KTR API."
-	function unsafe_get_release()
-		len = 15
-		out = zeros(Cchar,len)
-		@ktr_ccall(get_release, Any, (Cint, Ptr{Cchar}), len, out)
+    "Load KNITRO version number via KTR API."
+    function unsafe_get_release()
+        len = 15
+        out = zeros(Cchar,len)
+        @ktr_ccall(get_release, Any, (Cint, Ptr{Cchar}), len, out)
         res = String(strip(String(convert(Vector{UInt8},out)), '\0'))
         return VersionNumber(split(res, " ")[2])
-	end
+    end
 
     const KNITRO_VERSION = unsafe_get_release()
 

@@ -79,13 +79,6 @@ loadOptionsFile(kp,joinpath(dirname(@__FILE__),"knitro.opt"))
 # --- test getters and setters ---
 hessopt = zeros(Int32, 1)
 getOption(kp, "hessopt", hessopt)
-#= @test hessopt[1] == 1 =#
-#= setOption(kp, "hessopt", 0) =#
-#= getOption(kp, "hessopt", hessopt) =#
-#= @test hessopt[1] == 0 =#
-#= setOption(kp, "hessopt", 1) =#
-#= getOption(kp, "hessopt", hessopt) =#
-#= @test hessopt[1] == 1 =#
 # ---------------------------------
 
 initializeProblem(kp, objGoal, objType, x_L, x_U, c_Type, c_L, c_U,

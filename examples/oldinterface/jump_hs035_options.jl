@@ -1,4 +1,6 @@
-using KNITRO, JuMP, Compat.Test
+
+using MathProgBase, KNITRO, JuMP, Compat.Test
+
 
 function testmodel(m)
     @variable(m, x[1:3]>=0)
@@ -18,22 +20,22 @@ testmodel(m)
 ktrmod = internalmodel(m)
 MathProgBase.freemodel!(ktrmod)
 
-Model(solver=KnitroSolver(KTR_PARAM_ALG=5))
+m = Model(solver=KnitroSolver(KTR_PARAM_ALG=5))
 testmodel(m)
 ktrmod = internalmodel(m)
 MathProgBase.freemodel!(ktrmod)
 
-Model(solver=KnitroSolver(hessopt=1))
+m = Model(solver=KnitroSolver(hessopt=1))
 testmodel(m)
 ktrmod = internalmodel(m)
 MathProgBase.freemodel!(ktrmod)
 
-Model(solver=KnitroSolver(options_file=joinpath(dirname(@__FILE__) * "tuner-fixed.opt")))
+m = Model(solver=KnitroSolver(options_file=joinpath(dirname(@__FILE__) * "/tuner-fixed.opt")))
 testmodel(m)
 ktrmod = internalmodel(m)
 MathProgBase.freemodel!(ktrmod)
 
-Model(solver=KnitroSolver(tuner_file=joinpath(dirname(@__FILE__) * "tuner-explore.opt")))
+m = Model(solver=KnitroSolver(tuner_file=joinpath(dirname(@__FILE__) * "/tuner-explore.opt")))
 testmodel(m)
 ktrmod = internalmodel(m)
 MathProgBase.freemodel!(ktrmod)
