@@ -29,12 +29,26 @@ mutable struct Model
         finalizer(KN_free, model)
         return model
     end
+    # create Model with license manager
+    function Model(env::Env, lm::LMcontext)
+        model = new(env, Dict())
+        res = @kn_ccall(new_lm, Cint, (Ptr{Nothing}, Ptr{Nothing}),
+                    lm.ptr_lmcontext.x, env.ptr_env)
+
+        model = Model(env)
+        @assert res == 0
+
+        finalizer(KN_free, model)
+        return model
+    end
 end
 
 # free the environment
 KN_free(m::Model) = free_env(m.env)
 
 KN_new() = Model(Env())
+KN_new_lm(lm::LMcontext) = Model(Env(), lm)
+
 
 
 ##################################################

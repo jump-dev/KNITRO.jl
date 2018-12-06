@@ -16,24 +16,28 @@ using Compat.Test
         KNITRO.KN_free(m)
         @test m.env.ptr_env.x == C_NULL
     end
+
+    @testset "License manager test" begin
+        # create license manager context
+        lm = KNITRO.LMcontext()
+
+        # we create 10 KNITRO instances with the license manager
+        n_instances = 10
+        kcs = [KNITRO.KN_new_lm(lm) for i in 1:n_instances]
+
+        # then we free the instances
+        for kc in kcs
+            KNITRO.KN_free(kc)
+        end
+
+        # and release the license
+        KNITRO.KN_release_license(lm)
+        @test lm.ptr_lmcontext.x == C_NULL
+
+    end
 end
 
 
-println()
-println()
-println("####################################################################")
-println("### License Manager test")
-println("####################################################################")
-println()
-
-println("Currently not implemented!")
-
-#= pLMcontext = KNITRO.KN_checkout_license() =#
-#= println(pLMcontext) =#
-
-#= kc = KNITRO.KN_new_lm(pLMcontext) =#
-#= KNITRO.KN_free(kc) =#
-#= KNITRO.KN_release_license(pLMcontext) =#
 
 
 # add generic callbacks for future tests
