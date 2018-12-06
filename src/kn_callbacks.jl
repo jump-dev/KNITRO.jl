@@ -225,7 +225,13 @@ function eval_fc_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     evalResult = unsafe_load(ptr)::KN_eval_result
 
     # and eventually, load callback context
-    cb = unsafe_pointer_to_objref(userdata_)::CallbackContext
+    cb = unsafe_pointer_to_objref(userdata_)
+    # we have to ensure that cb is a CallbackContext
+    # otherwise, we tell KNITRO that a problem occurs by returning a
+    # non-zero status
+    if ~isa(cb, CallbackContext)
+        return Cint(32)
+    end
 
     request = EvalRequest(cb.model, evalRequest)
     result = EvalResult(cb.model, ptr_cb, evalResult)
@@ -250,7 +256,13 @@ function eval_ga_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     evalResult = unsafe_load(ptr)::KN_eval_result
 
     # and eventually, load callback context
-    cb = unsafe_pointer_to_objref(userdata_)::CallbackContext
+    cb = unsafe_pointer_to_objref(userdata_)
+    # we have to ensure that cb is a CallbackContext
+    # otherwise, we tell KNITRO that a problem occurs by returning a
+    # non-zero status
+    if ~isa(cb, CallbackContext)
+        return Cint(32)
+    end
 
     request = EvalRequest(cb.model, evalRequest)
     result = EvalResult(cb.model, ptr_cb, evalResult)
@@ -275,7 +287,13 @@ function eval_hess_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     evalResult = unsafe_load(ptr)::KN_eval_result
 
     # and eventually, load callback context
-    cb = unsafe_pointer_to_objref(userdata_)::CallbackContext
+    cb = unsafe_pointer_to_objref(userdata_)
+    # we have to ensure that cb is a CallbackContext
+    # otherwise, we tell KNITRO that a problem occurs by returning a
+    # non-zero status
+    if ~isa(cb, CallbackContext)
+        return Cint(32)
+    end
 
     request = EvalRequest(cb.model, evalRequest)
     result = EvalResult(cb.model, ptr_cb, evalResult)
@@ -460,7 +478,13 @@ function eval_rsd_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     evalResult = unsafe_load(ptr)::KN_eval_result
 
     # and eventually, load callback context
-    cb = unsafe_pointer_to_objref(userdata_)::CallbackContext
+    cb = unsafe_pointer_to_objref(userdata_)
+    # we have to ensure that cb is a CallbackContext
+    # otherwise, we tell KNITRO that a problem occurs by returning a
+    # non-zero status
+    if ~isa(cb, CallbackContext)
+        return Cint(32)
+    end
 
     request = EvalRequest(cb.model, evalRequest)
     result = EvalResult(cb.model, ptr_cb, evalResult)
@@ -509,7 +533,13 @@ function eval_rj_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     evalResult = unsafe_load(ptr)::KN_eval_result
 
     # and eventually, load callback context
-    cb = unsafe_pointer_to_objref(userdata_)::CallbackContext
+    cb = unsafe_pointer_to_objref(userdata_)
+    # we have to ensure that cb is a CallbackContext
+    # otherwise, we tell KNITRO that a problem occurs by returning a
+    # non-zero status
+    if ~isa(cb, CallbackContext)
+        return Cint(32)
+    end
 
     request = EvalRequest(cb.model, evalRequest)
     result = EvalResult(cb.model, ptr_cb, evalResult)
