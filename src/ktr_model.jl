@@ -12,14 +12,6 @@ export
     setOption, getOption,
     applicationReturnStatus
 
-"A macro to make calling KNITRO's C API a little cleaner"
-macro ktr_ccall(func, args...)
-    f = Base.Meta.quot(Symbol("KTR_$(func)"))
-    args = [esc(a) for a in args]
-    quote
-        ccall(($f,libknitro), $(args...))
-    end
-end
 
 mutable struct KnitroProblem
     # For KNITRO

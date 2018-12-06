@@ -9,7 +9,7 @@ const MOIB = MOI.Bridges
 MOIU.@model(KnitroModelData,
             (),
             (MOI.EqualTo, MOI.GreaterThan, MOI.LessThan),
-            (MOI.Zeros, MOI.Nonnegatives, MOI.Nonpositives, MOI.ZeroOne),
+            (MOI.Zeros, MOI.Nonnegatives, MOI.Nonpositives, MOI.ZeroOne, MOI.SecondOrderCone),
             (),
             (MOI.SingleVariable,),
             (MOI.ScalarAffineFunction, MOI.ScalarQuadraticFunction),
@@ -50,6 +50,15 @@ MOI.empty!(optimizer)
 @testset "MOI NLP tests" begin
     MOIT.nlptest(optimizer, config)
 end
+
+MOI.empty!(optimizer)
+
+# Currently SOCP test returns segfault ...
+#= @testset "MOI SOCP tests" begin =#
+#=     socp_optimizer = MOIU.CachingOptimizer(KnitroModelData{Float64}(), optimizer) =#
+#=     MOI.supports_constraint(::KNITRO.Optimizer, ::Type{MOI.VectorOfVariables}, ::Type{MOI.SecondOrderCone}) = true =#
+#=     MOIT._soc1test(socp_optimizer, config, false) =#
+#= end =#
 
 MOI.empty!(optimizer)
 @testset "MOI MILP test" begin

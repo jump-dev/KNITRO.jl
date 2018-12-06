@@ -1,5 +1,5 @@
 include(joinpath(Pkg.dir("MathProgBase"),"test","nlp.jl"))
 convexnlptest(KnitroSolver())
-rosenbrocktest(KnitroSolver())
+rosenbrocktest(KnitroSolver(opttol=1e-8))
 nlptest(KnitroSolver())
 nlptest_nohessian(KnitroSolver())
