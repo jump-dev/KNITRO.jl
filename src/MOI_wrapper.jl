@@ -24,7 +24,8 @@
 #--------------------------------------------------
 
 import MathOptInterface
-const MOI = MathOptInterface
+const MOI  = MathOptInterface
+const MOIU = MathOptInterface.Utilities
 
 const SF = Union{MOI.SingleVariable,
                  MOI.ScalarAffineFunction{Float64},
@@ -37,6 +38,12 @@ const SS = Union{MOI.EqualTo{Float64},
                  MOI.Zeros,
                  MOI.Nonnegatives,
                  MOI.Nonpositives}
+
+##################################################
+# Define custom error for MOI wrapper
+struct UpdateObjectiveError <: MOI.NotAllowedError end
+struct AddVariableError <: MOI.NotAllowedError end
+struct AddConstraintError <: MOI.NotAllowedError end
 
 ##################################################
 # import legacy from LinQuadOptInterface to ease the integration
@@ -221,9 +228,10 @@ MOI.supports_constraint(::Optimizer, ::Type{MOI.VectorAffineFunction{Float64}}, 
 MOI.supports_constraint(::Optimizer, ::Type{MOI.VectorAffineFunction{Float64}}, ::Type{MOI.Nonpositives}) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.VectorAffineFunction{Float64}}, ::Type{MOI.SecondOrderCone}) = true
 
-function MOI.copy_to(model::Optimizer, src::MOI.ModelLike; copy_names = false)
-    return MOI.Utilities.default_copy_to(model, src, copy_names)
+function MOI.copy_to(model::Optimizer, src::MOI.ModelLike; kws...)
+    return MOI.Utilities.automatic_copy_to(model, src; kws...)
 end
+MOIU.supports_default_copy_to(model::Optimizer, copy_names::Bool) = true
 
 MOI.get(model::Optimizer, ::MOI.NumberOfVariables) = length(model.variable_info)
 MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.ScalarAffineFunction{Float64}, MOI.EqualTo{Float64}}) =
@@ -296,6 +304,9 @@ function MOI.is_empty(model::Optimizer)
 end
 
 function MOI.add_variable(model::Optimizer)
+    # if model has been optimized, KNITRO does not support adding
+    # variable anymore
+    (model.number_solved >= 1) && throw(AddVariableError())
     push!(model.variable_info, VariableInfo())
     KN_add_var(model.inner)
     return MOI.VariableIndex(length(model.variable_info))
@@ -347,6 +358,7 @@ end
 #--------------------------------------------------
 # Bound constraint on variables
 function MOI.add_constraint(model::Optimizer, v::MOI.SingleVariable, lt::MOI.LessThan{Float64})
+    (model.number_solved >= 1) && throw(AddConstraintError())
     vi = v.variable
     check_inbounds(model, vi)
     if isnan(lt.upper)
@@ -366,6 +378,7 @@ function MOI.add_constraint(model::Optimizer, v::MOI.SingleVariable, lt::MOI.Les
 end
 
 function MOI.add_constraint(model::Optimizer, v::MOI.SingleVariable, gt::MOI.GreaterThan{Float64})
+    (model.number_solved >= 1) && throw(AddConstraintError())
     vi = v.variable
     check_inbounds(model, vi)
     if isnan(gt.lower)
@@ -385,6 +398,7 @@ function MOI.add_constraint(model::Optimizer, v::MOI.SingleVariable, gt::MOI.Gre
 end
 
 function MOI.add_constraint(model::Optimizer, v::MOI.SingleVariable, eq::MOI.EqualTo{Float64})
+    (model.number_solved >= 1) && throw(AddConstraintError())
     vi = v.variable
     check_inbounds(model, vi)
     if isnan(eq.value)
@@ -429,6 +443,7 @@ end
 
 function MOI.add_constraint(model::Optimizer, func::MOI.ScalarAffineFunction{Float64},
                             set::MOI.LessThan{Float64})
+    (model.number_solved >= 1) && throw(AddConstraintError())
     check_inbounds(model, func)
     model.linear_le_constraints += 1
     # we add a constraint in KNITRO
@@ -446,6 +461,7 @@ end
 
 function MOI.add_constraint(model::Optimizer, func::MOI.ScalarAffineFunction{Float64},
                             set::MOI.GreaterThan{Float64})
+    (model.number_solved >= 1) && throw(AddConstraintError())
     check_inbounds(model, func)
     model.linear_ge_constraints += 1
     # we add a constraint in KNITRO
@@ -463,6 +479,7 @@ end
 
 function MOI.add_constraint(model::Optimizer, func::MOI.ScalarAffineFunction{Float64},
                             set::MOI.EqualTo{Float64})
+    (model.number_solved >= 1) && throw(AddConstraintError())
     check_inbounds(model, func)
     model.linear_eq_constraints += 1
     # we add a constraint in KNITRO
@@ -480,6 +497,7 @@ end
 
 function MOI.add_constraint(model::Optimizer, func::MOI.ScalarAffineFunction{Float64},
                             set::MOI.Interval{Float64})
+    (model.number_solved >= 1) && throw(AddConstraintError())
     check_inbounds(model, func)
     # we add a constraint in KNITRO
     ci = KN_add_con(model.inner)
@@ -497,6 +515,7 @@ end
 
 function MOI.add_constraint(model::Optimizer, func::MOI.ScalarQuadraticFunction{Float64},
                             set::MOI.GreaterThan{Float64})
+    (model.number_solved >= 1) && throw(AddConstraintError())
     check_inbounds(model, func)
     model.quadratic_ge_constraints += 1
     # we add a constraint in KNITRO
@@ -517,6 +536,7 @@ end
 
 function MOI.add_constraint(model::Optimizer, func::MOI.ScalarQuadraticFunction{Float64},
                             set::MOI.LessThan{Float64})
+    (model.number_solved >= 1) && throw(AddConstraintError())
     check_inbounds(model, func)
     model.quadratic_le_constraints += 1
     # we add a constraint in KNITRO
@@ -537,6 +557,7 @@ end
 
 function MOI.add_constraint(model::Optimizer, func::MOI.ScalarQuadraticFunction{Float64},
                             set::MOI.EqualTo{Float64})
+    (model.number_solved >= 1) && throw(AddConstraintError())
     check_inbounds(model, func)
     model.quadratic_eq_constraints += 1
     # we add a constraint in KNITRO
@@ -556,6 +577,7 @@ function MOI.add_constraint(model::Optimizer, func::MOI.ScalarQuadraticFunction{
 end
 
 function MOI.add_constraint(model::Optimizer, func::MOI.VectorAffineFunction, set::MOI.AbstractVectorSet)
+    (model.number_solved >= 1) && throw(AddConstraintError())
     # TODO: add check inbounds for VectorAffineFunction
     previous_col_number = number_constraints(model)
     num_cols = length(func.constants)
@@ -585,6 +607,7 @@ function MOI.add_constraint(model::Optimizer, func::MOI.VectorAffineFunction, se
 end
 
 function MOI.add_constraint(model::Optimizer, func::MOI.VectorAffineFunction, set::MOI.SecondOrderCone)
+    (model.number_solved >= 1) && throw(AddConstraintError())
     # TODO: add check inbounds for VectorAffineFunction
     previous_col_number = number_constraints(model)
     ncoords = length(func.constants)
@@ -615,6 +638,7 @@ function MOI.add_constraint(model::Optimizer, v::MOI.SingleVariable, ::MOI.ZeroO
 end
 
 function MOI.add_constraint(model::Optimizer, v::MOI.SingleVariable, ::MOI.Integer)
+    (model.number_solved >= 1) && throw(AddConstraintError())
     vi = v.variable
     check_inbounds(model, vi)
     model.number_integer_constraints += 1
@@ -704,6 +728,8 @@ end
 function MOI.set(model::Optimizer, ::MOI.ObjectiveFunction,
                  func::Union{MOI.SingleVariable, MOI.ScalarAffineFunction,
                              MOI.ScalarQuadraticFunction})
+    # if the model was already solved, we cannot change the objective
+    (model.number_solved >= 1) && throw(UpdateObjectiveError())
     check_inbounds(model, func)
     # we can fetch directly the objective as an expression.
     add_objective!(model, func)
@@ -857,7 +883,7 @@ function MOI.get(model::Optimizer, ::MOI.PrimalStatus)
     elseif -209 <= status <= -200
         return MOI.InfeasiblePoint
     elseif status == -300
-        return MOI.NoSolution
+        return MOI.InfeasibilityCertificate
     elseif -409 <= status <= -400
         return MOI.FeasiblePoint
     elseif -419 <= status <= -410
@@ -1009,7 +1035,7 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
     @assert 0 <= ci.value <= number_constraints(model) - 1
     index = model.constraint_mapping[ci] + 1
     lambda = get_dual(model.inner)
-    return lambda[index]
+    return -1. * lambda[index]
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
@@ -1019,7 +1045,7 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
         error("ConstraintDual not available.")
     end
     @assert 0 <= ci.value <= number_constraints(model) - 1
-    index = model.constraint_mapping[ci]
+    index = model.constraint_mapping[ci] + 1
     lambda = get_dual(model.inner)
     return -1. * lambda[index]
 end
@@ -1038,7 +1064,7 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
     # MOI convention is for feasible LessThan duals to be nonpositive.
     offset = number_constraints(model)
     lambda = get_dual(model.inner)
-    return lambda[vi.value + offset]
+    return -1. * lambda[vi.value + offset]
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
@@ -1079,5 +1105,7 @@ function MOI.get(model::Optimizer, ::MOI.NLPBlockDual)
     end
     offset = nlp_constraint_offset(model)
     lambda = get_dual(model.inner)
+    # FIXME: assume that lambda has same sense as for linear
+    # and quadratic constraint, but this is not tested inside MOI
     return -1. * lambda[ci.value + offset]
 end

@@ -8,7 +8,7 @@ const MOIB = MOI.Bridges
 
 MOIU.@model(KnitroModelData,
             (),
-            (MOI.EqualTo, MOI.GreaterThan, MOI.LessThan),
+            (MOI.EqualTo, MOI.GreaterThan, MOI.LessThan, MOI.Interval),
             (MOI.Zeros, MOI.Nonnegatives, MOI.Nonpositives, MOI.ZeroOne, MOI.SecondOrderCone),
             (),
             (MOI.SingleVariable,),
@@ -24,8 +24,6 @@ const config = MOIT.TestConfig(atol=1e-4, rtol=1e-4)
                "linear12", # Same as above.
                "linear8b", # Behavior in unbounded case doesn't match test.
                "linear8c", # Same as above.
-               "linear7",  # VectorAffineFunction not supported.
-               "linear15", # VectorAffineFunction not supported.
                "linear1",
                "linear10",
                "linear14", # variable deletion not supported
@@ -34,18 +32,24 @@ const config = MOIT.TestConfig(atol=1e-4, rtol=1e-4)
                         MOIU.CachingOptimizer(KnitroModelData{Float64}(), optimizer)
                                                          )
     MOIT.contlineartest(linear_optimizer, config, exclude)
+
+    # to check unbounded problem, change the default algorithm used
+    # by KNITRO
+    linear_optimizer = MOIU.CachingOptimizer(KnitroModelData{Float64}(),
+                                             KNITRO.Optimizer(outlev=0, algorithm=3))
+    MOIT.linear8ctest(linear_optimizer, config)
 end
 
 MOI.empty!(optimizer)
+
 
 @testset "MOI QP/QCQP tests" begin
     qp_optimizer = MOIU.CachingOptimizer(KnitroModelData{Float64}(), optimizer)
-    # KNITRO does not support yet change of objective in restart
-    exclude = ["qp2", "qp3"]
-    MOIT.contquadratictest(qp_optimizer, config, exclude)
+    MOIT.contquadratictest(qp_optimizer, config)
 end
 
 MOI.empty!(optimizer)
+
 
 @testset "MOI NLP tests" begin
     MOIT.nlptest(optimizer, config)
