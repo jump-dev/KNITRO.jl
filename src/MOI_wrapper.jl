@@ -878,11 +878,11 @@ end
 
 # TODO
 function MOI.get(model::Optimizer, ::MOI.ResultCount)
-    return (model.inner !== nothing) ? 1 : 0
+    return (model.number_solved >= 1) ? 1 : 0
 end
 
 function MOI.get(model::Optimizer, ::MOI.PrimalStatus)
-    if model.inner === nothing
+    if model.number_solved == 0
         return MOI.NoSolution
     end
     status = get_status(model.inner)
@@ -906,7 +906,7 @@ function MOI.get(model::Optimizer, ::MOI.PrimalStatus)
 end
 
 function MOI.get(model::Optimizer, ::MOI.DualStatus)
-    if model.inner === nothing
+    if model.number_solved == 0
         return MOI.NoSolution
     end
     status = get_status(model.inner)
@@ -930,7 +930,7 @@ function MOI.get(model::Optimizer, ::MOI.DualStatus)
 end
 
 function MOI.get(model::Optimizer, ::MOI.ObjectiveValue)
-    if model.inner === nothing
+    if model.number_solved == 0
         error("ObjectiveValue not available.")
     end
     return get_objective(model.inner)
@@ -940,7 +940,7 @@ end
 # only after a solve. If model.inner is initialized but we haven't solved, then
 # the primal values we return do not have the intended meaning.
 function MOI.get(model::Optimizer, ::MOI.VariablePrimal, vi::MOI.VariableIndex)
-    if model.inner === nothing
+    if model.number_solved == 0
         error("VariablePrimal not available.")
     end
     check_inbounds(model, vi)
@@ -948,7 +948,7 @@ function MOI.get(model::Optimizer, ::MOI.VariablePrimal, vi::MOI.VariableIndex)
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal, ci::MOI.ConstraintIndex)
-    if model.inner === nothing
+    if model.number_solved == 0
         error("ConstraintPrimal not available.")
     end
     if !(0 <= ci.value <= number_constraints(model) - 1)
@@ -962,7 +962,7 @@ end
 function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
                  ci::MOI.ConstraintIndex{MOI.SingleVariable,
                                          MOI.LessThan{Float64}})
-    if model.inner === nothing
+    if model.number_solved == 0
         error("ConstraintPrimal not available.")
     end
     vi = MOI.VariableIndex(ci.value)
@@ -977,7 +977,7 @@ end
 function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
                  ci::MOI.ConstraintIndex{MOI.SingleVariable,
                                          MOI.GreaterThan{Float64}})
-    if model.inner === nothing
+    if model.number_solved == 0
         error("ConstraintPrimal not available.")
     end
     vi = MOI.VariableIndex(ci.value)
@@ -992,7 +992,7 @@ end
 function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
                  ci::MOI.ConstraintIndex{MOI.SingleVariable,
                                          MOI.EqualTo{Float64}})
-    if model.inner === nothing
+    if model.number_solved == 0
         error("ConstraintPrimal not available.")
     end
     vi = MOI.VariableIndex(ci.value)
@@ -1009,7 +1009,7 @@ sense_dual(model::Optimizer) = (model.sense == MOI.MaxSense) ? 1. : -1.
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
                  ci::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}, S}) where S <: SS
-    if model.inner === nothing
+    if model.number_solved == 0
         error("ConstraintDual not available.")
     end
     @assert 0 <= ci.value <= number_constraints(model) - 1
@@ -1021,7 +1021,7 @@ end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
                  ci::MOI.ConstraintIndex{MOI.SingleVariable, S}) where S <: VS
-    if model.inner === nothing
+    if model.number_solved == 0
         error("ConstraintDual not available.")
     end
     vi = MOI.VariableIndex(ci.value)
@@ -1033,7 +1033,7 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
 end
 
 function MOI.get(model::Optimizer, ::MOI.NLPBlockDual)
-    if model.inner === nothing
+    if model.number_solved == 0
         error("NLPBlockDual not available.")
     end
     offset = nlp_constraint_offset(model)
