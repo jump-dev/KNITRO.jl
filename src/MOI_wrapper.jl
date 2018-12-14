@@ -222,6 +222,9 @@ MOI.supports(::Optimizer, ::MOI.ObjectiveSense) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.SingleVariable}, ::Type{MOI.LessThan{Float64}}) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.SingleVariable}, ::Type{MOI.GreaterThan{Float64}}) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.SingleVariable}, ::Type{MOI.EqualTo{Float64}}) = true
+MOI.supports_constraint(::Optimizer, ::Type{MOI.SingleVariable}, ::Type{MOI.ZeroOne}) = true
+MOI.supports_constraint(::Optimizer, ::Type{MOI.SingleVariable}, ::Type{MOI.Integer}) = true
+
 MOI.supports_constraint(::Optimizer, ::Type{MOI.ScalarAffineFunction{Float64}}, ::Type{MOI.LessThan{Float64}}) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.ScalarAffineFunction{Float64}}, ::Type{MOI.GreaterThan{Float64}}) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.ScalarAffineFunction{Float64}}, ::Type{MOI.EqualTo{Float64}}) = true
@@ -229,8 +232,6 @@ MOI.supports_constraint(::Optimizer, ::Type{MOI.ScalarAffineFunction{Float64}}, 
 MOI.supports_constraint(::Optimizer, ::Type{MOI.ScalarQuadraticFunction{Float64}}, ::Type{MOI.LessThan{Float64}}) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.ScalarQuadraticFunction{Float64}}, ::Type{MOI.GreaterThan{Float64}}) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.ScalarQuadraticFunction{Float64}}, ::Type{MOI.EqualTo{Float64}}) = true
-MOI.supports_constraint(::Optimizer, ::Type{MOI.SingleVariable}, ::Type{MOI.ZeroOne}) = true
-MOI.supports_constraint(::Optimizer, ::Type{MOI.SingleVariable}, ::Type{MOI.Integer}) = true
 MOI.supports_constraint(::Optimizer, ::Type{<:SF}, ::Type{<:SS}) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.SingleVariable}, ::Type{<:VS}) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.VectorAffineFunction{Float64}}, ::Type{MOI.Nonnegatives}) = true
@@ -434,32 +435,21 @@ end
 ##################################################
 # Generic constraint definition
 ##################################################
-macro define_add_constraint(function_type, set_type, array_name)
-    quote
-        function MOI.add_constraint(model::Optimizer, func::$function_type, set::$set_type)
-            check_inbounds(model, func)
-            push!(model.$(array_name), (func, set))
-            # we add a constraint in KNITRO
-            KN_add_con(model.inner)
-            num_cons = number_constraints(model)
-
-            ci = MOI.ConstraintIndex{$function_type, $set_type}(length(model.$(array_name)))
-            # take care that julia is 1-indexing!
-            model.constraint_mapping[ci] = num_cons - 1
-            return ci
-        end
-    end
-end
-
 function MOI.add_constraint(model::Optimizer, func::MOI.ScalarAffineFunction{Float64},
-                            set::MOI.LessThan{Float64})
+                            set::VS)
     (model.number_solved >= 1) && throw(AddConstraintError())
     check_inbounds(model, func)
     model.linear_le_constraints += 1
     # we add a constraint in KNITRO
     num_cons = KN_add_con(model.inner)
-    # add upper bound
-    KN_set_con_upbnd(model.inner, num_cons, set.upper - func.constant)
+    # add bound
+    if isa(set, MOI.LessThan{Float64})
+        KN_set_con_upbnd(model.inner, num_cons, set.upper - func.constant)
+    elseif isa(set, MOI.GreaterThan{Float64})
+        KN_set_con_lobnd(model.inner, num_cons, set.lower - func.constant)
+    elseif isa(set, MOI.EqualTo{Float64})
+        KN_set_con_eqbnd(model.inner, num_cons, set.value - func.constant)
+    end
     # parse structure of constraint
     indexvars, coefs = canonical_linear_reduction(func)
     KN_add_con_linear_struct(model.inner, num_cons, indexvars, coefs)
@@ -467,42 +457,6 @@ function MOI.add_constraint(model::Optimizer, func::MOI.ScalarAffineFunction{Flo
     ci = MOI.ConstraintIndex{typeof(func), typeof(set)}(num_cons)
     model.constraint_mapping[ci] = num_cons
     return ci
-end
-
-function MOI.add_constraint(model::Optimizer, func::MOI.ScalarAffineFunction{Float64},
-                            set::MOI.GreaterThan{Float64})
-    (model.number_solved >= 1) && throw(AddConstraintError())
-    check_inbounds(model, func)
-    model.linear_ge_constraints += 1
-    # we add a constraint in KNITRO
-    ci = KN_add_con(model.inner)
-    # add upper bound
-    KN_set_con_lobnd(model.inner, ci, set.lower - func.constant)
-    # parse structure of constraint
-    indexvars, coefs = canonical_linear_reduction(func)
-    KN_add_con_linear_struct(model.inner, ci, indexvars, coefs)
-    # add constraints to index
-    consi = MOI.ConstraintIndex{typeof(func), typeof(set)}(ci)
-    model.constraint_mapping[consi] = ci
-    return consi
-end
-
-function MOI.add_constraint(model::Optimizer, func::MOI.ScalarAffineFunction{Float64},
-                            set::MOI.EqualTo{Float64})
-    (model.number_solved >= 1) && throw(AddConstraintError())
-    check_inbounds(model, func)
-    model.linear_eq_constraints += 1
-    # we add a constraint in KNITRO
-    ci = KN_add_con(model.inner)
-    # add upper bound
-    KN_set_con_eqbnd(model.inner, ci, set.value - func.constant)
-    # parse structure of constraint
-    indexvars, coefs = canonical_linear_reduction(func)
-    KN_add_con_linear_struct(model.inner, ci, indexvars, coefs)
-    # add constraints to index
-    consi = MOI.ConstraintIndex{typeof(func), typeof(set)}(ci)
-    model.constraint_mapping[consi] = ci
-    return consi
 end
 
 function MOI.add_constraint(model::Optimizer, func::MOI.ScalarAffineFunction{Float64},
@@ -524,56 +478,20 @@ function MOI.add_constraint(model::Optimizer, func::MOI.ScalarAffineFunction{Flo
 end
 
 function MOI.add_constraint(model::Optimizer, func::MOI.ScalarQuadraticFunction{Float64},
-                            set::MOI.GreaterThan{Float64})
+                            set::VS)
     (model.number_solved >= 1) && throw(AddConstraintError())
     check_inbounds(model, func)
     model.quadratic_ge_constraints += 1
     # we add a constraint in KNITRO
     num_cons = KN_add_con(model.inner)
     # add upper bound
-    KN_set_con_lobnd(model.inner, num_cons, set.lower - func.constant)
-    # parse linear structure of constraint
-    indexvars, coefs = canonical_linear_reduction(func)
-    KN_add_con_linear_struct(model.inner, num_cons, indexvars, coefs)
-    # parse quadratic term
-    qvar1, qvar2, qcoefs = canonical_quadratic_reduction(func)
-    KN_add_con_quadratic_struct(model.inner, num_cons, qvar1, qvar2, qcoefs)
-    # add constraints to index
-    ci = MOI.ConstraintIndex{typeof(func), typeof(set)}(num_cons)
-    model.constraint_mapping[ci] = num_cons
-    return ci
-end
-
-function MOI.add_constraint(model::Optimizer, func::MOI.ScalarQuadraticFunction{Float64},
-                            set::MOI.LessThan{Float64})
-    (model.number_solved >= 1) && throw(AddConstraintError())
-    check_inbounds(model, func)
-    model.quadratic_le_constraints += 1
-    # we add a constraint in KNITRO
-    num_cons = KN_add_con(model.inner)
-    # add upper bound
-    KN_set_con_upbnd(model.inner, num_cons, set.upper - func.constant)
-    # parse linear structure of constraint
-    indexvars, coefs = canonical_linear_reduction(func)
-    KN_add_con_linear_struct(model.inner, num_cons, indexvars, coefs)
-    # parse quadratic term
-    qvar1, qvar2, qcoefs = canonical_quadratic_reduction(func)
-    KN_add_con_quadratic_struct(model.inner, num_cons, qvar1, qvar2, qcoefs)
-    # add constraints to index
-    ci = MOI.ConstraintIndex{typeof(func), typeof(set)}(num_cons)
-    model.constraint_mapping[ci] = num_cons
-    return ci
-end
-
-function MOI.add_constraint(model::Optimizer, func::MOI.ScalarQuadraticFunction{Float64},
-                            set::MOI.EqualTo{Float64})
-    (model.number_solved >= 1) && throw(AddConstraintError())
-    check_inbounds(model, func)
-    model.quadratic_eq_constraints += 1
-    # we add a constraint in KNITRO
-    num_cons = KN_add_con(model.inner)
-    # add upper bound
-    KN_set_con_eqbnd(model.inner, num_cons, set.value - func.constant)
+    if isa(set, MOI.LessThan{Float64})
+        KN_set_con_upbnd(model.inner, num_cons, set.upper - func.constant)
+    elseif isa(set, MOI.GreaterThan{Float64})
+        KN_set_con_lobnd(model.inner, num_cons, set.lower - func.constant)
+    elseif isa(set, MOI.EqualTo{Float64})
+        KN_set_con_eqbnd(model.inner, num_cons, set.value - func.constant)
+    end
     # parse linear structure of constraint
     indexvars, coefs = canonical_linear_reduction(func)
     KN_add_con_linear_struct(model.inner, num_cons, indexvars, coefs)
@@ -694,7 +612,7 @@ function MOI.set(model::Optimizer, ::MOI.NLPBlock, nlp_data::MOI.NLPBlockData)
 
     MOI.initialize(evaluator, init_feat)
     # we need to load the NLP constraints inside KNITRO
-    if  num_nlp_constraints > 0
+    if num_nlp_constraints > 0
         num_cons = KN_add_cons(model.inner, num_nlp_constraints)
 
         for (ib, pair) in enumerate(nlp_data.constraint_bounds)
@@ -1040,5 +958,5 @@ function MOI.get(model::Optimizer, ::MOI.NLPBlockDual)
     lambda = get_dual(model.inner)
     # FIXME: assume that lambda has same sense as for linear
     # and quadratic constraint, but this is not tested inside MOI
-    return -1. * lambda[ci.value + offset]
+    return sense_dual(model) * lambda[ci.value + offset]
 end
