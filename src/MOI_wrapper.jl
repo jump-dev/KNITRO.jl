@@ -197,9 +197,14 @@ function set_options(model::Optimizer)
     end
 end
 
-function Optimizer(;options...)
+function Optimizer(;license_manager=nothing, options...)
     # create KNITRO context
-    kc = KN_new()
+    if isa(license_manager, LMcontext)
+        println("Load KNITRO with license manager.")
+        kc = KN_new_lm(license_manager)
+    else
+        kc = KN_new()
+    end
     model = Optimizer(kc, [], 0, false, empty_nlp_data(), MOI.FeasibilitySense,
                       0, 0, 0, 0, 0, 0, 0, 0,
                       Dict{MOI.ConstraintIndex, Int}(), options)
