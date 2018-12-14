@@ -16,46 +16,36 @@ MOIU.@model(KnitroModelData,
             (MOI.VectorOfVariables,),
             (MOI.VectorAffineFunction, ))
 
-const optimizer = KNITRO.Optimizer(outlev=0)
 const config = MOIT.TestConfig(atol=1e-4, rtol=1e-4)
 
 @testset "MOI Linear tests" begin
+    # to check unbounded problem, change the default algorithm used
+    # by KNITRO
+    optimizer = KNITRO.Optimizer(outlev=0, algorithm=3)
+
     exclude = ["linear8a", # Behavior in infeasible case doesn't match test.
                "linear12", # Same as above.
-               "linear8b", # Behavior in unbounded case doesn't match test.
-               "linear8c", # Same as above.
-               "linear1",
-               "linear10",
                "linear14", # variable deletion not supported
                ]
     linear_optimizer = MOI.Bridges.SplitInterval{Float64}(
                         MOIU.CachingOptimizer(KnitroModelData{Float64}(), optimizer)
                                                          )
     MOIT.contlineartest(linear_optimizer, config, exclude)
-
-    # to check unbounded problem, change the default algorithm used
-    # by KNITRO
-    linear_optimizer = MOIU.CachingOptimizer(KnitroModelData{Float64}(),
-                                             KNITRO.Optimizer(outlev=0, algorithm=3))
-    MOIT.linear8ctest(linear_optimizer, config)
 end
-
-MOI.empty!(optimizer)
 
 
 @testset "MOI QP/QCQP tests" begin
+    optimizer = KNITRO.Optimizer(outlev=0)
     qp_optimizer = MOIU.CachingOptimizer(KnitroModelData{Float64}(), optimizer)
     MOIT.contquadratictest(qp_optimizer, config)
 end
 
-MOI.empty!(optimizer)
-
 
 @testset "MOI NLP tests" begin
+    optimizer = KNITRO.Optimizer(outlev=0)
     MOIT.nlptest(optimizer, config)
 end
 
-MOI.empty!(optimizer)
 
 # Currently SOCP test returns segfault ...
 #= @testset "MOI SOCP tests" begin =#
@@ -64,7 +54,7 @@ MOI.empty!(optimizer)
 #=     MOIT._soc1test(socp_optimizer, config, false) =#
 #= end =#
 
-MOI.empty!(optimizer)
 @testset "MOI MILP test" begin
+    optimizer = KNITRO.Optimizer(outlev=0)
     MOIT.knapsacktest(optimizer, config)
 end
