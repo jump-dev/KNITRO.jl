@@ -795,23 +795,45 @@ function MOI.optimize!(model::Optimizer)
     model.number_solved += 1
 end
 
+# refer to KNITRO manual:
+# https://www.artelys.com/tools/knitro_doc/3_referenceManual/returnCodes.html#returncodes
 function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
-    # TODO: clean
-    if model.inner == nothing
+    if model.number_solved == 0
         return MOI.OptimizeNotCalled
     end
     status = get_status(model.inner)
     if status == 0
-        return MOI.Success
-    elseif -109 <= status <= -100
-        return MOI.Success
+        return MOI.Optimal
+    elseif status == -100
+        return MOI.AlmostOptimal
+    elseif -109 <= status <= -101
+        return MOI.LocallySolved
     elseif -209 <= status <= -200
-        return MOI.Success
+        return MOI.Infeasible
     elseif status == -300
-        return MOI.UnboundedNoResult
-    elseif -419 <= status <= -400
-        return MOI.Interrupted
+        return MOI.DualInfeasible
+    elseif (status == -400) || (status == -410)
+        return MOI.IterationLimit
+    elseif (status == -401) || (status == -411)
+        return MOI.TimeLimit
+    elseif (-405 <= status <= -402) || (-415 <= status <= -412)
+        # TODO
+        return MOI.OtherLimit
+    elseif (status == -406) || (status == -416)
+        return MOI.NodeLimit
     elseif -599 <= status <= -500
+        return MOI.OtherError
+    elseif status == -503
+        return MOI.MemoryLimit
+    elseif status == -504
+        return MOI.Interrupted
+    elseif (status == -505 ) || (status == -521)
+        return MOI.InvalidOption
+    elseif (-514 <= status <= -506 ) || (-532 <= status <= -522)
+        return MOI.InvalidModel
+    elseif (-525 <= status <= -522 )
+        return MOI.NumericalError
+    elseif (status == -600) || (-520 <= status <= -515)
         return MOI.OtherError
     else
         error("Unrecognized KNITRO status $status")
