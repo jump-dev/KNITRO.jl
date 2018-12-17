@@ -3,6 +3,7 @@
 
 ##################################################
 # Constraint definition
+"Add constraint to model."
 function KN_add_cons(m::Model, ncons::Integer)
     ptr_cons = zeros(Cint, ncons)
     ret = @kn_ccall(add_cons, Cint, (Ptr{Nothing}, Cint, Ptr{Cint}), m.env.ptr_env.x, ncons, ptr_cons)
@@ -118,6 +119,21 @@ end
 ##################################################
 # Constraint scalings
 ##################################################
+"""
+Set an array of constraint scaling values to perform a scaling
+  cScaled[i] = cScaleFactors[i] * c[i]
+for each constraint. These scaling factors should try to
+represent the "typical" values of the inverse of the constraint
+values "c" so that the scaled constraints ("cScaled") used
+internally by Knitro are close to one.  Scaling factors for
+standard constraints can be provided with "cScaleFactors", while
+scalings for complementarity constraints can be specified with
+"ccScaleFactors".  The values for cScaleFactors/ccScaleFactors
+should be positive.  If a non-positive value is specified, that
+constraint will use either the standard Knitro scaling
+(KN_SCALE_USER_INTERNAL), or no scaling (KN_SCALE_USER_NONE).
+
+"""
 function KN_set_con_scalings(m::Model, nindex::Integer, cScaleFactors::Cdouble)
     ret = @kn_ccall(set_con_scaling, Cint,
                     (Ptr{Nothing}, Cint, Cdouble),
@@ -176,6 +192,14 @@ end
 #------------------------------
 # add structure of linear constraint
 #------------------------------
+"""
+Add linear structure to the constraint unctions.
+Each component i of arrays indexCons, indexVars and coefs adds a linear
+term:
+   coefs[i]*x[indexVars[i]]
+to constraint c[indexCons[i]].
+
+"""
 function KN_add_con_linear_struct(m::Model,
                                   jacIndexCons::Vector{Cint},
                                   jacIndexVars::Vector{Cint},
@@ -217,6 +241,14 @@ KN_add_con_linear_struct(m::Model, indexCon::Integer, indexVar::Integer, coef::F
 #------------------------------
 # add constraint quadratic structure
 #------------------------------
+"""
+Add quadratic structure to the constraint functions.
+Each component i of arrays indexCons, indexVars1, indexVars2 and coefs adds a
+quadratic term:
+   coefs[i]*x[indexVars1[i]]*x[indexVars2[i]]
+to the constraint c[indexCons[i]].
+
+"""
 function KN_add_con_quadratic_struct(m::Model,
                                      indexCons::Vector{Cint},
                                      indexVars1::Vector{Cint},
@@ -262,6 +294,31 @@ KN_add_con_quadratic_struct(m, indexCons, Cint[indexVar1], Cint[indexVar2], Cdou
 #------------------------------
 # Conic structure
 #------------------------------
+"""
+Add L2 norm structure of the form ||Ax + b||_2 to a constraint.
+  indexCon:    The constraint index that the L2 norm term will be added to.
+  nCoords:     The number of rows in "A" (or dimension of "b")
+  nnz:         The number of sparse non-zero elements in "A"
+  indexCoords: The coordinate (row) index for each non-zero element in "A".
+  indexVars:   The variable (column) index for each non-zero element in "A"
+  coefs:       The coefficient value for each non-zero element in "A"
+  constants:   The array "b" - may be set to NULL to ignore "b"
+
+#Note
+L2 norm structure can currently only be added to constraints that
+otherwise only have linear (or constant) structure.  In this way
+they can be used to define conic constraints of the form
+||Ax + b|| <= c'x + d.  The "c" coefficients should be added through
+"KN_add_con_linear_struct()" and "d" can be set as a constraint bound
+or through "KN_add_con_constants()".
+
+#Note
+Models with L2 norm structure are currently only handled by the
+Interior/Direct (KN_ALG_BAR_DIRECT) algorithm in Knitro.  Any model
+with structure defined with KN_add_L2norm() will automatically be
+forced to use this algorithm.
+
+"""
 function KN_add_con_L2norm(m::Model, indexCon::Integer, nCoords::Integer, nnz::Integer,
                        indexCoords::Vector{Cint}, indexVars::Vector{Cint},
                        coefs::Vector{Cdouble}, constants::Vector{Cdouble})
@@ -278,6 +335,21 @@ end
 ##################################################
 # Complementary constraints
 ##################################################
+"""
+This function adds complementarity constraints to the problem.
+The two lists are of equal length, and contain matching pairs of
+variable indices.  Each pair defines a complementarity constraint
+between the two variables.  The function can only be called once.
+The array "ccTypes" specifies the type of complementarity:
+   KN_CCTYPE_VARVAR: two (non-negative) variables
+   KN_CCTYPE_VARCON: a variable and a constraint
+   KN_CCTYPE_CONCON: two constraints
+
+#Note
+Currently only KN_CCTYPE_VARVAR is supported.  The other
+"ccTypes" will be added in future releases.
+
+"""
 function KN_set_compcons(m::Model,
                          ccTypes::Vector{Cint},
                          indexComps1::Vector{Cint},
@@ -414,6 +486,22 @@ end
 ##################################################
 ## Constraint property
 ##################################################
+"""
+Specify some properties of the objective and constraint functions.
+
+# Note
+Use bit-wise specification of the features:
+bit value   meaning
+  0     1   KN_OBJ_CONVEX/KN_CON_CONVEX
+  1     2   KN_OBJ_CONCAVE/KN_CON_CONCAVE
+  2     4   KN_OBJ_CONTINUOUS/KN_CON_CONTINUOUS
+  3     8   KN_OBJ_DIFFERENTIABLE/KN_CON_DIFFERENTIABLE
+  4    16   KN_OBJ_TWICE_DIFFERENTIABLE/KN_CON_TWICE_DIFFERENTIABLE
+  5    32   KN_OBJ_NOISY/KN_CON_NOISY
+  6    64   KN_OBJ_NONDETERMINISTIC/KN_CON_NONDETERMINISTIC
+default = 28 (bits 2-4 enabled: e.g. continuous, differentiable, twice-differentiable)
+
+"""
 function KN_set_con_properties(m::Model, nindex::Integer, cProperty::Cint)
     ret = @kn_ccall(set_con_property, Cint, (Ptr{Nothing}, Cint, Cint),
                     m.env.ptr_env.x, nindex, cProperty)

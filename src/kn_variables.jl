@@ -61,16 +61,38 @@ function KN_set_var_upbnds(m::Model, upbnds::Vector{Cdouble})
     _checkraise(ret)
 end
 
+##################################################
+## Fix bounds
+##################################################
+function KN_set_var_fxbnds(m::Model, nindex::Integer, xFxBnd::Cdouble)
+    ret = @kn_ccall(set_var_fxbnd, Cint, (Ptr{Nothing}, Cint, Cdouble),
+                    m.env.ptr_env.x, nindex, xFxBnd)
+    _checkraise(ret)
+end
+
+function KN_set_var_fxbnds(m::Model, xIndex::Vector{Cint}, xFxBnds::Vector{Cdouble})
+    nvar = length(xIndex)
+    @assert length(xFxBnds) == nvar
+    ret = @kn_ccall(set_var_fxbnds, Cint,
+                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, nvar, xIndex, xFxBnds)
+    _checkraise(ret)
+end
+
+function KN_set_var_fxbnds(m::Model, xFxBnds::Vector{Cdouble})
+    ret = @kn_ccall(set_var_fxbnds_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
+                    m.env.ptr_env.x, xFxBnds)
+    _checkraise(ret)
+end
 
 ##################################################
 ## Variables types
 ##################################################
-function KN_set_var_type(m::Model, indexVar::Integer, xType::Integer)
-    ret = @kn_ccall(set_var_type, Cint, (Ptr{Nothing}, Cint, Cint),
-                    m.env.ptr_env.x, indexVar, xType)
-    _checkraise(ret)
-end
 
+"""
+Set variable types (e.g. KN_VARTYPE_CONTINUOUS, KN_VARTYPE_BINARY,
+KN_VARTYPE_INTEGER). If not set, variables are assumed to be continuous.
+"""
 function KN_set_var_types(m::Model, valindex::Vector{Cint}, xTypes::Vector{Cdouble})
     nvar = length(valindex)
     @assert nvar == length(xTypes)
@@ -86,16 +108,34 @@ function KN_set_var_types(m::Model, xTypes::Vector{Cint})
     _checkraise(ret)
 end
 
+function KN_set_var_type(m::Model, indexVar::Integer, xType::Integer)
+    ret = @kn_ccall(set_var_type, Cint, (Ptr{Nothing}, Cint, Cint),
+                    m.env.ptr_env.x, indexVar, xType)
+    _checkraise(ret)
+end
 
 ##################################################
 ## Variables properties
 ##################################################
-function KN_set_var_property(m::Model, indexVar::Integer, xProperty::Integer)
-    ret = @kn_ccall(set_var_property, Cint, (Ptr{Nothing}, Cint, Cint),
-                    m.env.ptr_env.x, indexVar, xProperty)
-    _checkraise(ret)
-end
 
+"""
+Specify some properties of the variables.  Currently
+this API routine is only used to mark variables as linear,
+but other variable properties will be added in the future.
+Note: use bit-wise specification of the features:
+bit value   meaning
+  0     1   KN_VAR_LINEAR
+default = 0 (variables are assumed to be nonlinear)
+
+If a variable only appears linearly in the model, it can be very
+helpful to mark this by enabling bit 0. This information can then
+be used by Knitro to perform more extensive preprocessing. If a
+variable appears nonlinearly in any constraint or the objective (or
+if the user does not know) then it should not be marked as linear.
+Variables are assumed to be nonlinear variables by default.
+Knitro makes a local copy of all inputs, so the application may
+free memory after the call.
+"""
 function KN_set_var_properties(m::Model, valindex::Vector{Cint}, xProperties::Vector{Cint})
     nvar = length(valindex)
     @assert nvar == length(xProperties)
@@ -111,10 +151,26 @@ function KN_set_var_properties(m::Model, xProperties::Vector{Cint})
     _checkraise(ret)
 end
 
+function KN_set_var_property(m::Model, indexVar::Integer, xProperty::Integer)
+    ret = @kn_ccall(set_var_property, Cint, (Ptr{Nothing}, Cint, Cint),
+                    m.env.ptr_env.x, indexVar, xProperty)
+    _checkraise(ret)
+end
+
 
 ##################################################
 ## Honor bounds
 ##################################################
+"""
+This API function can be used to identify which variables
+should satisfy their variable bounds throughout the optimization
+process (KN_HONORBNDS_ALWAYS).  The user option KN_PARAM_HONORBNDS
+can be used to set ALL variables to honor their bounds.  This
+routine takes precedence over the setting of KN_PARAM_HONORBNDS
+and is used to customize the settings for individual variables.
+Knitro makes a local copy of all inputs, so the application may
+free memory after the call.
+"""
 function KN_set_var_honorbnds(m::Model, nindex::Integer, xHonorBound::Cint)
     ret = @kn_ccall(set_var_honorbnd, Cint,
                     (Ptr{Nothing}, Cint, Cint),
@@ -140,6 +196,12 @@ end
 ##################################################
 ## Naming variables
 ##################################################
+"""
+Set names for model components passed in by the user/modeling
+language so that Knitro can internally print out these names.
+Knitro makes a local copy of all inputs, so the application may
+free memory after the call.
+"""
 function KN_set_var_names(m::Model, nindex::Integer, name::String)
     ret = @kn_ccall(set_var_name, Cint,
                     (Ptr{Nothing}, Cint, Ptr{Cchar}),
@@ -166,6 +228,11 @@ end
 ## Initial values
 ##################################################
 # primal values
+"""
+Set initial values for primal variables.  If not set, variables
+may be initialized as 0 or initialized by Knitro based on some
+initialization strategy (perhaps determined by a user option).
+"""
 function KN_set_var_primal_init_values(m::Model, xinitval::Vector{Cdouble})
     ret = @kn_ccall(set_var_primal_init_values_all, Cint,
                     (Ptr{Nothing}, Ptr{Cdouble}),
@@ -197,6 +264,17 @@ end
 ##################################################
 ## Scalings
 ##################################################
+"""
+Set an array of variable scaling and centering values to
+perform a linear scaling
+  x[i] = xScaleFactors[i] * xScaled[i] + xScaleCenters[i]
+for each variable. These scaling factors should try to
+represent the "typical" values of the "x" variables so that the
+scaled variables ("xScaled") used internally by Knitro are close
+to one.  The values for xScaleFactors should be positive.
+If a non-positive value is specified, that variable will not
+be scaled.
+"""
 function KN_set_var_scalings(m::Model, nindex::Integer,
                              xScaleFactors::Cdouble, xScaleCenters::Cdouble)
     ret = @kn_ccall(set_var_scaling, Cint,
@@ -234,6 +312,30 @@ KN_set_var_scalings(m::Model, xScaleFactors::Vector{Cdouble}) =
 ##################################################
 ## Feasibility tolerance
 ##################################################
+"""
+Set custom absolute feasibility tolerances to use for the
+termination tests.
+The user options KN_PARAM_FEASTOL/KN_PARAM_FEASTOLABS define
+a single tolerance that is applied equally to every constraint
+and variable.  This API function allows the user to specify
+separate feasibility termination tolerances for each constraint
+and variable.  Values specified through this function will override
+the value determined by KN_PARAM_FEASTOL/KN_PARAM_FEASTOLABS. The
+tolerances should be positive values.  If a non-positive value is
+specified, that constraint or variable will use the standard tolerances
+based on  KN_PARAM_FEASTOL/KN_PARAM_FEASTOLABS.
+The variables are considered to be satisfied when
+    x[i] - xUpBnds[i] <= xFeasTols[i]  for all i=1..n, and
+    xLoBnds[i] - x[i] <= xFeasTols[i]  for all i=1..n
+The regular constraints are considered to be satisfied when
+    c[i] - cUpBnds[i] <= cFeasTols[i]  for all i=1..m, and
+    cLoBnds[i] - c[i] <= cFeasTols[i]  for all i=1..m
+The complementarity constraints are considered to be satisfied when
+    min(x1_i, x2_i) <= ccFeasTols[i]  for all i=1..ncc,
+where x1 and x2 are the arrays of complementary pairs.
+Knitro makes a local copy of all inputs, so the application
+may free memory after the call.
+"""
 function KN_set_var_feastols(m::Model, nindex::Integer, xFeasTol::Cdouble)
     ret = @kn_ccall(set_var_feastol, Cint, (Ptr{Nothing}, Cint, Cdouble),
                     m.env.ptr_env.x, nindex, xFeasTol)
@@ -252,30 +354,5 @@ end
 function KN_set_var_feastols(m::Model, xFeasTols::Vector{Cdouble})
     ret = @kn_ccall(set_var_feastols_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
                     m.env.ptr_env.x, xFeasTols)
-    _checkraise(ret)
-end
-
-
-##################################################
-## Fix bounds
-##################################################
-function KN_set_var_fxbnds(m::Model, nindex::Integer, xFxBnd::Cdouble)
-    ret = @kn_ccall(set_var_fxbnd, Cint, (Ptr{Nothing}, Cint, Cdouble),
-                    m.env.ptr_env.x, nindex, xFxBnd)
-    _checkraise(ret)
-end
-
-function KN_set_var_fxbnds(m::Model, xIndex::Vector{Cint}, xFxBnds::Vector{Cdouble})
-    nvar = length(xIndex)
-    @assert length(xFxBnds) == nvar
-    ret = @kn_ccall(set_var_fxbnds, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, nvar, xIndex, xFxBnds)
-    _checkraise(ret)
-end
-
-function KN_set_var_fxbnds(m::Model, xFxBnds::Vector{Cdouble})
-    ret = @kn_ccall(set_var_fxbnds_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, xFxBnds)
     _checkraise(ret)
 end

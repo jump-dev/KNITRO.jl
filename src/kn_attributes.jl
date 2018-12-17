@@ -5,12 +5,20 @@
 # objective
 ##################################################
 # set objective sense
+"Set objective goal."
 function KN_set_obj_goal(m::Model, objgoal::Cint)
     ret = @kn_ccall(set_obj_goal, Cint, (Ptr{Nothing}, Cint),
                     m.env.ptr_env.x, objgoal)
     _checkraise(ret)
 end
 
+"""
+Add linear structure to the objective function.
+Each component i of arrays indexVars and coefs adds a linear term
+   coefs[i]*x[indexVars[i]]
+to the objective.
+
+"""
 function KN_add_obj_linear_struct(m::Model,
                                   objIndices::Vector{Cint},
                                   objCoefs::Vector{Cdouble})
@@ -26,6 +34,17 @@ function KN_add_obj_linear_struct(m::Model,
 end
 
 # quadratic part of objective
+"""
+Add quadratic structure to the objective function.
+Each component i of arrays indexVars1, indexVars2 and coefs adds a quadratic
+term
+   coefs[i]*x[indexVars1[i]]*x[indexVars2[i]]
+to the objective.
+
+Note: if indexVars2[i] is < 0 then it adds a linear term
+      coefs[i]*x[indexVars1[i]] instead.
+
+"""
 function KN_add_obj_quadratic_struct(m::Model,
                                      indexVars1::Vector{Cint},
                                      indexVars2::Vector{Cint},
@@ -54,6 +73,19 @@ function KN_set_obj_scaling(m::Model, objScaleFactor::Cdouble)
     _checkraise(ret)
 end
 
+"""
+Specify some properties of the objective and constraint functions.
+Note: use bit-wise specification of the features:
+bit value   meaning
+  0     1   KN_OBJ_CONVEX/KN_CON_CONVEX
+  1     2   KN_OBJ_CONCAVE/KN_CON_CONCAVE
+  2     4   KN_OBJ_CONTINUOUS/KN_CON_CONTINUOUS
+  3     8   KN_OBJ_DIFFERENTIABLE/KN_CON_DIFFERENTIABLE
+  4    16   KN_OBJ_TWICE_DIFFERENTIABLE/KN_CON_TWICE_DIFFERENTIABLE
+  5    32   KN_OBJ_NOISY/KN_CON_NOISY
+  6    64   KN_OBJ_NONDETERMINISTIC/KN_CON_NONDETERMINISTIC
+
+"""
 function KN_set_obj_property(m::Model, objProperty::Cint)
     ret = @kn_ccall(set_obj_property, Cint, (Ptr{Nothing}, Cint),
                     m.env.ptr_env.x, objProperty)
@@ -133,6 +165,9 @@ end
 ##################################################
 # Continuous optimization results
 ##################################################
+"""
+Return the number of iterations made by KN_solve in "numIters".
+"""
 function KN_get_number_iters(m::Model)
     num_iters = Cint[0]
     ret = @kn_ccall(get_number_iters, Cint, (Ptr{Nothing}, Ptr{Cint}),
@@ -141,6 +176,11 @@ function KN_get_number_iters(m::Model)
     return num_iters[1]
 end
 
+"""
+Return the number of conjugate gradient (CG) iterations made by
+KN_solve in "numCGiters".
+
+"""
 function KN_get_number_cg_iters(m::Model)
     num_iters = Cint[0]
     ret = @kn_ccall(get_number_cg_iters, Cint, (Ptr{Nothing}, Ptr{Cint}),
@@ -149,6 +189,12 @@ function KN_get_number_cg_iters(m::Model)
     return num_iters[1]
 end
 
+"""
+Return the absolute feasibility error at the solution in "absFeasError".
+Refer to the Knitro manual section on Termination Tests for a
+detailed definition of this quantity.
+
+"""
 function KN_get_abs_feas_error(m::Model)
     res = Cdouble[0]
     ret = @kn_ccall(get_abs_feas_error, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
@@ -157,6 +203,12 @@ function KN_get_abs_feas_error(m::Model)
     return res[1]
 end
 
+"""
+Return the relative feasibility error at the solution in "relFeasError".
+Refer to the Knitro manual section on Termination Tests for a
+detailed definition of this quantity.
+
+"""
 function KN_get_rel_feas_error(m::Model)
     res = Cdouble[0]
     ret = @kn_ccall(get_rel_feas_error, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
@@ -165,6 +217,12 @@ function KN_get_rel_feas_error(m::Model)
     return res[1]
 end
 
+"""
+Return the absolute optimality error at the solution in "absOptError".
+Refer to the Knitro manual section on Termination Tests for a
+detailed definition of this quantity.
+
+"""
 function KN_get_abs_opt_error(m::Model)
     res = Cdouble[0]
     ret = @kn_ccall(get_abs_opt_error, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
@@ -173,6 +231,12 @@ function KN_get_abs_opt_error(m::Model)
     return res[1]
 end
 
+"""
+Return the relative optimality error at the solution in "relOptError".
+Refer to the Knitro manual section on Termination Tests for a
+detailed definition of this quantity.
+
+"""
 function KN_get_rel_opt_error(m::Model)
     res = Cdouble[0]
     ret = @kn_ccall(get_rel_opt_error, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
@@ -240,6 +304,12 @@ function KN_get_rsd_jacobian_nnz(m::Model)
     return res[1]
 end
 
+"""
+Return the values of the residual Jacobian in "indexRsds", "indexVars",
+and "rsdJac".  The Jacobian values returned correspond to the non-zero
+sparse Jacobian indices provided by the user.
+
+"""
 function KN_get_rsd_jacobian_values(m::Model)
     nnz = KN_get_rsd_jacobian_nnz(m)
     jacvars = zeros(Cint, nnz)
@@ -282,6 +352,11 @@ end
 #--------------------
 # Getters
 #--------------------
+"""
+Return the number of nodes processed in the MIP solve
+in "numNodes".
+
+"""
 function KN_get_mip_number_nodes(m::Model)
     res = Cint[0]
     ret = @kn_ccall(get_mip_number_nodes, Cint, (Ptr{Nothing}, Ptr{Cint}),
@@ -290,6 +365,11 @@ function KN_get_mip_number_nodes(m::Model)
     return res[1]
 end
 
+"""
+Return the number of continuous subproblems processed in the
+MIP solve in "numSolves".
+
+"""
 function KN_get_mip_number_solves(m::Model)
     res = Cint[0]
     ret = @kn_ccall(get_mip_number_solves, Cint, (Ptr{Nothing}, Ptr{Cint}),
@@ -298,6 +378,13 @@ function KN_get_mip_number_solves(m::Model)
     return res[1]
 end
 
+"""
+Return the final absolute integrality gap in the MIP solve
+in "absGap". Refer to the Knitro manual section on Termination
+Tests for a detailed definition of this quantity. Set to
+KN_INFINITY if no incumbent (i.e., integer feasible) point found.
+
+"""
 function KN_get_mip_abs_gap(m::Model)
     res = Cdouble[0]
     ret = @kn_ccall(get_mip_abs_gap, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
@@ -306,6 +393,13 @@ function KN_get_mip_abs_gap(m::Model)
     return res[1]
 end
 
+"""
+Return the final absolute integrality gap in the MIP solve
+int "relGap". Refer to the Knitro manual section on Termination
+Tests for a detailed definition of this quantity.  Set to
+KN_INFINITY if no incumbent (i.e., integer feasible) point found.
+
+"""
 function KN_get_mip_rel_gap(m::Model)
     res = Cdouble[0]
     ret = @kn_ccall(get_mip_rel_gap, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
@@ -314,6 +408,12 @@ function KN_get_mip_rel_gap(m::Model)
     return res[1]
 end
 
+"""
+Return the objective value of the MIP incumbent solution in
+"incumbentObj". Set to KN_INFINITY if no incumbent (i.e., integer
+feasible) point found.
+
+"""
 function KN_get_mip_incumbent_obj(m::Model)
     res = Cdouble[0]
     ret = @kn_ccall(get_mip_incumbent_obj, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
@@ -322,6 +422,10 @@ function KN_get_mip_incumbent_obj(m::Model)
     return res[1]
 end
 
+"""
+Return the value of the current MIP relaxation bound in "relaxBound".
+
+"""
 function KN_get_mip_relaxation_bnd(m::Model)
     res = Cdouble[0]
     ret = @kn_ccall(get_mip_relaxation_bnd, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
@@ -330,6 +434,11 @@ function KN_get_mip_relaxation_bnd(m::Model)
     return res[1]
 end
 
+"""
+Return the objective value of the most recently solved MIP
+node subproblem in "lastNodeObj".
+
+"""
 function KN_get_mip_lastnode_obj(m::Model)
     res = Cdouble[0]
     ret = @kn_ccall(get_mip_lastnode_obj, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
@@ -338,6 +447,7 @@ function KN_get_mip_lastnode_obj(m::Model)
     return res[1]
 end
 
+"Return the MIP incumbent solution in "x" if one exists."
 function KN_get_mip_incumbent_x(m::Model)
     res = Cdouble[0]
     ret = @kn_ccall(get_mip_incumbent_x, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
@@ -349,6 +459,18 @@ end
 #--------------------
 # Branching priorities
 #--------------------
+"""
+Set the branching priorities for integer variables. Must first
+set the types of variables (e.g. by calling KN_set_var_types) before
+calling this function. Priorities must be positive numbers
+(variables with non-positive values are ignored).  Variables with
+higher priority values will be considered for branching before
+variables with lower priority values.  When priorities for a subset
+of variables are equal, the branching rule is applied as a tiebreaker.
+Values for continuous variables are ignored.  Knitro makes a local
+copy of all inputs, so the application may free memory after the call.
+
+"""
 function KN_set_mip_branching_priorities(m::Model, nindex::Integer, xPriorities::Cint)
     ret = @kn_ccall(set_mip_branching_priority, Cint,
                     (Ptr{Nothing}, Cint, Cint),
@@ -374,6 +496,17 @@ end
 #--------------------
 # Intvar strategies
 #--------------------
+"""
+Set strategies for dealing with individual integer variables. Possible
+strategy values include:
+  KN_MIP_INTVAR_STRATEGY_NONE    0 (default)
+  KN_MIP_INTVAR_STRATEGY_RELAX   1
+  KN_MIP_INTVAR_STRATEGY_MPEC    2 (binary variables only)
+indexVars should be an index value corresponding to an integer variable
+(nothing is done if the index value corresponds to a continuous variable),
+and xStrategies should correspond to one of the strategy values listed above.
+
+"""
 function KN_set_mip_intvar_strategies(m::Model, nindex::Integer, xStrategies::Cint)
     ret = @kn_ccall(set_mip_intvar_strategy, Cint,
                     (Ptr{Nothing}, Cint, Cint),

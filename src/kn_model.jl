@@ -43,9 +43,10 @@ mutable struct Model
     end
 end
 
-# free the environment
+"Free solver object."
 KN_free(m::Model) = free_env(m.env)
 
+"Create solver object."
 KN_new() = Model(Env())
 KN_new_lm(lm::LMcontext) = Model(Env(), lm)
 

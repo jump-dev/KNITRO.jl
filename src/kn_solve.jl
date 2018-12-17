@@ -1,5 +1,10 @@
 # Optimization and solution query
 
+"""
+Call Knitro to solve the problem.  The return value indicates
+the solution status.
+
+"""
 function KN_solve(m::Model)
     ret = @kn_ccall(solve, Cint, (Ptr{Nothing},), m.env.ptr_env.x)
     # For KN_solve, we do not return an error if ret is different of 0
@@ -9,6 +14,7 @@ end
 ##################################################
 # Solution status and info
 ##################################################
+"Return the solution status, objective, primal and dual variables."
 function KN_get_solution(m::Model)
     # we first check that the model is well defined to avoid segfault
     @assert m.env != C_NULL

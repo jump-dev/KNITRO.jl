@@ -14,6 +14,9 @@ function is_valid(env::Env)
     env.ptr_env.x != C_NULL
 end
 
+"""
+Free all memory and release any Knitro license acquired by calling KN_new.
+"""
 function free_env(env::Env)
     env.ptr_env.x == C_NULL && return
     @kn_ccall(free, Cint, (Ptr{Nothing},), env.ptr_env)
@@ -23,6 +26,10 @@ end
 #--------------------------------------------------
 # LM license manager
 #--------------------------------------------------
+"""
+Type declaration for the Artelys License Manager context object.
+Applications must not modify any part of the context.
+"""
 mutable struct LMcontext
     ptr_lmcontext::Ref{Ptr{Nothing}}
 

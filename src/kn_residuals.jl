@@ -3,6 +3,7 @@
 
 ##################################################
 # Residuals definition
+"Add residuals for least squares optimization."
 function KN_add_rsds(m::Model, ncons::Integer)
     ptr_cons = zeros(Cint, ncons)
     ret = @kn_ccall(add_rsds, Cint, (Ptr{Nothing}, Cint, Ptr{Cint}), m.env.ptr_env.x, ncons, ptr_cons)
@@ -23,6 +24,14 @@ end
 ##################################################
 
 # add structure of linear constraint
+"""
+Add linear structure to the residual functions.
+Each component i of arrays indexRsds, indexVars and coefs adds a linear
+term:
+   coefs[i]*x[indexVars[i]]
+to residual r[indexRsds[i]].
+
+"""
 function KN_add_rsd_linear_struct(m::Model,
                                   indexRsds::Vector{Cint},
                                   indexVars::Vector{Cint},
@@ -60,6 +69,7 @@ function KN_add_rsd_linear_struct(m::Model,
 end
 KN_add_rsd_linear_struct(m::Model, indexRsd::Integer, indexVar::Integer, coef::Float64) =
     KN_add_rsd_linear_struct(m, indexRsd, Int32[indexVar], [coef])
+
 
 ##################################################
 # Residuals getters
