@@ -12,9 +12,16 @@ const MOI = MathOptInterface
 #     1 <= x1, x2, x3, x4 <= 5
 # Start at (1,5,5,1)
 # End at (1.000..., 4.743..., 3.821..., 1.379...)
-
 lm = KNITRO.LMcontext()
-m = Model(with_optimizer(KNITRO.Optimizer, license_manager=lm))
+mode = JuMP.Automatic
+
+if mode == JuMP.Direct
+    optimizer = KNITRO.Optimizer(license_manager=lm)
+    m = JuMP.direct_model(optimizer)
+elseif mode == JuMP.Automatic
+    m = Model(with_optimizer(KNITRO.Optimizer, license_manager=lm))
+end
+
 initval = [1, 5, 5, 1]
 
 @variable(m, 1 <= x[i=1:4] <= 5, start=initval[i])

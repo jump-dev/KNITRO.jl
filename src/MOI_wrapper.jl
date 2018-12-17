@@ -130,9 +130,10 @@ mutable struct VariableInfo
     has_upper_bound::Bool # Implies upper_bound == Inf
     is_fixed::Bool        # Implies lower_bound == upper_bound and !has_lower_bound and !has_upper_bound.
     start::Float64
+    name::String
 end
 # The default start value is zero.
-VariableInfo() = VariableInfo(-Inf, false, Inf, false, false, 0.0)
+VariableInfo() = VariableInfo(-Inf, false, Inf, false, false, 0.0, "")
 
 mutable struct Optimizer <: MOI.AbstractOptimizer
     inner::Union{Model, Nothing}
@@ -213,6 +214,9 @@ MOI.supports(::Optimizer, ::MOI.ObjectiveFunction{MOI.SingleVariable}) = true
 MOI.supports(::Optimizer, ::MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}) = true
 MOI.supports(::Optimizer, ::MOI.ObjectiveFunction{MOI.ScalarQuadraticFunction{Float64}}) = true
 MOI.supports(::Optimizer, ::MOI.ObjectiveSense) = true
+MOI.supports(::Optimizer, ::MOI.VariableName, ::Type{MOI.VariableIndex}) = true
+MOI.supports(::Optimizer, ::MOI.ConstraintName, ::Type{MOI.ConstraintIndex}) = true
+
 MOI.supports_constraint(::Optimizer, ::Type{MOI.SingleVariable}, ::Type{MOI.LessThan{Float64}}) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.SingleVariable}, ::Type{MOI.GreaterThan{Float64}}) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.SingleVariable}, ::Type{MOI.EqualTo{Float64}}) = true
@@ -940,4 +944,11 @@ function MOI.get(model::Optimizer, ::MOI.NLPBlockDual)
     # FIXME: assume that lambda has same sense as for linear
     # and quadratic constraint, but this is not tested inside MOI
     return sense_dual(model) * lambda[ci.value + offset]
+end
+
+##################################################
+# Naming
+##################################################
+function MOI.set(model::Optimizer, ::MOI.VariableName, vi::MOI.VariableIndex, name::String)
+    model.variable_info[vi.value].name = name
 end
