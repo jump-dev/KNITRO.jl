@@ -91,18 +91,18 @@ end
 # Add the constraints and set their lower bounds
 m = 2
 # first constraint: x0 * x1 >= 1
-c1 = MOI.ScalarQuadraticFunction{Float64}(
+cf1 = MOI.ScalarQuadraticFunction{Float64}(
         MOI.ScalarAffineTerm.(0.0, v),
         [MOI.ScalarQuadraticTerm(1., v[1], v[2])],
         0.)
-MOI.add_constraint(solver, c1, MOI.GreaterThan{Float64}(1.))
+c1 = MOI.add_constraint(solver, cf1, MOI.GreaterThan{Float64}(1.))
 
 # second constraint: x0 + x1^2 >= 0
-c2 = MOI.ScalarQuadraticFunction(
+cf2 = MOI.ScalarQuadraticFunction(
                                  [MOI.ScalarAffineTerm(2.0, v[1])],
-        [MOI.ScalarQuadraticTerm(1., v[2], v[2])],
-        0.)
-MOI.add_constraint(solver, c2, MOI.GreaterThan(0.))
+                                 [MOI.ScalarQuadraticTerm(1., v[2], v[2])],
+                                 0.)
+c2 = MOI.add_constraint(solver, cf2, MOI.GreaterThan(0.))
 
 MOI.set(solver, MOI.ObjectiveSense(), MOI.MinSense)
 # define NLP structure

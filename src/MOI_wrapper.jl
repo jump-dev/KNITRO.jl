@@ -146,12 +146,6 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     nlp_data::MOI.NLPBlockData
     sense::MOI.OptimizationSense
     # constraint counters
-    linear_le_constraints::Int
-    linear_ge_constraints::Int
-    linear_eq_constraints::Int
-    quadratic_le_constraints::Int
-    quadratic_ge_constraints::Int
-    quadratic_eq_constraints::Int
     number_zeroone_constraints::Int
     number_integer_constraints::Int
     # constraint mappings
@@ -206,7 +200,7 @@ function Optimizer(;license_manager=nothing, options...)
         kc = KN_new()
     end
     model = Optimizer(kc, [], 0, false, empty_nlp_data(), MOI.FeasibilitySense,
-                      0, 0, 0, 0, 0, 0, 0, 0,
+                      0, 0,
                       Dict{MOI.ConstraintIndex, Int}(), options)
 
     set_options(model)
@@ -245,12 +239,6 @@ end
 MOIU.supports_default_copy_to(model::Optimizer, copy_names::Bool) = true
 
 MOI.get(model::Optimizer, ::MOI.NumberOfVariables) = length(model.variable_info)
-MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.ScalarAffineFunction{Float64}, MOI.EqualTo{Float64}}) =
-    model.linear_eq_constraints
-MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.ScalarAffineFunction{Float64}, MOI.LessThan{Float64}}) =
-    model.linear_le_constraints
-MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.ScalarAffineFunction{Float64}, MOI.GreaterThan{Float64}}) =
-    model.linear_ge_constraints
 MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.SingleVariable, MOI.ZeroOne}) =
     model.number_zeroone_constraints
 # TODO: a bit hacky, but that should work for MOI Test
@@ -263,6 +251,11 @@ sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{MOI
 MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.VectorAffineFunction{Float64}, MOI.SecondOrderCone}) =
 sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{MOI.VectorAffineFunction{Float64}, MOI.SecondOrderCone})
 
+MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.ScalarAffineFunction{Float64}, S}) where S <: VS  =
+sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}, S})
+
+MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.ScalarQuadraticFunction{Float64}, S}) where S <: VS  =
+sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{MOI.ScalarQuadraticFunction{Float64}, S})
 
 function MOI.get(model::Optimizer, ::MOI.ListOfVariableIndices)
     return [MOI.VariableIndex(i) for i in 1:length(model.variable_info)]
@@ -292,12 +285,6 @@ function MOI.empty!(model::Optimizer)
     model.sense = MOI.FeasibilitySense
     model.number_zeroone_constraints = 0
     model.number_integer_constraints = 0
-    model.linear_le_constraints = 0
-    model.linear_ge_constraints = 0
-    model.linear_eq_constraints = 0
-    model.quadratic_le_constraints = 0
-    model.quadratic_ge_constraints = 0
-    model.quadratic_eq_constraints = 0
     model.constraint_mapping = Dict()
     set_options(model)
 end
@@ -305,13 +292,7 @@ end
 function MOI.is_empty(model::Optimizer)
     return isempty(model.variable_info) &&
            model.nlp_data.evaluator isa EmptyNLPEvaluator &&
-           model.sense == MOI.FeasibilitySense &&
-           model.linear_le_constraints == 0 &&
-           model.linear_ge_constraints == 0 &&
-           model.linear_eq_constraints == 0 &&
-           model.quadratic_le_constraints == 0 &&
-           model.quadratic_ge_constraints == 0 &&
-           model.quadratic_eq_constraints == 0
+           model.sense == MOI.FeasibilitySense
 end
 
 function MOI.add_variable(model::Optimizer)
@@ -366,6 +347,10 @@ function is_fixed(model::Optimizer, vi::MOI.VariableIndex)
     return model.variable_info[vi.value].is_fixed
 end
 
+##################################################
+# Generic constraint definition
+##################################################
+#= function MOI.get(model::Optimizer, ::MOI.ConstraintFunction =#
 #--------------------------------------------------
 # Bound constraint on variables
 function MOI.add_constraint(model::Optimizer, v::MOI.SingleVariable, lt::MOI.LessThan{Float64})
@@ -432,14 +417,10 @@ function MOI.add_constraint(model::Optimizer, v::MOI.SingleVariable, eq::MOI.Equ
     return MOI.ConstraintIndex{MOI.SingleVariable, MOI.EqualTo{Float64}}(vi.value)
 end
 
-##################################################
-# Generic constraint definition
-##################################################
 function MOI.add_constraint(model::Optimizer, func::MOI.ScalarAffineFunction{Float64},
                             set::VS)
     (model.number_solved >= 1) && throw(AddConstraintError())
     check_inbounds(model, func)
-    model.linear_le_constraints += 1
     # we add a constraint in KNITRO
     num_cons = KN_add_con(model.inner)
     # add bound
@@ -481,7 +462,6 @@ function MOI.add_constraint(model::Optimizer, func::MOI.ScalarQuadraticFunction{
                             set::VS)
     (model.number_solved >= 1) && throw(AddConstraintError())
     check_inbounds(model, func)
-    model.quadratic_ge_constraints += 1
     # we add a constraint in KNITRO
     num_cons = KN_add_con(model.inner)
     # add upper bound
@@ -630,6 +610,7 @@ end
 ##################################################
 # Objective definition
 ##################################################
+MOI.get(model::Optimizer, ::MOI.ObjectiveSense) = model.sense
 function add_objective!(model::Optimizer, objective::MOI.ScalarQuadraticFunction)
     # we parse the expression passed in arguments:
     qobjindex1, qobjindex2, qcoefs = canonical_quadratic_reduction(objective)
