@@ -1,5 +1,12 @@
 # Callbacks utilities
 
+"""
+Structure specifying the callback context.
+
+Each evaluation callbacks (for objective, gradient or hessian)
+is attached to a unique callback context.
+
+"""
 mutable struct CallbackContext
     context::Ptr{Nothing}
     # we have to keep a reference to the optimization model
@@ -38,6 +45,13 @@ function KN_set_cb_user_params(m::Model, cb::CallbackContext, userParams=nothing
     _checkraise(ret)
 end
 
+"""
+Specify which gradient option `gradopt` will be used to evaluate
+the first derivatives of the callback functions.  If `gradopt=KN_GRADOPT_EXACT`
+then a gradient evaluation callback must be set by `KN_set_cb_grad()`
+(or `KN_set_cb_rsd_jac()` for least squares).
+
+"""
 function KN_set_cb_gradopt(m::Model, cb::CallbackContext, gradopt::Integer)
     ret = @kn_ccall(set_cb_gradopt, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Cint),
@@ -48,6 +62,19 @@ end
 #--------------------
 # Set relative step size
 #--------------------
+"""
+Set an array of relative stepsizes to use for the finite-difference
+gradient/Jacobian computations when using finite-difference
+first derivatives.  Finite-difference step sizes `delta` in Knitro are
+computed as:
+
+     delta[i] = relStepSizes[i]*max(abs(x[i]),1);
+
+The default relative step sizes for each component of `x` are sqrt(eps)
+for forward finite differences, and eps^(1/3) for central finite
+differences.  Use this function to overwrite the default values.
+
+"""
 function KN_set_cb_relstepsizes(m::Model, cb::CallbackContext, nindex::Integer, xRelStepSize::Cdouble)
     ret = @kn_ccall(set_cb_relstepsize, Cint, (Ptr{Nothing}, Ptr{Nothing}, Cint, Cdouble),
                     m.env.ptr_env.x, cb.context, nindex, xRelStepSize)
@@ -132,6 +159,22 @@ end
 # EvalRequest
 
 # low level EvalRequest structure
+"""
+Low-level structure used to pass back evaluation information for evaluation
+callbacks.
+
+# Attributes
+ * `evalRequestCode`: indicates the type of evaluation requested
+ * `threadID`: the thread ID associated with this evaluation request;
+                useful for multi-threaded, concurrent evaluations
+ * `x`: values of unknown (primal) variables used for all evaluations
+ * `lambda`: values of unknown dual variables/Lagrange multipliers
+                     used for the evaluation of the Hessian
+ * `sigma`: scalar multiplier for the objective component of the Hessian
+ * `vec`: vector array value for Hessian-vector products (only used
+          when user option hessopt=KN_HESSOPT_PRODUCT)
+
+"""
 mutable struct KN_eval_request
     evalRequestCode::Cint
     threadID::Cint
@@ -142,6 +185,7 @@ mutable struct KN_eval_request
 end
 
 # high level EvalRequest structure
+"High level structure to wrap `KN_eval_request`."
 mutable struct EvalRequest
     evalRequestCode::Cint
     threadID::Cint
@@ -172,6 +216,31 @@ end
 # EvalResult
 
 # low level EvalResult structure
+"""
+Low-level structure used to return results information for evaluation callbacks.
+The arrays (and their indices and sizes) returned in this structure are
+local to the specific callback structure used for the evaluation.
+
+# Attributes
+* `obj`: objective function evaluated at `x` for EVALFC or
+                     EVALFCGA request (funcCallback)
+* `c`: (length nC) constraint values evaluated at `x` for
+                     EVALFC or EVALFCGA request (funcCallback)
+* `objGrad`: (length nV) objective gradient evaluated at `x` for
+                     EVALGA request (gradCallback) or EVALFCGA request (funcCallback)
+* `jac`: (length nnzJ) constraint Jacobian evaluated at `x` for
+                     EVALGA request (gradCallback) or EVALFCGA request (funcCallback)
+* `hess`: (length nnzH) Hessian evaluated at `x`, `lambda`, `sigma`
+                     for EVALH or EVALH_NO_F request (hessCallback)
+* `hessVec`: (length n=number variables in the model) Hessian-vector
+                     product evaluated at `x`, `lambda`, `sigma`
+                     for EVALHV or EVALHV_NO_F request (hessCallback)
+* `rsd`: (length nR) residual values evaluated at `x` for EVALR
+                     request (rsdCallback)
+* `rsdJac`: (length nnzJ) residual Jacobian evaluated at `x` for
+                     EVALRJ request (rsdJacCallback)
+
+"""
 mutable struct KN_eval_result
     obj::Ptr{Cdouble}
     c::Ptr{Cdouble}
@@ -312,6 +381,47 @@ end
 # User callback should be of the form:
 # callback(kc, cb, evalrequest, evalresult, usrparams)::Int
 
+"""
+    KN_add_eval_callback(m::Model, funccallback::Function)
+    KN_add_eval_callback(m::Model, evalObj::Bool, indexCons::Vector{Cint},
+                         funccallback::Function)
+
+This is the routine for adding a callback for (nonlinear) evaluations
+of objective and constraint functions.  This routine can be called
+multiple times to add more than one callback structure (e.g. to create
+different callback structures to handle different blocks of constraints).
+This routine specifies the minimal information needed for a callback, and
+creates the callback structure `cb`, which can then be passed to other
+callback functions to set additional information for that callback.
+
+# Parameters
+* `evalObj`: boolean indicating whether or not any part of the objective
+                  function is evaluated in the callback
+* `indexCons`: (length nC) index of constraints evaluated in the callback
+                  (set to NULL if nC=0)
+* `funcCallback`: a function that evaluates the objective parts
+                  (if evalObj=KNTRUE) and any constraint parts (specified by
+                  nC and indexCons) involved in this callback; when
+                  eval_fcga=KN_EVAL_FCGA_YES, this callback should also evaluate
+                  the relevant first derivatives/gradients
+
+# Returns
+* `cb`: the callback structure that gets created by
+                  calling this function; all the memory for this structure is
+                  handled by Knitro
+
+After a callback is created by `KN_add_eval_callback()`, the user can then specify
+gradient information and structure through `KN_set_cb_grad()` and Hessian
+information and structure through `KN_set_cb_hess()`.  If not set, Knitro will
+approximate these.  However, it is highly recommended to provide a callback routine
+to specify the gradients if at all possible as this will greatly improve the
+performance of Knitro.  Even if a gradient callback is not provided, it is still
+helpful to provide the sparse Jacobian structure through `KN_set_cb_grad()` to
+improve the efficiency of the finite-difference gradient approximations.
+Other optional information can also be set via `KN_set_cb_*()` functions as
+detailed below.
+
+"""
 function KN_add_eval_callback(m::Model, funccallback::Function)
     # wrap eval_callback_wrapper as C function
     c_f = @cfunction(eval_fc_wrapper, Cint,
@@ -362,6 +472,16 @@ function KN_add_eval_callback(m::Model, evalObj::Bool, indexCons::Vector{Cint},
     return cb
 end
 
+"""
+    KN_set_cb_grad(m::Model, cb::CallbackContext, gradcallback;
+                   nV::Integer=KN_DENSE, objGradIndexVars=C_NULL,
+                   jacIndexCons=C_NULL, jacIndexVars=C_NULL)
+
+This API function is used to set the objective gradient and constraint Jacobian
+structure and also (optionally) a callback function to evaluate the objective
+gradient and constraint Jacobian provided through this callback.
+
+"""
 function KN_set_cb_grad(m::Model, cb::CallbackContext, gradcallback;
                         nV::Integer=KN_DENSE, objGradIndexVars=C_NULL,
                         jacIndexCons=C_NULL, jacIndexVars=C_NULL)
@@ -400,6 +520,18 @@ function KN_set_cb_grad(m::Model, cb::CallbackContext, gradcallback;
     return nothing
 end
 
+"""
+    KN_set_cb_hess(m::Model, cb::CallbackContext, nnzH::Integer, hesscallback::Function;
+                   hessIndexVars1=C_NULL, hessIndexVars2=C_NULL)
+
+This API function is used to set the structure and a callback function to
+evaluate the components of the Hessian of the Lagrangian provided through this
+callback.  KN_set_cb_hess() should only be used when defining a user-supplied
+Hessian callback function (via the `hessopt=KN_HESSOPT_EXACT` user option).
+When Knitro is approximating the Hessian, it cannot make use of the Hessian
+sparsity structure.
+
+"""
 function KN_set_cb_hess(m::Model, cb::CallbackContext, nnzH::Integer, hesscallback::Function;
                         hessIndexVars1=C_NULL, hessIndexVars2=C_NULL)
 
@@ -495,6 +627,25 @@ function eval_rsd_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
 end
 
 # TODO: add _one and _* support
+"""
+    KN_add_lsq_eval_callback(m::Model, rsdCallBack::Function)
+
+Add an evaluation callback for a least-squares models.  Similar to KN_add_eval_callback()
+above, but for least-squares models.
+
+* `m`: current KNITRO model
+* `rsdCallback`: a function that evaluates any residual parts
+
+After a callback is created by `KN_add_lsq_eval_callback()`, the user can then
+specify residual Jacobian information and structure through `KN_set_cb_rsd_jac()`.
+If not set, Knitro will approximate the residual Jacobian.  However, it is highly
+recommended to provide a callback routine to specify the residual Jacobian if at all
+possible as this will greatly improve the performance of Knitro.  Even if a callback
+for the residual Jacobian is not provided, it is still helpful to provide the sparse
+Jacobian structure for the residuals through `KN_set_cb_rsd_jac()` to improve the
+efficiency of the finite-difference Jacobian approximation.
+
+"""
 function KN_add_lsq_eval_callback(m::Model, rsdCallBack::Function)
 
     # wrap eval_callback_wrapper as C function
@@ -598,6 +749,28 @@ function newpt_wrapper(ptr_model::Ptr{Cvoid},
     return Cint(0)
 end
 
+"""
+    KN_set_newpt_callback(m::Model, callback::Function)
+
+Set the callback function that is invoked after Knitro computes a
+new estimate of the solution point (i.e., after every iteration).
+The function should not modify any Knitro arguments.
+
+Callback is a function with signature:
+
+    callback(kc, x, lambda, userdata)
+
+Argument `kc` passed to the callback from inside Knitro is the
+context pointer for the current problem being solved inside Knitro
+(either the main single-solve problem, or a subproblem when using
+multi-start, Tuner, etc.).
+Arguments `x` and `lambda` contain the latest solution estimates.
+Other values (such as objective, constraint, jacobian, etc.) can be
+queried using the corresonding KN_get_XXX_values methods.
+
+Note: Currently only active for continuous models.
+
+"""
 function KN_set_newpt_callback(m::Model, callback::Function)
     # store callback function inside model:
     m.user_callback = callback
@@ -634,6 +807,24 @@ function ms_process_wrapper(ptr_model::Ptr{Cvoid},
     return Cint(0)
 end
 
+"""
+    KN_set_ms_process_callback(m::Model, callback::Function)
+
+This callback function is for multistart (MS) problems only.
+Set the callback function that is invoked after Knitro finishes
+processing a multistart solve.
+
+Callback is a function with signature:
+
+    callback(kc, x, lambda, userdata)
+
+Argument `kc` passed to the callback
+from inside Knitro is the context pointer for the last multistart
+subproblem solved inside Knitro.  The function should not modify any
+Knitro arguments.  Arguments `x` and `lambda` contain the solution from
+the last solve.
+
+"""
 function KN_set_ms_process_callback(m::Model, callback::Function)
     # store callback function inside model:
     m.ms_process = callback
@@ -668,6 +859,24 @@ function mip_node_callback_wrapper(ptr_model::Ptr{Cvoid},
     return Cint(0)
 end
 
+"""
+    KN_set_mip_node_callback(m::Model, callback::Function)
+
+This callback function is for mixed integer (MIP) problems only.
+Set the callback function that is invoked after Knitro finishes
+processing a node on the branch-and-bound tree (i.e., after a relaxed
+subproblem solve in the branch-and-bound procedure).
+
+Callback is a function with signature:
+
+    callback(kc, x, lambda, userdata)
+
+Argument `kc` passed to the callback from inside Knitro is the
+context pointer for the last node subproblem solved inside Knitro.
+The function should not modify any Knitro arguments.
+Arguments `x` and `lambda` contain the solution from the node solve.
+
+"""
 function KN_set_mip_node_callback(m::Model, callback::Function)
     # store callback function inside model:
     m.mip_callback = callback
@@ -703,6 +912,22 @@ function ms_initpt_wrapper(ptr_model::Ptr{Cvoid},
     return Cint(0)
 end
 
+"""
+    KN_set_ms_initpt_callback(m::Model, callback::Function)
+Type declaration for the callback that allows applications to
+specify an initial point before each local solve in the multistart
+procedure.
+
+Callback is a function with signature:
+
+    callback(kc, x, lambda, userdata)
+
+On input, arguments `x` and `lambda` are the randomly
+generated initial points determined by Knitro, which can be overwritten
+by the user.  The argument `nSolveNumber` is the number of the
+multistart solve.
+
+"""
 function KN_set_ms_initpt_callback(m::Model, callback::Function)
     # store callback function inside model:
     m.ms_initpt_callback = callback
@@ -729,6 +954,23 @@ function puts_callback_wrapper(str::Ptr{Cchar}, userdata_::Ptr{Cvoid})
     return Cint(res)
 end
 
+"""
+    KN_set_puts_callback(m::Model, callback::Function)
+
+Set the callback that allows applications to handle
+output. Applications can set a `put string` callback function to handle
+output generated by the Knitro solver.  By default Knitro prints to
+stdout or a file named `knitro.log`, as determined by KN_PARAM_OUTMODE.
+
+Callback is a function with signature:
+
+    callback(str::String, userdata)
+
+The KN_puts callback function takes a `userParams` argument which is a pointer
+passed directly from KN_solve. The function should return the number of
+characters that were printed.
+
+"""
 function KN_set_puts_callback(m::Model, callback::Function)
     # store callback function inside model:
     m.puts_callback = callback

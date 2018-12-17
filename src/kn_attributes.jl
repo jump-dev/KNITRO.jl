@@ -447,7 +447,7 @@ function KN_get_mip_lastnode_obj(m::Model)
     return res[1]
 end
 
-"Return the MIP incumbent solution in "x" if one exists."
+"Return the MIP incumbent solution in 'x' if one exists."
 function KN_get_mip_incumbent_x(m::Model)
     res = Cdouble[0]
     ret = @kn_ccall(get_mip_incumbent_x, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
