@@ -13,7 +13,7 @@ module KNITRO
             Compat.Libdl.dlopen("libgomp", RTLD_GLOBAL)
         end
     end
-    @static if Sys.islinux() const libknitro = "libknitro" end
+    @static if Sys.isunix() const libknitro = "libknitro" end
     @static if Sys.iswindows() const libknitro = "knitro" end
 
     export
