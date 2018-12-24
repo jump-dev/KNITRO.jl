@@ -200,7 +200,7 @@ function Optimizer(;license_manager=nothing, options...)
     else
         kc = KN_new()
     end
-    model = Optimizer(kc, [], 0, false, empty_nlp_data(), MOI.FeasibilitySense,
+    model = Optimizer(kc, [], 0, false, empty_nlp_data(), MOI.FEASIBILITY_SENSE,
                       0, 0,
                       Dict{MOI.ConstraintIndex, Int}(), options)
 
@@ -268,9 +268,9 @@ end
 function MOI.set(model::Optimizer, ::MOI.ObjectiveSense,
                  sense::MOI.OptimizationSense)
     model.sense = sense
-    if model.sense == MOI.MaxSense
+    if model.sense == MOI.MAX_SENSE
         KN_set_obj_goal(model.inner, KN_OBJGOAL_MAXIMIZE)
-    elseif model.sense == MOI.MinSense
+    elseif model.sense == MOI.MIN_SENSE
         KN_set_obj_goal(model.inner, KN_OBJGOAL_MINIMIZE)
     end
     return
@@ -286,7 +286,7 @@ function MOI.empty!(model::Optimizer)
     model.number_solved = 0
     model.nlp_data = empty_nlp_data()
     model.nlp_loaded = false
-    model.sense = MOI.FeasibilitySense
+    model.sense = MOI.FEASIBILITY_SENSE
     model.number_zeroone_constraints = 0
     model.number_integer_constraints = 0
     model.constraint_mapping = Dict()
@@ -296,7 +296,7 @@ end
 function MOI.is_empty(model::Optimizer)
     return isempty(model.variable_info) &&
            model.nlp_data.evaluator isa EmptyNLPEvaluator &&
-           model.sense == MOI.FeasibilitySense
+           model.sense == MOI.FEASIBILITY_SENSE
 end
 
 function MOI.add_variable(model::Optimizer)
@@ -738,42 +738,42 @@ end
 # https://www.artelys.com/tools/knitro_doc/3_referenceManual/returnCodes.html#returncodes
 function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
     if model.number_solved == 0
-        return MOI.OptimizeNotCalled
+        return MOI.OPTIMIZE_NOT_CALLED
     end
     status = get_status(model.inner)
     if status == 0
-        return MOI.Optimal
+        return MOI.OPTIMAL
     elseif status == -100
-        return MOI.AlmostOptimal
+        return MOI.ALMOST_OPTIMAL
     elseif -109 <= status <= -101
-        return MOI.LocallySolved
+        return MOI.LOCALLY_SOLVED
     elseif -209 <= status <= -200
-        return MOI.Infeasible
+        return MOI.INFEASIBLE
     elseif status == -300
-        return MOI.DualInfeasible
+        return MOI.DUAL_INFEASIBLE
     elseif (status == -400) || (status == -410)
-        return MOI.IterationLimit
+        return MOI.ITERATION_LIMIT
     elseif (status == -401) || (status == -411)
-        return MOI.TimeLimit
+        return MOI.TIME_LIMIT
     elseif (-405 <= status <= -402) || (-415 <= status <= -412)
         # TODO
-        return MOI.OtherLimit
+        return MOI.OTHER_LIMIT
     elseif (status == -406) || (status == -416)
-        return MOI.NodeLimit
+        return MOI.NODE_LIMIT
     elseif -599 <= status <= -500
-        return MOI.OtherError
+        return MOI.OTHER_ERROR
     elseif status == -503
-        return MOI.MemoryLimit
+        return MOI.MEMORY_LIMIT
     elseif status == -504
-        return MOI.Interrupted
+        return MOI.INTERRUPTED
     elseif (status == -505 ) || (status == -521)
-        return MOI.InvalidOption
+        return MOI.INVALID_OPTION
     elseif (-514 <= status <= -506 ) || (-532 <= status <= -522)
-        return MOI.InvalidModel
+        return MOI.INVALID_MODEL
     elseif (-525 <= status <= -522 )
-        return MOI.NumericalError
+        return MOI.NUMERICAL_ERROR
     elseif (status == -600) || (-520 <= status <= -515)
-        return MOI.OtherError
+        return MOI.OTHER_ERROR
     else
         error("Unrecognized KNITRO status $status")
     end
@@ -786,49 +786,49 @@ end
 
 function MOI.get(model::Optimizer, ::MOI.PrimalStatus)
     if model.number_solved == 0
-        return MOI.NoSolution
+        return MOI.NO_SOLUTION
     end
     status = get_status(model.inner)
     if status == 0
-        return MOI.FeasiblePoint
+        return MOI.FEASIBLE_POINT
     elseif -109 <= status <= -100
-        return MOI.FeasiblePoint
+        return MOI.FEASIBLE_POINT
     elseif -209 <= status <= -200
-        return MOI.InfeasiblePoint
+        return MOI.INFEASIBLE_POINT
     elseif status == -300
-        return MOI.InfeasibilityCertificate
+        return MOI.INFEASIBILITY_CERTIFICATE
     elseif -409 <= status <= -400
-        return MOI.FeasiblePoint
+        return MOI.FEASIBLE_POINT
     elseif -419 <= status <= -410
-        return MOI.InfeasiblePoint
+        return MOI.INFEASIBLE_POINT
     elseif -599 <= status <= -500
-        return MOI.UnknownResultStatus
+        return MOI.UNKNOWN_RESULT_STATUS
     else
-        return MOI.UnknownResultStatus
+        return MOI.UNKNOWN_RESULT_STATUS
     end
 end
 
 function MOI.get(model::Optimizer, ::MOI.DualStatus)
     if model.number_solved == 0
-        return MOI.NoSolution
+        return MOI.NO_SOLUTION
     end
     status = get_status(model.inner)
     if status == 0
-        return MOI.FeasiblePoint
+        return MOI.FEASIBLE_POINT
     elseif -109 <= status <= -100
-        return MOI.FeasiblePoint
+        return MOI.FEASIBLE_POINT
     elseif -209 <= status <= -200
-        return MOI.InfeasibilityCertificate
+        return MOI.INFEASIBILITY_CERTIFICATE
     elseif status == -300
-        return MOI.NoSolution
+        return MOI.NO_SOLUTION
     elseif -409 <= status <= -400
-        return MOI.FeasiblePoint
+        return MOI.FEASIBLE_POINT
     elseif -419 <= status <= -410
-        return MOI.InfeasiblePoint
+        return MOI.INFEASIBLE_POINT
     elseif -599 <= status <= -500
-        return MOI.UnknownResultStatus
+        return MOI.UNKNOWN_RESULT_STATUS
     else
-        return MOI.UnknownResultStatus
+        return MOI.UNKNOWN_RESULT_STATUS
     end
 end
 
@@ -908,7 +908,7 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
 end
 
 # KNITRO's dual sign depends on optimization sense
-sense_dual(model::Optimizer) = (model.sense == MOI.MaxSense) ? 1. : -1.
+sense_dual(model::Optimizer) = (model.sense == MOI.MAX_SENSE) ? 1. : -1.
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
                  ci::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}, S}) where S <: SS
