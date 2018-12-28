@@ -354,7 +354,6 @@ end
 ##################################################
 # Generic constraint definition
 ##################################################
-#= function MOI.get(model::Optimizer, ::MOI.ConstraintFunction =#
 #--------------------------------------------------
 # Bound constraint on variables
 function MOI.add_constraint(model::Optimizer, v::MOI.SingleVariable, lt::MOI.LessThan{Float64})
@@ -633,9 +632,9 @@ function add_objective!(model::Optimizer, objective::MOI.ScalarAffineFunction)
     KN_add_obj_constant(model.inner, objective.constant)
 end
 
-function add_objective!(model::Optimizer, objective::MOI.SingleVariable)
+function add_objective!(model::Optimizer, var::MOI.SingleVariable)
     # we load the objective inside KNITRO
-    KN_add_obj_constant(model.inner, objective.value)
+    KN_add_obj_linear_struct(model.inner, var.variable.value-1, 1.)
 end
 
 function MOI.set(model::Optimizer, ::MOI.ObjectiveFunction,
@@ -669,8 +668,10 @@ function MOI.optimize!(model::Optimizer)
         # defined in knitro.h.
         # Objective callback (set both objective and constraint evaluation
         function eval_f_cb(kc, cb, evalRequest, evalResult, userParams)
-            # evaluate objective:
-            evalResult.obj[1] = MOI.eval_objective(model.nlp_data.evaluator, evalRequest.x)
+            # evaluate objective if specified in nlp_data
+            if model.nlp_data.has_objective
+                evalResult.obj[1] = MOI.eval_objective(model.nlp_data.evaluator, evalRequest.x)
+            end
             # evaluate nonlinear term in constraint
             MOI.eval_constraint(model.nlp_data.evaluator, evalResult.c, evalRequest.x)
             return 0
@@ -679,7 +680,9 @@ function MOI.optimize!(model::Optimizer)
         # Objective gradient callback
         function eval_grad_cb(kc, cb, evalRequest, evalResult, userParams)
             # evaluate non-linear term in objective gradient
-            MOI.eval_objective_gradient(model.nlp_data.evaluator, evalResult.objGrad, evalRequest.x)
+            if model.nlp_data.has_objective
+                MOI.eval_objective_gradient(model.nlp_data.evaluator, evalResult.objGrad, evalRequest.x)
+            end
             # evaluate non linear part of jacobian
             MOI.eval_constraint_jacobian(model.nlp_data.evaluator, evalResult.jac, evalRequest.x)
         end
@@ -696,8 +699,15 @@ function MOI.optimize!(model::Optimizer)
         else
             eval_h_cb = nothing
         end
-        # here, we assume that the full objective is evaluated in eval_f
-        cb = KN_add_eval_callback(model.inner, eval_f_cb)
+
+        # be careful that sometimes objective is not evaluated here
+        if model.nlp_data.has_objective
+            # here, we assume that the full objective is evaluated in eval_f
+            cb = KN_add_eval_callback(model.inner, eval_f_cb)
+        else
+            indexcons = collect(Int32, 0:length(model.nlp_data.constraint_bounds)-1)
+            cb = KN_add_eval_callback(model.inner, false, indexcons, eval_f_cb)
+        end
 
         # get jacobian structure
         jacob_structure = MOI.jacobian_structure(model.nlp_data.evaluator)

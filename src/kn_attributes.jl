@@ -32,6 +32,8 @@ function KN_add_obj_linear_struct(m::Model,
                     objCoefs)
     _checkraise(ret)
 end
+KN_add_obj_linear_struct(m::Model, objindex::Int, objCoefs::Cdouble) =
+    KN_add_obj_linear_struct(m, Cint[objindex], [objCoefs])
 
 # quadratic part of objective
 """
