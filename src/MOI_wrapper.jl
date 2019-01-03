@@ -593,7 +593,7 @@ function MOI.set(model::Optimizer, ::MOI.NLPBlock, nlp_data::MOI.NLPBlockData)
     num_nlp_constraints = length(nlp_data.constraint_bounds)
     num_nlp_constraints > 0 && push!(init_feat, :Jac)
 
-    MOI.initialize(evaluator, init_feat)
+    #= MOI.initialize(evaluator, init_feat) =#
     # we need to load the NLP constraints inside KNITRO
     if num_nlp_constraints > 0
         num_cons = KN_add_cons(model.inner, num_nlp_constraints)
@@ -654,8 +654,6 @@ number_constraints(model::Optimizer) = KN_get_number_cons(model.inner)
 
 
 function MOI.optimize!(model::Optimizer)
-    features = MOI.features_available(model.nlp_data.evaluator)
-    has_hessian = (:Hess in features)
 
     # add NLP structure if specified
     # FIXME: ideally, the following code should be moved
@@ -664,6 +662,17 @@ function MOI.optimize!(model::Optimizer)
     # the definition of eval_*_cb functions should be in the same
     # scope as KN_solve (may be due to a closure limitation)
     if ~isa(model.nlp_data.evaluator, EmptyNLPEvaluator) && ~model.nlp_loaded
+        # instantiate NLPEvaluator once and for all
+        features = MOI.features_available(model.nlp_data.evaluator)
+        has_hessian = (:Hess in features)
+        # build initial features for solver
+        init_feat = [:Grad]
+        has_hessian && push!(init_feat, :Hess)
+        num_nlp_constraints = length(model.nlp_data.constraint_bounds)
+        num_nlp_constraints > 0 && push!(init_feat, :Jac)
+        # initialize!
+        MOI.initialize(model.nlp_data.evaluator, init_feat)
+
         # the callbacks must match the signature of the callbacks
         # defined in knitro.h.
         # Objective callback (set both objective and constraint evaluation
