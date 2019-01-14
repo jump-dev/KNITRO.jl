@@ -518,6 +518,7 @@ function MOI.add_constraint(model::Optimizer, func::MOI.VectorAffineFunction, se
 end
 
 function MOI.add_constraint(model::Optimizer, func::MOI.VectorAffineFunction, set::MOI.SecondOrderCone)
+    @warn("Support of MOI.SecondOrderCone is still experimental")
     (model.number_solved >= 1) && throw(AddConstraintError())
     # TODO: add check inbounds for VectorAffineFunction
     previous_col_number = number_constraints(model)
@@ -640,8 +641,13 @@ end
 function MOI.set(model::Optimizer, ::MOI.ObjectiveFunction,
                  func::Union{MOI.SingleVariable, MOI.ScalarAffineFunction,
                              MOI.ScalarQuadraticFunction})
-    # if the model was already solved, we cannot change the objective
+    # 1/ if the model was already solved, we cannot change the objective
     (model.number_solved >= 1) && throw(UpdateObjectiveError())
+    # 2/ if the model has valid non-linear objective, discard adding func
+    if ~isa(model.nlp_data.evaluator, EmptyNLPEvaluator) && model.nlp_data.has_objective
+        @warn("Objective of `model` is already specified in NLPBlockData.")
+        return
+    end
     check_inbounds(model, func)
     # we can fetch directly the objective as an expression.
     add_objective!(model, func)
