@@ -104,7 +104,7 @@ cf2 = MOI.ScalarQuadraticFunction(
                                  0.)
 c2 = MOI.add_constraint(solver, cf2, MOI.GreaterThan(0.))
 
-MOI.set(solver, MOI.ObjectiveSense(), MOI.MinSense)
+MOI.set(solver, MOI.ObjectiveSense(), MOI.MIN_SENSE)
 # define NLP structure
 MOI.set(solver, MOI.NLPBlock(), block_data)
 
