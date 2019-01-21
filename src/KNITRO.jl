@@ -4,6 +4,7 @@ module KNITRO
     using Compat
     using Compat.Libdl, Compat.SparseArrays
     import Compat: Sys
+    import Base: show
 
     function __init__()
         if Sys.islinux()

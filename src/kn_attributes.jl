@@ -669,3 +669,22 @@ function KN_get_param_id(m::Model, name::AbstractString)
     _checkraise(ret)
     return res[1]
 end
+
+
+function Base.show(io::IO, m::Model)
+    if is_valid(m)
+        println(io, "$(get_release())")
+        println(io, "-----------------------")
+        println(io, "Problem Characteristics")
+        println(io, "-----------------------")
+        println(io, "Objective goal:  Minimize")
+        println(io, "Objective type:  $(KN_get_obj_type(m))")
+        println(io, "Number of variables:                             $(KN_get_number_vars(m))")
+        println(io, "Number of constraints:                           $(KN_get_number_cons(m))")
+        println(io, "Number of nonzeros in Jacobian:                  $(KN_get_jacobian_nnz(m))")
+        println(io, "Number of nonzeros in Hessian:                   $(KN_get_hessian_nnz(m))")
+
+    else
+        println(io, "KNITRO Problem: NULL")
+    end
+end

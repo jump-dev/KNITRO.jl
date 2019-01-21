@@ -210,6 +210,11 @@ function Optimizer(;license_manager=nothing, options...)
     return model
 end
 
+function Base.show(io::IO, model::Optimizer)
+    println(io, "A MathOptInterface model with backend:")
+    println(io, model.inner)
+end
+
 # TODO: dry supports with macros
 MOI.supports(::Optimizer, ::MOI.NLPBlock) = true
 MOI.supports(::Optimizer, ::MOI.ObjectiveFunction{MOI.SingleVariable}) = true
