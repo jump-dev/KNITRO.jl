@@ -267,6 +267,9 @@ end
 
 function MOI.set(model::Optimizer, ::MOI.ObjectiveSense,
                  sense::MOI.OptimizationSense)
+    # if the model was already solved, we cannot change the objective
+    (model.number_solved >= 1) && throw(UpdateObjectiveError())
+
     model.sense = sense
     if model.sense == MOI.MAX_SENSE
         KN_set_obj_goal(model.inner, KN_OBJGOAL_MAXIMIZE)
@@ -785,13 +788,13 @@ function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
     end
     status = get_status(model.inner)
     if status == 0
-        return MOI.OPTIMAL
+        return MOI.LOCALLY_SOLVED
     elseif status == -100
         return MOI.ALMOST_OPTIMAL
     elseif -109 <= status <= -101
-        return MOI.LOCALLY_SOLVED
+        return MOI.ALMOST_OPTIMAL
     elseif -209 <= status <= -200
-        return MOI.INFEASIBLE
+        return MOI.LOCALLY_INFEASIBLE
     elseif status == -300
         return MOI.DUAL_INFEASIBLE
     elseif (status == -400) || (status == -410)
@@ -965,21 +968,71 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
     return sense_dual(model) * lambda[index]
 end
 
+## reduced costs
 function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
-                 ci::MOI.ConstraintIndex{MOI.SingleVariable, S}) where S <: VS
+                 ci::MOI.ConstraintIndex{MOI.SingleVariable, MOI.LessThan{Float64}})
     if model.number_solved == 0
         error("ConstraintDual not available.")
     end
     vi = MOI.VariableIndex(ci.value)
     check_inbounds(model, vi)
+    if !model.variable_info[vi.value].has_upper_bound
+        error("Variable $vi has no upper bound -- ConstraintDual not defined.")
+    end
 
+    xsol = get_solution(model.inner)
+    # TODO: is fixing a tolerance the best solution?
+    if isapprox(xsol[vi.value], model.variable_info[vi.value].upper_bound, atol=1e-4)
+        # constraints' duals are before reduced costs in KNITRO
+        offset = number_constraints(model)
+        lambda = get_dual(model.inner)
+        return sense_dual(model) * lambda[vi.value + offset]
+    else
+        return 0.
+    end
+end
+
+function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
+                 ci::MOI.ConstraintIndex{MOI.SingleVariable, MOI.GreaterThan{Float64}})
+    if model.number_solved == 0
+        error("ConstraintDual not available.")
+    end
+    vi = MOI.VariableIndex(ci.value)
+    check_inbounds(model, vi)
+    if !model.variable_info[vi.value].has_lower_bound
+        error("Variable $vi has no lower bound -- ConstraintDual not defined.")
+    end
+
+    xsol = get_solution(model.inner)
+    # TODO: is fixing a tolerance the best solution?
+    if isapprox(xsol[vi.value], model.variable_info[vi.value].lower_bound, atol=1e-4)
+        # constraints' duals are before reduced costs in KNITRO
+        offset = number_constraints(model)
+        lambda = get_dual(model.inner)
+        return sense_dual(model) * lambda[vi.value + offset]
+    else
+        return 0.
+    end
+end
+
+function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
+                 ci::MOI.ConstraintIndex{MOI.SingleVariable, MOI.EqualTo{Float64}})
+    if model.number_solved == 0
+        error("ConstraintDual not available.")
+    end
+    vi = MOI.VariableIndex(ci.value)
+    check_inbounds(model, vi)
+    if !model.variable_info[vi.value].is_fixed
+        error("Variable $vi is not fixed -- ConstraintDual not defined.")
+    end
+
+    # constraints' duals are before reduced costs in KNITRO
     offset = number_constraints(model)
     lambda = get_dual(model.inner)
     return sense_dual(model) * lambda[vi.value + offset]
 end
 
 function MOI.get(model::Optimizer, ::MOI.NLPBlockDual)
-    error("Getting NLPBlockDual currently broken")
 
     if model.number_solved == 0
         error("NLPBlockDual not available.")

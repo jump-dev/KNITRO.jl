@@ -16,7 +16,8 @@ MOIU.@model(KnitroModelData,
             (MOI.VectorOfVariables,),
             (MOI.VectorAffineFunction, ))
 
-const config = MOIT.TestConfig(atol=1e-4, rtol=1e-4)
+const config = MOIT.TestConfig(atol=1e-4, rtol=1e-4,
+                               optimal_status=MOI.LOCALLY_SOLVED)
 
 @testset "MOI Linear tests" begin
     # to check unbounded problem, change the default algorithm used

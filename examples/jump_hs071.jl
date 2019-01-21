@@ -26,13 +26,13 @@ initval = [1, 5, 5, 1]
 
 @variable(m, 1 <= x[i=1:4] <= 5, start=initval[i])
 @NLobjective(m, Min, x[1] * x[4] * (x[1] + x[2] + x[3]) + x[3])
-@NLconstraint(m, x[1] * x[2] * x[3] * x[4] >= 25)
-@NLconstraint(m, sum(x[i]^2 for i=1:4) == 40)
+c1 = @NLconstraint(m, x[1] * x[2] * x[3] * x[4] >= 25)
+c2 = @NLconstraint(m, sum(x[i]^2 for i=1:4) == 40)
 
 JuMP.optimize!(m)
 
 @test JuMP.has_values(m)
-@test JuMP.termination_status(m) == MOI.OPTIMAL
+@test JuMP.termination_status(m) == MOI.LOCALLY_SOLVED
 @test JuMP.primal_status(m) == MOI.FEASIBLE_POINT
 
 @test JuMP.value.(x) ≈ [1.000000, 4.742999, 3.821150, 1.379408] atol=1e-3
