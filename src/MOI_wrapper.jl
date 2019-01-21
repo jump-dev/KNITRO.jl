@@ -312,6 +312,9 @@ function MOI.add_variables(model::Optimizer, n::Int)
     return [MOI.add_variable(model) for i in 1:n]
 end
 
+# convert Julia'Inf to KNITRO's Inf
+check_value(val::Float64) = isinf(val) ? KN_INFINITY : val
+
 function check_inbounds(model::Optimizer, vi::MOI.VariableIndex)
     num_variables = length(model.variable_info)
     if !(1 <= vi.value <= num_variables)
@@ -369,10 +372,11 @@ function MOI.add_constraint(model::Optimizer, v::MOI.SingleVariable, lt::MOI.Les
     if is_fixed(model, vi)
         error("Variable $vi is fixed. Cannot also set upper bound.")
     end
-    model.variable_info[vi.value].upper_bound = lt.upper
+    ub = check_value(lt.upper)
+    model.variable_info[vi.value].upper_bound = ub
     model.variable_info[vi.value].has_upper_bound = true
     # we assume that MOI's indexing is the same as KNITRO's indexing
-    KN_set_var_upbnds(model.inner, vi.value-1, lt.upper)
+    KN_set_var_upbnds(model.inner, vi.value-1, ub)
     return MOI.ConstraintIndex{MOI.SingleVariable, MOI.LessThan{Float64}}(vi.value)
 end
 
@@ -389,10 +393,11 @@ function MOI.add_constraint(model::Optimizer, v::MOI.SingleVariable, gt::MOI.Gre
     if is_fixed(model, vi)
         error("Variable $vi is fixed. Cannot also set lower bound.")
     end
-    model.variable_info[vi.value].lower_bound = gt.lower
+    lb = check_value(gt.lower)
+    model.variable_info[vi.value].lower_bound = lb
     model.variable_info[vi.value].has_lower_bound = true
     # we assume that MOI's indexing is the same as KNITRO's indexing
-    KN_set_var_lobnds(model.inner, vi.value-1, gt.lower)
+    KN_set_var_lobnds(model.inner, vi.value-1, lb)
     return MOI.ConstraintIndex{MOI.SingleVariable, MOI.GreaterThan{Float64}}(vi.value)
 end
 
@@ -412,11 +417,12 @@ function MOI.add_constraint(model::Optimizer, v::MOI.SingleVariable, eq::MOI.Equ
     if is_fixed(model, vi)
         error("Variable $vi is already fixed.")
     end
-    model.variable_info[vi.value].lower_bound = eq.value
-    model.variable_info[vi.value].upper_bound = eq.value
+    eqv = check_value(eq.value)
+    model.variable_info[vi.value].lower_bound = eqv
+    model.variable_info[vi.value].upper_bound = eqv
     model.variable_info[vi.value].is_fixed = true
     # we assume that MOI's indexing is the same as KNITRO's indexing
-    KN_set_var_fxbnds(model.inner, vi.value-1, eq.value)
+    KN_set_var_fxbnds(model.inner, vi.value-1, eqv)
     return MOI.ConstraintIndex{MOI.SingleVariable, MOI.EqualTo{Float64}}(vi.value)
 end
 
@@ -428,11 +434,14 @@ function MOI.add_constraint(model::Optimizer, func::MOI.ScalarAffineFunction{Flo
     num_cons = KN_add_con(model.inner)
     # add bound
     if isa(set, MOI.LessThan{Float64})
-        KN_set_con_upbnd(model.inner, num_cons, set.upper - func.constant)
+        val = check_value(set.upper)
+        KN_set_con_upbnd(model.inner, num_cons, val - func.constant)
     elseif isa(set, MOI.GreaterThan{Float64})
-        KN_set_con_lobnd(model.inner, num_cons, set.lower - func.constant)
+        val = check_value(set.lower)
+        KN_set_con_lobnd(model.inner, num_cons, val - func.constant)
     elseif isa(set, MOI.EqualTo{Float64})
-        KN_set_con_eqbnd(model.inner, num_cons, set.value - func.constant)
+        val = check_value(set.value)
+        KN_set_con_eqbnd(model.inner, num_cons, val - func.constant)
     end
     # parse structure of constraint
     indexvars, coefs = canonical_linear_reduction(func)
@@ -450,8 +459,10 @@ function MOI.add_constraint(model::Optimizer, func::MOI.ScalarAffineFunction{Flo
     # we add a constraint in KNITRO
     ci = KN_add_con(model.inner)
     # add upper bound
-    KN_set_con_lobnd(model.inner, ci, set.lower - func.constant)
-    KN_set_con_upbnd(model.inner, ci, set.upper - func.constant)
+    lb = check_value(set.lower)
+    ub = check_value(set.upper)
+    KN_set_con_lobnd(model.inner, ci, lb - func.constant)
+    KN_set_con_upbnd(model.inner, ci, ub - func.constant)
     # parse structure of constraint
     indexvars, coefs = canonical_linear_reduction(func)
     KN_add_con_linear_struct(model.inner, ci, indexvars, coefs)
@@ -469,11 +480,14 @@ function MOI.add_constraint(model::Optimizer, func::MOI.ScalarQuadraticFunction{
     num_cons = KN_add_con(model.inner)
     # add upper bound
     if isa(set, MOI.LessThan{Float64})
-        KN_set_con_upbnd(model.inner, num_cons, set.upper - func.constant)
+        val = check_value(set.upper)
+        KN_set_con_upbnd(model.inner, num_cons, val - func.constant)
     elseif isa(set, MOI.GreaterThan{Float64})
-        KN_set_con_lobnd(model.inner, num_cons, set.lower - func.constant)
+        val = check_value(set.lower)
+        KN_set_con_lobnd(model.inner, num_cons, val - func.constant)
     elseif isa(set, MOI.EqualTo{Float64})
-        KN_set_con_eqbnd(model.inner, num_cons, set.value - func.constant)
+        val = check_value(set.value)
+        KN_set_con_eqbnd(model.inner, num_cons, val - func.constant)
     end
     # parse linear structure of constraint
     indexvars, coefs = canonical_linear_reduction(func)
@@ -600,8 +614,12 @@ function MOI.set(model::Optimizer, ::MOI.NLPBlock, nlp_data::MOI.NLPBlockData)
         num_cons = KN_add_cons(model.inner, num_nlp_constraints)
 
         for (ib, pair) in enumerate(nlp_data.constraint_bounds)
-            KN_set_con_upbnd(model.inner, num_cons[ib], pair.upper)
-            KN_set_con_lobnd(model.inner, num_cons[ib], pair.lower)
+            if pair.upper == pair.lower
+                KN_set_con_eqbnd(model.inner, num_cons[ib], pair.upper)
+            else
+                KN_set_con_upbnd(model.inner, num_cons[ib], pair.upper)
+                KN_set_con_lobnd(model.inner, num_cons[ib], pair.lower)
+            end
         end
         # add constraint to index
         ci = MOI.ConstraintIndex{MOI.NLPBlockData, MOI.Interval}(num_cons[1])
@@ -961,19 +979,24 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
 end
 
 function MOI.get(model::Optimizer, ::MOI.NLPBlockDual)
+    error("Getting NLPBlockDual currently broken")
+
     if model.number_solved == 0
         error("NLPBlockDual not available.")
     end
-    offset = nlp_constraint_offset(model)
+
+    # TODO: broken
+    #= index = model.constraint_mapping[ci] + 1 =#
     lambda = get_dual(model.inner)
     # FIXME: assume that lambda has same sense as for linear
     # and quadratic constraint, but this is not tested inside MOI
-    return sense_dual(model) * lambda[ci.value + offset]
+    return sense_dual(model) * lambda[index]
 end
 
 ##################################################
 # Naming
 ##################################################
+# WIP
 function MOI.set(model::Optimizer, ::MOI.VariableName, vi::MOI.VariableIndex, name::String)
     model.variable_info[vi.value].name = name
 end
