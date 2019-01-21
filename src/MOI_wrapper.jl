@@ -145,6 +145,8 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     # specify if NLP is loaded inside KNITRO to avoid double definition
     nlp_loaded::Bool
     nlp_data::MOI.NLPBlockData
+    # store index of nlp constraints
+    nlp_index_cons::Vector{Cint}
     sense::MOI.OptimizationSense
     # constraint counters
     number_zeroone_constraints::Int
@@ -200,7 +202,7 @@ function Optimizer(;license_manager=nothing, options...)
     else
         kc = KN_new()
     end
-    model = Optimizer(kc, [], 0, false, empty_nlp_data(), MOI.FEASIBILITY_SENSE,
+    model = Optimizer(kc, [], 0, false, empty_nlp_data(), Cint[], MOI.FEASIBILITY_SENSE,
                       0, 0,
                       Dict{MOI.ConstraintIndex, Int}(), options)
 
@@ -611,7 +613,6 @@ function MOI.set(model::Optimizer, ::MOI.NLPBlock, nlp_data::MOI.NLPBlockData)
     num_nlp_constraints = length(nlp_data.constraint_bounds)
     num_nlp_constraints > 0 && push!(init_feat, :Jac)
 
-    #= MOI.initialize(evaluator, init_feat) =#
     # we need to load the NLP constraints inside KNITRO
     if num_nlp_constraints > 0
         num_cons = KN_add_cons(model.inner, num_nlp_constraints)
@@ -625,9 +626,7 @@ function MOI.set(model::Optimizer, ::MOI.NLPBlock, nlp_data::MOI.NLPBlockData)
             end
         end
         # add constraint to index
-        ci = MOI.ConstraintIndex{MOI.NLPBlockData, MOI.Interval}(num_cons[1])
-        # take care that julia is 1-indexing!
-        model.constraint_mapping[ci] = num_cons
+        push!(model.nlp_index_cons, num_cons...)
     end
     return
 end
@@ -1033,23 +1032,20 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
 end
 
 function MOI.get(model::Optimizer, ::MOI.NLPBlockDual)
-
     if model.number_solved == 0
         error("NLPBlockDual not available.")
     end
-
-    # TODO: broken
-    #= index = model.constraint_mapping[ci] + 1 =#
+    # get first index corresponding to a non-linear constraint:
     lambda = get_dual(model.inner)
     # FIXME: assume that lambda has same sense as for linear
     # and quadratic constraint, but this is not tested inside MOI
-    return sense_dual(model) * lambda[index]
+    return sense_dual(model) .* [lambda[i+1] for i in model.nlp_index_cons]
 end
 
 ##################################################
 # Naming
 ##################################################
-# WIP
+# WIP: this part aims at supporting JuMP directly, without caching optimizer
 function MOI.set(model::Optimizer, ::MOI.VariableName, vi::MOI.VariableIndex, name::String)
     model.variable_info[vi.value].name = name
 end
