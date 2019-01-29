@@ -129,11 +129,10 @@ mutable struct VariableInfo
     upper_bound::Float64  # May be Inf even if has_upper_bound == true
     has_upper_bound::Bool # Implies upper_bound == Inf
     is_fixed::Bool        # Implies lower_bound == upper_bound and !has_lower_bound and !has_upper_bound.
-    start::Float64
     name::String
 end
 # The default start value is zero.
-VariableInfo() = VariableInfo(-Inf, false, Inf, false, false, 0.0, "")
+VariableInfo() = VariableInfo(-Inf, false, Inf, false, false, "")
 
 mutable struct Optimizer <: MOI.AbstractOptimizer
     inner::Union{Model, Nothing}
@@ -592,10 +591,14 @@ function MOI.supports(::Optimizer, ::MOI.VariablePrimalStart,
     return true
 end
 function MOI.set(model::Optimizer, ::MOI.VariablePrimalStart,
-                 vi::MOI.VariableIndex, value::Real)
+                 vi::MOI.VariableIndex, value::Union{Real, Nothing})
     check_inbounds(model, vi)
-    model.variable_info[vi.value].start = value
-    KN_set_var_primal_init_values(model.inner, vi.value-1, Cdouble(value))
+    if isa(value, Real)
+        KN_set_var_primal_init_values(model.inner, vi.value-1, Cdouble(value))
+    else
+        # by default, initial value is set to 0
+        KN_set_var_primal_init_values(model.inner, vi.value-1, Cdouble(0.))
+    end
     return
 end
 
@@ -604,9 +607,14 @@ function MOI.supports(::Optimizer, ::MOI.ConstraintDualStart,
     return true
 end
 function MOI.set(model::Optimizer, ::MOI.ConstraintDualStart,
-                 ci::MOI.ConstraintIndex, value::Real)
+                 ci::MOI.ConstraintIndex, value::Union{Real, Nothing})
     check_inbounds(model, ci)
-    KN_set_con_dual_init_values(model.inner, ci.value-1, value)
+    if isa(value, Real)
+        KN_set_con_dual_init_values(model.inner, vi.value-1, Cdouble(value))
+    else
+        # by default, initial value is set to 0
+        KN_set_con_dual_init_values(model.inner, vi.value-1, Cdouble(0.))
+    end
     return
 end
 

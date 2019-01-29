@@ -26,11 +26,10 @@ const config = MOIT.TestConfig(atol=1e-4, rtol=1e-4,
 
     exclude = ["linear8a", # Behavior in infeasible case doesn't match test.
                "linear12", # Same as above.
-               "linear14", # variable deletion not supported
                ]
+    model_for_knitro = MOIU.UniversalFallback(KnitroModelData{Float64}())
     linear_optimizer = MOI.Bridges.SplitInterval{Float64}(
-                        MOIU.CachingOptimizer(KnitroModelData{Float64}(), optimizer)
-                                                         )
+                        MOIU.CachingOptimizer(model_for_knitro, optimizer))
     MOIT.contlineartest(linear_optimizer, config, exclude)
 end
 
@@ -50,9 +49,9 @@ end
 
 # Currently SOCP test returns segfault ...
 #= @testset "MOI SOCP tests" begin =#
-#=     socp_optimizer = MOIU.CachingOptimizer(KnitroModelData{Float64}(), optimizer) =#
-#=     MOI.supports_constraint(::KNITRO.Optimizer, ::Type{MOI.VectorOfVariables}, ::Type{MOI.SecondOrderCone}) = true =#
-#=     MOIT._soc1test(socp_optimizer, config, false) =#
+    #= socp_optimizer = MOIU.CachingOptimizer(KnitroModelData{Float64}(), optimizer) =#
+    #= MOI.supports_constraint(::KNITRO.Optimizer, ::Type{MOI.VectorOfVariables}, ::Type{MOI.SecondOrderCone}) = true =#
+    #= MOIT._soc1test(socp_optimizer, config, false) =#
 #= end =#
 
 @testset "MOI MILP test" begin
