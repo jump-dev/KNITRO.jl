@@ -571,6 +571,8 @@ function MOI.add_constraint(model::Optimizer, v::MOI.SingleVariable, ::MOI.ZeroO
     KN_set_var_lobnds(model.inner, vi.value-1, 0.)
     KN_set_var_upbnds(model.inner, vi.value-1, 1.)
     KN_set_var_type(model.inner, vi.value-1, KN_VARTYPE_BINARY)
+
+    return MOI.ConstraintIndex{MOI.SingleVariable, MOI.ZeroOne}(model.number_zeroone_constraints)
 end
 
 function MOI.add_constraint(model::Optimizer, v::MOI.SingleVariable, ::MOI.Integer)
@@ -579,6 +581,7 @@ function MOI.add_constraint(model::Optimizer, v::MOI.SingleVariable, ::MOI.Integ
     check_inbounds(model, vi)
     model.number_integer_constraints += 1
     KN_set_var_type(model.inner, vi.value-1, KN_VARTYPE_INTEGER)
+    return MOI.ConstraintIndex{MOI.SingleVariable, MOI.Integer}(model.number_integer_constraints)
 end
 
 ##################################################

@@ -50,6 +50,8 @@ KN_free(m::Model) = free_env(m.env)
 KN_new() = Model(Env())
 KN_new_lm(lm::LMcontext) = Model(Env(), lm)
 
+is_valid(m::Model) = is_valid(m.env)
+
 
 
 ##################################################
@@ -80,6 +82,12 @@ end
 "Set tuner file."
 function KN_load_tuner_file(m::Model, filename::AbstractString)
     ret = @kn_ccall(load_tuner_file, Cint, (Ptr{Nothing}, Ptr{Cchar}),
+                    m.env.ptr_env.x, filename)
+    _checkraise(ret)
+end
+
+function KN_load_mps_file(m::Model, filename::AbstractString)
+    ret = @kn_ccall(load_mps_file, Cint, (Ptr{Nothing}, Ptr{Cchar}),
                     m.env.ptr_env.x, filename)
     _checkraise(ret)
 end
