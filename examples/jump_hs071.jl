@@ -13,12 +13,12 @@ const MOI = MathOptInterface
 # Start at (1,5,5,1)
 # End at (1.000..., 4.743..., 3.821..., 1.379...)
 lm = KNITRO.LMcontext()
-mode = JuMP.AUTOMATIC
+bridge = JuMP.DIRECT
 
-if mode == JuMP.DIRECT
+if bridge == JuMP.DIRECT
     optimizer = KNITRO.Optimizer(license_manager=lm)
     m = JuMP.direct_model(optimizer)
-elseif mode == JuMP.AUTOMATIC
+elseif bridge == JuMP.AUTOMATIC
     m = Model(with_optimizer(KNITRO.Optimizer, license_manager=lm))
 end
 

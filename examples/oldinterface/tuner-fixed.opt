@@ -1,0 +1,6 @@
+# This file is used to specify any non-default options that will 
+# be fixed by the KNITRO-Tuner.
+# http://ziena.com/documentation.html
+
+algorithm          direct
+tuner_maxtime_real 3600

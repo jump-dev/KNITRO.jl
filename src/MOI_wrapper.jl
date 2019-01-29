@@ -102,6 +102,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     nlp_data::MOI.NLPBlockData
     # Store index of nlp constraints.
     nlp_index_cons::Vector{Cint}
+    # Store optimization sense.
     sense::MOI.OptimizationSense
     # Constraint counters.
     number_zeroone_constraints::Int
@@ -181,7 +182,13 @@ end
 function MOI.is_empty(model::Optimizer)
     return isempty(model.variable_info) &&
            model.nlp_data.evaluator isa EmptyNLPEvaluator &&
-           model.sense == MOI.FEASIBILITY_SENSE
+           model.sense == MOI.FEASIBILITY_SENSE &&
+           model.number_solved == 0 &&
+           model.sense == MOI.FEASIBILITY_SENSE &&
+           model.number_zeroone_constraints == 0 &&
+           model.number_integer_constraints == 0 &&
+           ~model.nlp_loaded
+
 end
 
 number_variables(model::Optimizer) = length(model.variable_info)
