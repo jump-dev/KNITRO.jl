@@ -1,20 +1,17 @@
 __precompile__()
 
 module KNITRO
+
+    fn = joinpath(dirname(@__FILE__), "..", "deps", "deps.jl")
+    if isfile(fn)
+        include(fn)
+    else
+        error("KNITRO not properly installed. Please run `] build KNITRO`")
+    end
+
     using Compat
     using Compat.Libdl, Compat.SparseArrays
     import Compat: Sys
-
-
-    function __init__()
-        if Sys.islinux()
-            # fixes missing symbols in libknitro.so
-            Compat.Libdl.dlopen("libdl", RTLD_GLOBAL)
-            Compat.Libdl.dlopen("libgomp", RTLD_GLOBAL)
-        end
-    end
-    @static if Sys.isunix() const libknitro = "libknitro" end
-    @static if Sys.iswindows() const libknitro = "knitro" end
 
     export
         KnitroProblem,
