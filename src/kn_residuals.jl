@@ -6,14 +6,14 @@
 "Add residuals for least squares optimization."
 function KN_add_rsds(m::Model, ncons::Integer)
     ptr_cons = zeros(Cint, ncons)
-    ret = @kn_ccall(add_rsds, Cint, (Ptr{Nothing}, Cint, Ptr{Cint}), m.env.ptr_env.x, ncons, ptr_cons)
+    ret = @kn_ccall(add_rsds, Cint, (Ptr{Cvoid}, Cint, Ptr{Cint}), m.env, ncons, ptr_cons)
     _checkraise(ret)
     return ptr_cons
 end
 
 function KN_add_rsd(m::Model)
     ptr_cons = Cint[0]
-    ret = @kn_ccall(add_rsd, Cint, (Ptr{Nothing}, Ptr{Cint}), m.env.ptr_env.x, ptr_cons)
+    ret = @kn_ccall(add_rsd, Cint, (Ptr{Cvoid}, Ptr{Cint}), m.env, ptr_cons)
     _checkraise(ret)
     return ptr_cons[1]
 end
@@ -41,8 +41,8 @@ function KN_add_rsd_linear_struct(m::Model,
     @assert nnz == length(indexVars) == length(coefs)
     ret = @kn_ccall(add_rsd_linear_struct,
                     Cint,
-                    (Ptr{Nothing}, KNLONG, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
-                    m.env.ptr_env.x,
+                    (Ptr{Cvoid}, KNLONG, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env,
                     nnz,
                     indexRsds,
                     indexVars,
@@ -59,8 +59,8 @@ function KN_add_rsd_linear_struct(m::Model,
     @assert nnz == length(coefs)
     ret = @kn_ccall(add_rsd_linear_struct_one,
                     Cint,
-                    (Ptr{Nothing}, KNLONG, Cint, Ptr{Cint}, Ptr{Cdouble}),
-                    m.env.ptr_env.x,
+                    (Ptr{Cvoid}, KNLONG, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env,
                     nnz,
                     indexRsd,
                     indexVar,
@@ -77,8 +77,8 @@ KN_add_rsd_linear_struct(m::Model, indexRsd::Integer, indexVar::Integer, coef::F
 function KN_get_rsd_values(m::Model)
     nc = KN_get_number_cons(m)
     rsdvals = zeros(Cdouble, nc)
-    ret = @kn_ccall(get_rsd_values_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, rsdvals)
+    ret = @kn_ccall(get_rsd_values_all, Cint, (Ptr{Cvoid}, Ptr{Cdouble}),
+                    m.env, rsdvals)
     _checkraise(ret)
     return rsdvals
 end
@@ -87,8 +87,8 @@ function KN_get_rsd_values(m::Model, indexRsds::Vector{Cint})
     nc = length(indexRsds)
     rsdvals = zeros(Cdouble, nc)
     ret = @kn_ccall(get_rsd_values, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, nc, indexRsds, rsdvals)
+                    (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env, nc, indexRsds, rsdvals)
     _checkraise(ret)
     return rsdvals
 end
@@ -96,8 +96,8 @@ end
 function KN_get_rsd_values(m::Model, indexRsd::Integer)
     nc = 1
     rsdvals = zeros(Cdouble, nc)
-    ret = @kn_ccall(get_rsd_value, Cint, (Ptr{Nothing}, Cint, Ptr{Cdouble}),
-                    m.env.ptr_env.x, indexRsd, rsdvals)
+    ret = @kn_ccall(get_rsd_value, Cint, (Ptr{Cvoid}, Cint, Ptr{Cdouble}),
+                    m.env, indexRsd, rsdvals)
     _checkraise(ret)
     return rsdvals
 end
@@ -109,8 +109,8 @@ function KN_add_rsd_constants(m::Model, indexRsds::Vector{Cint}, constants::Vect
     nnc = length(constants)
     @assert length(indexRsds) == length(constant)
     ret = @kn_ccall(add_rsd_constants, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
-                    m.env.ptr_env.x,
+                    (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env,
                     nnc,
                     indexRsds,
                     constants)
@@ -120,14 +120,14 @@ end
 function KN_add_rsd_constants(m::Model, constants::Vector{Cdouble})
     nnc = length(constants)
     ret = @kn_ccall(add_rsd_constants_all, Cint,
-                    (Ptr{Nothing}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, constants)
+                    (Ptr{Cvoid}, Ptr{Cdouble}),
+                    m.env, constants)
     _checkraise(ret)
 end
 
 function KN_add_rsd_constant(m::Model, indexRsd::Integer, constant::Cdouble)
     ret = @kn_ccall(add_rsd_constant, Cint,
-                    (Ptr{Nothing}, Cint, Cdouble),
-                    m.env.ptr_env.x, indexRsd, constant)
+                    (Ptr{Cvoid}, Cint, Cdouble),
+                    m.env, indexRsd, constant)
     _checkraise(ret)
 end

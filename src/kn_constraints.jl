@@ -6,14 +6,14 @@
 "Add constraint to model."
 function KN_add_cons(m::Model, ncons::Integer)
     ptr_cons = zeros(Cint, ncons)
-    ret = @kn_ccall(add_cons, Cint, (Ptr{Nothing}, Cint, Ptr{Cint}), m.env.ptr_env.x, ncons, ptr_cons)
+    ret = @kn_ccall(add_cons, Cint, (Ptr{Cvoid}, Cint, Ptr{Cint}), m.env, ncons, ptr_cons)
     _checkraise(ret)
     return ptr_cons
 end
 
 function KN_add_con(m::Model)
     ptr_cons = Cint[0]
-    ret = @kn_ccall(add_con, Cint, (Ptr{Nothing}, Ptr{Cint}), m.env.ptr_env.x, ptr_cons)
+    ret = @kn_ccall(add_con, Cint, (Ptr{Cvoid}, Ptr{Cint}), m.env, ptr_cons)
     _checkraise(ret)
     return ptr_cons[1]
 end
@@ -26,7 +26,7 @@ end
 # Equality constraints
 #--------------------------------------------------
 function KN_set_con_eqbnd(m::Model, indexCons::Integer, bnds::Cdouble)
-    ret = @kn_ccall(set_con_eqbnd, Cint, (Ptr{Nothing}, Cint, Cdouble), m.env.ptr_env.x, indexCons, bnds)
+    ret = @kn_ccall(set_con_eqbnd, Cint, (Ptr{Cvoid}, Cint, Cdouble), m.env, indexCons, bnds)
     _checkraise(ret)
 end
 KN_set_con_eqbnds(m::Model, indexCons::Integer, bnds::Cdouble) = KN_set_con_eqbnd(m, indexCons, bnds)
@@ -34,13 +34,13 @@ KN_set_con_eqbnds(m::Model, indexCons::Integer, bnds::Cdouble) = KN_set_con_eqbn
 function KN_set_con_eqbnds(m::Model, consIndex::Vector{Cint}, eqBounds::Vector{Cdouble})
     ncons = length(consIndex)
     ret = @kn_ccall(set_con_eqbnds, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, ncons, consIndex, eqBounds)
+                    (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env, ncons, consIndex, eqBounds)
     _checkraise(ret)
 end
 
 function KN_set_con_eqbnds(m::Model, eqBnds::Vector{Cdouble})
-    ret = @kn_ccall(set_con_eqbnds_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}), m.env.ptr_env.x, eqBnds)
+    ret = @kn_ccall(set_con_eqbnds_all, Cint, (Ptr{Cvoid}, Ptr{Cdouble}), m.env, eqBnds)
     _checkraise(ret)
 end
 
@@ -50,44 +50,44 @@ end
 #--------------------------------------------------
 # Upper bounds
 function KN_set_con_upbnd(m::Model, indexCons::Integer, bnds::Cdouble)
-    ret = @kn_ccall(set_con_upbnd, Cint, (Ptr{Nothing}, Cint, Cdouble),
-                    m.env.ptr_env.x, indexCons, bnds)
+    ret = @kn_ccall(set_con_upbnd, Cint, (Ptr{Cvoid}, Cint, Cdouble),
+                    m.env, indexCons, bnds)
     _checkraise(ret)
 end
 KN_set_con_upbnds(m::Model, indexCons::Integer, bnds::Cdouble) = KN_set_con_upbnd(m, indexCons, bnds)
 
 function KN_set_con_upbnds(m::Model, upBnds::Vector{Cdouble})
-    ret = @kn_ccall(set_con_upbnds_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}), m.env.ptr_env.x, upBnds)
+    ret = @kn_ccall(set_con_upbnds_all, Cint, (Ptr{Cvoid}, Ptr{Cdouble}), m.env, upBnds)
     _checkraise(ret)
 end
 
 function KN_set_con_upbnds(m::Model, consIndex::Vector{Cint}, upBounds::Vector{Cdouble})
     ncons = length(consIndex)
     ret = @kn_ccall(set_con_upbnds, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, ncons, consIndex, upBounds)
+                    (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env, ncons, consIndex, upBounds)
     _checkraise(ret)
 end
 
 # Lower bounds
 function KN_set_con_lobnd(m::Model, indexCons::Integer, bnds::Cdouble)
-    ret = @kn_ccall(set_con_lobnd, Cint, (Ptr{Nothing}, Cint, Cdouble),
-                    m.env.ptr_env.x, indexCons, bnds)
+    ret = @kn_ccall(set_con_lobnd, Cint, (Ptr{Cvoid}, Cint, Cdouble),
+                    m.env, indexCons, bnds)
     _checkraise(ret)
 end
 KN_set_con_lobnds(m::Model, indexCons::Integer, bnds::Cdouble) = KN_set_con_lobnd(m, indexCons, bnds)
 
 # Lower bounds
 function KN_set_con_lobnds(m::Model, loBnds::Vector{Cdouble})
-    ret = @kn_ccall(set_con_lobnds_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}), m.env.ptr_env.x, loBnds)
+    ret = @kn_ccall(set_con_lobnds_all, Cint, (Ptr{Cvoid}, Ptr{Cdouble}), m.env, loBnds)
     _checkraise(ret)
 end
 
 function KN_set_con_lobnds(m::Model, consIndex::Vector{Cint}, loBounds::Vector{Cdouble})
     ncons = length(consIndex)
     ret = @kn_ccall(set_con_lobnds, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, ncons, consIndex, loBounds)
+                    (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env, ncons, consIndex, loBounds)
     _checkraise(ret)
 end
 
@@ -96,8 +96,8 @@ end
 ##################################################
 function KN_set_con_dual_init_values(m::Model, nindex::Integer, lambdaInitVal::Cdouble)
     ret = @kn_ccall(set_con_dual_init_value, Cint,
-                    (Ptr{Nothing}, Cint, Cdouble),
-                    m.env.ptr_env.x, nindex, lambdaInitVal)
+                    (Ptr{Cvoid}, Cint, Cdouble),
+                    m.env, nindex, lambdaInitVal)
     _checkraise(ret)
 end
 
@@ -105,14 +105,14 @@ function KN_set_con_dual_init_values(m::Model, indexCon::Vector{Cint}, lambdaIni
     nvar = length(indexCon)
     @assert nvar == length(lambdaInitVals)
     ret = @kn_ccall(set_con_dual_init_values, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, nvar, indexCon, lambdaInitVals)
+                    (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env, nvar, indexCon, lambdaInitVals)
     _checkraise(ret)
 end
 
 function KN_set_con_dual_init_values(m::Model, lambdaInitVals::Vector{Cdouble})
-    ret = @kn_ccall(set_con_dual_init_values_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, lambdaInitVals)
+    ret = @kn_ccall(set_con_dual_init_values_all, Cint, (Ptr{Cvoid}, Ptr{Cdouble}),
+                    m.env, lambdaInitVals)
     _checkraise(ret)
 end
 
@@ -136,22 +136,22 @@ constraint will use either the standard Knitro scaling
 """
 function KN_set_con_scalings(m::Model, nindex::Integer, cScaleFactors::Cdouble)
     ret = @kn_ccall(set_con_scaling, Cint,
-                    (Ptr{Nothing}, Cint, Cdouble),
-                    m.env.ptr_env.x, nindex, cScaleFactors)
+                    (Ptr{Cvoid}, Cint, Cdouble),
+                    m.env, nindex, cScaleFactors)
     _checkraise(ret)
 end
 
 function KN_set_con_scalings(m::Model, indexCon::Vector{Cint}, cScaleFactors::Vector{Cdouble})
     nvar = length(indexCon)
     ret = @kn_ccall(set_con_scalings, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, nvar, indexCon, cScaleFactors)
+                    (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env, nvar, indexCon, cScaleFactors)
     _checkraise(ret)
 end
 
 function KN_set_con_scalings(m::Model, cScaleFactors::Vector{Cdouble})
-    ret = @kn_ccall(set_con_scalings_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, cScaleFactors)
+    ret = @kn_ccall(set_con_scalings_all, Cint, (Ptr{Cvoid}, Ptr{Cdouble}),
+                    m.env, cScaleFactors)
     _checkraise(ret)
 end
 
@@ -163,8 +163,8 @@ function KN_add_con_constants(m::Model, indexCons::Vector{Cint}, constants::Vect
     nnc = length(constants)
     @assert length(indexCons) == length(constant)
     ret = @kn_ccall(add_con_constants, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
-                    m.env.ptr_env.x,
+                    (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env,
                     nnc,
                     indexCons,
                     constants)
@@ -174,15 +174,15 @@ end
 function KN_add_con_constants(m::Model, constants::Vector{Cdouble})
     nnc = length(constants)
     ret = @kn_ccall(add_con_constants_all, Cint,
-                    (Ptr{Nothing}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, constants)
+                    (Ptr{Cvoid}, Ptr{Cdouble}),
+                    m.env, constants)
     _checkraise(ret)
 end
 
 function KN_add_con_constant(m::Model, indexCon::Integer, constant::Cdouble)
     ret = @kn_ccall(add_con_constant, Cint,
-                    (Ptr{Nothing}, Cint, Cdouble),
-                    m.env.ptr_env.x, indexCon, constant)
+                    (Ptr{Cvoid}, Cint, Cdouble),
+                    m.env, indexCon, constant)
     _checkraise(ret)
 end
 
@@ -209,8 +209,8 @@ function KN_add_con_linear_struct(m::Model,
     @assert nnz == length(jacIndexVars) == length(jacCoefs)
     ret = @kn_ccall(add_con_linear_struct,
                     Cint,
-                    (Ptr{Nothing}, KNLONG, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
-                    m.env.ptr_env.x,
+                    (Ptr{Cvoid}, KNLONG, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env,
                     nnz,
                     jacIndexCons,
                     jacIndexVars,
@@ -227,8 +227,8 @@ function KN_add_con_linear_struct(m::Model,
     @assert nnz == length(coefs)
     ret = @kn_ccall(add_con_linear_struct_one,
                     Cint,
-                    (Ptr{Nothing}, KNLONG, Cint, Ptr{Cint}, Ptr{Cdouble}),
-                    m.env.ptr_env.x,
+                    (Ptr{Cvoid}, KNLONG, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env,
                     nnz,
                     indexCon,
                     indexVar,
@@ -259,8 +259,8 @@ function KN_add_con_quadratic_struct(m::Model,
     @assert nnz == length(indexCons) == length(indexVars2) == length(coefs)
     ret = @kn_ccall(add_con_quadratic_struct,
                     Cint,
-                    (Ptr{Nothing}, KNLONG, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
-                    m.env.ptr_env.x,
+                    (Ptr{Cvoid}, KNLONG, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env,
                     nnz,
                     indexCons,
                     indexVars1,
@@ -279,8 +279,8 @@ function KN_add_con_quadratic_struct(m::Model,
     @assert nnz == length(indexVars2) == length(coefs)
     ret = @kn_ccall(add_con_quadratic_struct_one,
                     Cint,
-                    (Ptr{Nothing}, KNLONG, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
-                    m.env.ptr_env.x,
+                    (Ptr{Cvoid}, KNLONG, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env,
                     nnz,
                     indexCons,
                     indexVars1,
@@ -325,9 +325,9 @@ function KN_add_con_L2norm(m::Model, indexCon::Integer, nCoords::Integer, nnz::I
     @assert length(coefs) == length(indexVars) == length(indexCoords) == nnz
     ret = @kn_ccall(add_con_L2norm,
                     Cint,
-                    (Ptr{Nothing}, Cint, Cint, KNLONG, Ptr{Cint}, Ptr{Cint},
+                    (Ptr{Cvoid}, Cint, Cint, KNLONG, Ptr{Cint}, Ptr{Cint},
                      Ptr{Cdouble}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, indexCon, nCoords, nnz, indexCoords,
+                    m.env, indexCon, nCoords, nnz, indexCoords,
                     indexVars, coefs, constants)
     _checkraise(ret)
 end
@@ -359,8 +359,8 @@ function KN_set_compcons(m::Model,
     @assert nnc == length(indexComps1) == length(indexComps2)
     ret = @kn_ccall(set_compcons,
                     Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}),
-                    m.env.ptr_env.x,
+                    (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}),
+                    m.env,
                     nnc,
                     ccTypes,
                     indexComps1,
@@ -374,22 +374,22 @@ end
 
 function KN_set_compcon_scalings(m::Model, nindex::Integer, cScaleFactors::Cdouble)
     ret = @kn_ccall(set_compcon_scaling, Cint,
-                    (Ptr{Nothing}, Cint, Cdouble),
-                    m.env.ptr_env.x, nindex, cScaleFactors)
+                    (Ptr{Cvoid}, Cint, Cdouble),
+                    m.env, nindex, cScaleFactors)
     _checkraise(ret)
 end
 
 function KN_set_compcon_scalings(m::Model, indexCompCon::Vector{Cint}, cScaleFactors::Vector{Cdouble})
     nvar = length(indexCompCon)
     ret = @kn_ccall(set_compcon_scalings, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, nvar, indexCompCon, cScaleFactors)
+                    (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env, nvar, indexCompCon, cScaleFactors)
     _checkraise(ret)
 end
 
 function KN_set_compcon_scalings(m::Model, cScaleFactors::Vector{Cdouble})
-    ret = @kn_ccall(set_compcon_scalings_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, cScaleFactors)
+    ret = @kn_ccall(set_compcon_scalings_all, Cint, (Ptr{Cvoid}, Ptr{Cdouble}),
+                    m.env, cScaleFactors)
     _checkraise(ret)
 end
 
@@ -398,43 +398,43 @@ end
 ##################################################
 function KN_set_con_names(m::Model, nindex::Integer, name::String)
     ret = @kn_ccall(set_con_name, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cchar}),
-                    m.env.ptr_env.x, nindex, name)
+                    (Ptr{Cvoid}, Cint, Ptr{Cchar}),
+                    m.env, nindex, name)
     _checkraise(ret)
 end
 
 function KN_set_con_names(m::Model, conIndex::Vector{Cint}, names::Vector{String})
     ncon = length(conIndex)
     ret = @kn_ccall(set_con_names, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Ptr{Char}}),
-                    m.env.ptr_env.x, ncon, conIndex, names)
+                    (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Ptr{Char}}),
+                    m.env, ncon, conIndex, names)
     _checkraise(ret)
 end
 
 function KN_set_con_names(m::Model, names::Vector{String})
-    ret = @kn_ccall(set_con_names_all, Cint, (Ptr{Nothing}, Ptr{Ptr{Cchar}}),
-                    m.env.ptr_env.x, names)
+    ret = @kn_ccall(set_con_names_all, Cint, (Ptr{Cvoid}, Ptr{Ptr{Cchar}}),
+                    m.env, names)
     _checkraise(ret)
 end
 
 function KN_set_compcon_names(m::Model, nindex::Integer, name::String)
     ret = @kn_ccall(set_compcon_name, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cchar}),
-                    m.env.ptr_env.x, nindex, name)
+                    (Ptr{Cvoid}, Cint, Ptr{Cchar}),
+                    m.env, nindex, name)
     _checkraise(ret)
 end
 
 function KN_set_compcon_names(m::Model, conIndex::Vector{Cint}, names::Vector{String})
     ncon = length(conIndex)
     ret = @kn_ccall(set_compcon_names, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Ptr{Char}}),
-                    m.env.ptr_env.x, ncon, conIndex, names)
+                    (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Ptr{Char}}),
+                    m.env, ncon, conIndex, names)
     _checkraise(ret)
 end
 
 function KN_set_compcon_names(m::Model, names::Vector{String})
-    ret = @kn_ccall(set_compcon_names_all, Cint, (Ptr{Nothing}, Ptr{Ptr{Cchar}}),
-                    m.env.ptr_env.x, names)
+    ret = @kn_ccall(set_compcon_names_all, Cint, (Ptr{Cvoid}, Ptr{Ptr{Cchar}}),
+                    m.env, names)
     _checkraise(ret)
 end
 
@@ -442,8 +442,8 @@ end
 ## Feasibility tolerance
 ##################################################
 function KN_set_con_feastols(m::Model, nindex::Integer, cFeasTol::Cdouble)
-    ret = @kn_ccall(set_con_feastol, Cint, (Ptr{Nothing}, Cint, Cdouble),
-                    m.env.ptr_env.x, nindex, cFeasTol)
+    ret = @kn_ccall(set_con_feastol, Cint, (Ptr{Cvoid}, Cint, Cdouble),
+                    m.env, nindex, cFeasTol)
     _checkraise(ret)
 end
 
@@ -451,20 +451,20 @@ function KN_set_con_feastols(m::Model, cIndex::Vector{Cint}, cFeasTols::Vector{C
     ncon = length(cIndex)
     @assert length(cFeasTols) == ncon
     ret = @kn_ccall(set_con_feastols, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, ncon, cIndex, cFeasTols)
+                    (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env, ncon, cIndex, cFeasTols)
     _checkraise(ret)
 end
 
 function KN_set_con_feastols(m::Model, cFeasTols::Vector{Cdouble})
-    ret = @kn_ccall(set_con_feastols_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, cFeasTols)
+    ret = @kn_ccall(set_con_feastols_all, Cint, (Ptr{Cvoid}, Ptr{Cdouble}),
+                    m.env, cFeasTols)
     _checkraise(ret)
 end
 
 function KN_set_compcon_feastols(m::Model, nindex::Integer, cFeasTol::Cdouble)
-    ret = @kn_ccall(set_compcon_feastol, Cint, (Ptr{Nothing}, Cint, Cdouble),
-                    m.env.ptr_env.x, nindex, cFeasTol)
+    ret = @kn_ccall(set_compcon_feastol, Cint, (Ptr{Cvoid}, Cint, Cdouble),
+                    m.env, nindex, cFeasTol)
     _checkraise(ret)
 end
 
@@ -472,14 +472,14 @@ function KN_set_compcon_feastols(m::Model, cIndex::Vector{Cint}, cFeasTols::Vect
     ncon = length(cIndex)
     @assert length(cFeasTols) == ncon
     ret = @kn_ccall(set_compcon_feastols, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, ncon, cIndex, cFeasTols)
+                    (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env, ncon, cIndex, cFeasTols)
     _checkraise(ret)
 end
 
 function KN_set_compcon_feastols(m::Model, cFeasTols::Vector{Cdouble})
-    ret = @kn_ccall(set_compcon_feastols_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, cFeasTols)
+    ret = @kn_ccall(set_compcon_feastols_all, Cint, (Ptr{Cvoid}, Ptr{Cdouble}),
+                    m.env, cFeasTols)
     _checkraise(ret)
 end
 
@@ -503,8 +503,8 @@ default = 28 (bits 2-4 enabled: e.g. continuous, differentiable, twice-different
 
 """
 function KN_set_con_properties(m::Model, nindex::Integer, cProperty::Cint)
-    ret = @kn_ccall(set_con_property, Cint, (Ptr{Nothing}, Cint, Cint),
-                    m.env.ptr_env.x, nindex, cProperty)
+    ret = @kn_ccall(set_con_property, Cint, (Ptr{Cvoid}, Cint, Cint),
+                    m.env, nindex, cProperty)
     _checkraise(ret)
 end
 
@@ -512,13 +512,13 @@ function KN_set_con_properties(m::Model, cIndex::Vector{Cint}, cProperties::Vect
     ncon = length(cIndex)
     @assert length(cProperties) == ncon
     ret = @kn_ccall(set_con_properties, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cint}),
-                    m.env.ptr_env.x, ncon, cIndex, cProperties)
+                    (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cint}),
+                    m.env, ncon, cIndex, cProperties)
     _checkraise(ret)
 end
 
 function KN_set_con_properties(m::Model, cProperties::Vector{Cint})
-    ret = @kn_ccall(set_con_properties_all, Cint, (Ptr{Nothing}, Ptr{Cint}),
-                    m.env.ptr_env.x, cProperties)
+    ret = @kn_ccall(set_con_properties_all, Cint, (Ptr{Cvoid}, Ptr{Cint}),
+                    m.env, cProperties)
     _checkraise(ret)
 end

@@ -9,12 +9,12 @@ using Compat.Test
 
 
     @testset "Definition of model" begin
-        m = KNITRO.Model(KNITRO.Env())
+        m = KNITRO.Model()
         KNITRO.KN_load_param_file(m, "examples/knitro.opt")
         KNITRO.KN_reset_params_to_defaults(m)
 
         KNITRO.KN_free(m)
-        @test m.env.ptr_env.x == C_NULL
+        @test m.env.ptr_env == C_NULL
     end
 
     @testset "License manager test" begin
@@ -32,8 +32,7 @@ using Compat.Test
 
         # and release the license
         KNITRO.KN_release_license(lm)
-        @test lm.ptr_lmcontext.x == C_NULL
-
+        @test lm.ptr_lmcontext == C_NULL
     end
 end
 
