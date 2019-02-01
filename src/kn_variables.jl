@@ -3,7 +3,7 @@
 "Add variable to model."
 function KN_add_var(m::Model)
     ptr_int = Cint[0]
-    ret = @kn_ccall(add_var, Cint, (Ptr{Nothing}, Ptr{Cint}), m.env.ptr_env.x, ptr_int)
+    ret = @kn_ccall(add_var, Cint, (Ptr{Cvoid}, Ptr{Cint}), m.env, ptr_int)
     _checkraise(ret)
     return ptr_int[1]
 end
@@ -11,7 +11,7 @@ end
 
 function KN_add_vars(m::Model, nvars::Int)
     ptr_int = zeros(Cint, nvars)
-    ret = @kn_ccall(add_vars, Cint, (Ptr{Nothing}, Cint, Ptr{Cint}), m.env.ptr_env.x, nvars, ptr_int)
+    ret = @kn_ccall(add_vars, Cint, (Ptr{Cvoid}, Cint, Ptr{Cint}), m.env, nvars, ptr_int)
     _checkraise(ret)
     return ptr_int
 end
@@ -22,42 +22,42 @@ end
 
 # lower bounds
 function KN_set_var_lobnds(m::Model, nindex::Integer, val::Cdouble)
-    ret = @kn_ccall(set_var_lobnd, Cint, (Ptr{Nothing}, Cint, Cdouble), m.env.ptr_env.x, nindex, val)
+    ret = @kn_ccall(set_var_lobnd, Cint, (Ptr{Cvoid}, Cint, Cdouble), m.env, nindex, val)
     _checkraise(ret)
 end
 
 function KN_set_var_lobnds(m::Model, valindex::Vector{Cint}, lobnds::Vector{Cdouble})
     nvar = length(valindex)
     ret = @kn_ccall(set_var_lobnds, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, nvar, valindex, lobnds)
+                    (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env, nvar, valindex, lobnds)
     _checkraise(ret)
 end
 
 function KN_set_var_lobnds(m::Model, lobnds::Vector{Cdouble})
-    ret = @kn_ccall(set_var_lobnds_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, lobnds)
+    ret = @kn_ccall(set_var_lobnds_all, Cint, (Ptr{Cvoid}, Ptr{Cdouble}),
+                    m.env, lobnds)
     _checkraise(ret)
 end
 
 
 # upper bounds
 function KN_set_var_upbnds(m::Model, nindex::Integer, val::Cdouble)
-    ret = @kn_ccall(set_var_upbnd, Cint, (Ptr{Nothing}, Cint, Cdouble), m.env.ptr_env.x, nindex, val)
+    ret = @kn_ccall(set_var_upbnd, Cint, (Ptr{Cvoid}, Cint, Cdouble), m.env, nindex, val)
     _checkraise(ret)
 end
 
 function KN_set_var_upbnds(m::Model, valindex::Vector{Cint}, upbnds::Vector{Cdouble})
     nvar = length(valindex)
     ret = @kn_ccall(set_var_upbnds, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, nvar, valindex, upbnds)
+                    (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env, nvar, valindex, upbnds)
     _checkraise(ret)
 end
 
 function KN_set_var_upbnds(m::Model, upbnds::Vector{Cdouble})
-    ret = @kn_ccall(set_var_upbnds_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, upbnds)
+    ret = @kn_ccall(set_var_upbnds_all, Cint, (Ptr{Cvoid}, Ptr{Cdouble}),
+                    m.env, upbnds)
     _checkraise(ret)
 end
 
@@ -65,8 +65,8 @@ end
 ## Fix bounds
 ##################################################
 function KN_set_var_fxbnds(m::Model, nindex::Integer, xFxBnd::Cdouble)
-    ret = @kn_ccall(set_var_fxbnd, Cint, (Ptr{Nothing}, Cint, Cdouble),
-                    m.env.ptr_env.x, nindex, xFxBnd)
+    ret = @kn_ccall(set_var_fxbnd, Cint, (Ptr{Cvoid}, Cint, Cdouble),
+                    m.env, nindex, xFxBnd)
     _checkraise(ret)
 end
 
@@ -74,14 +74,14 @@ function KN_set_var_fxbnds(m::Model, xIndex::Vector{Cint}, xFxBnds::Vector{Cdoub
     nvar = length(xIndex)
     @assert length(xFxBnds) == nvar
     ret = @kn_ccall(set_var_fxbnds, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, nvar, xIndex, xFxBnds)
+                    (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env, nvar, xIndex, xFxBnds)
     _checkraise(ret)
 end
 
 function KN_set_var_fxbnds(m::Model, xFxBnds::Vector{Cdouble})
-    ret = @kn_ccall(set_var_fxbnds_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, xFxBnds)
+    ret = @kn_ccall(set_var_fxbnds_all, Cint, (Ptr{Cvoid}, Ptr{Cdouble}),
+                    m.env, xFxBnds)
     _checkraise(ret)
 end
 
@@ -97,20 +97,20 @@ function KN_set_var_types(m::Model, valindex::Vector{Cint}, xTypes::Vector{Cdoub
     nvar = length(valindex)
     @assert nvar == length(xTypes)
     ret = @kn_ccall(set_var_types, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, nvar, valindex, xTypes)
+                    (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env, nvar, valindex, xTypes)
     _checkraise(ret)
 end
 
 function KN_set_var_types(m::Model, xTypes::Vector{Cint})
-    ret = @kn_ccall(set_var_types_all, Cint, (Ptr{Nothing}, Ptr{Cint}),
-                    m.env.ptr_env.x, xTypes)
+    ret = @kn_ccall(set_var_types_all, Cint, (Ptr{Cvoid}, Ptr{Cint}),
+                    m.env, xTypes)
     _checkraise(ret)
 end
 
 function KN_set_var_type(m::Model, indexVar::Integer, xType::Integer)
-    ret = @kn_ccall(set_var_type, Cint, (Ptr{Nothing}, Cint, Cint),
-                    m.env.ptr_env.x, indexVar, xType)
+    ret = @kn_ccall(set_var_type, Cint, (Ptr{Cvoid}, Cint, Cint),
+                    m.env, indexVar, xType)
     _checkraise(ret)
 end
 
@@ -140,20 +140,20 @@ function KN_set_var_properties(m::Model, valindex::Vector{Cint}, xProperties::Ve
     nvar = length(valindex)
     @assert nvar == length(xProperties)
     ret = @kn_ccall(set_var_properties, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cint}),
-                    m.env.ptr_env.x, nvar, valindex, xProperties)
+                    (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cint}),
+                    m.env, nvar, valindex, xProperties)
     _checkraise(ret)
 end
 
 function KN_set_var_properties(m::Model, xProperties::Vector{Cint})
-    ret = @kn_ccall(set_var_properties_all, Cint, (Ptr{Nothing}, Ptr{Cint}),
-                    m.env.ptr_env.x, xProperties)
+    ret = @kn_ccall(set_var_properties_all, Cint, (Ptr{Cvoid}, Ptr{Cint}),
+                    m.env, xProperties)
     _checkraise(ret)
 end
 
 function KN_set_var_property(m::Model, indexVar::Integer, xProperty::Integer)
-    ret = @kn_ccall(set_var_property, Cint, (Ptr{Nothing}, Cint, Cint),
-                    m.env.ptr_env.x, indexVar, xProperty)
+    ret = @kn_ccall(set_var_property, Cint, (Ptr{Cvoid}, Cint, Cint),
+                    m.env, indexVar, xProperty)
     _checkraise(ret)
 end
 
@@ -173,8 +173,8 @@ free memory after the call.
 """
 function KN_set_var_honorbnds(m::Model, nindex::Integer, xHonorBound::Cint)
     ret = @kn_ccall(set_var_honorbnd, Cint,
-                    (Ptr{Nothing}, Cint, Cint),
-                    m.env.ptr_env.x, nindex, xHonorBound)
+                    (Ptr{Cvoid}, Cint, Cint),
+                    m.env, nindex, xHonorBound)
     _checkraise(ret)
 end
 
@@ -182,14 +182,14 @@ function KN_set_var_honorbnds(m::Model, valindex::Vector{Cint}, xHonorBound::Vec
     nvar = length(valindex)
     @assert length(xHonorBound) == nvar
     ret = @kn_ccall(set_var_honorbnds, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cint}),
-                    m.env.ptr_env.x, nvar, valindex, xHonorBound)
+                    (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cint}),
+                    m.env, nvar, valindex, xHonorBound)
     _checkraise(ret)
 end
 
 function KN_set_var_honorbnds(m::Model, xHonorBound::Vector{Cint})
-    ret = @kn_ccall(set_var_honorbnds_all, Cint, (Ptr{Nothing}, Ptr{Cint}),
-                    m.env.ptr_env.x, xHonorBound)
+    ret = @kn_ccall(set_var_honorbnds_all, Cint, (Ptr{Cvoid}, Ptr{Cint}),
+                    m.env, xHonorBound)
     _checkraise(ret)
 end
 
@@ -204,22 +204,22 @@ free memory after the call.
 """
 function KN_set_var_names(m::Model, nindex::Integer, name::String)
     ret = @kn_ccall(set_var_name, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cchar}),
-                    m.env.ptr_env.x, nindex, name)
+                    (Ptr{Cvoid}, Cint, Ptr{Cchar}),
+                    m.env, nindex, name)
     _checkraise(ret)
 end
 
 function KN_set_var_names(m::Model, varIndex::Vector{Cint}, names::Vector{String})
     nvar = length(varIndex)
     ret = @kn_ccall(set_var_names, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Ptr{Char}}),
-                    m.env.ptr_env.x, nvar, varIndex, names)
+                    (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Ptr{Char}}),
+                    m.env, nvar, varIndex, names)
     _checkraise(ret)
 end
 
 function KN_set_var_names(m::Model, names::Vector{String})
-    ret = @kn_ccall(set_var_names_all, Cint, (Ptr{Nothing}, Ptr{Ptr{Cchar}}),
-                    m.env.ptr_env.x, names)
+    ret = @kn_ccall(set_var_names_all, Cint, (Ptr{Cvoid}, Ptr{Ptr{Cchar}}),
+                    m.env, names)
     _checkraise(ret)
 end
 
@@ -235,28 +235,28 @@ initialization strategy (perhaps determined by a user option).
 """
 function KN_set_var_primal_init_values(m::Model, xinitval::Vector{Cdouble})
     ret = @kn_ccall(set_var_primal_init_values_all, Cint,
-                    (Ptr{Nothing}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, xinitval)
+                    (Ptr{Cvoid}, Ptr{Cdouble}),
+                    m.env, xinitval)
     _checkraise(ret)
 end
 
 function KN_set_var_primal_init_values(m::Model, indx::Integer, xinitval::Cdouble)
     ret = @kn_ccall(set_var_primal_init_value, Cint,
-                    (Ptr{Nothing}, Cint, Cdouble), m.env.ptr_env.x, indx, xinitval)
+                    (Ptr{Cvoid}, Cint, Cdouble), m.env, indx, xinitval)
     _checkraise(ret)
 end
 
 # dual values
 function KN_set_var_dual_init_values(m::Model, xinitval::Vector{Cdouble})
     ret = @kn_ccall(set_var_dual_init_values_all, Cint,
-                    (Ptr{Nothing}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, xinitval)
+                    (Ptr{Cvoid}, Ptr{Cdouble}),
+                    m.env, xinitval)
     _checkraise(ret)
 end
 
 function KN_set_var_dual_init_values(m::Model, indx::Integer, xinitval::Cdouble)
     ret = @kn_ccall(set_var_dual_init_value, Cint,
-                    (Ptr{Nothing}, Cint, Cdouble), m.env.ptr_env.x, indx, xinitval)
+                    (Ptr{Cvoid}, Cint, Cdouble), m.env, indx, xinitval)
     _checkraise(ret)
 end
 
@@ -278,8 +278,8 @@ be scaled.
 function KN_set_var_scalings(m::Model, nindex::Integer,
                              xScaleFactors::Cdouble, xScaleCenters::Cdouble)
     ret = @kn_ccall(set_var_scaling, Cint,
-                    (Ptr{Nothing}, Cint, Cdouble, Cdouble),
-                    m.env.ptr_env.x, nindex, xScaleFactors, xScaleCenters)
+                    (Ptr{Cvoid}, Cint, Cdouble, Cdouble),
+                    m.env, nindex, xScaleFactors, xScaleCenters)
     _checkraise(ret)
 end
 KN_set_var_scalings(m::Model, nindex::Integer, xScaleFactors::Cdouble) =
@@ -291,8 +291,8 @@ function KN_set_var_scalings(m::Model, valindex::Vector{Cint},
     nvar = length(valindex)
     @assert nvar = length(xScaleFactors) == length(xScaleCenters)
     ret = @kn_ccall(set_var_scalings, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, nvar, valindex, xScaleFactors, xScaleCenters)
+                    (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cdouble}, Ptr{Cdouble}),
+                    m.env, nvar, valindex, xScaleFactors, xScaleCenters)
     _checkraise(ret)
 end
 KN_set_var_scalings(m::Model, xIndex::Vector{Cint}, xScaleFactors::Vector{Cdouble}) =
@@ -301,8 +301,8 @@ KN_set_var_scalings(m::Model, xIndex::Vector{Cint}, xScaleFactors::Vector{Cdoubl
 function KN_set_var_scalings(m::Model,
                              xScaleFactors::Vector{Cdouble}, xScaleCenters::Vector{Cdouble})
     @assert length(xScaleFactors) == length(xScaleCenters)
-    ret = @kn_ccall(set_var_scalings_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, xScaleFactors, xScaleCenters)
+    ret = @kn_ccall(set_var_scalings_all, Cint, (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{Cdouble}),
+                    m.env, xScaleFactors, xScaleCenters)
     _checkraise(ret)
 end
 KN_set_var_scalings(m::Model, xScaleFactors::Vector{Cdouble}) =
@@ -337,8 +337,8 @@ Knitro makes a local copy of all inputs, so the application
 may free memory after the call.
 """
 function KN_set_var_feastols(m::Model, nindex::Integer, xFeasTol::Cdouble)
-    ret = @kn_ccall(set_var_feastol, Cint, (Ptr{Nothing}, Cint, Cdouble),
-                    m.env.ptr_env.x, nindex, xFeasTol)
+    ret = @kn_ccall(set_var_feastol, Cint, (Ptr{Cvoid}, Cint, Cdouble),
+                    m.env, nindex, xFeasTol)
     _checkraise(ret)
 end
 
@@ -346,13 +346,13 @@ function KN_set_var_feastols(m::Model, xIndex::Vector{Cint}, xFeasTols::Vector{C
     nvar = length(xIndex)
     @assert length(xFeasTols) == nvar
     ret = @kn_ccall(set_var_feastols, Cint,
-                    (Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, nvar, xIndex, xFeasTols)
+                    (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env, nvar, xIndex, xFeasTols)
     _checkraise(ret)
 end
 
 function KN_set_var_feastols(m::Model, xFeasTols::Vector{Cdouble})
-    ret = @kn_ccall(set_var_feastols_all, Cint, (Ptr{Nothing}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, xFeasTols)
+    ret = @kn_ccall(set_var_feastols_all, Cint, (Ptr{Cvoid}, Ptr{Cdouble}),
+                    m.env, xFeasTols)
     _checkraise(ret)
 end

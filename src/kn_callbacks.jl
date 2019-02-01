@@ -8,7 +8,7 @@ is attached to a unique callback context.
 
 """
 mutable struct CallbackContext
-    context::Ptr{Nothing}
+    context::Ptr{Cvoid}
     # we have to keep a reference to the optimization model
     model::Model
     # we sometime need some user params
@@ -41,7 +41,7 @@ function KN_set_cb_user_params(m::Model, cb::CallbackContext, userParams=nothing
 
     ret = @kn_ccall(set_cb_user_params, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Any),
-                    m.env.ptr_env.x, cb.context, c_userdata)
+                    m.env, cb.context, c_userdata)
     _checkraise(ret)
 end
 
@@ -55,7 +55,7 @@ then a gradient evaluation callback must be set by `KN_set_cb_grad()`
 function KN_set_cb_gradopt(m::Model, cb::CallbackContext, gradopt::Integer)
     ret = @kn_ccall(set_cb_gradopt, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Cint),
-                    m.env.ptr_env.x, cb.context, gradopt)
+                    m.env, cb.context, gradopt)
     _checkraise(ret)
 end
 
@@ -76,8 +76,8 @@ differences.  Use this function to overwrite the default values.
 
 """
 function KN_set_cb_relstepsizes(m::Model, cb::CallbackContext, nindex::Integer, xRelStepSize::Cdouble)
-    ret = @kn_ccall(set_cb_relstepsize, Cint, (Ptr{Nothing}, Ptr{Nothing}, Cint, Cdouble),
-                    m.env.ptr_env.x, cb.context, nindex, xRelStepSize)
+    ret = @kn_ccall(set_cb_relstepsize, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Cint, Cdouble),
+                    m.env, cb.context, nindex, xRelStepSize)
     _checkraise(ret)
 end
 
@@ -85,14 +85,14 @@ function KN_set_cb_relstepsizes(m::Model, cb::CallbackContext, xIndex::Vector{Ci
     ncon = length(xIndex)
     @assert length(xRelStepSizes) == ncon
     ret = @kn_ccall(set_cb_relstepsizes, Cint,
-                    (Ptr{Nothing}, Ptr{Nothing}, Cint, Ptr{Cint}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, cb.context, ncon, xIndex, xRelStepSizes)
+                    (Ptr{Cvoid}, Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env, cb.context, ncon, xIndex, xRelStepSizes)
     _checkraise(ret)
 end
 
 function KN_set_cb_relstepsizes(m::Model, cb::CallbackContext, xRelStepSizes::Vector{Cdouble})
-    ret = @kn_ccall(set_cb_relstepsizes_all, Cint, (Ptr{Nothing}, Ptr{Nothing}, Ptr{Cdouble}),
-                    m.env.ptr_env.x, cb.context, xRelStepSizes)
+    ret = @kn_ccall(set_cb_relstepsizes_all, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cdouble}),
+                    m.env, cb.context, xRelStepSizes)
     _checkraise(ret)
 end
 
@@ -104,7 +104,7 @@ function KN_get_cb_number_cons(m::Model, cb::Ptr{Cvoid})
     num = Cint[0]
     ret = @kn_ccall(get_cb_number_cons,
                     Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
-                    m.env.ptr_env.x, cb, num)
+                    m.env, cb, num)
     _checkraise(ret)
     return num[1]
 end
@@ -113,7 +113,7 @@ function KN_get_cb_objgrad_nnz(m::Model, cb::Ptr{Cvoid})
     num = Cint[0]
     ret = @kn_ccall(get_cb_objgrad_nnz,
                     Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
-                    m.env.ptr_env.x, cb, num)
+                    m.env, cb, num)
     _checkraise(ret)
     return num[1]
 end
@@ -122,7 +122,7 @@ function KN_get_cb_jacobian_nnz(m::Model, cb::Ptr{Cvoid})
     num = Cint[0]
     ret = @kn_ccall(get_cb_jacobian_nnz,
                     Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
-                    m.env.ptr_env.x, cb, num)
+                    m.env, cb, num)
     _checkraise(ret)
     return num[1]
 end
@@ -131,7 +131,7 @@ function KN_get_cb_hessian_nnz(m::Model, cb::Ptr{Cvoid})
     num = Cint[0]
     ret = @kn_ccall(get_cb_hessian_nnz,
                     Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
-                    m.env.ptr_env.x, cb, num)
+                    m.env, cb, num)
     _checkraise(ret)
     return num[1]
 end
@@ -140,7 +140,7 @@ function KN_get_cb_number_rsds(m::Model, cb::Ptr{Cvoid})
     num = Cint[0]
     ret = @kn_ccall(get_cb_number_rsds,
                     Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
-                    m.env.ptr_env.x, cb, num)
+                    m.env, cb, num)
     _checkraise(ret)
     return num[1]
 end
@@ -149,7 +149,7 @@ function KN_get_cb_rsd_jacobian_nnz(m::Model, cb::Ptr{Cvoid})
     num = Cint[0]
     ret = @kn_ccall(get_cb_rsd_jacobian_nnz,
                     Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
-                    m.env.ptr_env.x, cb, num)
+                    m.env, cb, num)
     _checkraise(ret)
     return num[1]
 end
@@ -433,7 +433,7 @@ function KN_add_eval_callback(m::Model, funccallback::Function)
     # add callback to context
     ret = @kn_ccall(add_eval_callback_all, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}),
-                    m.env.ptr_env.x, c_f, rfptr)
+                    m.env, c_f, rfptr)
     _checkraise(ret)
     cb = CallbackContext(rfptr.x, m)
 
@@ -460,7 +460,7 @@ function KN_add_eval_callback(m::Model, evalObj::Bool, indexCons::Vector{Cint},
     # add callback to context
     ret = @kn_ccall(add_eval_callback, Cint,
                     (Ptr{Cvoid}, Cuchar, Cint, Ptr{Cint}, Ptr{Cvoid}, Ptr{Cvoid}),
-                    m.env.ptr_env.x, evalObj, nC, indexCons, c_f, rfptr)
+                    m.env, evalObj, nC, indexCons, c_f, rfptr)
     _checkraise(ret)
     cb = CallbackContext(rfptr.x, m)
 
@@ -512,7 +512,7 @@ function KN_set_cb_grad(m::Model, cb::CallbackContext, gradcallback;
     ret = @kn_ccall(set_cb_grad, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Cint, Ptr{Cint},
                      KNLONG, Ptr{Cint}, Ptr{Cint}, Ptr{Cvoid}),
-                    m.env.ptr_env.x, cb.context, nV,
+                    m.env, cb.context, nV,
                     objGradIndexVars, nnzJ, jacIndexCons, jacIndexVars,
                     c_grad_g)
     _checkraise(ret)
@@ -550,7 +550,7 @@ function KN_set_cb_hess(m::Model, cb::CallbackContext, nnzH::Integer, hesscallba
 
     ret = @kn_ccall(set_cb_hess, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, KNLONG, Ptr{Cint}, Ptr{Cint}, Ptr{Cvoid}),
-                    m.env.ptr_env.x, cb.context, nnzH,
+                    m.env, cb.context, nnzH,
                     hessIndexVars1, hessIndexVars2, c_hess)
     _checkraise(ret)
 
@@ -563,32 +563,32 @@ end
 ##################################################
 function KN_get_number_FC_evals(m::Model)
     fc_eval = Int32[0]
-    ret = @kn_ccall(get_number_FC_evals, Cint, (Ptr{Nothing}, Ptr{Cint}),
-                    m.env.ptr_env.x, fc_eval)
+    ret = @kn_ccall(get_number_FC_evals, Cint, (Ptr{Cvoid}, Ptr{Cint}),
+                    m.env, fc_eval)
     _checkraise(ret)
     return fc_eval[1]
 end
 
 function KN_get_number_GA_evals(m::Model)
     fc_eval = Int32[0]
-    ret = @kn_ccall(get_number_GA_evals, Cint, (Ptr{Nothing}, Ptr{Cint}),
-                    m.env.ptr_env.x, fc_eval)
+    ret = @kn_ccall(get_number_GA_evals, Cint, (Ptr{Cvoid}, Ptr{Cint}),
+                    m.env, fc_eval)
     _checkraise(ret)
     return fc_eval[1]
 end
 
 function KN_get_number_H_evals(m::Model)
     fc_eval = Int32[0]
-    ret = @kn_ccall(get_number_H_evals, Cint, (Ptr{Nothing}, Ptr{Cint}),
-                    m.env.ptr_env.x, fc_eval)
+    ret = @kn_ccall(get_number_H_evals, Cint, (Ptr{Cvoid}, Ptr{Cint}),
+                    m.env, fc_eval)
     _checkraise(ret)
     return fc_eval[1]
 end
 
 function KN_get_number_HV_evals(m::Model)
     fc_eval = Int32[0]
-    ret = @kn_ccall(get_number_HV_evals, Cint, (Ptr{Nothing}, Ptr{Cint}),
-                    m.env.ptr_env.x, fc_eval)
+    ret = @kn_ccall(get_number_HV_evals, Cint, (Ptr{Cvoid}, Ptr{Cint}),
+                    m.env, fc_eval)
     _checkraise(ret)
     return fc_eval[1]
 end
@@ -658,7 +658,7 @@ function KN_add_lsq_eval_callback(m::Model, rsdCallBack::Function)
     # add callback to context
     ret = @kn_ccall(add_lsq_eval_callback_all, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}),
-                    m.env.ptr_env.x, c_f, rfptr)
+                    m.env, c_f, rfptr)
     _checkraise(ret)
     cb = CallbackContext(rfptr.x, m)
 
@@ -717,7 +717,7 @@ function KN_set_cb_rsd_jac(m::Model, cb::CallbackContext, nnzJ::Integer, evalRJ:
                            (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}))
     ret = @kn_ccall(set_cb_rsd_jac, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, KNLONG, Ptr{Cint}, Ptr{Cint}, Ptr{Cvoid}),
-                    m.env.ptr_env.x, cb.context, nnzJ,
+                    m.env, cb.context, nnzJ,
                     jacIndexRsds, jacIndexVars, c_eval_rj)
 
     _checkraise(ret)
@@ -781,7 +781,7 @@ function KN_set_newpt_callback(m::Model, callback::Function)
 
     ret = @kn_ccall(set_newpt_callback, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Any),
-                    m.env.ptr_env.x, c_func, m)
+                    m.env, c_func, m)
     _checkraise(ret)
 
     return nothing
@@ -835,7 +835,7 @@ function KN_set_ms_process_callback(m::Model, callback::Function)
 
     ret = @kn_ccall(set_ms_process_callback, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Any),
-                    m.env.ptr_env.x, c_func, m)
+                    m.env, c_func, m)
     _checkraise(ret)
 end
 
@@ -887,7 +887,7 @@ function KN_set_mip_node_callback(m::Model, callback::Function)
 
     ret = @kn_ccall(set_mip_node_callback, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Any),
-                    m.env.ptr_env.x, c_func, m)
+                    m.env, c_func, m)
     _checkraise(ret)
 end
 
@@ -938,7 +938,7 @@ function KN_set_ms_initpt_callback(m::Model, callback::Function)
 
     ret = @kn_ccall(set_ms_initpt_callback, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Any),
-                    m.env.ptr_env.x, c_func, m)
+                    m.env, c_func, m)
     _checkraise(ret)
 end
 
@@ -981,5 +981,5 @@ function KN_set_puts_callback(m::Model, callback::Function)
 
     ret = @kn_ccall(set_puts_callback, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Any),
-                    m.env.ptr_env.x, c_func, m)
+                    m.env, c_func, m)
 end
