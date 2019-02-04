@@ -22,8 +22,9 @@ function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
         return MOI.ITERATION_LIMIT
     elseif (status == -401) || (status == -411)
         return MOI.TIME_LIMIT
-    elseif (-405 <= status <= -402) || (-415 <= status <= -412)
-        # TODO
+    elseif (status == -413) || (status == -412)
+        return MOI.LOCALLY_INFEASIBLE
+    elseif (-405 <= status <= -402) || (-415 <= status <= -414)
         return MOI.OTHER_LIMIT
     elseif (status == -406) || (status == -416)
         return MOI.NODE_LIMIT
