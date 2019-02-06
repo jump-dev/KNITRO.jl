@@ -3,9 +3,9 @@ KNITRO.jl
 [![](https://img.shields.io/badge/docs-latest-blue.svg)](https://juliaopt.github.io/KNITRO.jl/latest)
 
 The KNITRO.jl package provides an interface for using the [Artelys Knitro
-solver](http://artelys.com/en/optimization-tools/knitro) from
+solver](https://www.artelys.com/knitro) from
 [Julia](http://julialang.org/). You cannot use KNITRO.jl without having
-purchased and installed a copy of Knitro from [Artelys](http://artelys.com/).
+purchased and installed a copy of Knitro from [Artelys](https://www.artelys.com/knitro).
 This package is available free of charge and in no way replaces or alters any
 functionality of Artelys Knitro solver.
 
