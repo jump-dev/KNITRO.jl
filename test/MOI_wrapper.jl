@@ -20,8 +20,7 @@ const config = MOIT.TestConfig(atol=1e-4, rtol=1e-4,
                                optimal_status=MOI.LOCALLY_SOLVED)
 
 @testset "MOI Linear tests" begin
-    # to check unbounded problem, change the default algorithm used
-    # by KNITRO
+    # To check unbounded problem, change the default algorithm used by KNITRO.
     optimizer = KNITRO.Optimizer(outlev=0, algorithm=3)
 
     exclude = ["linear8a", # Behavior in infeasible case doesn't match test.
@@ -47,12 +46,22 @@ end
 end
 
 
-# Currently SOCP test returns segfault ...
-#= @testset "MOI SOCP tests" begin =#
-    #= socp_optimizer = MOIU.CachingOptimizer(KnitroModelData{Float64}(), optimizer) =#
-    #= MOI.supports_constraint(::KNITRO.Optimizer, ::Type{MOI.VectorOfVariables}, ::Type{MOI.SecondOrderCone}) = true =#
-    #= MOIT._soc1test(socp_optimizer, config, false) =#
-#= end =#
+@testset "MOI SOCP tests" begin
+    # Warning: set presolve to 0 to avoid bug in Knitro.
+    optimizer = KNITRO.Optimizer(outlev=0, opttol=1e-8, presolve=0)
+    socp_optimizer = MOIU.CachingOptimizer(KnitroModelData{Float64}(), optimizer)
+    # Behavior in infeasible case doesn't match test.
+    exclude = ["lin3", "lin4"]
+    MOIT.lintest(socp_optimizer, config, exclude)
+
+    # Support of SOC's duals is not enabled.
+    configcone = MOIT.TestConfig(atol=1e-4, rtol=1e-4, duals=false,
+                                 optimal_status=MOI.LOCALLY_SOLVED)
+    # Behavior in infeasible case doesn't match test.
+    exclude = ["soc3", "soc4"]
+    MOIT.soctest(socp_optimizer, configcone, exclude)
+end
+
 
 @testset "MOI MILP test" begin
     optimizer = KNITRO.Optimizer(outlev=0)
