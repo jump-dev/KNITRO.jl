@@ -17,25 +17,26 @@ MOI.supports_constraint(::Optimizer, ::Type{MOI.ScalarQuadraticFunction{Float64}
 MOI.supports_constraint(::Optimizer, ::Type{MOI.ScalarQuadraticFunction{Float64}}, ::Type{MOI.EqualTo{Float64}}) = true
 MOI.supports_constraint(::Optimizer, ::Type{<:SF}, ::Type{<:SS}) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.SingleVariable}, ::Type{<:LS}) = true
-MOI.supports_constraint(::Optimizer, ::Type{MOI.VectorAffineFunction{Float64}}, ::Type{MOI.Nonnegatives}) = true
-MOI.supports_constraint(::Optimizer, ::Type{MOI.VectorAffineFunction{Float64}}, ::Type{MOI.Zeros}) = true
-MOI.supports_constraint(::Optimizer, ::Type{MOI.VectorAffineFunction{Float64}}, ::Type{MOI.Nonpositives}) = true
-MOI.supports_constraint(::Optimizer, ::Type{MOI.VectorAffineFunction{Float64}}, ::Type{MOI.SecondOrderCone}) = true
-MOI.supports_constraint(::Optimizer, ::Type{MOI.VectorOfVariables}, ::Type{MOI.SecondOrderCone}) = true
+MOI.supports_constraint(::Optimizer, ::Type{VAF}, ::Type{<:VLS}) = true
+MOI.supports_constraint(::Optimizer, ::Type{VOV}, ::Type{<:VLS}) = true
+MOI.supports_constraint(::Optimizer, ::Type{VAF}, ::Type{MOI.SecondOrderCone}) = true
+MOI.supports_constraint(::Optimizer, ::Type{VOV}, ::Type{MOI.SecondOrderCone}) = true
 
 ##################################################
 ## Getters
 MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.SingleVariable, MOI.ZeroOne}) =
     model.number_zeroone_constraints
 # TODO: a bit hacky, but that should work for MOI Test.
-MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.VectorAffineFunction{Float64}, MOI.Nonnegatives}) =
-sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{MOI.VectorAffineFunction{Float64}, MOI.Nonnegatives})
-MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.VectorAffineFunction{Float64}, MOI.Nonpositives}) =
-sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{MOI.VectorAffineFunction{Float64}, MOI.Nonpositives})
-MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.VectorAffineFunction{Float64}, MOI.Zeros}) =
-sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{MOI.VectorAffineFunction{Float64}, MOI.Zeros})
-MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.VectorAffineFunction{Float64}, MOI.SecondOrderCone}) =
-sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{MOI.VectorAffineFunction{Float64}, MOI.SecondOrderCone})
+MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{VAF, MOI.Nonnegatives}) =
+sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{VAF, MOI.Nonnegatives})
+MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{VAF, MOI.Nonpositives}) =
+sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{VAF, MOI.Nonpositives})
+MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{VAF, MOI.Zeros}) =
+sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{VAF, MOI.Zeros})
+MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{VAF, MOI.SecondOrderCone}) =
+sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{VAF, MOI.SecondOrderCone})
+MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{VOV, T}) where T <: VLS =
+sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{VAF, T})
 
 MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.ScalarAffineFunction{Float64}, S}) where S <: LS  =
 sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}, S})
@@ -269,6 +270,26 @@ function MOI.add_constraint(model::Optimizer,
     # Add constraints to index.
     ci = MOI.ConstraintIndex{typeof(func), typeof(set)}(index_con)
     model.constraint_mapping[ci] = indexvars
+    return ci
+end
+
+function MOI.add_constraint(model::Optimizer, func::VOV, set::T) where T <: VLS
+    (model.number_solved >= 1) && throw(AddConstraintError())
+    indv = convert.(Cint, [v.value for v in func.variables] .- 1)
+    bnd = zeros(Float64, length(indv))
+
+    if isa(set, MOI.Zeros)
+        KN_set_var_fxbnds(model.inner, indv, bnd)
+    elseif isa(set, MOI.Nonnegatives)
+        KN_set_var_lobnds(model.inner, indv, bnd)
+    elseif isa(set, MOI.Nonpositives)
+        KN_set_var_upbnds(model.inner, indv, bnd)
+    end
+
+    # TODO
+    ncons = MOI.get(model, MOI.NumberOfConstraints{VOV, T}())
+    ci = MOI.ConstraintIndex{VOV, T}(ncons)
+    model.constraint_mapping[ci] = indv
     return ci
 end
 

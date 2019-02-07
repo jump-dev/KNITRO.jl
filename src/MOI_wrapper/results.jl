@@ -147,6 +147,14 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
+                 ci::MOI.ConstraintIndex{S, T}) where {S <: VOV, T <: Union{MOI.Nonnegatives, MOI.Nonpositives}}
+    @checkcons(model, ci)
+    x = get_solution(model.inner)
+    index = model.constraint_mapping[ci] .+ 1
+    return x[index]
+end
+
+function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
                  ci::MOI.ConstraintIndex{S, T}) where {S <: Union{VAF, VOV}, T <: MOI.Zeros}
     @checkcons(model, ci)
     ncons = length(model.constraint_mapping[ci])
@@ -230,11 +238,18 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
+                 ci::MOI.ConstraintIndex{S, T}) where {S <: VOV, T <: VLS}
+    offset = number_constraints(model)
+    index = model.constraint_mapping[ci] .+ 1 .+ offset
+    lambda = get_dual(model.inner)
+    return sense_dual(model) * lambda[index]
+end
+
+function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
                  ci::MOI.ConstraintIndex{S, T}) where {S <: Union{VAF, VOV}, T <: MOI.SecondOrderCone}
     @checkcons(model, ci)
     index = model.constraint_mapping[ci] .+ 1
     lambda = get_dual(model.inner)
-    println(lambda)
     return sense_dual(model) * lambda[index]
 end
 
