@@ -30,18 +30,21 @@ const MOIU = MathOptInterface.Utilities
 
 const SF = Union{MOI.ScalarAffineFunction{Float64},
                  MOI.ScalarQuadraticFunction{Float64}}
+const VAF = MOI.VectorAffineFunction{Float64}
+const VOV = MOI.VectorOfVariables
 
 const SS = Union{MOI.EqualTo{Float64},
                  MOI.GreaterThan{Float64},
                  MOI.LessThan{Float64},
-                 MOI.Interval{Float64},
-                 MOI.Zeros,
-                 MOI.Nonnegatives,
-                 MOI.Nonpositives}
-
-const VS = Union{MOI.EqualTo{Float64},
+                 MOI.Interval{Float64}}
+# LinSets
+const LS = Union{MOI.EqualTo{Float64},
                  MOI.GreaterThan{Float64},
                  MOI.LessThan{Float64}}
+# VecLinSets
+const VLS = Union{MOI.Nonnegatives,
+                  MOI.Nonpositives,
+                  MOI.Zeros}
 
 ##################################################
 # Define custom error for MOI wrapper.

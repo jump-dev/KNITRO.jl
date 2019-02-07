@@ -16,7 +16,7 @@ MOI.supports_constraint(::Optimizer, ::Type{MOI.ScalarQuadraticFunction{Float64}
 MOI.supports_constraint(::Optimizer, ::Type{MOI.ScalarQuadraticFunction{Float64}}, ::Type{MOI.GreaterThan{Float64}}) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.ScalarQuadraticFunction{Float64}}, ::Type{MOI.EqualTo{Float64}}) = true
 MOI.supports_constraint(::Optimizer, ::Type{<:SF}, ::Type{<:SS}) = true
-MOI.supports_constraint(::Optimizer, ::Type{MOI.SingleVariable}, ::Type{<:VS}) = true
+MOI.supports_constraint(::Optimizer, ::Type{MOI.SingleVariable}, ::Type{<:LS}) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.VectorAffineFunction{Float64}}, ::Type{MOI.Nonnegatives}) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.VectorAffineFunction{Float64}}, ::Type{MOI.Zeros}) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.VectorAffineFunction{Float64}}, ::Type{MOI.Nonpositives}) = true
@@ -37,10 +37,10 @@ sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{MOI
 MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.VectorAffineFunction{Float64}, MOI.SecondOrderCone}) =
 sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{MOI.VectorAffineFunction{Float64}, MOI.SecondOrderCone})
 
-MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.ScalarAffineFunction{Float64}, S}) where S <: VS  =
+MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.ScalarAffineFunction{Float64}, S}) where S <: LS  =
 sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}, S})
 
-MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.ScalarQuadraticFunction{Float64}, S}) where S <: VS  =
+MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.ScalarQuadraticFunction{Float64}, S}) where S <: LS  =
 sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{MOI.ScalarQuadraticFunction{Float64}, S})
 
 ##################################################
@@ -118,7 +118,7 @@ function MOI.add_constraint(model::Optimizer,
 end
 
 function MOI.add_constraint(model::Optimizer,
-                            func::MOI.ScalarAffineFunction{Float64}, set::VS)
+                            func::MOI.ScalarAffineFunction{Float64}, set::LS)
     (model.number_solved >= 1) && throw(AddConstraintError())
     check_inbounds(model, func)
     # Add a single constraint in KNITRO.
@@ -164,7 +164,7 @@ function MOI.add_constraint(model::Optimizer,
 end
 
 function MOI.add_constraint(model::Optimizer,
-                            func::MOI.ScalarQuadraticFunction{Float64}, set::VS)
+                            func::MOI.ScalarQuadraticFunction{Float64}, set::LS)
     (model.number_solved >= 1) && throw(AddConstraintError())
     check_inbounds(model, func)
     # We add a constraint in KNITRO.
@@ -254,7 +254,8 @@ function MOI.add_constraint(model::Optimizer,
     coefs_cone = coefs[indcone]
     const_cone = constants[2:end]
 
-    KN_add_con_L2norm(model.inner, index_con, ncoords, nnz,
+    KN_add_con_L2norm(model.inner,
+                      index_con, ncoords, nnz,
                       index_coord_cone,
                       index_var_cone,
                       coefs_cone,
@@ -267,7 +268,7 @@ function MOI.add_constraint(model::Optimizer,
 
     # Add constraints to index.
     ci = MOI.ConstraintIndex{typeof(func), typeof(set)}(index_con)
-    model.constraint_mapping[ci] = index_con
+    model.constraint_mapping[ci] = indexvars
     return ci
 end
 
@@ -297,7 +298,7 @@ function MOI.add_constraint(model::Optimizer,
 
     # Add constraints to index.
     ci = MOI.ConstraintIndex{typeof(func), typeof(set)}(index_con)
-    model.constraint_mapping[ci] = index_con
+    model.constraint_mapping[ci] = convert.(Cint, indv)
     return ci
 end
 
