@@ -21,6 +21,7 @@ MOI.supports_constraint(::Optimizer, ::Type{MOI.VectorAffineFunction{Float64}}, 
 MOI.supports_constraint(::Optimizer, ::Type{MOI.VectorAffineFunction{Float64}}, ::Type{MOI.Zeros}) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.VectorAffineFunction{Float64}}, ::Type{MOI.Nonpositives}) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.VectorAffineFunction{Float64}}, ::Type{MOI.SecondOrderCone}) = true
+MOI.supports_constraint(::Optimizer, ::Type{MOI.VectorOfVariables}, ::Type{MOI.SecondOrderCone}) = true
 
 ##################################################
 ## Getters
@@ -222,27 +223,86 @@ function MOI.add_constraint(model::Optimizer,
     return ci
 end
 
+# add second order cone constraint
 function MOI.add_constraint(model::Optimizer,
                             func::MOI.VectorAffineFunction, set::MOI.SecondOrderCone)
     @warn("Support of MOI.SecondOrderCone is still experimental")
     (model.number_solved >= 1) && throw(AddConstraintError())
-    # TODO: add check inbounds for VectorAffineFunction.
-    previous_col_number = number_constraints(model)
-    ncoords = length(func.constants)
     # Add constraints inside KNITRO.
     index_con = KN_add_con(model.inner)
 
     # Parse vector affine expression.
     indexcoords, indexvars, coefs = canonical_vector_affine_reduction(func)
     constants = func.constants
+    # Distinct two parts of secondordercone.
+    # First row corresponds to linear part of SOC.
+    indlinear = indexcoords .== 0
+    indcone = indexcoords .!= 0
+    ncoords = length(constants) - 1
+    @assert ncoords == set.dimension - 1
+
     # Load Second Order Conic constraint.
-    KN_add_con_L2norm(model.inner, index_con, ncoords, length(indexcoords),
-                  indexcoords, indexvars, coefs, constants)
+    ## i) linear part
+    KN_set_con_upbnd(model.inner, index_con, constants[1])
+    KN_add_con_linear_struct(model.inner, index_con,
+                             indexvars[indlinear], -coefs[indlinear])
+
+    ## ii) soc part
+    index_var_cone = indexvars[indcone]
+    nnz = length(index_var_cone)
+    index_coord_cone = convert.(Cint, indexcoords[indcone] .- 1)
+    coefs_cone = coefs[indcone]
+    const_cone = constants[2:end]
+
+    KN_add_con_L2norm(model.inner, index_con, ncoords, nnz,
+                      index_coord_cone,
+                      index_var_cone,
+                      coefs_cone,
+                      const_cone)
+
+    # set specific Knitro's params
+    KN_set_param(model.inner, KN_PARAM_BAR_CONIC_ENABLE, KN_BAR_CONIC_ENABLE_SOC)
+    KN_set_param(model.inner, KN_PARAM_ALGORITHM, KN_ALG_BAR_DIRECT)
+    KN_set_param(model.inner, KN_PARAM_BAR_MURULE, KN_BAR_MURULE_FULLMPC)
+
     # Add constraints to index.
     ci = MOI.ConstraintIndex{typeof(func), typeof(set)}(index_con)
     model.constraint_mapping[ci] = index_con
     return ci
 end
+
+function MOI.add_constraint(model::Optimizer,
+                            func::MOI.VectorOfVariables, set::MOI.SecondOrderCone)
+    @warn("Support of MOI.SecondOrderCone is still experimental")
+    (model.number_solved >= 1) && throw(AddConstraintError())
+    # Add constraints inside KNITRO.
+    index_con = KN_add_con(model.inner)
+    indv = [v.value for v in func.variables] .- 1
+
+    KN_set_con_upbnd(model.inner, index_con, 0.)
+    KN_add_con_linear_struct(model.inner, index_con, indv[1], -1.0)
+
+    indexVars = convert.(Cint, indv[2:end])
+    nnz = length(indexVars)
+    indexCoords = Cint[i for i in 0:(nnz-1)]
+    coefs = ones(Float64, nnz)
+    constants = zeros(Float64, nnz)
+
+    KN_add_con_L2norm(model.inner, index_con, nnz, nnz,
+                      indexCoords, indexVars, coefs, constants)
+
+    KN_set_param(model.inner, KN_PARAM_BAR_CONIC_ENABLE, KN_BAR_CONIC_ENABLE_SOC)
+    KN_set_param(model.inner, KN_PARAM_ALGORITHM, KN_ALG_BAR_DIRECT)
+    KN_set_param(model.inner, KN_PARAM_BAR_MURULE, KN_BAR_MURULE_FULLMPC)
+
+    # Add constraints to index.
+    ci = MOI.ConstraintIndex{typeof(func), typeof(set)}(index_con)
+    model.constraint_mapping[ci] = index_con
+    return ci
+end
+
+##################################################
+## Binary & Integer constraints.
 
 # Define integer and boolean constraints.
 function MOI.add_constraint(model::Optimizer,
