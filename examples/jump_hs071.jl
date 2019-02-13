@@ -13,12 +13,11 @@ const MOI = MathOptInterface
 #     1 <= x1, x2, x3, x4 <= 5
 # Start at (1,5,5,1)
 # End at (1.000..., 4.743..., 3.821..., 1.379...)
-lm = KNITRO.LMcontext()
 
 # Create JuMP Model in direct mode.
-model1 = JuMP.direct_model(KNITRO.Optimizer(license_manager=lm))
+model1 = JuMP.direct_model(KNITRO.Optimizer())
 # Create JuMP Model in automatic mode.
-model2 = Model(with_optimizer(KNITRO.Optimizer, license_manager=lm))
+model2 = Model(with_optimizer(KNITRO.Optimizer))
 
 for model in [model1, model2]
     initval = [1, 5, 5, 1]
@@ -36,6 +35,3 @@ for model in [model1, model2]
 
     @test JuMP.value.(x) ≈ [1.000000, 4.742999, 3.821150, 1.379408] atol=1e-3
 end
-
-# release license manager!
-KNITRO.KN_release_license(lm)
