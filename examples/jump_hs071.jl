@@ -1,3 +1,4 @@
+# Test JuMP in AUTOMATIC and DIRECT modes.
 
 using KNITRO, JuMP
 using Test
@@ -13,29 +14,28 @@ const MOI = MathOptInterface
 # Start at (1,5,5,1)
 # End at (1.000..., 4.743..., 3.821..., 1.379...)
 lm = KNITRO.LMcontext()
-bridge = JuMP.DIRECT
 
-if bridge == JuMP.DIRECT
-    optimizer = KNITRO.Optimizer(license_manager=lm)
-    model = JuMP.direct_model(optimizer)
-elseif bridge == JuMP.AUTOMATIC
-    model = Model(with_optimizer(KNITRO.Optimizer, license_manager=lm))
+# Create JuMP Model in direct mode.
+model1 = JuMP.direct_model(KNITRO.Optimizer(license_manager=lm))
+# Create JuMP Model in automatic mode.
+model2 = Model(with_optimizer(KNITRO.Optimizer, license_manager=lm))
+
+for model in [model1, model2]
+    initval = [1, 5, 5, 1]
+
+    @variable(model, 1 <= x[i=1:4] <= 5, start=initval[i])
+    @NLobjective(model, Min, x[1] * x[4] * (x[1] + x[2] + x[3]) + x[3])
+    c1 = @NLconstraint(model, x[1] * x[2] * x[3] * x[4] >= 25)
+    c2 = @NLconstraint(model, sum(x[i]^2 for i=1:4) == 40)
+
+    JuMP.optimize!(model)
+
+    @test JuMP.has_values(model)
+    @test JuMP.termination_status(model) == MOI.LOCALLY_SOLVED
+    @test JuMP.primal_status(model) == MOI.FEASIBLE_POINT
+
+    @test JuMP.value.(x) ≈ [1.000000, 4.742999, 3.821150, 1.379408] atol=1e-3
 end
-
-initval = [1, 5, 5, 1]
-
-@variable(model, 1 <= x[i=1:4] <= 5, start=initval[i])
-@NLobjective(model, Min, x[1] * x[4] * (x[1] + x[2] + x[3]) + x[3])
-c1 = @NLconstraint(model, x[1] * x[2] * x[3] * x[4] >= 25)
-c2 = @NLconstraint(model, sum(x[i]^2 for i=1:4) == 40)
-
-JuMP.optimize!(model)
-
-@test JuMP.has_values(model)
-@test JuMP.termination_status(model) == MOI.LOCALLY_SOLVED
-@test JuMP.primal_status(model) == MOI.FEASIBLE_POINT
-
-@test JuMP.value.(x) ≈ [1.000000, 4.742999, 3.821150, 1.379408] atol=1e-3
 
 # release license manager!
 KNITRO.KN_release_license(lm)

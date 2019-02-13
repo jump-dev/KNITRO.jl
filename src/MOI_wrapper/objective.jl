@@ -31,7 +31,7 @@ end
 
 function add_objective!(model::Optimizer, var::MOI.SingleVariable)
     # We load the objective inside KNITRO.
-    KN_add_obj_linear_struct(model.inner, var.variable.value-1, 1.)
+    KN_add_obj_linear_struct(model.inner, var.variable.value - 1, 1.)
     return
 end
 
@@ -41,7 +41,7 @@ function MOI.set(model::Optimizer, ::MOI.ObjectiveFunction,
     # 1/ if the model was already solved, we cannot change the objective.
     (model.number_solved >= 1) && throw(UpdateObjectiveError())
     # 2/ if the model has valid non-linear objective, discard adding func.
-    if ~isa(model.nlp_data.evaluator, EmptyNLPEvaluator) && model.nlp_data.has_objective
+    if !isa(model.nlp_data.evaluator, EmptyNLPEvaluator) && model.nlp_data.has_objective
         @warn("Objective of `model` is already specified in NLPBlockData.")
         return
     end

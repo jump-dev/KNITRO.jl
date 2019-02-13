@@ -1,4 +1,4 @@
-using KNITRO.KNITRO, JuMP #, Base.Test
+using KNITRO, JuMP #, Base.Test
 
 ## Solve test problem 1 (Synthesis of processing system) in
  #  M. Duran & I.E. Grossmann, "An outer approximation algorithm for

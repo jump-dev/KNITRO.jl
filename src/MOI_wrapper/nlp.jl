@@ -26,7 +26,7 @@ function MOI.set(model::Optimizer, ::MOI.NLPBlock, nlp_data::MOI.NLPBlockData)
             end
         end
         # Add constraint to index.
-        push!(model.nlp_index_cons, num_cons...)
+        append!(model.nlp_index_cons, num_cons)
     end
     return
 end

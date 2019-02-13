@@ -298,7 +298,7 @@ function eval_fc_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     # we have to ensure that cb is a CallbackContext
     # otherwise, we tell KNITRO that a problem occurs by returning a
     # non-zero status
-    if ~isa(cb, CallbackContext)
+    if !isa(cb, CallbackContext)
         return Cint(32)
     end
 
@@ -329,7 +329,7 @@ function eval_ga_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     # we have to ensure that cb is a CallbackContext
     # otherwise, we tell KNITRO that a problem occurs by returning a
     # non-zero status
-    if ~isa(cb, CallbackContext)
+    if !isa(cb, CallbackContext)
         return Cint(32)
     end
 
@@ -360,7 +360,7 @@ function eval_hess_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     # we have to ensure that cb is a CallbackContext
     # otherwise, we tell KNITRO that a problem occurs by returning a
     # non-zero status
-    if ~isa(cb, CallbackContext)
+    if !isa(cb, CallbackContext)
         return Cint(32)
     end
 
@@ -614,7 +614,7 @@ function eval_rsd_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     # we have to ensure that cb is a CallbackContext
     # otherwise, we tell KNITRO that a problem occurs by returning a
     # non-zero status
-    if ~isa(cb, CallbackContext)
+    if !isa(cb, CallbackContext)
         return Cint(32)
     end
 
@@ -688,7 +688,7 @@ function eval_rj_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     # we have to ensure that cb is a CallbackContext
     # otherwise, we tell KNITRO that a problem occurs by returning a
     # non-zero status
-    if ~isa(cb, CallbackContext)
+    if !isa(cb, CallbackContext)
         return Cint(32)
     end
 

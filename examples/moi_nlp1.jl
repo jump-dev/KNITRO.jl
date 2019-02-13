@@ -1,10 +1,11 @@
-#*******************************************************
-#* Copyright(c) 2018 by Artelys                       *
-#* All Rights Reserved                                 *
-#*******************************************************
+#*******************************************************/
+#* Copyright(c) 2018 by Artelys                        */
+#* This source code is subject to the terms of the     */
+#* MIT Expat License (see LICENSE.md)                  */
+#*******************************************************/
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# This example demonstrates how to use MathOptInterface an d
+# This example demonstrates how to use MathOptInterface and
 # Knitro to solve the following # simple nonlinear optimization problem.
 # This model is test problem # HS15 from the Hock & Schittkowski collection.
 #
