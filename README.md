@@ -2,35 +2,34 @@ KNITRO.jl
 =========
 [![](https://img.shields.io/badge/docs-latest-blue.svg)](https://juliaopt.github.io/KNITRO.jl/latest)
 
-The KNITRO.jl package provides an interface for using the [Artelys KNITRO
-solver](http://artelys.com/en/optimization-tools/knitro) from
+The KNITRO.jl package provides an interface for using the [Artelys Knitro
+solver](https://www.artelys.com/knitro) from
 [Julia](http://julialang.org/). You cannot use KNITRO.jl without having
-purchased and installed a copy of KNITRO from [Artelys](http://artelys.com/).
+purchased and installed a copy of Knitro from [Artelys](https://www.artelys.com/knitro).
 This package is available free of charge and in no way replaces or alters any
-functionality of Artelys KNITRO solver.
+functionality of Artelys Knitro solver.
 
-Artelys KNITRO functionality is extensive, so coverage is incomplete, but
-most functionality for solving linear, nonlinear, and mixed-integer programs
-is provided. Documentation is available at
+Documentation is available at
 [https://juliaopt.github.io/KNITRO.jl/latest](https://juliaopt.github.io/KNITRO.jl/latest).
 
-Note that the current package provides a wrapper both for the old KNITRO's API
-(whose functions start by `KTR_`) and the new KNITRO's API (whose functions
-start by `KN_`). We recommend to use KNITRO >= `v11.0` to get all latest
-functionalities.
-Refer to [KNITRO documentation](https://www.artelys.com/tools/knitro_doc/2_userGuide.html)
-for a full specification of the new KNITRO's API.
+Note that the current package provides a wrapper both for the new Knitro's API
+(whose functions start by `KN_`) and the deprecated Knitro's API (whose functions
+start by `KTR_`). We recommend using the latest version of Knitro available and
+the new API to get access to all of the new functionalities from the solver.
+Using the new `KN_` API requires Knitro >= `v11.0`.
+Refer to [Knitro documentation](https://www.artelys.com/tools/knitro_doc/3_referenceManual/callableLibraryAPI.html)
+for a full specification of the Knitro's API.
 
-*The Artelys KNITRO wrapper for Julia is supported both by the JuliaOpt
-community (which originates the development of this package) and by
-Artelys. Please contact the usual Artelys support if you encounter
-any problem.*
+*The Artelys Knitro wrapper for Julia is supported by the JuliaOpt
+community (which originates the development of this package) and
+Artelys. Feel free to contact [Artelys support](mailto:support-knitro@artelys.com) if you encounter
+any problem with this interface or the solver.*
 
 
 MathOptInterface Interface
 ======================
 
-**Note: MathOptInterface works only with the new KNITRO's API `KN`.**
+**Note: MathOptInterface works only with the new Knitro's `KN` API which requires Knitro >= `v11.0`.**
 
 KNITRO.jl currently supports [MathOptInterface](https://github.com/JuliaOpt/MathOptInterface.jl)
 and [JuMP 0.19](https://github.com/JuliaOpt/JuMP.jl).
@@ -41,7 +40,7 @@ Development is ongoing!
 MathProgBase Interface
 ======================
 
-**Note: MathProgBase works only with the old KNITRO's API `KTR`.**
+**Note: MathProgBase works only with the old Knitro's `KTR` API.**
 
 KNITRO.jl implements the solver-independent
 [MathProgBase](https://github.com/JuliaOpt/MathProgBase.jl) interface, and so
@@ -93,10 +92,10 @@ MathOptInterface instead.**
 Low-level wrapper
 =================
 
-KNITRO.jl implements most of KNITRO's functionalities.
-If you aim at using part of KNITRO's API that are not implemented
+KNITRO.jl implements most of Knitro's functionalities.
+If you aim at using part of Knitro's API that are not implemented
 in the MathOptInterface/JuMP ecosystem, you can refer to the low
-level API which wraps directly KNITRO's C API (whose templates
+level API which wraps directly Knitro's C API (whose templates
 are specified in the file `knitro.h`).
 
 Extensive examples using the C wrapper can be found in `examples/`.
