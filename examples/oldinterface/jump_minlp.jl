@@ -14,23 +14,23 @@ using KNITRO, JuMP #, Base.Test
  #        x2 - 2 x4 <= 0
  #        x1 - x2 - 2 x5 <= 0
  #        x4 + x5 <= 1
- #        0 <= x1 <= 2 
+ #        0 <= x1 <= 2
  #        0 <= x2 <= 2
  #        0 <= x3 <= 1
  #        x1, x2, x3 continuous
  #        x4, x5, x6 binary
- #        
+ #
  #
  #  The solution is (1.30098, 0, 1, 0, 1, 0).
  ##
 
-m = Model(solver=KnitroSolver(mip_method = KTR_MIP_METHOD_BB,
-                              algorithm = KTR_ALG_ACT_CG,
-                              outmode = KTR_OUTMODE_SCREEN,
-                              KTR_PARAM_OUTLEV = KTR_OUTLEV_ALL,
+m = Model(solver=KnitroSolver(mip_method = KNITRO.KTR_MIP_METHOD_BB,
+                              algorithm = KNITRO.KTR_ALG_ACT_CG,
+                              outmode = KNITRO.KTR_OUTMODE_SCREEN,
+                              KTR_PARAM_OUTLEV = KNITRO.KTR_OUTLEV_ALL,
                               KTR_PARAM_MIP_OUTINTERVAL = 1,
                               KTR_PARAM_MIP_MAXNODES = 10000,
-                              KTR_PARAM_HESSIAN_NO_F = KTR_HESSIAN_NO_F_ALLOW))
+                              KTR_PARAM_HESSIAN_NO_F = KNITRO.KTR_HESSIAN_NO_F_ALLOW))
 x_U = [2,2,1]
 @variable(m, x_U[i] >= x[i=1:3] >= 0)
 @variable(m, y[4:6], Bin)
