@@ -105,6 +105,8 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     nlp_index_cons::Vector{Cint}
     # Store optimization sense.
     sense::MOI.OptimizationSense
+    # Store the structure of the objective.
+    objective::Union{MOI.SingleVariable,MOI.ScalarAffineFunction{Float64},MOI.ScalarQuadraticFunction{Float64},Nothing}
     # Constraint counters.
     number_zeroone_constraints::Int
     number_integer_constraints::Int
@@ -141,7 +143,7 @@ function Optimizer(;license_manager=nothing, options...)
         kc = KN_new()
     end
     model = Optimizer(kc, [], 0, false, empty_nlp_data(),
-                      Cint[], MOI.FEASIBILITY_SENSE, 0, 0,
+                      Cint[], MOI.FEASIBILITY_SENSE, nothing, 0, 0,
                       Dict{MOI.ConstraintIndex, Int}(), options)
 
     set_options(model)
@@ -173,6 +175,7 @@ function MOI.empty!(model::Optimizer)
     model.nlp_data = empty_nlp_data()
     model.nlp_loaded = false
     model.sense = MOI.FEASIBILITY_SENSE
+    model.objective = nothing
     model.number_zeroone_constraints = 0
     model.number_integer_constraints = 0
     model.constraint_mapping = Dict()
@@ -186,6 +189,7 @@ function MOI.is_empty(model::Optimizer)
            model.sense == MOI.FEASIBILITY_SENSE &&
            model.number_solved == 0 &&
            model.sense == MOI.FEASIBILITY_SENSE &&
+           isa(model.objective, Nothing) &&
            model.number_zeroone_constraints == 0 &&
            model.number_integer_constraints == 0 &&
            !model.nlp_loaded
@@ -261,12 +265,16 @@ function MOI.optimize!(model::Optimizer)
         end
 
         # Be careful that sometimes objective is not evaluated here.
+        # In any case, NLP objective has precedence other model.objective.
         if model.nlp_data.has_objective
             # Here, we assume that the full objective is evaluated in eval_f.
             cb = KN_add_eval_callback(model.inner, eval_f_cb)
         else
             indexcons = collect(Int32, 0:length(model.nlp_data.constraint_bounds)-1)
             cb = KN_add_eval_callback(model.inner, false, indexcons, eval_f_cb)
+
+            # If a objective is specified in model.objective, load it.
+            !isa(model.objective, Nothing) && add_objective!(model, model.objective)
         end
 
         # Get jacobian structure.
@@ -298,6 +306,8 @@ function MOI.optimize!(model::Optimizer)
         end
 
         model.nlp_loaded = true
+    elseif !isa(model.objective, Nothing)
+        add_objective!(model, model.objective)
     end
 
     KN_solve(model.inner)

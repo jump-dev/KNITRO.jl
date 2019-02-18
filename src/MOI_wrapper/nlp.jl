@@ -11,9 +11,9 @@ function MOI.set(model::Optimizer, ::MOI.NLPBlock, nlp_data::MOI.NLPBlockData)
     init_feat = [:Grad]
     has_hessian && push!(init_feat, :Hess)
     num_nlp_constraints = length(nlp_data.constraint_bounds)
-    num_nlp_constraints > 0 && push!(init_feat, :Jac)
+    (num_nlp_constraints > 0) && push!(init_feat, :Jac)
 
-    # We need to load the NLP constraints inside KNITRO.
+    # We need to load the NLP constraints inside Knitro.
     if num_nlp_constraints > 0
         num_cons = KN_add_cons(model.inner, num_nlp_constraints)
 

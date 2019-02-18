@@ -97,7 +97,7 @@ println("  optimal primal values x  = ",  x)
 println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
 println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
 # Delete the Knitro solver instance.
-#= KNITRO.KN_free(kc) =#
+KNITRO.KN_free(kc)
 
 @testset "Exemple QP1" begin
     @test nStatus == 0
