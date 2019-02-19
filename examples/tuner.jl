@@ -164,7 +164,8 @@ KNITRO.KN_set_obj_goal(kc, KNITRO.KN_OBJGOAL_MINIMIZE)
 # Illustrate how to override default options by reading from
 # the "tuner-fixed.opt" options file.  Any options set here
 # will be respected(i.e. remain fixed) by the Knitro-Tuner.
-KNITRO.KN_load_param_file(kc, "examples/tuner-fixed.opt")
+options = joinpath(dirname(@__FILE__), "..", "examples", "tuner-fixed.opt")
+KNITRO.KN_load_param_file(kc, options)
 
 # Turn on the Knitro-Tuner
 KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_TUNER, KNITRO.KN_TUNER_ON)
@@ -176,7 +177,8 @@ KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_TUNER, KNITRO.KN_TUNER_ON)
 # options in the regular way).  If KNITRO.KN_load_tuner_file is not
 # called, then the knitro-tuner will automatically determine
 # which options to tune.
-KNITRO.KN_load_tuner_file(kc, "examples/tuner-explore.opt")
+tuner = joinpath(dirname(@__FILE__), "..", "examples", "tuner-explore.opt")
+KNITRO.KN_load_tuner_file(kc, tuner)
 
 # Perform tuning in parallel using max number of available threads
 # TODO: KNITRO.jl does not seem to be thread safe
