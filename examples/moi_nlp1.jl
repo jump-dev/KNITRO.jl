@@ -74,7 +74,8 @@ end
 #*------------------------------------------------------------------*
 
 # Initialize Knitro
-solver = KNITRO.Optimizer(option_file="examples/knitro.opt")
+options = joinpath(dirname(@__FILE__), "..", "examples", "knitro.opt")
+solver = KNITRO.Optimizer(option_file=options)
 lb =[]; ub=[]
 block_data = MOI.NLPBlockData(MOI.NLPBoundsPair.(lb, ub), HS15(false), true)
 

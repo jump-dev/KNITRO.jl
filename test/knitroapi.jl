@@ -10,7 +10,7 @@ using Compat.Test
 
     @testset "Definition of model" begin
         m = KNITRO.Model()
-        KNITRO.KN_load_param_file(m, "examples/knitro.opt")
+        options = joinpath(dirname(@__FILE__), "..", "examples", "knitro.opt")
         KNITRO.KN_reset_params_to_defaults(m)
 
         KNITRO.KN_free(m)
@@ -109,9 +109,9 @@ println()
 
     KNITRO.KN_reset_params_to_defaults(kc)
 
-    KNITRO.KN_save_param_file(kc, "examples/test_knitro.opt")
-    KNITRO.KN_load_param_file(kc, "examples/tuner-fixed.opt")
-    KNITRO.KN_load_tuner_file(kc, "examples/tuner-explore.opt")
+    options = joinpath(dirname(@__FILE__), "..", "examples", "test_knitro.opt")
+    tuner1 = joinpath(dirname(@__FILE__), "..", "examples", "tuner-fixed.opt")
+    tuner2 = joinpath(dirname(@__FILE__), "..", "examples", "tuner-explore.opt")
     KNITRO.KN_set_param(kc, "algorithm", 0)
     KNITRO.KN_set_param(kc, "cplexlibname", ".")
     KNITRO.KN_set_param(kc, "xtol", 1e-15)
