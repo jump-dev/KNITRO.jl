@@ -73,4 +73,11 @@ function canonical_vector_affine_reduction(func::MOI.VectorAffineFunction)
 end
 
 # Convert Julia'Inf to KNITRO's Inf.
-check_value(val::Float64) = isinf(val) ? KN_INFINITY : val
+function check_value(val::Float64)
+    if val == Inf
+        return KN_INFINITY
+    elseif val == -Inf
+        return -KN_INFINITY
+    end
+    return val
+end
