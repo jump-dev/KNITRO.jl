@@ -74,9 +74,9 @@ end
 
 # Convert Julia'Inf to KNITRO's Inf.
 function check_value(val::Float64)
-    if val == Inf
+    if val > KN_INFINITY
         return KN_INFINITY
-    elseif val == -Inf
+    elseif val < -KN_INFINITY
         return -KN_INFINITY
     end
     return val
