@@ -21,8 +21,10 @@ function MOI.set(model::Optimizer, ::MOI.NLPBlock, nlp_data::MOI.NLPBlockData)
             if pair.upper == pair.lower
                 KN_set_con_eqbnd(model.inner, num_cons[ib], pair.upper)
             else
-                KN_set_con_upbnd(model.inner, num_cons[ib], pair.upper)
-                KN_set_con_lobnd(model.inner, num_cons[ib], pair.lower)
+                ub = check_value(pair.upper)
+                lb = check_value(pair.lower)
+                KN_set_con_upbnd(model.inner, num_cons[ib], ub)
+                KN_set_con_lobnd(model.inner, num_cons[ib], lb)
             end
         end
         # Add constraint to index.

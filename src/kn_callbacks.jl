@@ -459,8 +459,8 @@ function KN_add_eval_callback(m::Model, evalObj::Bool, indexCons::Vector{Cint},
 
     # add callback to context
     ret = @kn_ccall(add_eval_callback, Cint,
-                    (Ptr{Cvoid}, Cuchar, Cint, Ptr{Cint}, Ptr{Cvoid}, Ptr{Cvoid}),
-                    m.env, evalObj, nC, indexCons, c_f, rfptr)
+                    (Ptr{Cvoid}, KNBOOL, Cint, Ptr{Cint}, Ptr{Cvoid}, Ptr{Cvoid}),
+                    m.env, KNBOOL(evalObj), nC, indexCons, c_f, rfptr)
     _checkraise(ret)
     cb = CallbackContext(rfptr.x, m)
 
