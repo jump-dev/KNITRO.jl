@@ -37,8 +37,6 @@ using Compat.Test
 end
 
 
-
-
 # add generic callbacks for future tests
 
 function evalAll(kc, cb, evalRequest, evalResult, userParams)
@@ -91,21 +89,12 @@ function callback(name)
     return callbackFn
 end
 
-println()
-println()
-println("####################################################################")
-println("### First problem test")
-println("####################################################################")
-println()
-
 
 @testset "First problem" begin
     kc = KNITRO.KN_new()
     @test isa(kc, KNITRO.Model)
-    println(kc)
 
     release = KNITRO.get_release()
-    println(release)
 
     KNITRO.KN_reset_params_to_defaults(kc)
 
@@ -136,15 +125,15 @@ println()
     # START: Some specific parameter settings
     KNITRO.KN_set_param(kc, "hessopt", 1)
     KNITRO.KN_set_param(kc, "presolve", 0)
-    KNITRO.KN_set_param(kc, "outlev", 4)
+    KNITRO.KN_set_param(kc, "outlev", 0)
     # END:   Some specific parameter settings
 
     # Perform a derivative check.
     KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_DERIVCHECK, KNITRO.KN_DERIVCHECK_ALL)
 
     function newpt_callback(kc_ptr, x, lambda_, kc)
-        println("Rel Feas Error = ", KNITRO.KN_get_rel_feas_error(kc))
-        println("Rel Opt Error  = ", KNITRO.KN_get_rel_opt_error(kc))
+        a = KNITRO.KN_get_rel_feas_error(kc)
+        b = KNITRO.KN_get_rel_opt_error(kc)
         return 0
     end
 
@@ -201,39 +190,30 @@ println()
     @test status == 0
 
     # Retrieve relevant solve information
-    println("FC_evals       = ", KNITRO.KN_get_number_FC_evals(kc))
-    println("GA_evals       = ", KNITRO.KN_get_number_GA_evals(kc))
-    println("H_evals        = ", KNITRO.KN_get_number_H_evals(kc))
-    println("HV_evals       = ", KNITRO.KN_get_number_HV_evals(kc))
-    println("number_iters   = ", KNITRO.KN_get_number_iters(kc))
-    println("cg_iters       = ", KNITRO.KN_get_number_cg_iters(kc))
-    println("abs_feas_error = ", KNITRO.KN_get_abs_feas_error(kc))
-    println("rel_feas_error = ", KNITRO.KN_get_rel_feas_error(kc))
-    println("abs_opt_error  = ", KNITRO.KN_get_abs_opt_error(kc))
-    println("rel_opt_error  = ", KNITRO.KN_get_rel_opt_error(kc))
-    println("csol           = ", KNITRO.KN_get_con_values(kc))
+    @test KNITRO.KN_get_number_FC_evals(kc) == 17
+    @test KNITRO.KN_get_number_GA_evals(kc) == 13
+    @test KNITRO.KN_get_number_H_evals(kc) == 7
+    @test KNITRO.KN_get_number_HV_evals(kc) == 0
+    @test KNITRO.KN_get_number_iters(kc) == 7
+    @test KNITRO.KN_get_number_cg_iters(kc) == 3
+    @test KNITRO.KN_get_abs_feas_error(kc) < 1e-10
+    @test KNITRO.KN_get_rel_feas_error(kc) < 1e-10
+    @test KNITRO.KN_get_abs_opt_error(kc) < 1e-7
+    @test KNITRO.KN_get_rel_opt_error(kc) < 1e-8
+    @test KNITRO.KN_get_con_values(kc)[1] ≈ 3.96
 
     nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
-    println("nStatus        = ", nStatus)
-    println("objSol         = ", objSol)
-    println("x              = ", x)
-    println("lambda_        = ", lambda_)
+    @test nStatus == 0
+    @test x ≈ [0., 2.0, 1.98]
 
     @test objSol ≈ 31.363199 atol=1e-5
 
     KNITRO.KN_free(kc)
 end
 
-println()
-println()
-println("####################################################################")
-println("### Second problem test")
-println("####################################################################")
-println()
 
 @testset "Second problem test" begin
     kc = KNITRO.KN_new()
-    println(kc)
 
     function prettyPrinting(str, userParams)
         s = "KNITRO-Julia: " * str
@@ -244,6 +224,7 @@ println()
     KNITRO.KN_set_puts_callback(kc, prettyPrinting)
 
     # START: Some specific parameter settings
+    KNITRO.KN_set_param(kc, "outlev", 0)
     KNITRO.KN_set_param(kc, "presolve", 0)
     KNITRO.KN_set_param(kc, "ms_enable", 1)
     KNITRO.KN_set_param(kc, "ms_maxsolves", 5)
@@ -280,12 +261,9 @@ println()
     KNITRO.KN_set_cb_grad(kc, cb, evalAll)
     KNITRO.KN_set_cb_hess(kc, cb, KNITRO.KN_DENSE_ROWMAJOR, evalAll)
 
-
-    KNITRO.KN_set_ms_process_callback(kc, callback("ms_process"))
-
+    KNITRO.KN_set_ms_process_callback(kc, callback("ms callback"))
 
     function ms_initpt_callbackFn(kc, nSolveNumber, x, lambda_, userParams)
-        println("ms_initpt_callback ", nSolveNumber)
         x[:] = [1, 1, 1.1 + 0.1 * nSolveNumber]
         lambda_[:] = [1., 1, 1, 1]
         return 0
@@ -302,22 +280,20 @@ println()
     status = KNITRO.KN_solve(kc)
 
     @test status == 0
+    nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
+    @test nStatus == 0
+    @test x ≈ [0., 2.0, 1.98] atol=1e-5
+
+    @test objSol ≈ 31.363199 atol=1e-5
 
     KNITRO.KN_free(kc)
-
 end
 
-println()
-println()
-println("####################################################################")
-println("### Third problem test")
-println("####################################################################")
-println()
 
 @testset "Third problem test" begin
     kc = KNITRO.KN_new()
-    println(kc)
 
+    KNITRO.KN_set_param(kc, "outlev", 0)
     KNITRO.KN_set_param(kc, "presolve", KNITRO.KN_PRESOLVEDBG_NONE)
 
     # Define objective goal
@@ -364,20 +340,17 @@ println()
     @test status == 0
 
     # Retrieve derivatives values
-    println("objGrad = ", KNITRO.KN_get_objgrad_values(kc))
-    println("jac     = ", KNITRO.KN_get_jacobian_values(kc))
-    println("hess    = ", KNITRO.KN_get_hessian_values(kc))
+    objGrad = KNITRO.KN_get_objgrad_values(kc)
+    jac     = KNITRO.KN_get_jacobian_values(kc)
+    hess    = KNITRO.KN_get_hessian_values(kc)
+
+    nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
+    @test nStatus == 0
+    @test x ≈ [0., 2.0, 1.98]
+    @test objSol ≈ 31.363199 atol=1e-5
 
     KNITRO.KN_free(kc)
 end
-
-
-println()
-println()
-println("####################################################################")
-println("### Fourth problem test")
-println("####################################################################")
-println()
 
 
 @testset "Fourth problem test" begin
@@ -385,7 +358,7 @@ println()
 
     # START: Some specific parameter settings
     KNITRO.KN_set_param(kc, "presolve", 0)
-    KNITRO.KN_set_param(kc, "outlev", 6)
+    KNITRO.KN_set_param(kc, "outlev", 0)
     KNITRO.KN_set_param(kc, "gradopt", 2)
     KNITRO.KN_set_param(kc, "hessopt", 2)
     # END:   Some specific parameter settings
@@ -460,61 +433,52 @@ println()
     status = KNITRO.KN_solve(kc)
     @test status == 0
 
-    println("number of nodes         = ", KNITRO.KN_get_mip_number_nodes(kc))
-    println("number of solves        = ", KNITRO.KN_get_mip_number_solves(kc))
-    println("absolute gap            = ", KNITRO.KN_get_mip_abs_gap(kc))
-    println("relative gap            = ", KNITRO.KN_get_mip_rel_gap(kc))
-    println("mip relaxation bound    = ", KNITRO.KN_get_mip_relaxation_bnd(kc))
-    println("lastnode objective      = ", KNITRO.KN_get_mip_lastnode_obj(kc))
-    println("csol                    = ", KNITRO.KN_get_con_values(kc))
-    println("mip incumbent objective = ", KNITRO.KN_get_mip_incumbent_obj(kc))
-    println("mip incumbent x         = ", KNITRO.KN_get_mip_incumbent_x(kc))
+    @test KNITRO.KN_get_mip_number_nodes(kc) == 5
+    @test KNITRO.KN_get_mip_number_solves(kc) == 10
+    @test KNITRO.KN_get_mip_relaxation_bnd(kc) ≈ 31.0495680023
+    @test KNITRO.KN_get_mip_lastnode_obj(kc) ≈ 32.0
+    @test KNITRO.KN_get_con_values(kc)[1] == 4.0
+    @test KNITRO.KN_get_mip_incumbent_obj(kc) ≈ 32.0
+    @test KNITRO.KN_get_mip_incumbent_x(kc) == 0.0
 
     KNITRO.KN_free(kc)
 end
-
-println()
-println()
-println("####################################################################")
-println("### Fifth problem test")
-println("####################################################################")
-println()
 
 
 @testset "Fifth problem test" begin
     kc = KNITRO.KN_new()
 
     # START: Some specific parameter settings
-    KNITRO.KN_set_param(kc, "outlev", 6)
+    KNITRO.KN_set_param(kc, "outlev", 0)
     KNITRO.KN_set_param(kc, "gradopt", 1)
     # END:   Some specific parameter settings
 
     function evalR(kc, cb, evalRequest, evalResult, userParams)
-    x = evalRequest.x
-    evalResult.rsd[1] = x[1] * 1.309^x[2] - 2.138
-    evalResult.rsd[2] = x[1] * 1.471^x[2] - 3.421
-    evalResult.rsd[3] = x[1] * 1.49^x[2] - 3.597
-    evalResult.rsd[4] = x[1] * 1.565^x[2] - 4.34
-    evalResult.rsd[5] = x[1] * 1.611^x[2] - 4.882
-    evalResult.rsd[6] = x[1] * 1.68^x[2] - 5.66
-    return 0
+        x = evalRequest.x
+        evalResult.rsd[1] = x[1] * 1.309^x[2] - 2.138
+        evalResult.rsd[2] = x[1] * 1.471^x[2] - 3.421
+        evalResult.rsd[3] = x[1] * 1.49^x[2] - 3.597
+        evalResult.rsd[4] = x[1] * 1.565^x[2] - 4.34
+        evalResult.rsd[5] = x[1] * 1.611^x[2] - 4.882
+        evalResult.rsd[6] = x[1] * 1.68^x[2] - 5.66
+        return 0
     end
 
     function evalJ(kc, cb, evalRequest, evalResult, userParams)
-    x = evalRequest.x
-    evalResult.rsdJac[1] = 1.309^x[2]
-    evalResult.rsdJac[2] = x[1] * log(1.309) * 1.309^x[2]
-    evalResult.rsdJac[3] = 1.471^x[2]
-    evalResult.rsdJac[4] = x[1] * log(1.471) * 1.471^x[2]
-    evalResult.rsdJac[5] = 1.49^x[2]
-    evalResult.rsdJac[6] = x[1] * log(1.49) * 1.49^x[2]
-    evalResult.rsdJac[7] = 1.565^x[2]
-    evalResult.rsdJac[8] = x[1] * log(1.565) * 1.565^x[2]
-    evalResult.rsdJac[9] = 1.611^x[2]
-    evalResult.rsdJac[10] = x[1] * log(1.611) * 1.611^x[2]
-    evalResult.rsdJac[11] = 1.68^x[2]
-    evalResult.rsdJac[12] = x[1] * log(1.68) * 1.68^x[2]
-    return 0
+        x = evalRequest.x
+        evalResult.rsdJac[1] = 1.309^x[2]
+        evalResult.rsdJac[2] = x[1] * log(1.309) * 1.309^x[2]
+        evalResult.rsdJac[3] = 1.471^x[2]
+        evalResult.rsdJac[4] = x[1] * log(1.471) * 1.471^x[2]
+        evalResult.rsdJac[5] = 1.49^x[2]
+        evalResult.rsdJac[6] = x[1] * log(1.49) * 1.49^x[2]
+        evalResult.rsdJac[7] = 1.565^x[2]
+        evalResult.rsdJac[8] = x[1] * log(1.565) * 1.565^x[2]
+        evalResult.rsdJac[9] = 1.611^x[2]
+        evalResult.rsdJac[10] = x[1] * log(1.611) * 1.611^x[2]
+        evalResult.rsdJac[11] = 1.68^x[2]
+        evalResult.rsdJac[12] = x[1] * log(1.68) * 1.68^x[2]
+        return 0
     end
 
     # Add the variables and set their bounds.
@@ -538,13 +502,10 @@ println()
     status = KNITRO.KN_solve(kc)
     @test status == 0
 
-    println("jac     = ", KNITRO.KN_get_rsd_jacobian_values(kc))
+    jac = KNITRO.KN_get_rsd_jacobian_values(kc)
 
     nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
-    println("nStatus = ", nStatus)
-    println("objSol  = ", objSol)
-    println("x       = ", x)
-    println("lambda_ = ", lambda_)
+    @test nStatus == 0
 
     @test objSol ≈ 21.5848 atol=1e-4
     @test x ≈ [1., 1.] atol=1e-5
