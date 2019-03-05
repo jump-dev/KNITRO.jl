@@ -16,8 +16,9 @@ mutable struct LMcontext
         if res != 0
             error("KNITRO: Error checkout license")
         end
-
-        return new(ptrref[])
+        lm = new(ptrref[])
+        finalizer(KN_release_license, lm)
+        return lm
     end
 end
 
