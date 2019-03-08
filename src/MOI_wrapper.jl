@@ -205,11 +205,6 @@ number_constraints(model::Optimizer) = KN_get_number_cons(model.inner)
 ##################################################
 function MOI.optimize!(model::Optimizer)
     # Add NLP structure if specified.
-    # FIXME: ideally, the following code should be moved
-    # inside set(::Optimizer, ::NLPBlockData) function.
-    # However, we encounter an error if we do so, because currently
-    # the definition of eval_*_cb functions should be in the same
-    # scope as KN_solve (may be due to a closure limitation).
     if !isa(model.nlp_data.evaluator, EmptyNLPEvaluator) && !model.nlp_loaded
         # Instantiate NLPEvaluator once and for all.
         features = MOI.features_available(model.nlp_data.evaluator)
@@ -265,12 +260,12 @@ function MOI.optimize!(model::Optimizer)
         end
 
         # Be careful that sometimes objective is not evaluated here.
-        # In any case, NLP objective has precedence other model.objective.
+        # In any case, NLP objective has precedence over model.objective.
         if model.nlp_data.has_objective
             # Here, we assume that the full objective is evaluated in eval_f.
             cb = KN_add_eval_callback(model.inner, eval_f_cb)
         else
-            indexcons = collect(Int32, 0:length(model.nlp_data.constraint_bounds)-1)
+            indexcons = Int32[i for i in 0:length(model.nlp_data.constraint_bounds)-1]
             cb = KN_add_eval_callback(model.inner, false, indexcons, eval_f_cb)
 
             # If a objective is specified in model.objective, load it.
@@ -285,10 +280,10 @@ function MOI.optimize!(model::Optimizer)
         else
             # Take care to convert 1-indexing to 0-indexing!
             # KNITRO supports only Int32 array for integer.
-            jacIndexCons = Int32[i-1 for (i, _) in jacob_structure]
-            jacIndexVars = Int32[j-1 for (_, j) in jacob_structure]
+            jacIndexCons = Int32[i - 1 for (i, _) in jacob_structure]
+            jacIndexVars = Int32[j - 1 for (_, j) in jacob_structure]
             KN_set_cb_grad(model.inner, cb, eval_grad_cb,
-                        jacIndexCons=jacIndexCons, jacIndexVars=jacIndexVars)
+                           jacIndexCons=jacIndexCons, jacIndexVars=jacIndexVars)
         end
 
         if has_hessian
@@ -297,12 +292,12 @@ function MOI.optimize!(model::Optimizer)
             nnzH = length(hessian_structure)
             # Take care to convert 1-indexing to 0-indexing!
             # kNITRO supports only Int32 array for integer.
-            hessIndexVars1 = Int32[i-1 for (i, _) in hessian_structure]
-            hessIndexVars2 = Int32[j-1 for (_, j) in hessian_structure]
+            hessIndexVars1 = Int32[i - 1 for (i, _) in hessian_structure]
+            hessIndexVars2 = Int32[j - 1 for (_, j) in hessian_structure]
 
             KN_set_cb_hess(model.inner, cb, nnzH, eval_h_cb,
-                        hessIndexVars1=hessIndexVars1,
-                        hessIndexVars2=hessIndexVars2)
+                           hessIndexVars1=hessIndexVars1,
+                           hessIndexVars2=hessIndexVars2)
         end
 
         model.nlp_loaded = true
