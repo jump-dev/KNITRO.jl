@@ -21,7 +21,6 @@ nruns = 10
 
 for i in 1:nruns
     model = Model(with_optimizer(KNITRO.Optimizer, license_manager=lm, outlev=1))
-    #= model = JuMP.direct_model(KNITRO.Optimizer(license_manager=lm, outlev=1)) =#
 
     initval = [1, 5, 5, 1]
 
