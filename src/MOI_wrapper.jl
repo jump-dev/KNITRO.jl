@@ -112,6 +112,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     number_integer_constraints::Int
     # Constraint mappings.
     constraint_mapping::Dict{MOI.ConstraintIndex, Union{Cint, Vector{Cint}}}
+    license_manager::Union{LMcontext, Nothing}
     options::Dict
 end
 
@@ -137,14 +138,13 @@ end
 function Optimizer(;license_manager=nothing, options...)
     # Create KNITRO context.
     if isa(license_manager, LMcontext)
-        println("Load KNITRO with license manager.")
-        kc = KN_new_lm(license_manager)
+        kc = Model(license_manager)
     else
-        kc = KN_new()
+        kc = Model()
     end
     model = Optimizer(kc, [], 0, false, empty_nlp_data(),
                       Cint[], MOI.FEASIBILITY_SENSE, nothing, 0, 0,
-                      Dict{MOI.ConstraintIndex, Int}(), options)
+                      Dict{MOI.ConstraintIndex, Int}(), license_manager, options)
 
     set_options(model)
     return model
@@ -163,13 +163,17 @@ function MOI.copy_to(model::Optimizer, src::MOI.ModelLike; kws...)
     return MOI.Utilities.automatic_copy_to(model, src; kws...)
 end
 
-
 function MOI.empty!(model::Optimizer)
     # Free KNITRO model properly.
     if model.inner != nothing
         KN_free(model.inner)
     end
-    model.inner = KN_new()
+    # Handle properly license manager
+    if isa(model.license_manager, LMcontext)
+        model.inner = Model(model.license_manager)
+    else
+        model.inner = Model()
+    end
     empty!(model.variable_info)
     model.number_solved = 0
     model.nlp_data = empty_nlp_data()
@@ -179,6 +183,7 @@ function MOI.empty!(model::Optimizer)
     model.number_zeroone_constraints = 0
     model.number_integer_constraints = 0
     model.constraint_mapping = Dict()
+    model.license_manager = model.license_manager
     set_options(model)
     return
 end
@@ -193,7 +198,6 @@ function MOI.is_empty(model::Optimizer)
            model.number_zeroone_constraints == 0 &&
            model.number_integer_constraints == 0 &&
            !model.nlp_loaded
-
 end
 
 number_variables(model::Optimizer) = length(model.variable_info)
