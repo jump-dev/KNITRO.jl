@@ -33,7 +33,7 @@ for i in 1:nruns
     @test JuMP.termination_status(model) == MOI.LOCALLY_SOLVED
 
     # Warning! Free Knitro model before freeing license manager!
-    MOI.empty!(model.moi_backend)
+    MOI.empty!(backend(model))
 end
 
 # Free license manager
