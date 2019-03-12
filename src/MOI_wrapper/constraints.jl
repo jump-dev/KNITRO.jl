@@ -227,10 +227,9 @@ function MOI.add_constraint(model::Optimizer,
     return ci
 end
 
-# add second order cone constraint
+# Add second order cone constraint.
 function MOI.add_constraint(model::Optimizer,
                             func::MOI.VectorAffineFunction, set::MOI.SecondOrderCone)
-    @warn("Support of MOI.SecondOrderCone is still experimental")
     (model.number_solved >= 1) && throw(AddConstraintError())
     # Add constraints inside KNITRO.
     index_con = KN_add_con(model.inner)
@@ -298,7 +297,6 @@ end
 
 function MOI.add_constraint(model::Optimizer,
                             func::MOI.VectorOfVariables, set::MOI.SecondOrderCone)
-    @warn("Support of MOI.SecondOrderCone is still experimental")
     (model.number_solved >= 1) && throw(AddConstraintError())
     # Add constraints inside KNITRO.
     index_con = KN_add_con(model.inner)

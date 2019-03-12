@@ -1,7 +1,17 @@
+# Adaptation of some examples in MosekTools
+# Refer to:
+# https://github.com/JuliaOpt/MosekTools.jl/blob/master/test/jump_soc.jl
+#
+# MIT License
+# Copyright (c) 2017, Ulf Worsøe, Mosek Aps
+
 using JuMP
+
 @testset "Second-order Cone Programming" begin
+    solver = KNITRO.Optimizer
+
     @testset "SOC1" begin
-        m = Model(with_optimizer(solver))
+        m = Model(with_optimizer(solver, outlev=0))
         @variable(m, x)
         @variable(m, y)
         @variable(m, t >= 0)
@@ -22,7 +32,7 @@ using JuMP
     end
 
     @testset "RotatedSOC1" begin
-        m = Model(with_optimizer(solver))
+        m = Model(with_optimizer(solver, outlev=0))
 
         @variable(m, x[1:5] >= 0)
         @variable(m, 0 <= u <= 5)

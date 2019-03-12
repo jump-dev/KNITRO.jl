@@ -148,9 +148,9 @@ end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
                  ci::MOI.ConstraintIndex{S, T}) where {S <: VAF, T <: Union{MOI.Nonnegatives, MOI.Nonpositives}}
+    @warn("Support for MOI getter for MOI.Nonpositives and Nonnegatives constraints is still experimental in Knitro")
     @checkcons(model, ci)
     g = KN_get_con_values(model.inner)
-
     index = model.constraint_mapping[ci] .+ 1
     return g[index]
 end
@@ -165,6 +165,7 @@ end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
                  ci::MOI.ConstraintIndex{S, T}) where {S <: Union{VAF, VOV}, T <: MOI.Zeros}
+    @warn("Support for MOI getter for MOI.Zeros constraints is still experimental in Knitro")
     @checkcons(model, ci)
     ncons = length(model.constraint_mapping[ci])
     return zeros(ncons)
@@ -250,11 +251,11 @@ end
 #
 # Use the following mathematical property.  Let
 #
-# ||u_i || <= t_i      with dual associated constraint    || z_i || <= w_i
+#   ||u_i || <= t_i      with dual constraint    || z_i || <= w_i
 #
 # At optimality, we have
 #
-# w_i * u_i  = - t_i z_i
+#   w_i * u_i  = - t_i z_i
 #
 ###
 function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
@@ -263,7 +264,6 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
     index_var = model.constraint_mapping[ci] .+ 1
     index_con = ci.value
     x =  get_solution(model.inner)[index_var]
-    println(x)
     # By construction.
     t_i = x[1]
     u_i = x[2:end]
