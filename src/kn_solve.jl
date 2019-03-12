@@ -34,7 +34,49 @@ function KN_get_solution(m::Model)
 end
 
 # some wrapper functions for MOI
-get_status(m::Model) = KN_get_solution(m)[1]
-get_objective(m::Model) = KN_get_solution(m)[2]
-get_solution(m::Model) = KN_get_solution(m)[3]
-get_dual(m::Model) = KN_get_solution(m)[4]
+function get_status(m::Model)
+    @assert m.env != C_NULL
+    status = Cint[0]
+    obj = Cdouble[0.]
+    ret = @kn_ccall(get_solution, Cint,
+                    (Ptr{Cvoid}, Ptr{Cint}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}),
+                    m.env, status, obj, C_NULL, C_NULL)
+    return status[1]
+end
+
+function get_objective(m::Model)
+    @assert m.env != C_NULL
+    status = Cint[0]
+    obj = Cdouble[0.]
+    ret = @kn_ccall(get_solution, Cint,
+                    (Ptr{Cvoid}, Ptr{Cint}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}),
+                    m.env, status, obj, C_NULL, C_NULL)
+    return obj[1]
+end
+
+function get_solution(m::Model)
+    # we first check that the model is well defined to avoid segfault
+    @assert m.env != C_NULL
+    nx = KN_get_number_vars(m)
+    x = zeros(Cdouble, nx)
+    status = Cint[0]
+    obj = Cdouble[0.]
+    ret = @kn_ccall(get_solution, Cint,
+                    (Ptr{Cvoid}, Ptr{Cint}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}),
+                    m.env, status, obj, x, C_NULL)
+    return x
+end
+
+function get_dual(m::Model)
+    # we first check that the model is well defined to avoid segfault
+    @assert m.env != C_NULL
+    nx = KN_get_number_vars(m)
+    nc = KN_get_number_cons(m)
+    lambda = zeros(Cdouble, nx + nc)
+    status = Cint[0]
+    obj = Cdouble[0.]
+    ret = @kn_ccall(get_solution, Cint,
+                    (Ptr{Cvoid}, Ptr{Cint}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}),
+                    m.env, status, obj, C_NULL, lambda)
+    return lambda
+end

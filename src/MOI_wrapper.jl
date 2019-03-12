@@ -1,9 +1,10 @@
 ################################################################################
 # MOI wrapper
 ################################################################################
-# This file is largely inspired from:
-# https://github.com/JuliaOpt/Ipopt.jl/blob/master/src/MOIWrapper.jl
-# The authors are indebted to the developpers of Ipopt.jl for
+# This file is largely inspired from MOI wrappers existing in other
+# JuliaOpt packages:
+# https://www.juliaopt.org/
+# The authors are indebted to the developers of JuliaOpt for
 # the current MOI wrapper.
 #
 #--------------------------------------------------
@@ -19,8 +20,8 @@
 #
 # - NLP data are handled via KNITRO's callbacks
 #
-# NB: if `model.nlp_data`is empty, KNITRO would not use any
-#     callbacks during the resolving.
+# NB: If `model.nlp_data` is empty, KNITRO would not use any
+#     callbacks during solve.
 #
 #--------------------------------------------------
 
@@ -28,6 +29,7 @@ import MathOptInterface
 const MOI  = MathOptInterface
 const MOIU = MathOptInterface.Utilities
 
+# TODO
 const SF = Union{MOI.ScalarAffineFunction{Float64},
                  MOI.ScalarQuadraticFunction{Float64}}
 const VAF = MOI.VectorAffineFunction{Float64}
@@ -65,7 +67,6 @@ mutable struct VariableInfo
     is_fixed::Bool        # Implies lower_bound == upper_bound and !has_lower_bound and !has_upper_bound.
     name::String
 end
-# The default start value is zero.
 VariableInfo() = VariableInfo(-Inf, false, Inf, false, false, "")
 
 
@@ -107,6 +108,8 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     nlp_index_cons::Vector{Cint}
     # Store optimization sense.
     sense::MOI.OptimizationSense
+    # Store the structure of the objective.
+    objective::Union{MOI.SingleVariable,MOI.ScalarAffineFunction{Float64},MOI.ScalarQuadraticFunction{Float64},Nothing}
     # Constraint counters.
     number_zeroone_constraints::Int
     number_integer_constraints::Int
@@ -117,7 +120,7 @@ end
 
 function set_options(model::Optimizer)
     # Set KNITRO option.
-    for (name,value) in model.options
+    for (name, value) in model.options
         sname = string(name)
         if sname == "option_file"
             KN_load_param_file(model.inner, value)
@@ -143,7 +146,7 @@ function Optimizer(;license_manager=nothing, options...)
         kc = KN_new()
     end
     model = Optimizer(kc, [], 0, false, empty_nlp_data(),
-                      Cint[], MOI.FEASIBILITY_SENSE, 0, 0,
+                      Cint[], MOI.FEASIBILITY_SENSE, nothing, 0, 0,
                       Dict{MOI.ConstraintIndex, Int}(), options)
 
     set_options(model)
@@ -175,6 +178,7 @@ function MOI.empty!(model::Optimizer)
     model.nlp_data = empty_nlp_data()
     model.nlp_loaded = false
     model.sense = MOI.FEASIBILITY_SENSE
+    model.objective = nothing
     model.number_zeroone_constraints = 0
     model.number_integer_constraints = 0
     model.constraint_mapping = Dict()
@@ -188,9 +192,10 @@ function MOI.is_empty(model::Optimizer)
            model.sense == MOI.FEASIBILITY_SENSE &&
            model.number_solved == 0 &&
            model.sense == MOI.FEASIBILITY_SENSE &&
+           isa(model.objective, Nothing) &&
            model.number_zeroone_constraints == 0 &&
            model.number_integer_constraints == 0 &&
-           ~model.nlp_loaded
+           !model.nlp_loaded
 
 end
 
@@ -208,7 +213,7 @@ function MOI.optimize!(model::Optimizer)
     # However, we encounter an error if we do so, because currently
     # the definition of eval_*_cb functions should be in the same
     # scope as KN_solve (may be due to a closure limitation).
-    if ~isa(model.nlp_data.evaluator, EmptyNLPEvaluator) && ~model.nlp_loaded
+    if !isa(model.nlp_data.evaluator, EmptyNLPEvaluator) && !model.nlp_loaded
         # Instantiate NLPEvaluator once and for all.
         features = MOI.features_available(model.nlp_data.evaluator)
         has_hessian = (:Hess in features)
@@ -222,7 +227,7 @@ function MOI.optimize!(model::Optimizer)
 
         # The callbacks must match the signature of the callbacks
         # defined in knitro.h.
-        # Objective callback (set both objective and constraint evaluation.
+        # Objective callback (set both objective and constraint evaluation).
         function eval_f_cb(kc, cb, evalRequest, evalResult, userParams)
             # Evaluate objective if specified in nlp_data.
             if model.nlp_data.has_objective
@@ -263,12 +268,16 @@ function MOI.optimize!(model::Optimizer)
         end
 
         # Be careful that sometimes objective is not evaluated here.
+        # In any case, NLP objective has precedence other model.objective.
         if model.nlp_data.has_objective
             # Here, we assume that the full objective is evaluated in eval_f.
             cb = KN_add_eval_callback(model.inner, eval_f_cb)
         else
             indexcons = collect(Int32, 0:length(model.nlp_data.constraint_bounds)-1)
             cb = KN_add_eval_callback(model.inner, false, indexcons, eval_f_cb)
+
+            # If a objective is specified in model.objective, load it.
+            !isa(model.objective, Nothing) && add_objective!(model, model.objective)
         end
 
         # Get jacobian structure.
@@ -300,6 +309,8 @@ function MOI.optimize!(model::Optimizer)
         end
 
         model.nlp_loaded = true
+    elseif !isa(model.objective, Nothing)
+        add_objective!(model, model.objective)
     end
 
     KN_solve(model.inner)

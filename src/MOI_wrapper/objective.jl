@@ -8,6 +8,10 @@ MOI.supports(::Optimizer, ::MOI.ObjectiveSense) = true
 MOI.get(model::Optimizer, ::MOI.ObjectiveSense) = model.sense
 
 ##################################################
+# Delete model.objective to avoid duplicate in memory
+# between MOI and Knitro.
+reset_objective!(model::Optimizer) = (model.objective = nothing)
+
 # Objective definition.
 function add_objective!(model::Optimizer, objective::MOI.ScalarQuadraticFunction)
     # We parse the expression passed in arguments.
@@ -17,6 +21,7 @@ function add_objective!(model::Optimizer, objective::MOI.ScalarQuadraticFunction
     KN_add_obj_quadratic_struct(model.inner, qobjindex1, qobjindex2, qcoefs)
     KN_add_obj_linear_struct(model.inner, lobjindex, lcoefs)
     KN_add_obj_constant(model.inner, objective.constant)
+    reset_objective!(model)
     return
 end
 
@@ -26,12 +31,14 @@ function add_objective!(model::Optimizer, objective::MOI.ScalarAffineFunction)
     # We load the objective inside KNITRO.
     KN_add_obj_linear_struct(model.inner, lobjindex, lcoefs)
     KN_add_obj_constant(model.inner, objective.constant)
+    reset_objective!(model)
     return
 end
 
 function add_objective!(model::Optimizer, var::MOI.SingleVariable)
     # We load the objective inside KNITRO.
-    KN_add_obj_linear_struct(model.inner, var.variable.value-1, 1.)
+    KN_add_obj_linear_struct(model.inner, var.variable.value - 1, 1.)
+    reset_objective!(model)
     return
 end
 
@@ -41,13 +48,14 @@ function MOI.set(model::Optimizer, ::MOI.ObjectiveFunction,
     # 1/ if the model was already solved, we cannot change the objective.
     (model.number_solved >= 1) && throw(UpdateObjectiveError())
     # 2/ if the model has valid non-linear objective, discard adding func.
-    if ~isa(model.nlp_data.evaluator, EmptyNLPEvaluator) && model.nlp_data.has_objective
-        @warn("Objective of `model` is already specified in NLPBlockData.")
+    if !isa(model.nlp_data.evaluator, EmptyNLPEvaluator) && model.nlp_data.has_objective
+        @warn("Objective is already specified in NLPBlockData.")
         return
     end
     check_inbounds(model, func)
-    # We can fetch directly the objective as an expression.
-    add_objective!(model, func)
+    # Store objective inside model and load it inside Knitro
+    # when calling optimize! function.
+    model.objective = func
     return
 end
 

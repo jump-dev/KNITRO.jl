@@ -1,7 +1,8 @@
-#*******************************************************
-#* Copyright(c) 2018 by Artelys                       *
-#* All Rights Reserved                                 *
-#*******************************************************
+#*******************************************************/
+#* Copyright(c) 2018 by Artelys                        */
+#* This source code is subject to the terms of the     */
+#* MIT Expat License (see LICENSE.md)                  */
+#*******************************************************/
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # This example demonstrates how to use Knitro to solve the following
@@ -52,7 +53,8 @@ kc = KNITRO.KN_new()
 
 # Illustrate how to override default options by reading from
 # the knitro.opt file.
-KNITRO.KN_load_param_file(kc, "examples/knitro.opt")
+options = joinpath(dirname(@__FILE__), "..", "examples", "knitro.opt")
+KNITRO.KN_load_param_file(kc, options)
 
 # Initialize Knitro with the problem definition.
 

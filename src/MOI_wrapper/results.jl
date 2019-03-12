@@ -115,6 +115,14 @@ function MOI.get(model::Optimizer,
     check_inbounds(model, vi)
     return get_solution(model.inner)[vi.value]
 end
+function MOI.get(model::Optimizer,
+                 ::MOI.VariablePrimal, vi::Vector{MOI.VariableIndex})
+    if model.number_solved == 0
+        error("VariablePrimal not available.")
+    end
+    x = get_solution(model.inner)
+    return [x[v.value] for v in vi]
+end
 
 macro checkcons(model, ci)
     quote
@@ -142,6 +150,7 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
                  ci::MOI.ConstraintIndex{S, T}) where {S <: VAF, T <: Union{MOI.Nonnegatives, MOI.Nonpositives}}
     @checkcons(model, ci)
     g = KN_get_con_values(model.inner)
+
     index = model.constraint_mapping[ci] .+ 1
     return g[index]
 end
@@ -175,43 +184,35 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
     if model.number_solved == 0
         error("ConstraintPrimal not available.")
     end
-    vi = MOI.VariableIndex(ci.value)
-    check_inbounds(model, vi)
-    if !has_upper_bound(model, vi)
-        error("Variable $vi has no upper bound -- ConstraintPrimal not defined.")
+    g = KN_get_con_values(model.inner)
+
+    allindex = Int[]
+    for ci in cis
+        append!(allindex, index)
     end
-    x = get_solution(model.inner)
-    return x[vi.value]
+    allindex .+= 1
+
+    return g[allindex]
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
-                 ci::MOI.ConstraintIndex{MOI.SingleVariable,
-                                         MOI.GreaterThan{Float64}})
+                 ci::MOI.ConstraintIndex{MOI.SingleVariable, <:LS})
     if model.number_solved == 0
         error("ConstraintPrimal not available.")
     end
     vi = MOI.VariableIndex(ci.value)
     check_inbounds(model, vi)
-    if !has_lower_bound(model, vi)
-        error("Variable $vi has no lower bound -- ConstraintPrimal not defined.")
-    end
     x = get_solution(model.inner)
     return x[vi.value]
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
-                 ci::MOI.ConstraintIndex{MOI.SingleVariable,
-                                         MOI.EqualTo{Float64}})
+                 ci::Vector{MOI.ConstraintIndex{MOI.SingleVariable, <:LS}})
     if model.number_solved == 0
         error("ConstraintPrimal not available.")
     end
-    vi = MOI.VariableIndex(ci.value)
-    check_inbounds(model, vi)
-    if !is_fixed(model, vi)
-        error("Variable $vi is not fixed -- ConstraintPrimal not defined.")
-    end
     x = get_solution(model.inner)
-    return x[vi.value]
+    return [x[c.value] for c in ci]
 end
 
 ##################################################

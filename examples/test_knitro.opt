@@ -1,5 +1,5 @@
 
-# Artelys Knitro 11.1.0 Options file
+# Artelys Knitro 12.0.0 Options file
 # http://www.artelys.com/tools/knitro_doc/
 
 # Which algorithm to use.
@@ -394,9 +394,9 @@ maxtime_real 1e+08
 #   strong      = 3 = use strong branching
 mip_branchrule auto
 
-# Limit on the number of cuts added to node NLP; if nonnegative,
-# a maximum of mip_cutfactor times number of constraints cuts is
-# possibly appended.
+# Specifies the MIP select direction for choosing a node.
+#   down        = 0 = choose the lesser-than node first
+#   up          = 1 = choose the greater-than node first
 mip_cutfactor 1
 
 # Specifies debugging level for MIP solution.
@@ -409,20 +409,24 @@ mip_debug none
 #   yes  = 1 = branch on GUBs
 mip_gub_branch no
 
+# Maximum number of nodes explored (0 means no limit).
+mip_heuristic auto
+
 # Specifies which MIP heuristic search approach to apply
 # to try to find an initial integer feasible point.
 #   auto     = -1 = let Knitro choose the heuristic
 #   none     =  0 = no heuristic search applied
 #   feaspump =  2 = apply feasibility pump heuristic
 #   mpec     =  3 = apply MPEC heuristic
-mip_heuristic auto
-
-# Maximum number of iterations to allow for MIP heuristic.
 mip_heuristic_maxit 100
 
-# Specifies conditions for terminating the MIP heuristic.
-#   feasible  = 1 = terminate at first feasible point
-#   limit     = 2 = run heuristic until it hits limit
+# Specifies which algorithm to use for standard node subproblem solves in MIP
+#   auto   = 0 = let Knitro choose the algorithm
+#   direct = 1 = use Interior (barrier) Direct algorithm
+#   cg     = 2 = use Interior (barrier) CG algorithm
+#   active = 3 = use Active Set SLQP algorithm
+#   sqp    = 4 = use Active Set SQP algorithm
+#   multi  = 5 = run multiple algorithms (perhaps in parallel)
 mip_heuristic_terminate feasible
 
 # Whether to add logical implications deduced from
@@ -440,10 +444,7 @@ mip_integral_gap_abs 1e-06
 # Specifies relative stop tolerance for sufficiently small integrality gap.
 mip_integral_gap_rel 1e-06
 
-# How to handle integer variables by default.
-#   none   = 0 = no special treatment
-#   relax  = 1 = relax integer variables
-#   mpec   = 2 = convert to mpec constraints
+# Maximum number of levels on which to perform MIP strong branching.
 mip_intvar_strategy none
 
 # Specifies rules for adding MIP knapsack cuts.
@@ -453,14 +454,23 @@ mip_intvar_strategy none
 #   all       = 3 = add inequality and lifted knapsack cuts
 mip_knapsack ineqs
 
-# Specifies which algorithm to use for LP subproblem solves in MIP.
+# Limit on the number of cuts added to node NLP; if nonnegative,
+# a maximum of mip_cutfactor times number of constraints cuts is
+# possibly appended.
+mip_zerohalf root
+
+# Specifies which algorithm to use for the root node solve in MIP
 #   auto   = 0 = let Knitro choose the algorithm
 #   direct = 1 = use Interior (barrier) Direct algorithm
 #   cg     = 2 = use Interior (barrier) CG algorithm
-#   active = 3 = use Active Set (simplex) algorithm
+#   active = 3 = use Active Set SLQP algorithm
+#   sqp    = 4 = use Active Set SQP algorithm
+#   multi  = 5 = run multiple algorithms (perhaps in parallel)
 mip_lpalg auto
 
-# Maximum number of nodes explored (0 means no limit).
+# Specifies conditions for terminating the MIP algorithm.
+#   optimal   = 0 = terminate at optimum
+#   feasible  = 1 = terminate at first integer feasible point
 mip_maxnodes 100000
 
 # Maximum number of subproblem solves allowed (0 means no limit).
@@ -481,13 +491,9 @@ mip_maxtime_real 1e+08
 #   MISQP = 3 = mixed-integer SQP
 mip_method auto
 
-# Specifies which algorithm to use for standard node subproblem solves in MIP
-#   auto   = 0 = let Knitro choose the algorithm
-#   direct = 1 = use Interior (barrier) Direct algorithm
-#   cg     = 2 = use Interior (barrier) CG algorithm
-#   active = 3 = use Active Set SLQP algorithm
-#   sqp    = 4 = use Active Set SQP algorithm
-#   multi  = 5 = run multiple algorithms (perhaps in parallel)
+# Whether integer variables are relaxable.
+#   none   = 0 = integer variables not relaxable
+#   all    = 1 = all integer variables are relaxable
 mip_nodealg auto
 
 # Specifies printing interval for mip_outlevel.
@@ -509,25 +515,17 @@ mip_outlevel iters
 #   2 = Subproblem output enabled and print problem characteristics
 mip_outsub 0
 
-# How to initialize pseudo-costs.
-#   auto   = 0 = let Knitro choose the method
-#   ave    = 1 = use average value
-#   strong = 2 = use strong branching
+# Specifies MIP subproblem solve output control.
+#   0 = no output from subproblem solves
+#   1 = Subproblem output enabled, controlled by option 'outlev'
+#   2 = Subproblem output enabled and print problem characteristics
 mip_pseudoinit auto
 
-# Whether integer variables are relaxable.
-#   none   = 0 = integer variables not relaxable
-#   all    = 1 = all integer variables are relaxable
+# How to handle integer variables by default.
+#   none   = 0 = no special treatment
+#   relax  = 1 = relax integer variables
+#   mpec   = 2 = convert to mpec constraints
 mip_relaxable  all
-
-# Specifies which algorithm to use for the root node solve in MIP
-#   auto   = 0 = let Knitro choose the algorithm
-#   direct = 1 = use Interior (barrier) Direct algorithm
-#   cg     = 2 = use Interior (barrier) CG algorithm
-#   active = 3 = use Active Set SLQP algorithm
-#   sqp    = 4 = use Active Set SQP algorithm
-#   multi  = 5 = run multiple algorithms (perhaps in parallel)
-mip_rootalg auto
 
 # Specifies the MIP rounding rule to apply.
 #   auto          = -1 = let Knitro choose the rule
@@ -535,11 +533,18 @@ mip_rootalg auto
 #   heur_only     =  2 = round using heuristic only (fast)
 #   nlp_sometimes =  3 = round and solve NLP if likely to succeed
 #   nlp_always    =  4 = always round and solve NLP
+mip_rootalg auto
+
+# Specifies rules for adding MIP ZERO HALF cuts.
+#   none      = 0 = do not add zerohalf cuts
+#   ineqs     = 1 = add cuts derived in the root node
+#   lifted    = 2 = add zerohalf cuts in the tree
+#   all       = 3 = add zero half cuts in the root and he tree
 mip_rounding auto
 
-# Specifies the MIP select direction for choosing a node.
-#   down        = 0 = choose the lesser-than node first
-#   up          = 1 = choose the greater-than node first
+# Specifies conditions for terminating the MIP heuristic.
+#   feasible  = 1 = terminate at first feasible point
+#   limit     = 2 = run heuristic until it hits limit
 mip_selectdir down
 
 # Specifies the MIP select rule for choosing a node.
@@ -549,18 +554,23 @@ mip_selectdir down
 #   combo_1     = 3 = depth first unless pruned, then best bound
 mip_selectrule auto
 
-# Maximum number of candidates to explore for MIP strong branching.
+# Maximum number of iterations to allow for MIP strong branching solves.
 mip_strong_candlim 10
 
-# Maximum number of levels on which to perform MIP strong branching.
+# Maximum number of candidates to explore for MIP strong branching.
 mip_strong_level 10
 
-# Maximum number of iterations to allow for MIP strong branching solves.
+# How to initialize pseudo-costs.
+#   auto   = 0 = let Knitro choose the method
+#   ave    = 1 = use average value
+#   strong = 2 = use strong branching
 mip_strong_maxit 1000
 
-# Specifies conditions for terminating the MIP algorithm.
-#   optimal   = 0 = terminate at optimum
-#   feasible  = 1 = terminate at first integer feasible point
+# Specifies which algorithm to use for LP subproblem solves in MIP.
+#   auto   = 0 = let Knitro choose the algorithm
+#   direct = 1 = use Interior (barrier) Direct algorithm
+#   cg     = 2 = use Interior (barrier) CG algorithm
+#   active = 3 = use Active Set (simplex) algorithm
 mip_terminate optimal
 
 # Whether to use a deterministic version of multistart.
@@ -685,30 +695,30 @@ outmode      screen
 # This option should be set before calling KTR_init_problem().
 #outname      .
 
-# Number of threads to use in parallel BLAS.
-#   choose any positive integer, or
-#   0 = determine automatically based on par_numthreads
-par_blasnumthreads 0
-
 # Whether to allow simultaneous evaluations in parallel.
 #   no   = 0 = only one thread can perform an evaluation at a time
 #   yes  = 1 = allow multi-threaded simultaneous evaluations
-par_concurrent_evals  yes
-
-# Number of threads to use in parallel linear solver.
-#   choose any positive integer, or
-#   0 = determine automatically based on par_numthreads
-par_lsnumthreads 0
-
-# Number of threads to use in parallel multistart.
-#   choose any positive integer, or
-#   0 = determine automatically based on par_numthreads
-par_msnumthreads 0
+par_blasnumthreads 0
 
 # Number of threads to use in parallel features.
 #   choose any positive integer, or
 #   0 = value determined by OMP_NUM_THREADS environment variable
 #  -1 = run sequential version of Knitro code
+par_concurrent_evals  yes
+
+# Number of threads to use in parallel BLAS.
+#   choose any positive integer, or
+#   0 = determine automatically based on par_numthreads
+par_lsnumthreads 0
+
+# Number of threads to use in parallel linear solver.
+#   choose any positive integer, or
+#   0 = determine automatically based on par_numthreads
+par_msnumthreads 0
+
+# Number of threads to use in parallel linear solver.
+#   choose any positive integer, or
+#   0 = determine automatically based on par_numthreads
 par_numthreads 1
 
 # Whether to apply a presolve operation to the model.

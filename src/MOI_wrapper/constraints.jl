@@ -65,8 +65,8 @@ function MOI.add_constraint(model::Optimizer,
     ub = check_value(lt.upper)
     model.variable_info[vi.value].upper_bound = ub
     model.variable_info[vi.value].has_upper_bound = true
-    # We assume that MOI's indexing is the same as KNITRO's indexing.
-    KN_set_var_upbnds(model.inner, vi.value-1, ub)
+    # By construction, MOI's indexing is the same as KNITRO's indexing.
+    KN_set_var_upbnds(model.inner, vi.value - 1, ub)
     return MOI.ConstraintIndex{MOI.SingleVariable, MOI.LessThan{Float64}}(vi.value)
 end
 
@@ -88,7 +88,7 @@ function MOI.add_constraint(model::Optimizer,
     model.variable_info[vi.value].lower_bound = lb
     model.variable_info[vi.value].has_lower_bound = true
     # We assume that MOI's indexing is the same as KNITRO's indexing.
-    KN_set_var_lobnds(model.inner, vi.value-1, lb)
+    KN_set_var_lobnds(model.inner, vi.value - 1, lb)
     return MOI.ConstraintIndex{MOI.SingleVariable, MOI.GreaterThan{Float64}}(vi.value)
 end
 
@@ -114,7 +114,7 @@ function MOI.add_constraint(model::Optimizer,
     model.variable_info[vi.value].upper_bound = eqv
     model.variable_info[vi.value].is_fixed = true
     # We assume that MOI's indexing is the same as KNITRO's indexing.
-    KN_set_var_fxbnds(model.inner, vi.value-1, eqv)
+    KN_set_var_fxbnds(model.inner, vi.value - 1, eqv)
     return MOI.ConstraintIndex{MOI.SingleVariable, MOI.EqualTo{Float64}}(vi.value)
 end
 
@@ -216,7 +216,8 @@ function MOI.add_constraint(model::Optimizer,
     elseif isa(set, MOI.Zeros)
         KN_set_con_eqbnds(model.inner, index_cons, - func.constants)
     else
-        error("Unvalid set $set for VectorAffineFunction constraint")
+        # TODO
+        error("Invalid set $set for VectorAffineFunction constraint")
     end
     # Add constraints to index.
     ci = MOI.ConstraintIndex{typeof(func), typeof(set)}(index_cons[1])
@@ -330,12 +331,26 @@ end
 function MOI.add_constraint(model::Optimizer,
                             v::MOI.SingleVariable, ::MOI.ZeroOne)
     vi = v.variable
+    indv = vi.value - 1
     check_inbounds(model, vi)
     model.number_zeroone_constraints += 1
-    # We have to made the bounds explicit for KNITRO.
-    KN_set_var_lobnds(model.inner, vi.value-1, 0.)
-    KN_set_var_upbnds(model.inner, vi.value-1, 1.)
-    KN_set_var_type(model.inner, vi.value-1, KN_VARTYPE_BINARY)
+    # Made the bounds explicit for KNITRO and take care of
+    # preexisting MOI's bounds.
+    lobnd = 0.
+    if model.variable_info[indv + 1].has_lower_bound
+        # Knitro automatically set the lowerbound to 0., except
+        # if it is equal to 1.
+        lobnd = model.variable_info[indv +1 ].lower_bound
+    end
+    upbnd = 1.
+    if model.variable_info[indv + 1].has_upper_bound
+        # Knitro automatically set the upperbound to 1., except
+        # if it is equal to 0.
+        upbnd = model.variable_info[indv +1 ].upper_bound
+    end
+    KN_set_var_lobnds(model.inner, indv, lobnd)
+    KN_set_var_upbnds(model.inner, indv, upbnd)
+    KN_set_var_type(model.inner, vi.value - 1, KN_VARTYPE_BINARY)
 
     return MOI.ConstraintIndex{MOI.SingleVariable, MOI.ZeroOne}(model.number_zeroone_constraints)
 end
@@ -346,7 +361,7 @@ function MOI.add_constraint(model::Optimizer,
     vi = v.variable
     check_inbounds(model, vi)
     model.number_integer_constraints += 1
-    KN_set_var_type(model.inner, vi.value-1, KN_VARTYPE_INTEGER)
+    KN_set_var_type(model.inner, vi.value - 1, KN_VARTYPE_INTEGER)
     return MOI.ConstraintIndex{MOI.SingleVariable, MOI.Integer}(model.number_integer_constraints)
 end
 
@@ -361,10 +376,10 @@ function MOI.set(model::Optimizer, ::MOI.ConstraintDualStart,
                  ci::MOI.ConstraintIndex, value::Union{Real, Nothing})
     check_inbounds(model, ci)
     if isa(value, Real)
-        KN_set_con_dual_init_values(model.inner, vi.value-1, Cdouble(value))
+        KN_set_con_dual_init_values(model.inner, vi.value - 1, Cdouble(value))
     else
         # By default, initial value is set to 0.
-        KN_set_con_dual_init_values(model.inner, vi.value-1, Cdouble(0.))
+        KN_set_con_dual_init_values(model.inner, vi.value - 1, Cdouble(0.))
     end
     return
 end

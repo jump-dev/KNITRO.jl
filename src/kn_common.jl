@@ -3,6 +3,7 @@
 
 # KNITRO special types
 const KNLONG = Clonglong
+const KNBOOL = Cint
 
 
 "A macro to make calling KNITRO's KN_* C API a little cleaner"

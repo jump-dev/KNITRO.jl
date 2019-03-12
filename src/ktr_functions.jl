@@ -67,7 +67,7 @@ function freecontext(kp_env::Ptr{Nothing})
     end
 end
 
-# /** Allocate memory for a license from the Ziena License Manager for high
+# /** Allocate memory for a license from the Artelys License Manager for high
 #  *  volume KNITRO applications.  The license will be checked out the first
 #  *  time KTR_new_zlm is called.  The license must be checked in later by
 #  *  calling ZLM_release_license.

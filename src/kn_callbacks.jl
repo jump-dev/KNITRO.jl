@@ -298,7 +298,7 @@ function eval_fc_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     # we have to ensure that cb is a CallbackContext
     # otherwise, we tell KNITRO that a problem occurs by returning a
     # non-zero status
-    if ~isa(cb, CallbackContext)
+    if !isa(cb, CallbackContext)
         return Cint(32)
     end
 
@@ -329,7 +329,7 @@ function eval_ga_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     # we have to ensure that cb is a CallbackContext
     # otherwise, we tell KNITRO that a problem occurs by returning a
     # non-zero status
-    if ~isa(cb, CallbackContext)
+    if !isa(cb, CallbackContext)
         return Cint(32)
     end
 
@@ -360,7 +360,7 @@ function eval_hess_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     # we have to ensure that cb is a CallbackContext
     # otherwise, we tell KNITRO that a problem occurs by returning a
     # non-zero status
-    if ~isa(cb, CallbackContext)
+    if !isa(cb, CallbackContext)
         return Cint(32)
     end
 
@@ -459,8 +459,8 @@ function KN_add_eval_callback(m::Model, evalObj::Bool, indexCons::Vector{Cint},
 
     # add callback to context
     ret = @kn_ccall(add_eval_callback, Cint,
-                    (Ptr{Cvoid}, Cuchar, Cint, Ptr{Cint}, Ptr{Cvoid}, Ptr{Cvoid}),
-                    m.env, evalObj, nC, indexCons, c_f, rfptr)
+                    (Ptr{Cvoid}, KNBOOL, Cint, Ptr{Cint}, Ptr{Cvoid}, Ptr{Cvoid}),
+                    m.env, KNBOOL(evalObj), nC, indexCons, c_f, rfptr)
     _checkraise(ret)
     cb = CallbackContext(rfptr.x, m)
 
@@ -614,7 +614,7 @@ function eval_rsd_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     # we have to ensure that cb is a CallbackContext
     # otherwise, we tell KNITRO that a problem occurs by returning a
     # non-zero status
-    if ~isa(cb, CallbackContext)
+    if !isa(cb, CallbackContext)
         return Cint(32)
     end
 
@@ -688,7 +688,7 @@ function eval_rj_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
     # we have to ensure that cb is a CallbackContext
     # otherwise, we tell KNITRO that a problem occurs by returning a
     # non-zero status
-    if ~isa(cb, CallbackContext)
+    if !isa(cb, CallbackContext)
         return Cint(32)
     end
 

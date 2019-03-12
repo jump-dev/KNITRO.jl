@@ -1,8 +1,8 @@
-#*******************************************************
-#* Copyright(c) 2018 by Artelys                       *
-#* All Rights Reserved                                 *
-#*******************************************************
-
+#*******************************************************/
+#* Copyright(c) 2018 by Artelys                        */
+#* This source code is subject to the terms of the     */
+#* MIT Expat License (see LICENSE.md)                  */
+#*******************************************************/
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # This file contains routines to implement problemDef.h for
 # a simple nonlinear least-squares problem.
