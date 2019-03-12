@@ -24,6 +24,8 @@ MOI.supports_constraint(::Optimizer, ::Type{VOV}, ::Type{MOI.SecondOrderCone}) =
 
 ##################################################
 ## Getters
+MOI.get(model::Optimizer, ::MOI.NumberOfConstraints) =
+    KN_get_number_cons(model.inner)
 MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.SingleVariable, MOI.ZeroOne}) =
     model.number_zeroone_constraints
 # TODO: a bit hacky, but that should work for MOI Test.
@@ -300,7 +302,7 @@ function MOI.add_constraint(model::Optimizer,
     (model.number_solved >= 1) && throw(AddConstraintError())
     # Add constraints inside KNITRO.
     index_con = KN_add_con(model.inner)
-    indv = [v.value for v in func.variables] .- 1
+    indv = [v.value - 1 for v in func.variables]
 
     KN_set_con_upbnd(model.inner, index_con, 0.)
     KN_add_con_linear_struct(model.inner, index_con, indv[1], -1.0)

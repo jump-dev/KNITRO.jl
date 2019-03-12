@@ -188,9 +188,8 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
 
     allindex = Int[]
     for ci in cis
-        append!(allindex, index)
+        append!(allindex, index + 1)
     end
-    allindex .+= 1
 
     return g[allindex]
 end
@@ -246,12 +245,33 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
     return sense_dual(model) * lambda[index]
 end
 
+###
+# Get constraint of a SOC constraint.
+#
+# Use the following mathematical property.  Let
+#
+# ||u_i || <= t_i      with dual associated constraint    || z_i || <= w_i
+#
+# At optimality, we have
+#
+# w_i * u_i  = - t_i z_i
+#
+###
 function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
                  ci::MOI.ConstraintIndex{S, T}) where {S <: Union{VAF, VOV}, T <: MOI.SecondOrderCone}
     @checkcons(model, ci)
-    index = model.constraint_mapping[ci] .+ 1
-    lambda = get_dual(model.inner)
-    return sense_dual(model) * lambda[index]
+    index_var = model.constraint_mapping[ci] .+ 1
+    index_con = ci.value
+    x =  get_solution(model.inner)[index_var]
+    println(x)
+    # By construction.
+    t_i = x[1]
+    u_i = x[2:end]
+    w_i = get_dual(model.inner)[index_con]
+
+    dual = [-w_i; 1/t_i * w_i * u_i]
+
+    return dual
 end
 
 ## Reduced costs.
