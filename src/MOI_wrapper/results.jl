@@ -113,7 +113,7 @@ function MOI.get(model::Optimizer,
         error("VariablePrimal not available.")
     end
     check_inbounds(model, vi)
-    return get_solution(model.inner)[vi.value]
+    return get_solution(model.inner, vi.value)
 end
 
 function MOI.get(model::Optimizer,
@@ -159,8 +159,7 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
     end
     vi = MOI.VariableIndex(ci.value)
     check_inbounds(model, vi)
-    x = get_solution(model.inner)
-    return x[vi.value]
+    return get_solution(model.inner, vi.value)
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
