@@ -260,3 +260,10 @@ function MOI.get(model::Optimizer, ::MOI.NLPBlockDual)
     # and quadratic constraint, but this is not tested inside MOI.
     return sense_dual(model) .* [lambda[i+1] for i in model.nlp_index_cons]
 end
+
+###
+# Additional getters
+MOI.get(model::Optimizer, ::MOI.NodeCount) = KN_get_mip_number_nodes(model)
+MOI.get(model::Optimizer, ::MOI.BarrierIterations) = KN_get_number_iters(model)
+MOI.get(model::Optimizer, ::MOI.RelativeGap) = KN_get_mip_rel_gap(model)
+MOI.get(model::Optimizer, ::MOI.ObjectiveBound) = KN_get_mip_relaxation_bnd(model)
