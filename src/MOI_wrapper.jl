@@ -174,6 +174,7 @@ function MOI.empty!(model::Optimizer)
     model.number_solved = 0
     model.nlp_data = empty_nlp_data()
     model.nlp_loaded = false
+    model.nlp_index_cons = Cint[]
     model.sense = MOI.FEASIBILITY_SENSE
     model.objective = nothing
     model.number_zeroone_constraints = 0
@@ -204,6 +205,9 @@ number_constraints(model::Optimizer) = KN_get_number_cons(model.inner)
 # Optimize
 ##################################################
 function MOI.optimize!(model::Optimizer)
+    KN_set_param(model.inner, "datacheck", 0)
+    KN_set_param(model.inner, "hessian_no_f", 1)
+
     # Add NLP structure if specified.
     if !isa(model.nlp_data.evaluator, EmptyNLPEvaluator) && !model.nlp_loaded
         # Instantiate NLPEvaluator once and for all.
@@ -262,11 +266,14 @@ function MOI.optimize!(model::Optimizer)
         # Be careful that sometimes objective is not evaluated here.
         # In any case, NLP objective has precedence over model.objective.
         if model.nlp_data.has_objective
-            # Here, we assume that the full objective is evaluated in eval_f.
-            cb = KN_add_eval_callback(model.inner, eval_f_cb)
-        else
-            indexcons = Int32[i for i in 0:length(model.nlp_data.constraint_bounds)-1]
-            cb = KN_add_eval_callback(model.inner, false, indexcons, eval_f_cb)
+            if num_nlp_constraints == 0
+                # Add only a callback for objective if no NLP constraint
+                cb = KN_add_objective_callback(model.inner, eval_f_cb)
+            else
+                cb = KN_add_eval_callback(model.inner, true, model.nlp_index_cons, eval_f_cb)
+            end
+        elseif num_nlp_constraints > 0
+            cb = KN_add_eval_callback(model.inner, false, model.nlp_index_cons, eval_f_cb)
 
             # If a objective is specified in model.objective, load it.
             !isa(model.objective, Nothing) && add_objective!(model, model.objective)
