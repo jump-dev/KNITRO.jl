@@ -124,3 +124,6 @@ KNITRO.KN_set_param(solver.inner, KNITRO.KN_PARAM_DERIVCHECK, KNITRO.KN_DERIVCHE
 # Return status codes are defined in "knitro.h" and described
 # in the Knitro manual.
 MOI.optimize!(solver)
+
+# Free solver environment properly
+MOI.empty!(solver)
