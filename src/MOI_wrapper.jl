@@ -214,7 +214,8 @@ function MOI.optimize!(model::Optimizer)
         features = MOI.features_available(model.nlp_data.evaluator)
         has_hessian = (:Hess in features)
         # Build initial features for solver.
-        init_feat = [:Grad]
+        init_feat = Symbol[]
+        model.nlp_data.has_objective && push!(init_feat, :Grad)
         has_hessian && push!(init_feat, :Hess)
         num_nlp_constraints = length(model.nlp_data.constraint_bounds)
         num_nlp_constraints > 0 && push!(init_feat, :Jac)
@@ -228,11 +229,11 @@ function MOI.optimize!(model::Optimizer)
             # Evaluate objective if specified in nlp_data.
             if model.nlp_data.has_objective
                 evalResult.obj[1] = MOI.eval_objective(model.nlp_data.evaluator,
-                                                       evalRequest.x)
+                                                       view(evalRequest.x, :))
             end
             # Evaluate nonlinear term in constraint.
             MOI.eval_constraint(model.nlp_data.evaluator,
-                                evalResult.c, evalRequest.x)
+                                view(evalResult.c, :), view(evalRequest.x, :))
             return 0
         end
 
@@ -241,23 +242,25 @@ function MOI.optimize!(model::Optimizer)
             # Evaluate non-linear term in objective gradient.
             if model.nlp_data.has_objective
                 MOI.eval_objective_gradient(model.nlp_data.evaluator,
-                                            evalResult.objGrad,
-                                            evalRequest.x)
+                                            view(evalResult.objGrad, :),
+                                            view(evalRequest.x, :))
             end
             # Evaluate non linear part of jacobian.
             MOI.eval_constraint_jacobian(model.nlp_data.evaluator,
-                                         evalResult.jac,
-                                         evalRequest.x)
+                                         view(evalResult.jac, :),
+                                         view(evalRequest.x, :))
+            return 0
         end
 
         if has_hessian
             # Hessian callback.
             function eval_h_cb(kc, cb, evalRequest, evalResult, userParams)
                 MOI.eval_hessian_lagrangian(model.nlp_data.evaluator,
-                                            evalResult.hess,
-                                            evalRequest.x,
+                                            view(evalResult.hess, :),
+                                            view(evalRequest.x, :),
                                             evalRequest.sigma,
-                                            evalRequest.lambda)
+                                            view(evalRequest.lambda, :))
+                return 0
             end
         else
             eval_h_cb = nothing
@@ -279,17 +282,19 @@ function MOI.optimize!(model::Optimizer)
             !isa(model.objective, Nothing) && add_objective!(model, model.objective)
         end
 
+        # Gradient structure.
+        nV = (model.nlp_data.has_objective) ? KN_DENSE : 0
         # Get jacobian structure.
         jacob_structure = MOI.jacobian_structure(model.nlp_data.evaluator)
         nnzJ = length(jacob_structure)
         if nnzJ == 0
-            KN_set_cb_grad(model.inner, cb, eval_grad_cb)
+            KN_set_cb_grad(model.inner, cb, eval_grad_cb, nV=nV)
         else
             # Take care to convert 1-indexing to 0-indexing!
             # KNITRO supports only Int32 array for integer.
             jacIndexCons = Int32[i - 1 for (i, _) in jacob_structure]
             jacIndexVars = Int32[j - 1 for (_, j) in jacob_structure]
-            KN_set_cb_grad(model.inner, cb, eval_grad_cb,
+            KN_set_cb_grad(model.inner, cb, eval_grad_cb, nV=nV,
                            jacIndexCons=jacIndexCons, jacIndexVars=jacIndexVars)
         end
 
@@ -298,7 +303,7 @@ function MOI.optimize!(model::Optimizer)
             hessian_structure = MOI.hessian_lagrangian_structure(model.nlp_data.evaluator)
             nnzH = length(hessian_structure)
             # Take care to convert 1-indexing to 0-indexing!
-            # kNITRO supports only Int32 array for integer.
+            # Knitro supports only Int32 array for integer.
             hessIndexVars1 = Int32[i - 1 for (i, _) in hessian_structure]
             hessIndexVars2 = Int32[j - 1 for (_, j) in hessian_structure]
 
