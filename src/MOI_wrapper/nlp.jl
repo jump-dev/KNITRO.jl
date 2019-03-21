@@ -4,20 +4,18 @@ MOI.supports(::Optimizer, ::MOI.NLPBlock) = true
 
 function MOI.set(model::Optimizer, ::MOI.NLPBlock, nlp_data::MOI.NLPBlockData)
     model.nlp_data = nlp_data
+end
 
-    evaluator = model.nlp_data.evaluator
-    features = MOI.features_available(evaluator)
-    has_hessian = (:Hess in features)
-    init_feat = [:Grad]
-    has_hessian && push!(init_feat, :Hess)
-    num_nlp_constraints = length(nlp_data.constraint_bounds)
-    (num_nlp_constraints > 0) && push!(init_feat, :Jac)
+# Keep loading of NLP constraints apart to load all NLP model all in once
+# inside Knitro.
+function load_nlp_constraints(model::Optimizer)
+    num_nlp_constraints = length(model.nlp_data.constraint_bounds)
 
     # We need to load the NLP constraints inside Knitro.
     if num_nlp_constraints > 0
         num_cons = KN_add_cons(model.inner, num_nlp_constraints)
 
-        for (ib, pair) in enumerate(nlp_data.constraint_bounds)
+        for (ib, pair) in enumerate(model.nlp_data.constraint_bounds)
             if pair.upper == pair.lower
                 KN_set_con_eqbnd(model.inner, num_cons[ib], pair.upper)
             else
@@ -28,7 +26,7 @@ function MOI.set(model::Optimizer, ::MOI.NLPBlock, nlp_data::MOI.NLPBlockData)
             end
         end
         # Add constraint to index.
-        append!(model.nlp_index_cons, num_cons)
+        model.nlp_index_cons = num_cons
     end
     return
 end

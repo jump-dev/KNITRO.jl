@@ -189,12 +189,10 @@ function MOI.is_empty(model::Optimizer)
            model.nlp_data.evaluator isa EmptyNLPEvaluator &&
            model.sense == MOI.FEASIBILITY_SENSE &&
            model.number_solved == 0 &&
-           model.sense == MOI.FEASIBILITY_SENSE &&
            isa(model.objective, Nothing) &&
            model.number_zeroone_constraints == 0 &&
            model.number_integer_constraints == 0 &&
            !model.nlp_loaded
-
 end
 
 number_variables(model::Optimizer) = length(model.variable_info)
@@ -222,6 +220,11 @@ function MOI.optimize!(model::Optimizer)
         # initialize!
         MOI.initialize(model.nlp_data.evaluator, init_feat)
 
+        # Load NLP structure inside Knitro.
+        offset = number_constraints(model)
+        load_nlp_constraints(model)
+        num_cons = KN_get_number_cons(model.inner)
+
         # The callbacks must match the signature of the callbacks
         # defined in knitro.h.
         # Objective callback (set both objective and constraint evaluation).
@@ -229,11 +232,11 @@ function MOI.optimize!(model::Optimizer)
             # Evaluate objective if specified in nlp_data.
             if model.nlp_data.has_objective
                 evalResult.obj[1] = MOI.eval_objective(model.nlp_data.evaluator,
-                                                       view(evalRequest.x, :))
+                                                       evalRequest.x)
             end
             # Evaluate nonlinear term in constraint.
             MOI.eval_constraint(model.nlp_data.evaluator,
-                                view(evalResult.c, :), view(evalRequest.x, :))
+                                evalResult.c, evalRequest.x)
             return 0
         end
 
@@ -242,13 +245,13 @@ function MOI.optimize!(model::Optimizer)
             # Evaluate non-linear term in objective gradient.
             if model.nlp_data.has_objective
                 MOI.eval_objective_gradient(model.nlp_data.evaluator,
-                                            view(evalResult.objGrad, :),
-                                            view(evalRequest.x, :))
+                                            evalResult.objGrad,
+                                            evalRequest.x)
             end
             # Evaluate non linear part of jacobian.
             MOI.eval_constraint_jacobian(model.nlp_data.evaluator,
-                                         view(evalResult.jac, :),
-                                         view(evalRequest.x, :))
+                                         evalResult.jac,
+                                         evalRequest.x)
             return 0
         end
 
@@ -256,10 +259,10 @@ function MOI.optimize!(model::Optimizer)
             # Hessian callback.
             function eval_h_cb(kc, cb, evalRequest, evalResult, userParams)
                 MOI.eval_hessian_lagrangian(model.nlp_data.evaluator,
-                                            view(evalResult.hess, :),
-                                            view(evalRequest.x, :),
+                                            evalResult.hess,
+                                            evalRequest.x,
                                             evalRequest.sigma,
-                                            view(evalRequest.lambda, :))
+                                            view(evalRequest.lambda, offset+1:num_cons))
                 return 0
             end
         else
@@ -292,8 +295,10 @@ function MOI.optimize!(model::Optimizer)
         else
             # Take care to convert 1-indexing to 0-indexing!
             # KNITRO supports only Int32 array for integer.
-            jacIndexCons = Int32[i - 1 for (i, _) in jacob_structure]
             jacIndexVars = Int32[j - 1 for (_, j) in jacob_structure]
+            # NLP constraints are set after all other constraints
+            # inside Knitro.
+            jacIndexCons = Int32[i - 1 + offset for (i, _) in jacob_structure]
             KN_set_cb_grad(model.inner, cb, eval_grad_cb, nV=nV,
                            jacIndexCons=jacIndexCons, jacIndexVars=jacIndexVars)
         end
