@@ -27,14 +27,19 @@ any problem with this interface or the solver.*
 
 
 MathOptInterface Interface
-======================
+==========================
 
 **Note: MathOptInterface works only with the new Knitro's `KN` API which requires Knitro >= `v11.0`.**
 
-KNITRO.jl currently supports [MathOptInterface](https://github.com/JuliaOpt/MathOptInterface.jl)
+KNITRO.jl now supports [MathOptInterface](https://github.com/JuliaOpt/MathOptInterface.jl)
 and [JuMP 0.19](https://github.com/JuliaOpt/JuMP.jl).
-Development is ongoing!
 
+```julia
+using JuMP, KNITRO
+
+model = with_optimizer(KNITRO.Optimizer, outlev=3)
+
+```
 
 
 MathProgBase Interface
@@ -99,3 +104,22 @@ level API which wraps directly Knitro's C API (whose templates
 are specified in the file `knitro.h`).
 
 Extensive examples using the C wrapper can be found in `examples/`.
+
+
+Ampl wrapper
+============
+
+The package [AmplNLWriter.jl](https://github.com/JuliaOpt/AmplNLWriter.jl")
+allows to to call `knitroampl` through Julia to solve JuMP's optimization
+models.
+
+The usage is as follow:
+
+```julia
+using JuMP, KNITRO, AmplNLWriter
+
+model = with_optimizer(AmplNLWriter.Optimizer, KNITRO.amplexe, ["outlev=3"])
+
+```
+
+Note that supports is still experimental for JuMP 0.19.
