@@ -198,15 +198,13 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
         error("Variable $vi has no upper bound -- ConstraintDual not defined.")
     end
 
-    xsol = get_solution(model.inner)
-    # TODO: is fixing a tolerance the best solution?
-    if isapprox(xsol[vi.value], model.variable_info[vi.value].upper_bound, atol=1e-4)
-        # Constraints' duals are before reduced costs in KNITRO.
-        offset = number_constraints(model)
-        lambda = get_dual(model.inner)
-        return sense_dual(model) * lambda[vi.value + offset]
+    # Constraints' duals are before reduced costs in KNITRO.
+    offset = number_constraints(model)
+    lambda = sense_dual(model) * get_dual(model.inner, vi.value + offset)
+    if lambda < 0
+        return lambda
     else
-        return 0.
+        return 0
     end
 end
 
@@ -221,15 +219,13 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
         error("Variable $vi has no lower bound -- ConstraintDual not defined.")
     end
 
-    xsol = get_solution(model.inner)
-    # TODO: is fixing a tolerance the best solution?
-    if isapprox(xsol[vi.value], model.variable_info[vi.value].lower_bound, atol=1e-4)
-        # Constraints' duals are before reduced costs in KNITRO.
-        offset = number_constraints(model)
-        lambda = get_dual(model.inner)
-        return sense_dual(model) * lambda[vi.value + offset]
+    # Constraints' duals are before reduced costs in KNITRO.
+    offset = number_constraints(model)
+    lambda = sense_dual(model) * get_dual(model.inner, vi.value + offset)
+    if lambda > 0
+        return lambda
     else
-        return 0.
+        return 0
     end
 end
 
@@ -246,8 +242,8 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
 
     # Constraints' duals are before reduced costs in KNITRO.
     offset = number_constraints(model)
-    lambda = get_dual(model.inner)
-    return sense_dual(model) * lambda[vi.value + offset]
+    lambda = get_dual(model.inner, vi.value + offset)
+    return sense_dual(model) * lambda
 end
 
 function MOI.get(model::Optimizer, ::MOI.NLPBlockDual)
