@@ -3,6 +3,26 @@
 ##################################################
 # Import legacy from LinQuadOptInterface to ease the integration
 # of KNITRO quadratic and linear facilities.
+##################################################
+# URL: https://github.com/JuliaOpt/LinQuadOptInterface.jl
+#
+# LICENSE:
+# MIT License
+# Copyright (c) 2017 Oscar Dowson, Joaquim Dias Garcia and contributors
+##################################################
+
+function reduce_duplicates!(rows::Vector{T}, cols::Vector{T}, vals::Vector{S}) where T where S
+    @assert length(rows) == length(cols) == length(vals)
+    for i in 1:length(rows)
+        if rows[i] > cols[i]
+            tmp = rows[i]
+            rows[i] = cols[i]
+            cols[i] = tmp
+        end
+    end
+    return findnz(sparse(rows, cols, vals))
+end
+
 """
     canonical_quadratic_reduction(func::ScalarQuadraticFunction)
 
@@ -16,10 +36,9 @@ Warning: we assume in this function that all variables are correctly
 ordered, that is no deletion or swap has occured.
 """
 function canonical_quadratic_reduction(func::MOI.ScalarQuadraticFunction)
-    # Take care that Julia is 1-indexed.
     quad_columns_1, quad_columns_2, quad_coefficients = (
-        Int32[term.variable_index_1.value - 1 for term in func.quadratic_terms],
-        Int32[term.variable_index_2.value - 1 for term in func.quadratic_terms],
+        Int32[term.variable_index_1.value for term in func.quadratic_terms],
+        Int32[term.variable_index_2.value for term in func.quadratic_terms],
         [term.coefficient for term in func.quadratic_terms]
     )
     # Take care of difference between MOI standards and KNITRO ones.
@@ -28,7 +47,7 @@ function canonical_quadratic_reduction(func::MOI.ScalarQuadraticFunction)
             quad_coefficients[i] *= .5
         end
     end
-    return quad_columns_1, quad_columns_2, quad_coefficients
+    return reduce_duplicates!(quad_columns_1, quad_columns_2, quad_coefficients)
 end
 
 """

@@ -184,6 +184,10 @@ function MOI.add_constraint(model::Optimizer,
     KN_add_con_linear_struct(model.inner, num_cons, indexvars, coefs)
     # Parse quadratic term.
     qvar1, qvar2, qcoefs = canonical_quadratic_reduction(func)
+    # Take care that Knitro is 0-indexed!
+    qvar1 .= qvar1 .- 1
+    qvar2 .= qvar2 .- 1
+
     KN_add_con_quadratic_struct(model.inner, num_cons, qvar1, qvar2, qcoefs)
     # Add constraints to index.
     ci = MOI.ConstraintIndex{typeof(func), typeof(set)}(num_cons)
