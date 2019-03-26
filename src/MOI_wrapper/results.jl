@@ -194,9 +194,6 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
     end
     vi = MOI.VariableIndex(ci.value)
     check_inbounds(model, vi)
-    if !model.variable_info[vi.value].has_upper_bound
-        error("Variable $vi has no upper bound -- ConstraintDual not defined.")
-    end
 
     # Constraints' duals are before reduced costs in KNITRO.
     offset = number_constraints(model)
@@ -215,9 +212,6 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
     end
     vi = MOI.VariableIndex(ci.value)
     check_inbounds(model, vi)
-    if !model.variable_info[vi.value].has_lower_bound
-        error("Variable $vi has no lower bound -- ConstraintDual not defined.")
-    end
 
     # Constraints' duals are before reduced costs in KNITRO.
     offset = number_constraints(model)
@@ -236,9 +230,6 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
     end
     vi = MOI.VariableIndex(ci.value)
     check_inbounds(model, vi)
-    if !model.variable_info[vi.value].is_fixed
-        error("Variable $vi is not fixed -- ConstraintDual not defined.")
-    end
 
     # Constraints' duals are before reduced costs in KNITRO.
     offset = number_constraints(model)

@@ -17,6 +17,7 @@ function MOI.add_variable(model::Optimizer)
     push!(model.variable_info, VariableInfo())
     KN_add_var(model.inner)
     nvars = length(model.variable_info)
+    # By default, initial value is set to 0.
     KN_set_var_primal_init_values(model.inner, nvars - 1, 0.)
     return MOI.VariableIndex(nvars)
 end

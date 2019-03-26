@@ -57,14 +57,12 @@ include(joinpath("MOI_wrapper", "utils.jl"))
 
 ##################################################
 mutable struct VariableInfo
-    lower_bound::Float64  # May be -Inf even if has_lower_bound == true
     has_lower_bound::Bool # Implies lower_bound == Inf
-    upper_bound::Float64  # May be Inf even if has_upper_bound == true
     has_upper_bound::Bool # Implies upper_bound == Inf
     is_fixed::Bool        # Implies lower_bound == upper_bound and !has_lower_bound and !has_upper_bound.
     name::String
 end
-VariableInfo() = VariableInfo(-Inf, false, Inf, false, false, "")
+VariableInfo() = VariableInfo(false, false, false, "")
 
 
 ##################################################
