@@ -18,5 +18,10 @@ if KNITRO.KNITRO_VERSION >= v"11.0"
 
     @testset "Test MathOptInterface" begin
         include("MOI_wrapper.jl")
+        include("MOI_additional.jl")
+    end
+
+    @testset "Test JuMP" begin
+        include("jump_soc.jl")
     end
 end

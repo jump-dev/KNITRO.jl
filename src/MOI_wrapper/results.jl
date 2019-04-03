@@ -115,7 +115,6 @@ function MOI.get(model::Optimizer,
     check_inbounds(model, vi)
     return get_solution(model.inner)[vi.value]
 end
-
 function MOI.get(model::Optimizer,
                  ::MOI.VariablePrimal, vi::Vector{MOI.VariableIndex})
     if model.number_solved == 0
@@ -125,19 +124,64 @@ function MOI.get(model::Optimizer,
     return [x[v.value] for v in vi]
 end
 
-function MOI.get(model::Optimizer,
-                 ::MOI.ConstraintPrimal, ci::MOI.ConstraintIndex)
-    if model.number_solved == 0
-        error("ConstraintPrimal not available.")
+macro checkcons(model, ci)
+    quote
+        if $(esc(model)).number_solved == 0
+            error("Solve problem before accessing solution.")
+        end
+        if !(0 <= $(esc(ci)).value <= number_constraints($(esc(model))) - 1)
+            error("Invalid constraint index ", $(esc(ci)).value)
+        end
     end
-    g = KN_get_con_values(model.inner)
+end
 
+##################################################
+## ConstraintPrimal
+# TODO: Getters for Interval?
+function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
+                 ci::MOI.ConstraintIndex{S, T}) where {S <: SF, T <: LS}
+    @checkcons(model, ci)
+    g = KN_get_con_values(model.inner)
     index = model.constraint_mapping[ci] .+ 1
     return g[index]
 end
 
-function MOI.get(model::Optimizer,
-                 ::MOI.ConstraintPrimal, cis::Vector{MOI.ConstraintIndex})
+function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
+                 ci::MOI.ConstraintIndex{S, T}) where {S <: VAF, T <: Union{MOI.Nonnegatives, MOI.Nonpositives}}
+    @warn("Support for MOI getter for MOI.Nonpositives and Nonnegatives constraints is still experimental in Knitro")
+    @checkcons(model, ci)
+    g = KN_get_con_values(model.inner)
+    index = model.constraint_mapping[ci] .+ 1
+    return g[index]
+end
+
+function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
+                 ci::MOI.ConstraintIndex{S, T}) where {S <: VOV, T <: Union{MOI.Nonnegatives, MOI.Nonpositives}}
+    @checkcons(model, ci)
+    x = get_solution(model.inner)
+    index = model.constraint_mapping[ci] .+ 1
+    return x[index]
+end
+
+function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
+                 ci::MOI.ConstraintIndex{S, T}) where {S <: Union{VAF, VOV}, T <: MOI.Zeros}
+    @warn("Support for MOI getter for MOI.Zeros constraints is still experimental in Knitro")
+    @checkcons(model, ci)
+    ncons = length(model.constraint_mapping[ci])
+    return zeros(ncons)
+end
+
+function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
+                 ci::MOI.ConstraintIndex{S, T}) where {S <: Union{VAF, VOV}, T <: MOI.SecondOrderCone}
+    @checkcons(model, ci)
+    x = get_solution(model.inner)
+    index = model.constraint_mapping[ci] .+ 1
+    return x[index]
+end
+
+function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
+                 ci::MOI.ConstraintIndex{MOI.SingleVariable,
+                                         MOI.LessThan{Float64}})
     if model.number_solved == 0
         error("ConstraintPrimal not available.")
     end
@@ -145,15 +189,14 @@ function MOI.get(model::Optimizer,
 
     allindex = Int[]
     for ci in cis
-        append!(allindex, index)
+        append!(allindex, index + 1)
     end
-    allindex .+= 1
 
     return g[allindex]
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
-                 ci::MOI.ConstraintIndex{MOI.SingleVariable, <:VS})
+                 ci::MOI.ConstraintIndex{MOI.SingleVariable, <:LS})
     if model.number_solved == 0
         error("ConstraintPrimal not available.")
     end
@@ -164,7 +207,7 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
-                 ci::Vector{MOI.ConstraintIndex{MOI.SingleVariable, <:VS}})
+                 ci::Vector{MOI.ConstraintIndex{MOI.SingleVariable, <:LS}})
     if model.number_solved == 0
         error("ConstraintPrimal not available.")
     end
@@ -172,19 +215,63 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
     return [x[c.value] for c in ci]
 end
 
+##################################################
+## ConstraintDual
+#
 # KNITRO's dual sign depends on optimization sense.
 sense_dual(model::Optimizer) = (model.sense == MOI.MAX_SENSE) ? 1. : -1.
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
-                 ci::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}, S}) where S <: SS
-    if model.number_solved == 0
-        error("ConstraintDual not available.")
-    end
-    @assert 0 <= ci.value <= number_constraints(model) - 1
+                 ci::MOI.ConstraintIndex{S, T}) where {S <: SF, T <: LS}
+    @checkcons(model, ci)
 
     index = model.constraint_mapping[ci] + 1
     lambda = get_dual(model.inner)
     return sense_dual(model) * lambda[index]
+end
+
+function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
+                 ci::MOI.ConstraintIndex{S, T}) where {S <: VAF, T <: VLS}
+    @checkcons(model, ci)
+    index = model.constraint_mapping[ci] .+ 1
+    lambda = get_dual(model.inner)
+    return sense_dual(model) * lambda[index]
+end
+
+function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
+                 ci::MOI.ConstraintIndex{S, T}) where {S <: VOV, T <: VLS}
+    offset = number_constraints(model)
+    index = model.constraint_mapping[ci] .+ 1 .+ offset
+    lambda = get_dual(model.inner)
+    return sense_dual(model) * lambda[index]
+end
+
+###
+# Get constraint of a SOC constraint.
+#
+# Use the following mathematical property.  Let
+#
+#   ||u_i || <= t_i      with dual constraint    || z_i || <= w_i
+#
+# At optimality, we have
+#
+#   w_i * u_i  = - t_i z_i
+#
+###
+function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
+                 ci::MOI.ConstraintIndex{S, T}) where {S <: Union{VAF, VOV}, T <: MOI.SecondOrderCone}
+    @checkcons(model, ci)
+    index_var = model.constraint_mapping[ci] .+ 1
+    index_con = ci.value
+    x =  get_solution(model.inner)[index_var]
+    # By construction.
+    t_i = x[1]
+    u_i = x[2:end]
+    w_i = get_dual(model.inner)[index_con]
+
+    dual = [-w_i; 1/t_i * w_i * u_i]
+
+    return dual
 end
 
 ## Reduced costs.
