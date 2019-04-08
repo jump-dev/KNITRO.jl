@@ -116,5 +116,5 @@ MOI.set(solver, MOI.NLPBlock(), block_data)
 # Solve the problem.
 MOI.optimize!(solver)
 
-# Explicitly empty model to free Knitro.
+# Free solver environment properly
 MOI.empty!(solver)
