@@ -119,7 +119,7 @@ function KN_get_cb_objgrad_nnz(m::Model, cb::Ptr{Cvoid})
 end
 
 function KN_get_cb_jacobian_nnz(m::Model, cb::Ptr{Cvoid})
-    num = Cint[0]
+    num = KNLONG[0]
     ret = @kn_ccall(get_cb_jacobian_nnz,
                     Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
                     m.env, cb, num)
@@ -128,7 +128,7 @@ function KN_get_cb_jacobian_nnz(m::Model, cb::Ptr{Cvoid})
 end
 
 function KN_get_cb_hessian_nnz(m::Model, cb::Ptr{Cvoid})
-    num = Cint[0]
+    num = KNLONG[0]
     ret = @kn_ccall(get_cb_hessian_nnz,
                     Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
                     m.env, cb, num)
@@ -146,7 +146,7 @@ function KN_get_cb_number_rsds(m::Model, cb::Ptr{Cvoid})
 end
 
 function KN_get_cb_rsd_jacobian_nnz(m::Model, cb::Ptr{Cvoid})
-    num = Cint[0]
+    num = KNLONG[0]
     ret = @kn_ccall(get_cb_rsd_jacobian_nnz,
                     Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
                     m.env, cb, num)
