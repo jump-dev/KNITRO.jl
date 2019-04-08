@@ -30,7 +30,7 @@ using KNITRO
 #*------------------------------------------------------------------*
 #*     FUNCTION callbackEvalF                                       *
 #*------------------------------------------------------------------*
-# The signature of this function matches KNITRO.KN_eval_callback in knitro.jl.
+# The signature of this function matches KN_eval_callback in knitro.jl.
 # Only "obj" is set in the KNITRO.KN_eval_result structure.
 function callbackEvalF(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
@@ -45,8 +45,8 @@ end
 #*------------------------------------------------------------------*
 #*     FUNCTION callbackEvalG                                       *
 #*------------------------------------------------------------------*
-# The signature of this function matches KNITRO.KN_eval_callback in knitro.h.
-# Only "objGrad" is set in the KNITRO.KN_eval_result structure.
+# The signature of this function matches KN_eval_callback in knitro.h.
+# Only "objGrad" is set in the KN_eval_result structure.
 function callbackEvalG!(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
 
@@ -61,8 +61,8 @@ end
 #*------------------------------------------------------------------*
 #*     FUNCTION callbackEvalH                                       *
 #*------------------------------------------------------------------*
-# The signature of this function matches KNITRO.KN_eval_callback in knitro.h.
-# Only "hess" and "hessVec" are set in the KNITRO.KN_eval_result structure.
+# The signature of this function matches KN_eval_callback in knitro.h.
+# Only "hess" and "hessVec" are set in the KN_eval_result structure.
 function callbackEvalH!(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
     # Scale objective component of hessian by sigma
@@ -72,7 +72,7 @@ function callbackEvalH!(kc, cb, evalRequest, evalResult, userParams)
     # Note: Since the Hessian is symmetric, we only provide the
     #       nonzero elements in the upper triangle(plus diagonal).
     #       These are provided in row major ordering as specified
-    #       by the setting KNITRO.KN_DENSE_ROWMAJOR in "KNITRO.KN_set_cb_hess()".
+    #       by the setting KN_DENSE_ROWMAJOR in "KN_set_cb_hess()".
     # Note: The Hessian terms for the quadratic constraints
     #       will be added internally by Knitro to form
     #       the full Hessian of the Lagrangian.
@@ -146,12 +146,12 @@ KNITRO.KN_add_con_linear_struct(kc, 1, 0, 1.0)
 KNITRO.KN_add_con_quadratic_struct(kc, 1, 1, 1, 1.0)
 
 # Add a callback function "callbackEvalF" to evaluate the nonlinear
-#(non-quadratic) objective.  Note that the linear and
+# (non-quadratic) objective.  Note that the linear and
 # quadratic terms in the objective could be loaded separately
 # via "KNITRO.KN_add_obj_linear_struct()" / "KNITRO.KN_add_obj_quadratic_struct()".
 # However, for simplicity, we evaluate the whole objective
 # function through the callback.
-cb = KNITRO.KN_add_eval_callback(kc, callbackEvalF)
+cb = KNITRO.KN_add_objective_callback(kc, callbackEvalF)
 
 # Also add a callback function "callbackEvalG" to evaluate the
 # objective gradient.  If not provided, Knitro will approximate
@@ -161,12 +161,12 @@ cb = KNITRO.KN_add_eval_callback(kc, callbackEvalF)
 # We specify the objective gradient in "dense" form for simplicity.
 # However for models with many constraints, it is important to specify
 # the non-zero sparsity structure of the constraint gradients
-#(i.e. Jacobian matrix) for efficiency(this is true even when using
+# (i.e. Jacobian matrix) for efficiency(this is true even when using
 # finite-difference gradients).
 KNITRO.KN_set_cb_grad(kc, cb, callbackEvalG!)
 
 # Add a callback function "callbackEvalH" to evaluate the Hessian
-#(i.e. second derivative matrix) of the objective.  If not specified,
+# (i.e. second derivative matrix) of the objective.  If not specified,
 # Knitro will approximate the Hessian. However, providing a callback
 # for the exact Hessian(as well as the non-zero sparsity structure)
 # can greatly improve Knitro performance and is recommended if possible.
@@ -174,7 +174,7 @@ KNITRO.KN_set_cb_grad(kc, cb, callbackEvalG!)
 # Again for simplicity, we specify it in dense(row major) form.
 KNITRO.KN_set_cb_hess(kc, cb, KNITRO.KN_DENSE_ROWMAJOR, callbackEvalH!)
 
- # specify that the user is able to provide evaluations
+# Specify that the user is able to provide evaluations
 # of the hessian matrix without the objective component.
 # turned off by default but should be enabled if possible.
 KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_HESSIAN_NO_F, KNITRO.KN_HESSIAN_NO_F_ALLOW)
@@ -216,7 +216,7 @@ end
 println("Optimal constraint values(with corresponding multiplier)")
 c = KNITRO.KN_get_con_values(kc)
 for j in 1:m
-    println("  c[$j] = ", c[j], "(lambda = ",  lambda_[m+j], ")")
+    println("  c[$j] = ", c[j], "(lambda = ",  lambda_[j], ")")
 end
 println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
 println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))

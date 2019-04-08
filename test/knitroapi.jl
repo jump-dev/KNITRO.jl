@@ -172,7 +172,7 @@ println()
     KNITRO.KN_add_con_quadratic_struct(kc, 0, 1, 2, 1.0)
 
     # Define callback functions.
-    cb = KNITRO.KN_add_eval_callback(kc, evalAll)
+    cb = KNITRO.KN_add_objective_callback(kc, evalAll)
     KNITRO.KN_set_cb_grad(kc, cb, evalAll)
     KNITRO.KN_set_cb_hess(kc, cb, 5, evalAll,
                           hessIndexVars1=Int32[0, 0, 1, 1, 2],
@@ -275,7 +275,7 @@ println()
     KNITRO.KN_add_con_quadratic_struct(kc, 0, 1, 2, 1.0)
 
     # Define callback functions.
-    cb = KNITRO.KN_add_eval_callback(kc, evalAll)
+    cb = KNITRO.KN_add_objective_callback(kc, evalAll)
 
     KNITRO.KN_set_cb_grad(kc, cb, evalAll)
     KNITRO.KN_set_cb_hess(kc, cb, KNITRO.KN_DENSE_ROWMAJOR, evalAll)
@@ -344,7 +344,7 @@ println()
     KNITRO.KN_add_con_quadratic_struct(kc, 0, 1, 2, 1.0)
 
     # Define callback functions.
-    cb = KNITRO.KN_add_eval_callback(kc, evalAll)
+    cb = KNITRO.KN_add_objective_callback(kc, evalAll)
     KNITRO.KN_set_cb_grad(kc, cb, evalAll)
     KNITRO.KN_set_cb_hess(kc, cb, KNITRO.KN_DENSE_ROWMAJOR, evalAll)
 
@@ -432,7 +432,7 @@ println()
     KNITRO.KN_add_con_quadratic_struct(kc, 0, 1, 2, 1.0)
 
     # Define callback functions.
-    cb = KNITRO.KN_add_eval_callback(kc, evalF_evalGA)
+    cb = KNITRO.KN_add_objective_callback(kc, evalF_evalGA)
     KNITRO.KN_set_cb_grad(kc, cb, evalF_evalGA)
 
     # Define complementarity constraints

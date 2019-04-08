@@ -173,7 +173,6 @@ KNITRO.KN_add_con_quadratic_struct(kc, qconIndexCons, qconIndexVars1, qconIndexV
 #    x0*x1*x2*x3  in the objective
 #    x0^3         in first constraint c0
 #    x0^2*x3      in second constraint c1
-#= cb = KNITRO.KN_add_eval_callback(kc, evalObj = True, indexCons = [0, 1],  callbackEvalFC) =#
 cb = KNITRO.KN_add_eval_callback(kc, true, Int32[0, 1], callbackEvalFC)
 
 # Set obj. gradient and nonlinear jac provided through callbacks.
@@ -193,7 +192,6 @@ KNITRO.KN_set_cb_grad(kc, cb, callbackEvalGA, jacIndexCons=cbjacIndexCons, jacIn
 #(7 nonzero elements)
 cbhessIndexVars1 = Int32[0, 0, 0, 0, 1, 1, 2]
 cbhessIndexVars2 = Int32[0, 1, 2, 3, 2, 3, 3]
-#= KNITRO.KN_set_cb_hess(kc, cb, hessIndexVars1 = cbhessIndexVars1, hessIndexVars2 = cbhessIndexVars2, hessCallback = callbackEvalH) =#
 KNITRO.KN_set_cb_hess(kc, cb, length(cbhessIndexVars1), callbackEvalH,
                       hessIndexVars1=cbhessIndexVars1,  hessIndexVars2=cbhessIndexVars2)
 
