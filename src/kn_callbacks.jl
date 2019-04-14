@@ -744,9 +744,9 @@ function newpt_wrapper(ptr_model::Ptr{Cvoid},
 
     x = unsafe_wrap(Array, ptr_x, nx)
     lambda = unsafe_wrap(Array, ptr_lambda, nx + nc)
-    m.user_callback(ptr_model, x, lambda, m)
+    ret = m.user_callback(ptr_model, x, lambda, m)
 
-    return Cint(0)
+    return Cint(ret)
 end
 
 """
