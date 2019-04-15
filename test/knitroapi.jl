@@ -7,7 +7,6 @@ using Compat.Test
     rel = KNITRO.get_release()
     @test isa(rel, String)
 
-
     @testset "Definition of model" begin
         m = KNITRO.Model()
         options = joinpath(dirname(@__FILE__), "..", "examples", "knitro.opt")
@@ -513,9 +512,10 @@ end
     KNITRO.KN_free(kc)
 end
 
-@testset "User callback test" begin
+@testset "User callback test (issue #110)" begin
     kc = KNITRO.KN_new()
 
+    KNITRO.KN_set_param(kc, "outlev", 0)
     # Define objective goal
     objGoal = KNITRO.KN_OBJGOAL_MAXIMIZE
     KNITRO.KN_set_obj_goal(kc, objGoal)

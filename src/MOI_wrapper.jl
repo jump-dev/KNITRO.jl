@@ -256,6 +256,7 @@ function MOI.optimize!(model::Optimizer)
             MOI.eval_constraint_jacobian(model.nlp_data.evaluator,
                                          evalResult.jac,
                                          evalRequest.x)
+            return 0
         end
 
         if has_hessian
@@ -266,6 +267,7 @@ function MOI.optimize!(model::Optimizer)
                                             evalRequest.x,
                                             evalRequest.sigma,
                                             evalRequest.lambda)
+                return 0
             end
         else
             eval_h_cb = nothing
