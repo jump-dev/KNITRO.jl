@@ -1,6 +1,6 @@
-using KNITRO, Compat
-using Compat.Test
-(VERSION >= v"1.0") && using Pkg
+using KNITRO
+using Test
+using Pkg
 
 @testset "Test old API" begin
     include("oldexamples.jl")

@@ -9,9 +9,7 @@ module KNITRO
         error("KNITRO not properly installed. Please run `] build KNITRO`")
     end
 
-    using Compat
-    using Compat.Libdl, Compat.SparseArrays
-    import Compat: Sys
+    using Libdl, SparseArrays
     import Base: show
 
     "A macro to make calling KNITRO's C API a little cleaner"

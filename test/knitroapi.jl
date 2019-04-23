@@ -1,6 +1,6 @@
 
 using KNITRO
-using Compat.Test
+using Test
 
 @testset "Instantiation Knitro C interface" begin
     # get KNITRO.KNITRO release version
