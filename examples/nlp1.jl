@@ -145,7 +145,7 @@ cb = KNITRO.KN_add_objective_callback(kc, callbackEvalF)
 # We specify the objective gradient in "dense" form for simplicity.
 # However for models with many constraints, it is important to specify
 # the non-zero sparsity structure of the constraint gradients
-#(i.e. Jacobian matrix) for efficiency(this is true even when using
+# (i.e. Jacobian matrix) for efficiency(this is true even when using
 # finite-difference gradients).
 KNITRO.KN_set_cb_grad(kc, cb, callbackEvalG!)
 

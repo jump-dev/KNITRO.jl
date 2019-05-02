@@ -540,7 +540,7 @@ end
     KNITRO.KN_add_con_quadratic_struct(kc, 0, 1, 2, 1.0)
 
     # Define callback functions.
-    cb = KNITRO.KN_add_eval_callback(kc, evalAll)
+    cb = KNITRO.KN_add_eval_callback_all(kc, evalAll)
     KNITRO.KN_set_cb_grad(kc, cb, evalAll)
     KNITRO.KN_set_cb_hess(kc, cb, KNITRO.KN_DENSE_ROWMAJOR, evalAll)
 
