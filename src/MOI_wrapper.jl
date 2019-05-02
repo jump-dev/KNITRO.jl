@@ -60,14 +60,12 @@ include(joinpath("MOI_wrapper", "utils.jl"))
 
 ##################################################
 mutable struct VariableInfo
-    lower_bound::Float64  # May be -Inf even if has_lower_bound == true
     has_lower_bound::Bool # Implies lower_bound == Inf
-    upper_bound::Float64  # May be Inf even if has_upper_bound == true
     has_upper_bound::Bool # Implies upper_bound == Inf
     is_fixed::Bool        # Implies lower_bound == upper_bound and !has_lower_bound and !has_upper_bound.
     name::String
 end
-VariableInfo() = VariableInfo(-Inf, false, Inf, false, false, "")
+VariableInfo() = VariableInfo(false, false, false, "")
 
 
 ##################################################
@@ -181,6 +179,7 @@ function MOI.empty!(model::Optimizer)
     model.number_solved = 0
     model.nlp_data = empty_nlp_data()
     model.nlp_loaded = false
+    model.nlp_index_cons = Cint[]
     model.sense = MOI.FEASIBILITY_SENSE
     model.objective = nothing
     model.number_zeroone_constraints = 0
@@ -196,7 +195,6 @@ function MOI.is_empty(model::Optimizer)
            model.nlp_data.evaluator isa EmptyNLPEvaluator &&
            model.sense == MOI.FEASIBILITY_SENSE &&
            model.number_solved == 0 &&
-           model.sense == MOI.FEASIBILITY_SENSE &&
            isa(model.objective, Nothing) &&
            model.number_zeroone_constraints == 0 &&
            model.number_integer_constraints == 0 &&
@@ -211,23 +209,27 @@ number_constraints(model::Optimizer) = KN_get_number_cons(model.inner)
 # Optimize
 ##################################################
 function MOI.optimize!(model::Optimizer)
+    KN_set_param(model.inner, "datacheck", 0)
+    KN_set_param(model.inner, "hessian_no_f", 1)
+
     # Add NLP structure if specified.
-    # FIXME: ideally, the following code should be moved
-    # inside set(::Optimizer, ::NLPBlockData) function.
-    # However, we encounter an error if we do so, because currently
-    # the definition of eval_*_cb functions should be in the same
-    # scope as KN_solve (may be due to a closure limitation).
     if !isa(model.nlp_data.evaluator, EmptyNLPEvaluator) && !model.nlp_loaded
         # Instantiate NLPEvaluator once and for all.
         features = MOI.features_available(model.nlp_data.evaluator)
         has_hessian = (:Hess in features)
         # Build initial features for solver.
-        init_feat = [:Grad]
+        init_feat = Symbol[]
+        model.nlp_data.has_objective && push!(init_feat, :Grad)
         has_hessian && push!(init_feat, :Hess)
         num_nlp_constraints = length(model.nlp_data.constraint_bounds)
         num_nlp_constraints > 0 && push!(init_feat, :Jac)
         # initialize!
         MOI.initialize(model.nlp_data.evaluator, init_feat)
+
+        # Load NLP structure inside Knitro.
+        offset = number_constraints(model)
+        load_nlp_constraints(model)
+        num_cons = KN_get_number_cons(model.inner)
 
         # The callbacks must match the signature of the callbacks
         # defined in knitro.h.
@@ -266,7 +268,7 @@ function MOI.optimize!(model::Optimizer)
                                             evalResult.hess,
                                             evalRequest.x,
                                             evalRequest.sigma,
-                                            evalRequest.lambda)
+                                            view(evalRequest.lambda, offset+1:num_cons))
                 return 0
             end
         else
@@ -274,30 +276,37 @@ function MOI.optimize!(model::Optimizer)
         end
 
         # Be careful that sometimes objective is not evaluated here.
-        # In any case, NLP objective has precedence other model.objective.
+        # In any case, NLP objective has precedence over model.objective.
         if model.nlp_data.has_objective
-            # Here, we assume that the full objective is evaluated in eval_f.
-            cb = KN_add_eval_callback(model.inner, eval_f_cb)
-        else
-            indexcons = collect(Int32, 0:length(model.nlp_data.constraint_bounds)-1)
-            cb = KN_add_eval_callback(model.inner, false, indexcons, eval_f_cb)
+            if num_nlp_constraints == 0
+                # Add only a callback for objective if no NLP constraint
+                cb = KN_add_objective_callback(model.inner, eval_f_cb)
+            else
+                cb = KN_add_eval_callback(model.inner, true, model.nlp_index_cons, eval_f_cb)
+            end
+        elseif num_nlp_constraints > 0
+            cb = KN_add_eval_callback(model.inner, false, model.nlp_index_cons, eval_f_cb)
 
             # If a objective is specified in model.objective, load it.
             !isa(model.objective, Nothing) && add_objective!(model, model.objective)
         end
 
+        # Gradient structure.
+        nV = (model.nlp_data.has_objective) ? KN_DENSE : 0
         # Get jacobian structure.
         jacob_structure = MOI.jacobian_structure(model.nlp_data.evaluator)
         nnzJ = length(jacob_structure)
         if nnzJ == 0
-            KN_set_cb_grad(model.inner, cb, eval_grad_cb)
+            KN_set_cb_grad(model.inner, cb, eval_grad_cb, nV=nV)
         else
             # Take care to convert 1-indexing to 0-indexing!
             # KNITRO supports only Int32 array for integer.
-            jacIndexCons = Int32[i-1 for (i, _) in jacob_structure]
-            jacIndexVars = Int32[j-1 for (_, j) in jacob_structure]
-            KN_set_cb_grad(model.inner, cb, eval_grad_cb,
-                        jacIndexCons=jacIndexCons, jacIndexVars=jacIndexVars)
+            jacIndexVars = Int32[j - 1 for (_, j) in jacob_structure]
+            # NLP constraints are set after all other constraints
+            # inside Knitro.
+            jacIndexCons = Int32[i - 1 + offset for (i, _) in jacob_structure]
+            KN_set_cb_grad(model.inner, cb, eval_grad_cb, nV=nV,
+                           jacIndexCons=jacIndexCons, jacIndexVars=jacIndexVars)
         end
 
         if has_hessian
@@ -305,13 +314,13 @@ function MOI.optimize!(model::Optimizer)
             hessian_structure = MOI.hessian_lagrangian_structure(model.nlp_data.evaluator)
             nnzH = length(hessian_structure)
             # Take care to convert 1-indexing to 0-indexing!
-            # kNITRO supports only Int32 array for integer.
-            hessIndexVars1 = Int32[i-1 for (i, _) in hessian_structure]
-            hessIndexVars2 = Int32[j-1 for (_, j) in hessian_structure]
+            # Knitro supports only Int32 array for integer.
+            hessIndexVars1 = Int32[i - 1 for (i, _) in hessian_structure]
+            hessIndexVars2 = Int32[j - 1 for (_, j) in hessian_structure]
 
             KN_set_cb_hess(model.inner, cb, nnzH, eval_h_cb,
-                        hessIndexVars1=hessIndexVars1,
-                        hessIndexVars2=hessIndexVars2)
+                           hessIndexVars1=hessIndexVars1,
+                           hessIndexVars2=hessIndexVars2)
         end
 
         model.nlp_loaded = true

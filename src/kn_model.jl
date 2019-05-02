@@ -1,15 +1,22 @@
-# Knitro model
+# Knitro model.
 
 
 ##################################################
-# Model definition
+# Model definition.
 ##################################################
 mutable struct Model
-    # KNITRO context environment
+    # KNITRO context environment.
     env::Env
     userdata::Dict
 
-    # special callbacks (undefined by default)
+    # Solution values.
+    # Optimization status. Equal to 1 if problem is unsolved.
+    status::Cint
+    obj_val::Cdouble
+    x::Vector{Cdouble}
+    mult::Vector{Cdouble}
+
+    # Special callbacks (undefined by default).
     # (this functions do not depend on callback environments)
     ms_process::Function
     mip_callback::Function
@@ -17,10 +24,10 @@ mutable struct Model
     ms_initpt_callback::Function
     puts_callback::Function
 
-    # constructor
+    # Constructor.
     function Model()
-        model = new(Env(), Dict())
-        # add a destructor to properly delete model
+        model = new(Env(), Dict(), 1, Inf, Cdouble[], Cdouble[])
+        # Add a destructor to properly delete model.
         finalizer(KN_free, model)
         return model
     end
@@ -40,21 +47,21 @@ is_valid(m::Model) = is_valid(m.env)
 # Basic model manipulation
 ##################################################
 
-"Set all parameters specified in the given file"
+"Set all parameters specified in the given file."
 function KN_load_param_file(m::Model, filename::AbstractString)
     ret = @kn_ccall(load_param_file, Cint, (Ptr{Cvoid}, Ptr{Cchar}),
                     m.env, filename)
     _checkraise(ret)
 end
 
-"Save current parameters in the given file"
+"Save current parameters in the given file."
 function KN_save_param_file(m::Model, filename::AbstractString)
     ret = @kn_ccall(save_param_file, Cint, (Ptr{Cvoid}, Ptr{Cchar}),
                     m.env, filename)
     _checkraise(ret)
 end
 
-"Reset all parameters to default values"
+"Reset all parameters to default values."
 function KN_reset_params_to_defaults(m::Model)
     ret = @kn_ccall(reset_params_to_defaults, Cint, (Ptr{Cvoid}, ),
                     m.env)
@@ -68,6 +75,7 @@ function KN_load_tuner_file(m::Model, filename::AbstractString)
     _checkraise(ret)
 end
 
+"Load MPS file."
 function KN_load_mps_file(m::Model, filename::AbstractString)
     @assert KNITRO_VERSION >= v"12.0"
     ret = @kn_ccall(load_mps_file, Cint, (Ptr{Cvoid}, Ptr{Cchar}),

@@ -66,7 +66,7 @@ n = 2
 KNITRO.KN_add_vars(kc, n)
 KNITRO.KN_set_var_lobnds(kc, [-KNITRO.KN_INFINITY, -KNITRO.KN_INFINITY]) # not necessary since infinite
 KNITRO.KN_set_var_upbnds(kc, [0.5, KNITRO.KN_INFINITY])
-# Define an initial point.  If not set, Knitro will generate one.
+# Define an initial point. If not set, Knitro will generate one.
 KNITRO.KN_set_var_primal_init_values(kc, [-2.0, 1.0])
 
 # Add the constraints and set their lower bounds
@@ -104,7 +104,7 @@ KNITRO.KN_add_con_quadratic_struct(kc, 1, 1, 1, 1.0)
 # via "KNITRO.KN_add_obj_linear_struct()" / "KNITRO.KN_add_obj_quadratic_struct()".
 # However, for simplicity, we evaluate the whole objective
 # function through the callback.
-cb = KNITRO.KN_add_eval_callback(kc, callbackEvalF)
+cb = KNITRO.KN_add_objective_callback(kc, callbackEvalF)
 
 # Set minimize or maximize(if not set, assumed minimize)
 KNITRO.KN_set_obj_goal(kc, KNITRO.KN_OBJGOAL_MINIMIZE)
@@ -132,7 +132,7 @@ end
 println("Optimal constraint values(with corresponding multiplier)")
 c = KNITRO.KN_get_con_values(kc)
 for j in 1:m
-    println("  c[$j] = ", c[j], "(lambda = ",  lambda_[m+j], ")")
+    println("  c[$j] = ", c[j], "(lambda = ",  lambda_[j], ")")
 end
 println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
 println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))

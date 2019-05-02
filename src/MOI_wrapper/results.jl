@@ -113,7 +113,7 @@ function MOI.get(model::Optimizer,
         error("VariablePrimal not available.")
     end
     check_inbounds(model, vi)
-    return get_solution(model.inner)[vi.value]
+    return get_solution(model.inner, vi.value)
 end
 function MOI.get(model::Optimizer,
                  ::MOI.VariablePrimal, vi::Vector{MOI.VariableIndex})
@@ -202,8 +202,7 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
     end
     vi = MOI.VariableIndex(ci.value)
     check_inbounds(model, vi)
-    x = get_solution(model.inner)
-    return x[vi.value]
+    return get_solution(model.inner, vi.value)
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
@@ -282,19 +281,14 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
     end
     vi = MOI.VariableIndex(ci.value)
     check_inbounds(model, vi)
-    if !model.variable_info[vi.value].has_upper_bound
-        error("Variable $vi has no upper bound -- ConstraintDual not defined.")
-    end
 
-    xsol = get_solution(model.inner)
-    # TODO: is fixing a tolerance the best solution?
-    if isapprox(xsol[vi.value], model.variable_info[vi.value].upper_bound, atol=1e-4)
-        # Constraints' duals are before reduced costs in KNITRO.
-        offset = number_constraints(model)
-        lambda = get_dual(model.inner)
-        return sense_dual(model) * lambda[vi.value + offset]
+    # Constraints' duals are before reduced costs in KNITRO.
+    offset = number_constraints(model)
+    lambda = sense_dual(model) * get_dual(model.inner, vi.value + offset)
+    if lambda < 0
+        return lambda
     else
-        return 0.
+        return 0
     end
 end
 
@@ -305,19 +299,14 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
     end
     vi = MOI.VariableIndex(ci.value)
     check_inbounds(model, vi)
-    if !model.variable_info[vi.value].has_lower_bound
-        error("Variable $vi has no lower bound -- ConstraintDual not defined.")
-    end
 
-    xsol = get_solution(model.inner)
-    # TODO: is fixing a tolerance the best solution?
-    if isapprox(xsol[vi.value], model.variable_info[vi.value].lower_bound, atol=1e-4)
-        # Constraints' duals are before reduced costs in KNITRO.
-        offset = number_constraints(model)
-        lambda = get_dual(model.inner)
-        return sense_dual(model) * lambda[vi.value + offset]
+    # Constraints' duals are before reduced costs in KNITRO.
+    offset = number_constraints(model)
+    lambda = sense_dual(model) * get_dual(model.inner, vi.value + offset)
+    if lambda > 0
+        return lambda
     else
-        return 0.
+        return 0
     end
 end
 
@@ -328,14 +317,11 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
     end
     vi = MOI.VariableIndex(ci.value)
     check_inbounds(model, vi)
-    if !model.variable_info[vi.value].is_fixed
-        error("Variable $vi is not fixed -- ConstraintDual not defined.")
-    end
 
     # Constraints' duals are before reduced costs in KNITRO.
     offset = number_constraints(model)
-    lambda = get_dual(model.inner)
-    return sense_dual(model) * lambda[vi.value + offset]
+    lambda = get_dual(model.inner, vi.value + offset)
+    return sense_dual(model) * lambda
 end
 
 function MOI.get(model::Optimizer, ::MOI.NLPBlockDual)
@@ -348,3 +334,10 @@ function MOI.get(model::Optimizer, ::MOI.NLPBlockDual)
     # and quadratic constraint, but this is not tested inside MOI.
     return sense_dual(model) .* [lambda[i+1] for i in model.nlp_index_cons]
 end
+
+###
+# Additional getters
+MOI.get(model::Optimizer, ::MOI.NodeCount) = KN_get_mip_number_nodes(model)
+MOI.get(model::Optimizer, ::MOI.BarrierIterations) = KN_get_number_iters(model)
+MOI.get(model::Optimizer, ::MOI.RelativeGap) = KN_get_mip_rel_gap(model)
+MOI.get(model::Optimizer, ::MOI.ObjectiveBound) = KN_get_mip_relaxation_bnd(model)

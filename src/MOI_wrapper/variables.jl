@@ -16,7 +16,10 @@ function MOI.add_variable(model::Optimizer)
     (model.number_solved >= 1) && throw(AddVariableError())
     push!(model.variable_info, VariableInfo())
     KN_add_var(model.inner)
-    return MOI.VariableIndex(length(model.variable_info))
+    nvars = length(model.variable_info)
+    # By default, initial value is set to 0.
+    KN_set_var_primal_init_values(model.inner, nvars - 1, 0.)
+    return MOI.VariableIndex(nvars)
 end
 function MOI.add_variables(model::Optimizer, n::Int)
     return [MOI.add_variable(model) for i in 1:n]
@@ -79,7 +82,7 @@ function MOI.set(model::Optimizer, ::MOI.VariablePrimalStart,
         KN_set_var_primal_init_values(model.inner, vi.value - 1, Cdouble(value))
     else
         # By default, initial value is set to 0.
-        KN_set_var_primal_init_values(model.inner, vi.value - 1, Cdouble(0.))
+        KN_set_var_primal_init_values(model.inner, vi.value - 1, 0.)
     end
     return
 end

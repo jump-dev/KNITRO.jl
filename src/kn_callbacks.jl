@@ -123,7 +123,7 @@ function KN_get_cb_objgrad_nnz(m::Model, cb::Ptr{Cvoid})
 end
 
 function KN_get_cb_jacobian_nnz(m::Model, cb::Ptr{Cvoid})
-    num = Cint[0]
+    num = KNLONG[0]
     ret = @kn_ccall(get_cb_jacobian_nnz,
                     Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
                     m.env, cb, num)
@@ -132,7 +132,7 @@ function KN_get_cb_jacobian_nnz(m::Model, cb::Ptr{Cvoid})
 end
 
 function KN_get_cb_hessian_nnz(m::Model, cb::Ptr{Cvoid})
-    num = Cint[0]
+    num = KNLONG[0]
     ret = @kn_ccall(get_cb_hessian_nnz,
                     Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
                     m.env, cb, num)
@@ -150,7 +150,7 @@ function KN_get_cb_number_rsds(m::Model, cb::Ptr{Cvoid})
 end
 
 function KN_get_cb_rsd_jacobian_nnz(m::Model, cb::Ptr{Cvoid})
-    num = Cint[0]
+    num = KNLONG[0]
     ret = @kn_ccall(get_cb_rsd_jacobian_nnz,
                     Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
                     m.env, cb, num)
@@ -426,7 +426,8 @@ Other optional information can also be set via `KN_set_cb_*()` functions as
 detailed below.
 
 """
-function KN_add_eval_callback(m::Model, funccallback::Function)
+function KN_add_eval_callback_all(m::Model, funccallback::Function)
+    # wrap eval_callback_wrapper as C function
     # Wrap eval_callback_wrapper as C function.
     c_f = @cfunction(eval_fc_wrapper, Cint,
                      (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}))
@@ -450,8 +451,34 @@ function KN_add_eval_callback(m::Model, funccallback::Function)
     return cb
 end
 
-function KN_add_eval_callback(m::Model, evalObj::Bool, indexCons::Vector{Cint},
-                              funccallback::Function)
+# Evaluate only the objective
+function KN_add_objective_callback(m::Model, objcallback::Function)
+    # wrap eval_callback_wrapper as C function
+    c_f = @cfunction(eval_fc_wrapper, Cint,
+                     (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}))
+
+    # define callback context
+    rfptr = Ref{Ptr{Cvoid}}()
+
+    # add callback to context
+    ret = @kn_ccall(add_eval_callback_one, Cint,
+                    (Ptr{Cvoid}, Cint, Ptr{Cvoid}, Ptr{Cvoid}),
+                    m.env, Cint(-1), c_f, rfptr)
+    _checkraise(ret)
+    cb = CallbackContext(rfptr.x, m)
+
+    # store function in callback environment:
+    cb.eval_f = objcallback
+
+    # store model in user params to access callback in C
+    KN_set_cb_user_params(m, cb)
+
+    return cb
+end
+
+function KN_add_eval_callback(m::Model, evalObj::Bool,  # switch on obj eval
+                              indexCons::Vector{Cint},  # index of constaints
+                              funccallback::Function)   # callback
     nC = length(indexCons)
 
     # Wrap eval_callback_wrapper as C function.

@@ -727,7 +727,7 @@ linsolver_pivottol        1e-08
 # Whether to apply a presolve operation to the model.
 #   none   = 0 = no presolve
 #   basic  = 1 = Knitro performs basic presolve
-presolve     basic
+presolve     1
 
 # Specifies the tolerance used to determine whether or not deduced bounds.
 # from the presolve operation are infeasible.
