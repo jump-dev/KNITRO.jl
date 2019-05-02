@@ -7,7 +7,6 @@ using Compat.Test
     rel = KNITRO.get_release()
     @test isa(rel, String)
 
-
     @testset "Definition of model" begin
         m = KNITRO.Model()
         options = joinpath(dirname(@__FILE__), "..", "examples", "knitro.opt")
@@ -509,6 +508,59 @@ end
 
     @test objSol ≈ 21.5848 atol=1e-4
     @test x ≈ [1., 1.] atol=1e-5
+
+    KNITRO.KN_free(kc)
+end
+
+@testset "User callback test (issue #110)" begin
+    kc = KNITRO.KN_new()
+
+    KNITRO.KN_set_param(kc, "outlev", 0)
+    # Define objective goal
+    objGoal = KNITRO.KN_OBJGOAL_MAXIMIZE
+    KNITRO.KN_set_obj_goal(kc, objGoal)
+
+    # Add the variables and set their bounds.
+    nV = 3
+    KNITRO.KN_add_vars(kc, nV)
+    KNITRO.KN_set_var_lobnds(kc, [0, 0.1, 0])
+    KNITRO.KN_set_var_upbnds(kc, [0., 2, 2])
+
+    # Define an initial point.
+    KNITRO.KN_set_var_primal_init_values(kc, [1, 1, 1.5])
+    KNITRO.KN_set_var_dual_init_values(kc, [1., 1, 1, 1])
+
+    # Add the constraints and set their lower bounds.
+    nC = 1
+    KNITRO.KN_add_cons(kc, nC)
+    KNITRO.KN_set_con_lobnds(kc, [0.1])
+    KNITRO.KN_set_con_upbnds(kc, [2 * 2 * 0.99])
+
+    # Load quadratic structure x1*x2 for the constraint.
+    KNITRO.KN_add_con_quadratic_struct(kc, 0, 1, 2, 1.0)
+
+    # Define callback functions.
+    cb = KNITRO.KN_add_eval_callback(kc, evalAll)
+    KNITRO.KN_set_cb_grad(kc, cb, evalAll)
+    KNITRO.KN_set_cb_hess(kc, cb, KNITRO.KN_DENSE_ROWMAJOR, evalAll)
+
+    KNITRO.KN_set_compcons(kc, [KNITRO.KN_CCTYPE_VARVAR], Int32[0], Int32[1])
+
+    function newpt_callback(kc_ptr, x, lambda_, kc)
+        if KNITRO.KN_get_number_iters(kc) > 1
+            return KNITRO.KN_RC_USER_TERMINATION
+        end
+        return 0
+    end
+
+    KNITRO.KN_set_newpt_callback(kc, newpt_callback)
+
+    status = KNITRO.KN_solve(kc)
+    @test status == KNITRO.KN_RC_USER_TERMINATION
+
+    nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
+    @test nStatus == KNITRO.KN_RC_USER_TERMINATION
+    @test KNITRO.KN_get_number_iters(kc) == 2
 
     KNITRO.KN_free(kc)
 end

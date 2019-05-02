@@ -1,4 +1,4 @@
-# Callbacks utilities
+# Callbacks utilities.
 
 """
 Structure specifying the callback context.
@@ -9,13 +9,13 @@ is attached to a unique callback context.
 """
 mutable struct CallbackContext
     context::Ptr{Cvoid}
-    # we have to keep a reference to the optimization model
+    # Keep a reference to the optimization model.
     model::Model
     # we sometime need some user params
     userparams::Dict
 
-    # oracle's callbacks are context dependent, so we store
-    # them inside dedicated CallbackContext
+    # Oracle's callbacks are context dependent, so store
+    # them inside dedicated CallbackContext.
     eval_f::Function
     eval_g::Function
     eval_h::Function
@@ -31,18 +31,18 @@ end
 # Utils
 ##################################################
 function KN_set_cb_user_params(m::Model, cb::CallbackContext, userParams=nothing)
-    # we have to store the model in the C model to use callbacks
-    # function. So, we store the userParams inside the model
+    # Store the model in the C model to use callbacks function.
     if userParams != nothing
         cb.userparams[:data] = userParams
     end
-    # we store the callback context inside KNITRO user data
+    # Store callback context inside KNITRO user data.
     c_userdata = cb
 
     ret = @kn_ccall(set_cb_user_params, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Any),
                     m.env, cb.context, c_userdata)
     _checkraise(ret)
+    return nothing
 end
 
 """
@@ -57,6 +57,7 @@ function KN_set_cb_gradopt(m::Model, cb::CallbackContext, gradopt::Integer)
                     (Ptr{Cvoid}, Ptr{Cvoid}, Cint),
                     m.env, cb.context, gradopt)
     _checkraise(ret)
+    return nothing
 end
 
 #--------------------
@@ -79,6 +80,7 @@ function KN_set_cb_relstepsizes(m::Model, cb::CallbackContext, nindex::Integer, 
     ret = @kn_ccall(set_cb_relstepsize, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Cint, Cdouble),
                     m.env, cb.context, nindex, xRelStepSize)
     _checkraise(ret)
+    return nothing
 end
 
 function KN_set_cb_relstepsizes(m::Model, cb::CallbackContext, xIndex::Vector{Cint}, xRelStepSizes::Vector{Cdouble})
@@ -88,18 +90,20 @@ function KN_set_cb_relstepsizes(m::Model, cb::CallbackContext, xIndex::Vector{Ci
                     (Ptr{Cvoid}, Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cdouble}),
                     m.env, cb.context, ncon, xIndex, xRelStepSizes)
     _checkraise(ret)
+    return nothing
 end
 
 function KN_set_cb_relstepsizes(m::Model, cb::CallbackContext, xRelStepSizes::Vector{Cdouble})
     ret = @kn_ccall(set_cb_relstepsizes_all, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cdouble}),
                     m.env, cb.context, xRelStepSizes)
     _checkraise(ret)
+    return nothing
 end
 
 #--------------------
 # callback context getters
 #--------------------
-# TODO: dry this code with a macro
+# TODO: dry this code with a macro.
 function KN_get_cb_number_cons(m::Model, cb::Ptr{Cvoid})
     num = Cint[0]
     ret = @kn_ccall(get_cb_number_cons,
@@ -184,7 +188,7 @@ mutable struct KN_eval_request
     vec::Ptr{Cdouble}
 end
 
-# high level EvalRequest structure
+# High level EvalRequest structure.
 "High level structure to wrap `KN_eval_request`."
 mutable struct EvalRequest
     evalRequestCode::Cint
@@ -195,14 +199,14 @@ mutable struct EvalRequest
     vec::Array{Float64}
 end
 
-# Import low level request to Julia object
+# Import low level request to Julia object.
 function EvalRequest(m::Model, evalRequest_::KN_eval_request)
     nx = KN_get_number_vars(m)
     nc = KN_get_number_cons(m)
 
-    # import scaling
+    # Import objective's scaling.
     sigma = (evalRequest_.sigma != C_NULL) ? unsafe_wrap(Array, evalRequest_.sigma, 1)[1] : 1.
-    # we use only views to C arrays to avoid unnecessary copy
+    # Wrap directly C arrays to avoid unnecessary copy.
     return EvalRequest(evalRequest_.evalRequestCode,
                        evalRequest_.threadID,
                        unsafe_wrap(Array, evalRequest_.x, nx),
@@ -252,7 +256,7 @@ mutable struct KN_eval_result
     rsdJac::Ptr{Cdouble}
 end
 
-# high level EvalRequest structure
+# High level EvalRequest structure.
 mutable struct EvalResult
     obj::Array{Float64}
     c::Array{Float64}
@@ -279,97 +283,97 @@ end
 
 
 ##################################################
-# Callbacks wrappers
-# 1/ for eval function
+# Callbacks wrappers.
+# 1/ For eval function:
 function eval_fc_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
                          evalRequest_::Ptr{Cvoid},
                          evalResults_::Ptr{Cvoid},
                          userdata_::Ptr{Cvoid})
-    # load evalRequest object
+    # Load evalRequest object.
     ptr0 = Ptr{KN_eval_request}(evalRequest_)
     evalRequest = unsafe_load(ptr0)::KN_eval_request
 
-    # load evalResult object
+    # Load evalResult object.
     ptr = Ptr{KN_eval_result}(evalResults_)
     evalResult = unsafe_load(ptr)::KN_eval_result
 
-    # and eventually, load callback context
+    # Eventually, load callback context.
     cb = unsafe_pointer_to_objref(userdata_)
-    # we have to ensure that cb is a CallbackContext
-    # otherwise, we tell KNITRO that a problem occurs by returning a
-    # non-zero status
+    # Ensure that cb is a CallbackContext.
+    # Otherwise, we tell KNITRO that a problem occurs by returning a
+    # non-zero status.
     if !isa(cb, CallbackContext)
-        return Cint(32)
+        return Cint(KN_RC_CALLBACK_ERR)
     end
 
     request = EvalRequest(cb.model, evalRequest)
     result = EvalResult(cb.model, ptr_cb, evalResult)
 
-    cb.eval_f(ptr_model, ptr_cb, request, result, cb.userparams)
+    res = cb.eval_f(ptr_model, ptr_cb, request, result, cb.userparams)
 
-    return Cint(0)
+    return Cint(res)
 end
 
-# 2/ for gradient function
+# 2/ For gradient function.
 function eval_ga_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
                          evalRequest_::Ptr{Cvoid},
                          evalResults_::Ptr{Cvoid},
                          userdata_::Ptr{Cvoid})
 
-    # load evalRequest object
+    # Load evalRequest object.
     ptr0 = Ptr{KN_eval_request}(evalRequest_)
     evalRequest = unsafe_load(ptr0)::KN_eval_request
 
-    # load evalResult object
+    # Load evalResult object.
     ptr = Ptr{KN_eval_result}(evalResults_)
     evalResult = unsafe_load(ptr)::KN_eval_result
 
-    # and eventually, load callback context
+    # And eventually, load callback context.
     cb = unsafe_pointer_to_objref(userdata_)
-    # we have to ensure that cb is a CallbackContext
-    # otherwise, we tell KNITRO that a problem occurs by returning a
-    # non-zero status
+    # Ensure that cb is a CallbackContext.
+    # Otherwise, we tell KNITRO that a problem occurs by returning a
+    # non-zero status.
     if !isa(cb, CallbackContext)
-        return Cint(32)
+        return Cint(KN_RC_CALLBACK_ERR)
     end
 
     request = EvalRequest(cb.model, evalRequest)
     result = EvalResult(cb.model, ptr_cb, evalResult)
 
-    cb.eval_g(ptr_model, ptr_cb, request, result, cb.userparams)
+    res = cb.eval_g(ptr_model, ptr_cb, request, result, cb.userparams)
 
-    return Cint(0)
+    return Cint(res)
 end
 
-# 3/ for hessian function
+# 3/ For hessian function:
 function eval_hess_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
                            evalRequest_::Ptr{Cvoid},
                            evalResults_::Ptr{Cvoid},
                            userdata_::Ptr{Cvoid})
 
-    # load evalRequest object
+    # Load evalRequest object.
     ptr0 = Ptr{KN_eval_request}(evalRequest_)
     evalRequest = unsafe_load(ptr0)::KN_eval_request
 
-    # load evalResult object
+    # Load evalResult object.
     ptr = Ptr{KN_eval_result}(evalResults_)
     evalResult = unsafe_load(ptr)::KN_eval_result
 
-    # and eventually, load callback context
+    # And eventually, load callback context.
     cb = unsafe_pointer_to_objref(userdata_)
-    # we have to ensure that cb is a CallbackContext
-    # otherwise, we tell KNITRO that a problem occurs by returning a
-    # non-zero status
+    # Ensure that cb is a CallbackContext.
+    # Otherwise, we tell KNITRO that a problem occurs by returning a
+    # non-zero status.
     if !isa(cb, CallbackContext)
-        return Cint(32)
+        return Cint(KN_RC_CALLBACK_ERR)
     end
 
     request = EvalRequest(cb.model, evalRequest)
     result = EvalResult(cb.model, ptr_cb, evalResult)
 
-    cb.eval_h(ptr_model, ptr_cb, request, result, cb.userparams)
+    res = cb.eval_h(ptr_model, ptr_cb, request, result, cb.userparams)
 
-    return Cint(0)
+    return Cint(res)
 end
 
 
@@ -378,7 +382,7 @@ end
 ################################################################################
 ################################################################################
 
-# User callback should be of the form:
+# Eval callbacks should be of the form:
 # callback(kc, cb, evalrequest, evalresult, usrparams)::Int
 
 """
@@ -424,23 +428,24 @@ detailed below.
 """
 function KN_add_eval_callback_all(m::Model, funccallback::Function)
     # wrap eval_callback_wrapper as C function
+    # Wrap eval_callback_wrapper as C function.
     c_f = @cfunction(eval_fc_wrapper, Cint,
                      (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}))
 
-    # define callback context
+    # Define callback context.
     rfptr = Ref{Ptr{Cvoid}}()
 
-    # add callback to context
+    # Add callback to context.
     ret = @kn_ccall(add_eval_callback_all, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}),
                     m.env, c_f, rfptr)
     _checkraise(ret)
     cb = CallbackContext(rfptr.x, m)
 
-    # store function in callback environment:
+    # Store function in callback environment:
     cb.eval_f = funccallback
 
-    # store model in user params to access callback in C
+    # Store model in user params to access callback in C
     KN_set_cb_user_params(m, cb)
 
     return cb
@@ -476,21 +481,21 @@ function KN_add_eval_callback(m::Model, evalObj::Bool,  # switch on obj eval
                               funccallback::Function)   # callback
     nC = length(indexCons)
 
-    # wrap eval_callback_wrapper as C function
+    # Wrap eval_callback_wrapper as C function.
     c_f = @cfunction(eval_fc_wrapper, Cint,
                      (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}))
 
-    # define callback context
+    # Define callback context.
     rfptr = Ref{Ptr{Cvoid}}()
 
-    # add callback to context
+    # Add callback to context.
     ret = @kn_ccall(add_eval_callback, Cint,
                     (Ptr{Cvoid}, KNBOOL, Cint, Ptr{Cint}, Ptr{Cvoid}, Ptr{Cvoid}),
                     m.env, KNBOOL(evalObj), nC, indexCons, c_f, rfptr)
     _checkraise(ret)
     cb = CallbackContext(rfptr.x, m)
 
-    # store function in callback environment:
+    # Store function in callback environment.
     cb.eval_f = funccallback
 
     KN_set_cb_user_params(m, cb)
@@ -511,7 +516,7 @@ gradient and constraint Jacobian provided through this callback.
 function KN_set_cb_grad(m::Model, cb::CallbackContext, gradcallback;
                         nV::Integer=KN_DENSE, objGradIndexVars=C_NULL,
                         jacIndexCons=C_NULL, jacIndexVars=C_NULL)
-    # check consistency of arguments
+    # Check consistency of arguments.
     if (nV == 0 || nV == KN_DENSE )
         (objGradIndexVars != C_NULL) && error("objGradIndexVars must be set to C_NULL when nV = $nV")
     else
@@ -525,10 +530,10 @@ function KN_set_cb_grad(m::Model, cb::CallbackContext, gradcallback;
     end
 
     if gradcallback != nothing
-        # store grad function inside model:
+        # Store grad function inside model.
         cb.eval_g = gradcallback
 
-        # wrap gradient wrapper as C function
+        # Wrap gradient wrapper as C function.
         c_grad_g = @cfunction(eval_ga_wrapper, Cint,
                               (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}))
     else
@@ -567,10 +572,10 @@ function KN_set_cb_hess(m::Model, cb::CallbackContext, nnzH::Integer, hesscallba
         @assert hessIndexVars1 != C_NULL && hessIndexVars2 != C_NULL
         @assert length(hessIndexVars1) == length(hessIndexVars2) == nnzH
     end
-    # store hessian function inside model:
+    # Store hessian function inside model.
     cb.eval_h = hesscallback
 
-    # wrap gradient wrapper as C function
+    # Wrap gradient wrapper as C function.
     c_hess = @cfunction(eval_hess_wrapper, Cint,
                         (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}))
 
@@ -626,30 +631,29 @@ function eval_rsd_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
                           evalRequest_::Ptr{Cvoid},
                           evalResults_::Ptr{Cvoid},
                           userdata_::Ptr{Cvoid})
-
-    # load evalRequest object
+    # Load evalRequest object.
     ptr0 = Ptr{KN_eval_request}(evalRequest_)
     evalRequest = unsafe_load(ptr0)::KN_eval_request
 
-    # load evalResult object
+    # Load evalResult object.
     ptr = Ptr{KN_eval_result}(evalResults_)
     evalResult = unsafe_load(ptr)::KN_eval_result
 
-    # and eventually, load callback context
+    # And eventually, load callback context.
     cb = unsafe_pointer_to_objref(userdata_)
-    # we have to ensure that cb is a CallbackContext
+    # Ensure that cb is a CallbackContext.
     # otherwise, we tell KNITRO that a problem occurs by returning a
-    # non-zero status
+    # non-zero status.
     if !isa(cb, CallbackContext)
-        return Cint(32)
+        return Cint(KN_RC_CALLBACK_ERR)
     end
 
     request = EvalRequest(cb.model, evalRequest)
     result = EvalResult(cb.model, ptr_cb, evalResult)
 
-    cb.eval_rsd(ptr_model, ptr_cb, request, result, cb.userparams)
+    res = cb.eval_rsd(ptr_model, ptr_cb, request, result, cb.userparams)
 
-    return Cint(0)
+    return Cint(res)
 end
 
 # TODO: add _one and _* support
@@ -674,21 +678,21 @@ efficiency of the finite-difference Jacobian approximation.
 """
 function KN_add_lsq_eval_callback(m::Model, rsdCallBack::Function)
 
-    # wrap eval_callback_wrapper as C function
+    # Wrap eval_callback_wrapper as C function.
     c_f = @cfunction(eval_rsd_wrapper, Cint,
                    (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}))
 
-    # define callback context
+    # Define callback context.
     rfptr = Ref{Ptr{Cvoid}}()
 
-    # add callback to context
+    # Add callback to context.
     ret = @kn_ccall(add_lsq_eval_callback_all, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}),
                     m.env, c_f, rfptr)
     _checkraise(ret)
     cb = CallbackContext(rfptr.x, m)
 
-    # store function inside model:
+    # Store function inside model.
     cb.eval_rsd = rsdCallBack
 
     KN_set_cb_user_params(m, cb)
@@ -701,34 +705,34 @@ function eval_rj_wrapper(ptr_model::Ptr{Cvoid}, ptr_cb::Ptr{Cvoid},
                          evalResults_::Ptr{Cvoid},
                          userdata_::Ptr{Cvoid})
 
-    # load evalRequest object
+    # Load evalRequest object
     ptr0 = Ptr{KN_eval_request}(evalRequest_)
     evalRequest = unsafe_load(ptr0)::KN_eval_request
 
-    # load evalResult object
+    # Load evalResult object
     ptr = Ptr{KN_eval_result}(evalResults_)
     evalResult = unsafe_load(ptr)::KN_eval_result
 
-    # and eventually, load callback context
+    # And eventually, load callback context
     cb = unsafe_pointer_to_objref(userdata_)
-    # we have to ensure that cb is a CallbackContext
-    # otherwise, we tell KNITRO that a problem occurs by returning a
-    # non-zero status
+    # Ensure that cb is a CallbackContext.
+    # Otherwise, we tell KNITRO that a problem occurs by returning a
+    # non-zero status.
     if !isa(cb, CallbackContext)
-        return Cint(32)
+        return Cint(KN_RC_CALLBACK_ERR)
     end
 
     request = EvalRequest(cb.model, evalRequest)
     result = EvalResult(cb.model, ptr_cb, evalResult)
 
-    cb.eval_jac_rsd(ptr_model, ptr_cb, request, result, cb.userparams)
+    res = cb.eval_jac_rsd(ptr_model, ptr_cb, request, result, cb.userparams)
 
-    return Cint(0)
+    return Cint(res)
 end
 
 function KN_set_cb_rsd_jac(m::Model, cb::CallbackContext, nnzJ::Integer, evalRJ::Function;
                            jacIndexRsds=C_NULL, jacIndexVars=C_NULL)
-    # check consistency of arguments
+    # Check consistency of arguments.
     if nnzJ == KN_DENSE_ROWMAJOR || nnzJ == KN_DENSE_COLMAJOR || nnzJ == 0
         @assert jacIndexRsds == jacIndexVars == C_NULL
     else
@@ -736,9 +740,9 @@ function KN_set_cb_rsd_jac(m::Model, cb::CallbackContext, nnzJ::Integer, evalRJ:
         @assert length(jacIndexRsds) == length(jacIndexVars) == nnzJ
     end
 
-    # store function inside model:
+    # Store function inside model.
     cb.eval_jac_rsd = evalRJ
-    # wrap as C function
+    # Wrap as C function.
     c_eval_rj = @cfunction(eval_rj_wrapper, Cint,
                            (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}))
     ret = @kn_ccall(set_cb_rsd_jac, Cint,
@@ -756,23 +760,23 @@ end
 # User callbacks wrapper
 ##################################################
 #--------------------
-# New estimate callback
+# New estimate callback.
 #--------------------
 function newpt_wrapper(ptr_model::Ptr{Cvoid},
                        ptr_x::Ptr{Cdouble},
                        ptr_lambda::Ptr{Cdouble},
                        userdata_::Ptr{Cvoid})
 
-    # Load KNITRO's Julia Model
+    # Load KNITRO's Julia Model.
     m = unsafe_pointer_to_objref(userdata_)::Model
     nx = KN_get_number_vars(m)
     nc = KN_get_number_cons(m)
 
     x = unsafe_wrap(Array, ptr_x, nx)
     lambda = unsafe_wrap(Array, ptr_lambda, nx + nc)
-    m.user_callback(ptr_model, x, lambda, m)
+    ret = m.user_callback(ptr_model, x, lambda, m)
 
-    return Cint(0)
+    return Cint(ret)
 end
 
 """
@@ -798,10 +802,10 @@ Note: Currently only active for continuous models.
 
 """
 function KN_set_newpt_callback(m::Model, callback::Function)
-    # store callback function inside model:
+    # Store callback function inside model.
     m.user_callback = callback
 
-    # wrap user callback wrapper as C function
+    # Wrap user callback wrapper as C function.
     c_func = @cfunction(newpt_wrapper, Cint,
                         (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid}))
 
@@ -821,16 +825,16 @@ function ms_process_wrapper(ptr_model::Ptr{Cvoid},
                             ptr_lambda::Ptr{Cdouble},
                             userdata_::Ptr{Cvoid})
 
-    # Load KNITRO's Julia Model
+    # Load KNITRO's Julia Model.
     m = unsafe_pointer_to_objref(userdata_)::Model
     nx = KN_get_number_vars(m)
     nc = KN_get_number_cons(m)
 
     x = unsafe_wrap(Array, ptr_x, nx)
     lambda = unsafe_wrap(Array, ptr_lambda, nx + nc)
-    m.ms_process(ptr_model, x, lambda, m)
+    res = m.ms_process(ptr_model, x, lambda, m)
 
-    return Cint(0)
+    return Cint(res)
 end
 
 """
@@ -852,10 +856,10 @@ the last solve.
 
 """
 function KN_set_ms_process_callback(m::Model, callback::Function)
-    # store callback function inside model:
+    # Store callback function inside model.
     m.ms_process = callback
 
-    # wrap user callback wrapper as C function
+    # Wrap user callback wrapper as C function.
     c_func = @cfunction(ms_process_wrapper, Cint,
                         (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid}))
 
@@ -863,6 +867,7 @@ function KN_set_ms_process_callback(m::Model, callback::Function)
                     (Ptr{Cvoid}, Ptr{Cvoid}, Any),
                     m.env, c_func, m)
     _checkraise(ret)
+    return nothing
 end
 
 #--------------------
@@ -872,17 +877,16 @@ function mip_node_callback_wrapper(ptr_model::Ptr{Cvoid},
                                    ptr_x::Ptr{Cdouble},
                                    ptr_lambda::Ptr{Cdouble},
                                    userdata_::Ptr{Cvoid})
-
-    # Load KNITRO's Julia Model
+    # Load KNITRO's Julia Model.
     m = unsafe_pointer_to_objref(userdata_)::Model
     nx = KN_get_number_vars(m)
     nc = KN_get_number_cons(m)
 
     x = unsafe_wrap(Array, ptr_x, nx)
     lambda = unsafe_wrap(Array, ptr_lambda, nx + nc)
-    m.mip_callback(ptr_model, x, lambda, m)
+    res = m.mip_callback(ptr_model, x, lambda, m)
 
-    return Cint(0)
+    return Cint(res)
 end
 
 """
@@ -904,10 +908,10 @@ Arguments `x` and `lambda` contain the solution from the node solve.
 
 """
 function KN_set_mip_node_callback(m::Model, callback::Function)
-    # store callback function inside model:
+    # Store callback function inside model.
     m.mip_callback = callback
 
-    # wrap user callback wrapper as C function
+    # Wrap user callback wrapper as C function.
     c_func = @cfunction(mip_node_callback_wrapper, Cint,
                         (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid}))
 
@@ -915,6 +919,7 @@ function KN_set_mip_node_callback(m::Model, callback::Function)
                     (Ptr{Cvoid}, Ptr{Cvoid}, Any),
                     m.env, c_func, m)
     _checkraise(ret)
+    return nothing
 end
 
 #--------------------
@@ -926,16 +931,16 @@ function ms_initpt_wrapper(ptr_model::Ptr{Cvoid},
                            ptr_lambda::Ptr{Cdouble},
                            userdata_::Ptr{Cvoid})
 
-    # Load KNITRO's Julia Model
+    # Load KNITRO's Julia Model.
     m = unsafe_pointer_to_objref(userdata_)::Model
     nx = KN_get_number_vars(m)
     nc = KN_get_number_cons(m)
 
     x = unsafe_wrap(Array, ptr_x, nx)
     lambda = unsafe_wrap(Array, ptr_lambda, nx + nc)
-    m.ms_initpt_callback(ptr_model, nSolveNumber, x, lambda, m)
+    res = m.ms_initpt_callback(ptr_model, nSolveNumber, x, lambda, m)
 
-    return Cint(0)
+    return Cint(res)
 end
 
 """
@@ -955,10 +960,10 @@ multistart solve.
 
 """
 function KN_set_ms_initpt_callback(m::Model, callback::Function)
-    # store callback function inside model:
+    # Store callback function inside model.
     m.ms_initpt_callback = callback
 
-    # wrap user callback wrapper as C function
+    # Wrap user callback wrapper as C function.
     c_func = @cfunction(ms_initpt_wrapper, Cint,
                         (Ptr{Cvoid}, Cint, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid}))
 
@@ -966,6 +971,7 @@ function KN_set_ms_initpt_callback(m::Model, callback::Function)
                     (Ptr{Cvoid}, Ptr{Cvoid}, Any),
                     m.env, c_func, m)
     _checkraise(ret)
+    return nothing
 end
 
 #--------------------
@@ -973,7 +979,7 @@ end
 #--------------------
 function puts_callback_wrapper(str::Ptr{Cchar}, userdata_::Ptr{Cvoid})
 
-    # Load KNITRO's Julia Model
+    # Load KNITRO's Julia Model.
     m = unsafe_pointer_to_objref(userdata_)::Model
     res = m.puts_callback(unsafe_string(str), m.userdata)
 
@@ -998,14 +1004,15 @@ characters that were printed.
 
 """
 function KN_set_puts_callback(m::Model, callback::Function)
-    # store callback function inside model:
+    # Store callback function inside model.
     m.puts_callback = callback
 
-    # wrap user callback wrapper as C function
+    # Wrap user callback wrapper as C function.
     c_func = @cfunction(puts_callback_wrapper, Cint,
                         (Ptr{Cchar}, Ptr{Cvoid}))
 
     ret = @kn_ccall(set_puts_callback, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Any),
                     m.env, c_func, m)
+    return nothing
 end
