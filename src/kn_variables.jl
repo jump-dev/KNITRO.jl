@@ -223,6 +223,26 @@ function KN_set_var_names(m::Model, names::Vector{String})
     _checkraise(ret)
 end
 
+# Getters
+if KNITRO_VERSION >= v"12.0"
+    function KN_get_var_names(m::Model, max_length=1024)
+        return String[KN_get_var_names(m, Cint(id-1), max_length) for id in 1:KN_get_number_vars(m)]
+    end
+
+    function KN_get_var_names(m::Model, index::Vector{Cint}, max_length=1024)
+        return String[KN_get_var_names(m, id, max_length) for id in index]
+    end
+
+    function KN_get_var_names(m::Model, index::Cint, max_length=1024)
+        rawname = zeros(Cchar, max_length)
+        ret = @kn_ccall(get_var_name, Cint,
+                        (Ptr{Cvoid}, Cint, Cint, Ptr{Cchar}),
+                        m.env, index, max_length, rawname)
+        _checkraise(ret)
+        name = String(strip(String(convert(Vector{UInt8}, rawname)), '\0'))
+        return name
+    end
+end
 
 ##################################################
 ## Initial values

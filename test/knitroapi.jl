@@ -88,6 +88,35 @@ function callback(name)
     return callbackFn
 end
 
+if KNITRO.KNITRO_VERSION >= v"12.0"
+    @testset "Names getters" begin
+        kc = KNITRO.KN_new()
+        KNITRO.KN_add_vars(kc, 3)
+        KNITRO.KN_add_cons(kc, 3)
+        xnames = ["x1", "x2", "x3"]
+        cnames = ["c1", "c2", "c3"]
+
+        KNITRO.KN_set_var_names(kc, xnames)
+        KNITRO.KN_set_con_names(kc, cnames)
+        index = Cint(1)
+
+        name = KNITRO.KN_get_var_names(kc, index)
+        @test name == xnames[2]
+        outnames = KNITRO.KN_get_var_names(kc, [index])
+        @test outnames[1] == xnames[2]
+        outnames = KNITRO.KN_get_var_names(kc)
+        @test xnames == outnames
+
+        name = KNITRO.KN_get_con_names(kc, index)
+        @test name == cnames[2]
+        outnames = KNITRO.KN_get_con_names(kc, [index])
+        @test outnames[1] == cnames[2]
+        outnames = KNITRO.KN_get_con_names(kc)
+        @test cnames == outnames
+
+        KNITRO.KN_free(kc)
+    end
+end
 
 @testset "First problem" begin
     kc = KNITRO.KN_new()
