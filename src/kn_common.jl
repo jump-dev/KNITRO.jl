@@ -15,6 +15,20 @@ macro kn_ccall(func, args...)
     end
 end
 
+macro define_getters(function_name)
+    fname = Symbol("KN_" * string(function_name))
+    quote
+        function $(esc(fname))(kc::Model, index::Vector{Cint})
+            result = zeros(Cdouble, length(index))
+            ret = @kn_ccall($function_name, Cint,
+                            (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                            kc.env, length(index), index, result)
+            _checkraise(ret)
+            return result
+        end
+    end
+end
+
 "Check if return value is valid."
 function _checkraise(ret::Cint)
     if ret != 0

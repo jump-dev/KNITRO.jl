@@ -92,6 +92,15 @@ function KN_set_con_lobnds(m::Model, consIndex::Vector{Cint}, loBounds::Vector{C
 end
 
 ##################################################
+# Getters
+##################################################
+if KNITRO_VERSION >= v"12.0"
+    @define_getters get_con_lobnds
+    @define_getters get_con_upbnds
+    @define_getters get_con_eqbnds
+end
+
+##################################################
 # Dual init values
 ##################################################
 function KN_set_con_dual_init_values(m::Model, nindex::Integer, lambdaInitVal::Cdouble)

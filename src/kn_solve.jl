@@ -107,3 +107,11 @@ function get_dual(m::Model)
     return lambda
 end
 get_dual(m::Model, ix::Int) = isempty(m.mult) ? get_dual(m)[ix] : m.mult[ix]
+
+
+# New getters for Knitro >= 12.0
+if KNITRO_VERSION >= v"12.0"
+    @define_getters get_var_primal_values
+    @define_getters get_var_dual_values
+    @define_getters get_con_dual_values
+end

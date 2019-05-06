@@ -62,6 +62,16 @@ function KN_set_var_upbnds(m::Model, upbnds::Vector{Cdouble})
 end
 
 ##################################################
+# Getters
+##################################################
+if KNITRO_VERSION >= v"12.0"
+    @define_getters get_var_lobnds
+    @define_getters get_var_upbnds
+    @define_getters get_var_eqbnds
+    @define_getters get_var_fxbnds
+end
+
+##################################################
 ## Fix bounds
 ##################################################
 function KN_set_var_fxbnds(m::Model, nindex::Integer, xFxBnd::Cdouble)
