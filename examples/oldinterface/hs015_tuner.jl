@@ -1,5 +1,4 @@
 using KNITRO
-using Compat.Test
 
  ## Solve test problem HS15 from the Hock & Schittkowski collection.
  #

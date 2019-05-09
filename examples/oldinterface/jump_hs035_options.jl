@@ -1,5 +1,5 @@
 
-using MathProgBase, KNITRO, JuMP, Compat.Test
+using MathProgBase, KNITRO, JuMP
 
 
 function testmodel(m)

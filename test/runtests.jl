@@ -1,10 +1,8 @@
 using KNITRO
 using Test
-using Pkg
 
 @testset "Test old API" begin
     include("oldexamples.jl")
-    include("mathprogtest.jl")
 end
 
 if KNITRO.KNITRO_VERSION >= v"11.0"

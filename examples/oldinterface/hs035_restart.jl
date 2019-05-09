@@ -1,4 +1,4 @@
-using KNITRO, Compat.Test
+using KNITRO
 
 #    min  9 - 8x1 - 6x2 - 4x3
 #         + 2(x1^2) + 2(x2^2) + (x3^2) + 2(x1*x2) + 2(x1*x3)
