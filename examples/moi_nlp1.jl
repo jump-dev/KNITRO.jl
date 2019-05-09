@@ -30,10 +30,12 @@ struct HS15 <: MOI.AbstractNLPEvaluator
 end
 
 
-MOI.features_available(d::HS15) = [:Grad]
+MOI.features_available(d::HS15) = [:Grad, :Hess]
 MOI.initialize(d::HS15, features) = nothing
 
 MOI.jacobian_structure(d::HS15) = []
+MOI.hessian_lagrangian_structure(d::HS15) = Tuple{Int64,Int64}[(1,1), (1, 2), (2, 2)]
+
 #*------------------------------------------------------------------*
 #*     FUNCTION callbackEvalF                                       *
 #*------------------------------------------------------------------*
@@ -44,7 +46,7 @@ end
 function MOI.eval_constraint(::HS15, g, x)
     nothing
 end
-function MOI.eval_constraint_jacobian(::HS15, g, x)
+function MOI.eval_constraint_jacobian(::HS15, jac_g, x)
     nothing
 end
 
@@ -63,8 +65,8 @@ end
 #*------------------------------------------------------------------*
 function MOI.eval_hessian_lagrangian(d::HS15, H, x, σ, μ)
     H[1] = σ * ((-400.0 * x[2]) + (1200.0 * x[1] * x[1]) + 2.0) #(0,0)
-    H[2] = σ * (-400.0 * x[1]) #(0,1)
-    H[3] = σ * 200.0           #(1,1)
+    H[2] = σ * (-400.0 * x[1])  #(0,1)
+    H[3] = σ * 200.0            #(1,1)
 
     return 0
 end
@@ -73,16 +75,17 @@ end
 #*     main                                                         *
 #*------------------------------------------------------------------*
 
-# Initialize Knitro
+# Initialize Knitro.
 options = joinpath(dirname(@__FILE__), "..", "examples", "knitro.opt")
-solver = KNITRO.Optimizer(option_file=options)
+# Define a Knitro solver instance through MOI.
+solver = KNITRO.Optimizer(outlev=3, opttol=1e-8)
 lb =[]; ub=[]
 block_data = MOI.NLPBlockData(MOI.NLPBoundsPair.(lb, ub), HS15(false), true)
 
 n = 2
 v = MOI.add_variables(solver, n)
 
-u = [0.5, KNITRO.KN_INFINITY]
+u = [0.5, Inf]
 start = [-2., 1.]
 
 for i in 1:2
@@ -90,39 +93,27 @@ for i in 1:2
     MOI.set(solver, MOI.VariablePrimalStart(), v[i], start[i])
 end
 
-# Add the constraints and set their lower bounds
+# Add the constraints and set their lower bounds.
 m = 2
-# first constraint: x0 * x1 >= 1
+# First constraint: x0 * x1 >= 1.
 cf1 = MOI.ScalarQuadraticFunction{Float64}(
         MOI.ScalarAffineTerm.(0.0, v),
         [MOI.ScalarQuadraticTerm(1., v[1], v[2])],
         0.)
 c1 = MOI.add_constraint(solver, cf1, MOI.GreaterThan{Float64}(1.))
 
-# second constraint: x0 + x1^2 >= 0
+# Second constraint: x0 + x1^2 >= 0.
 cf2 = MOI.ScalarQuadraticFunction(
-                                 [MOI.ScalarAffineTerm(2.0, v[1])],
+                                 [MOI.ScalarAffineTerm(1.0, v[1])],
                                  [MOI.ScalarQuadraticTerm(1., v[2], v[2])],
                                  0.)
 c2 = MOI.add_constraint(solver, cf2, MOI.GreaterThan(0.))
 
 MOI.set(solver, MOI.ObjectiveSense(), MOI.MIN_SENSE)
-# define NLP structure
+# Define NLP structure.
 MOI.set(solver, MOI.NLPBlock(), block_data)
 
-
-# Specify that the user is able to provide evaluations
-# of the hessian matrix without the objective component.
-# turned off by default but should be enabled if possible.
-KNITRO.KN_set_param(solver.inner, KNITRO.KN_PARAM_HESSIAN_NO_F, KNITRO.KN_HESSIAN_NO_F_ALLOW)
-
-# Perform a derivative check.
-KNITRO.KN_set_param(solver.inner, KNITRO.KN_PARAM_DERIVCHECK, KNITRO.KN_DERIVCHECK_ALL)
-
 # Solve the problem.
-#
-# Return status codes are defined in "knitro.h" and described
-# in the Knitro manual.
 MOI.optimize!(solver)
 
 # Free solver environment properly

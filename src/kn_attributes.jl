@@ -347,7 +347,24 @@ function KN_get_hessian_values(m::Model)
     return indexVars1, indexVars2, hess
 end
 
+# Getters for CPU time are implemented only for Knitro version >= 12.0.
+if KNITRO_VERSION >= v"12.0"
+    function KN_get_solve_time_cpu(m::Model)
+        tcpu = zeros(Cdouble, 1)
+        ret = @kn_ccall(get_solve_time_cpu, Cint,
+                        (Ptr{Cvoid}, Ptr{Cdouble}), m.env, tcpu)
+        _checkraise(ret)
+        return tcpu[1]
+    end
 
+    function KN_get_solve_time_real(m::Model)
+        treal = zeros(Cdouble, 1)
+        ret = @kn_ccall(get_solve_time_real, Cint,
+                        (Ptr{Cvoid}, Ptr{Cdouble}), m.env, treal)
+        _checkraise(ret)
+        return treal[1]
+    end
+end
 ##################################################
 # MIP utils
 ##################################################

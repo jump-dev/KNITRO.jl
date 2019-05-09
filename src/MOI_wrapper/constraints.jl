@@ -65,7 +65,6 @@ function MOI.add_constraint(model::Optimizer,
         error("Variable $vi is fixed. Cannot also set upper bound.")
     end
     ub = check_value(lt.upper)
-    model.variable_info[vi.value].upper_bound = ub
     model.variable_info[vi.value].has_upper_bound = true
     # By construction, MOI's indexing is the same as KNITRO's indexing.
     KN_set_var_upbnds(model.inner, vi.value - 1, ub)
@@ -87,7 +86,6 @@ function MOI.add_constraint(model::Optimizer,
         error("Variable $vi is fixed. Cannot also set lower bound.")
     end
     lb = check_value(gt.lower)
-    model.variable_info[vi.value].lower_bound = lb
     model.variable_info[vi.value].has_lower_bound = true
     # We assume that MOI's indexing is the same as KNITRO's indexing.
     KN_set_var_lobnds(model.inner, vi.value - 1, lb)
@@ -112,8 +110,6 @@ function MOI.add_constraint(model::Optimizer,
         error("Variable $vi is already fixed.")
     end
     eqv = check_value(eq.value)
-    model.variable_info[vi.value].lower_bound = eqv
-    model.variable_info[vi.value].upper_bound = eqv
     model.variable_info[vi.value].is_fixed = true
     # We assume that MOI's indexing is the same as KNITRO's indexing.
     KN_set_var_fxbnds(model.inner, vi.value - 1, eqv)
@@ -188,6 +184,10 @@ function MOI.add_constraint(model::Optimizer,
     KN_add_con_linear_struct(model.inner, num_cons, indexvars, coefs)
     # Parse quadratic term.
     qvar1, qvar2, qcoefs = canonical_quadratic_reduction(func)
+    # Take care that Knitro is 0-indexed!
+    qvar1 .= qvar1 .- 1
+    qvar2 .= qvar2 .- 1
+
     KN_add_con_quadratic_struct(model.inner, num_cons, qvar1, qvar2, qcoefs)
     # Add constraints to index.
     ci = MOI.ConstraintIndex{typeof(func), typeof(set)}(num_cons)
@@ -337,17 +337,7 @@ function MOI.add_constraint(model::Optimizer,
     # Made the bounds explicit for KNITRO and take care of
     # preexisting MOI's bounds.
     lobnd = 0.
-    if model.variable_info[indv + 1].has_lower_bound
-        # Knitro automatically set the lowerbound to 0., except
-        # if it is equal to 1.
-        lobnd = model.variable_info[indv +1 ].lower_bound
-    end
     upbnd = 1.
-    if model.variable_info[indv + 1].has_upper_bound
-        # Knitro automatically set the upperbound to 1., except
-        # if it is equal to 0.
-        upbnd = model.variable_info[indv +1 ].upper_bound
-    end
     KN_set_var_lobnds(model.inner, indv, lobnd)
     KN_set_var_upbnds(model.inner, indv, upbnd)
     KN_set_var_type(model.inner, vi.value - 1, KN_VARTYPE_BINARY)

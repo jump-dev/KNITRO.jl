@@ -165,7 +165,7 @@ KNITRO.KN_add_con_quadratic_struct(kc, qconIndexCons, qconIndexVars1, qconIndexV
 # Add separate callbacks.
 
 # Set callback data for nonlinear objective term.
-cbObj = KNITRO.KN_add_eval_callback(kc, callbackEvalObj)
+cbObj = KNITRO.KN_add_objective_callback(kc, callbackEvalObj)
 KNITRO.KN_set_cb_grad(kc, cbObj, callbackEvalObjGrad,
                       objGradIndexVars=xIndices, nV=length(xIndices))
 

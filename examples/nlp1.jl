@@ -91,6 +91,7 @@ kc = KNITRO.KN_new()
 # the knitro.opt file.
 options = joinpath(dirname(@__FILE__), "..", "examples", "knitro.opt")
 KNITRO.KN_load_param_file(kc, options)
+KNITRO.KN_set_param(kc, "outlev", 3)
 
 # Initialize Knitro with the problem definition.
 
@@ -102,7 +103,7 @@ n = 2
 KNITRO.KN_add_vars(kc, n)
 KNITRO.KN_set_var_lobnds(kc,  [-KNITRO.KN_INFINITY, -KNITRO.KN_INFINITY]) # not necessary since infinite
 KNITRO.KN_set_var_upbnds(kc,  [0.5, KNITRO.KN_INFINITY])
-# Define an initial point.  If not set, Knitro will generate one.
+# Define an initial point. If not set, Knitro will generate one.
 KNITRO.KN_set_var_primal_init_values(kc, [-2.0, 1.0])
 
 # Add the constraints and set their lower bounds
@@ -134,8 +135,7 @@ KNITRO.KN_add_con_quadratic_struct(kc, 1, 1, 1, 1.0)
 # via "KNITRO.KN_add_obj_linear_struct()" / "KNITRO.KN_add_obj_quadratic_struct()".
 # However, for simplicity, we evaluate the whole objective
 # function through the callback.
-#= cb = KNITRO.KN_add_eval_callback(kc, evalObj = True, funcCallback = callbackEvalF) =#
-cb = KNITRO.KN_add_eval_callback(kc, callbackEvalF)
+cb = KNITRO.KN_add_objective_callback(kc, callbackEvalF)
 
 # Also add a callback function "callbackEvalG" to evaluate the
 # objective gradient.  If not provided, Knitro will approximate
@@ -145,7 +145,7 @@ cb = KNITRO.KN_add_eval_callback(kc, callbackEvalF)
 # We specify the objective gradient in "dense" form for simplicity.
 # However for models with many constraints, it is important to specify
 # the non-zero sparsity structure of the constraint gradients
-#(i.e. Jacobian matrix) for efficiency(this is true even when using
+# (i.e. Jacobian matrix) for efficiency(this is true even when using
 # finite-difference gradients).
 KNITRO.KN_set_cb_grad(kc, cb, callbackEvalG!)
 
@@ -185,13 +185,13 @@ end
 println("Optimal constraint values(with corresponding multiplier)")
 c = KNITRO.KN_get_con_values(kc)
 for j in 1:m
-    println("  c[$j] = ", c[j], "(lambda = ",  lambda_[m+j], ")")
+    println("  c[$j] = ", c[j], "(lambda = ",  lambda_[j], ")")
 end
 println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
 println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
 
 # Delete the Knitro solver instance.
-KNITRO.KN_free(kc)
+#= KNITRO.KN_free(kc) =#
 
 @testset "Exemple HS15 nlp1" begin
     @test nStatus == 0

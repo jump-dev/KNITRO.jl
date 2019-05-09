@@ -16,6 +16,9 @@ reset_objective!(model::Optimizer) = (model.objective = nothing)
 function add_objective!(model::Optimizer, objective::MOI.ScalarQuadraticFunction)
     # We parse the expression passed in arguments.
     qobjindex1, qobjindex2, qcoefs = canonical_quadratic_reduction(objective)
+    # Take care that Knitro is 0-indexed!
+    qobjindex1 .-= 1
+    qobjindex2 .-= 1
     lobjindex, lcoefs = canonical_linear_reduction(objective)
     # We load the objective inside KNITRO.
     KN_add_obj_quadratic_struct(model.inner, qobjindex1, qobjindex2, qcoefs)
