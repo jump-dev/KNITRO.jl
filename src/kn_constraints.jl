@@ -92,6 +92,15 @@ function KN_set_con_lobnds(m::Model, consIndex::Vector{Cint}, loBounds::Vector{C
 end
 
 ##################################################
+# Getters
+##################################################
+if KNITRO_VERSION >= v"12.0"
+    @define_getters get_con_lobnds
+    @define_getters get_con_upbnds
+    @define_getters get_con_eqbnds
+end
+
+##################################################
 # Dual init values
 ##################################################
 function KN_set_con_dual_init_values(m::Model, nindex::Integer, lambdaInitVal::Cdouble)
@@ -436,6 +445,27 @@ function KN_set_compcon_names(m::Model, names::Vector{String})
     ret = @kn_ccall(set_compcon_names_all, Cint, (Ptr{Cvoid}, Ptr{Ptr{Cchar}}),
                     m.env, names)
     _checkraise(ret)
+end
+
+# Getters
+if KNITRO_VERSION >= v"12.0"
+    function KN_get_con_names(m::Model, max_length=1024)
+        return String[KN_get_con_names(m, Cint(id-1), max_length) for id in 1:KN_get_number_cons(m)]
+    end
+
+    function KN_get_con_names(m::Model, index::Vector{Cint}, max_length=1024)
+        return String[KN_get_con_names(m, id, max_length) for id in index]
+    end
+
+    function KN_get_con_names(m::Model, index::Cint, max_length=1024)
+        rawname = zeros(Cchar, max_length)
+        ret = @kn_ccall(get_con_name, Cint,
+                        (Ptr{Cvoid}, Cint, Cint, Ptr{Cchar}),
+                        m.env, index, max_length, rawname)
+        _checkraise(ret)
+        name = String(strip(String(convert(Vector{UInt8}, rawname)), '\0'))
+        return name
+    end
 end
 
 ##################################################
