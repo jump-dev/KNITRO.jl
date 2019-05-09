@@ -1,5 +1,4 @@
 using KNITRO, MathProgBase
-using Compat.Test
 
 mutable struct Myquad <: MathProgBase.AbstractNLPEvaluator
 end

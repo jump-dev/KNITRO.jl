@@ -1,10 +1,8 @@
-using KNITRO, Compat
-using Compat.Test
-(VERSION >= v"1.0") && using Pkg
+using KNITRO
+using Test
 
 @testset "Test old API" begin
     include("oldexamples.jl")
-    include("mathprogtest.jl")
 end
 
 if KNITRO.KNITRO_VERSION >= v"11.0"

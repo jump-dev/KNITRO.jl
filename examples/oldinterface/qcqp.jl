@@ -1,5 +1,4 @@
 using KNITRO
-using Compat.Test
 
  ## Solve a small QCQP (quadratically constrained quadratic programming)
  #  test problem.
