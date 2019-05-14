@@ -1,7 +1,7 @@
 name = "KNITRO"
 uuid = "67920dd8-b58e-52a8-8622-53c4cffbe346"
 authors = ["Artelys", "JuliaOpt"]
-version = "0.6.0"
+version = "0.7.0"
 
 [deps]
 Libdl = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
