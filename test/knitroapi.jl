@@ -185,13 +185,15 @@ end
     KNITRO.KN_set_con_upbnds(kc, [2 * 2 * 0.99])
 
     # Test getters.
-    xindex = Cint[0, 1, 2]
-    @test KNITRO.KN_get_var_lobnds(kc, xindex) == [0, 0.1, 0]
-    @test KNITRO.KN_get_var_upbnds(kc, xindex) == [0., 2, 2]
+    if KNITRO.KNITRO_VERSION >= v"12.0"
+        xindex = Cint[0, 1, 2]
+        @test KNITRO.KN_get_var_lobnds(kc, xindex) == [0, 0.1, 0]
+        @test KNITRO.KN_get_var_upbnds(kc, xindex) == [0., 2, 2]
 
-    cindex = Cint[0]
-    @test KNITRO.KN_get_con_lobnds(kc, cindex) == [0.1]
-    @test KNITRO.KN_get_con_upbnds(kc, cindex) == [2 * 2 * 0.99]
+        cindex = Cint[0]
+        @test KNITRO.KN_get_con_lobnds(kc, cindex) == [0.1]
+        @test KNITRO.KN_get_con_upbnds(kc, cindex) == [2 * 2 * 0.99]
+    end
 
     # Load quadratic structure x1*x2 for the constraint.
     KNITRO.KN_add_con_quadratic_struct(kc, 0, 1, 2, 1.0)
@@ -245,12 +247,14 @@ end
     @test objSol ≈ 31.363199 atol=1e-5
 
     # Test getters for primal and dual variables
-    xopt = KNITRO.KN_get_var_primal_values(kc, Cint[0, 1, 2])
-    @test xopt == x
-    rc = KNITRO.KN_get_var_dual_values(kc, Cint[0, 1, 2])
-    @test rc == lambda_[2:4]
-    dual = KNITRO.KN_get_con_dual_values(kc, Cint[0])
-    @test dual == [lambda_[1]]
+    if KNITRO.KNITRO_VERSION >= v"12.0"
+        xopt = KNITRO.KN_get_var_primal_values(kc, Cint[0, 1, 2])
+        @test xopt == x
+        rc = KNITRO.KN_get_var_dual_values(kc, Cint[0, 1, 2])
+        @test rc == lambda_[2:4]
+        dual = KNITRO.KN_get_con_dual_values(kc, Cint[0])
+        @test dual == [lambda_[1]]
+    end
 
     KNITRO.KN_free(kc)
 end
