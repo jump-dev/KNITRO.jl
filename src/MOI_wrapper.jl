@@ -204,6 +204,17 @@ end
 number_variables(model::Optimizer) = length(model.variable_info)
 number_constraints(model::Optimizer) = KN_get_number_cons(model.inner)
 
+MOI.get(model::Optimizer, ::MOI.SolverName) = "Knitro"
+
+MOI.supports(model::Optimizer, ::MOI.Silent) = true
+function MOI.get(model::Optimizer, ::MOI.Silent)
+    return KN_get_int_param(model.inner, "outlev") == 0
+end
+
+function MOI.set(model::Optimizer, ::MOI.Silent, value)
+    outlev = value ? 0 : 2
+    KN_set_param(model.inner, "outlev", outlev)
+end
 
 ##################################################
 # Optimize
