@@ -28,23 +28,25 @@ MOI.get(model::Optimizer, ::MOI.NumberOfConstraints) =
     KN_get_number_cons(model.inner)
 MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.SingleVariable, MOI.ZeroOne}) =
     model.number_zeroone_constraints
+MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.SingleVariable, MOI.Integer}) =
+    model.number_integer_constraints
+MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.SingleVariable, S}) where S <: LS =
+    sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{MOI.SingleVariable, S})
 # TODO: a bit hacky, but that should work for MOI Test.
 MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{VAF, MOI.Nonnegatives}) =
-sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{VAF, MOI.Nonnegatives})
+    sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{VAF, MOI.Nonnegatives})
 MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{VAF, MOI.Nonpositives}) =
-sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{VAF, MOI.Nonpositives})
+    sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{VAF, MOI.Nonpositives})
 MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{VAF, MOI.Zeros}) =
-sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{VAF, MOI.Zeros})
+    sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{VAF, MOI.Zeros})
 MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{VAF, MOI.SecondOrderCone}) =
-sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{VAF, MOI.SecondOrderCone})
+    sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{VAF, MOI.SecondOrderCone})
 MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{VOV, T}) where T <: VLS =
-sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{VAF, T})
-
+    sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{VAF, T})
 MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.ScalarAffineFunction{Float64}, S}) where S <: LS  =
-sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}, S})
-
+    sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}, S})
 MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.ScalarQuadraticFunction{Float64}, S}) where S <: LS  =
-sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{MOI.ScalarQuadraticFunction{Float64}, S})
+    sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{MOI.ScalarQuadraticFunction{Float64}, S})
 
 ##################################################
 # Generic constraint definition
@@ -68,7 +70,9 @@ function MOI.add_constraint(model::Optimizer,
     model.variable_info[vi.value].has_upper_bound = true
     # By construction, MOI's indexing is the same as KNITRO's indexing.
     KN_set_var_upbnds(model.inner, vi.value - 1, ub)
-    return MOI.ConstraintIndex{MOI.SingleVariable, MOI.LessThan{Float64}}(vi.value)
+    ci = MOI.ConstraintIndex{MOI.SingleVariable, MOI.LessThan{Float64}}(vi.value)
+    model.constraint_mapping[ci] = convert(Cint, vi.value)
+    return ci
 end
 
 function MOI.add_constraint(model::Optimizer,
@@ -89,7 +93,9 @@ function MOI.add_constraint(model::Optimizer,
     model.variable_info[vi.value].has_lower_bound = true
     # We assume that MOI's indexing is the same as KNITRO's indexing.
     KN_set_var_lobnds(model.inner, vi.value - 1, lb)
-    return MOI.ConstraintIndex{MOI.SingleVariable, MOI.GreaterThan{Float64}}(vi.value)
+    ci = MOI.ConstraintIndex{MOI.SingleVariable, MOI.GreaterThan{Float64}}(vi.value)
+    model.constraint_mapping[ci] = convert(Cint, vi.value)
+    return ci
 end
 
 function MOI.add_constraint(model::Optimizer,
@@ -113,7 +119,9 @@ function MOI.add_constraint(model::Optimizer,
     model.variable_info[vi.value].is_fixed = true
     # We assume that MOI's indexing is the same as KNITRO's indexing.
     KN_set_var_fxbnds(model.inner, vi.value - 1, eqv)
-    return MOI.ConstraintIndex{MOI.SingleVariable, MOI.EqualTo{Float64}}(vi.value)
+    ci = MOI.ConstraintIndex{MOI.SingleVariable, MOI.EqualTo{Float64}}(vi.value)
+    model.constraint_mapping[ci] = convert(Cint, vi.value)
+    return ci
 end
 
 function MOI.add_constraint(model::Optimizer,
@@ -147,18 +155,18 @@ function MOI.add_constraint(model::Optimizer,
     (model.number_solved >= 1) && throw(AddConstraintError())
     check_inbounds(model, func)
     # Add a single constraint in KNITRO.
-    ci = KN_add_con(model.inner)
+    num_cons = KN_add_con(model.inner)
     # Add upper bound.
     lb = check_value(set.lower)
     ub = check_value(set.upper)
-    KN_set_con_lobnd(model.inner, ci, lb - func.constant)
-    KN_set_con_upbnd(model.inner, ci, ub - func.constant)
+    KN_set_con_lobnd(model.inner, num_cons, lb - func.constant)
+    KN_set_con_upbnd(model.inner, num_cons, ub - func.constant)
     # Parse structure of constraint.
     indexvars, coefs = canonical_linear_reduction(func)
-    KN_add_con_linear_struct(model.inner, ci, indexvars, coefs)
+    KN_add_con_linear_struct(model.inner, num_cons, indexvars, coefs)
     # Add constraints to index.
-    consi = MOI.ConstraintIndex{typeof(func), typeof(set)}(ci)
-    model.constraint_mapping[consi] = ci
+    consi = MOI.ConstraintIndex{typeof(func), typeof(set)}(num_cons)
+    model.constraint_mapping[consi] = num_cons
     return consi
 end
 
