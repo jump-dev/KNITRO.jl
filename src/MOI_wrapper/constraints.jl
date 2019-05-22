@@ -39,7 +39,7 @@ MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{VAF, MOI.Zeros}) =
 MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{VAF, MOI.SecondOrderCone}) =
     sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{VAF, MOI.SecondOrderCone})
 MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{VOV, T}) where T <: VLS =
-    sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{VAF, T})
+    sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{VOV, T})
 MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.ScalarAffineFunction{Float64}, S}) where S <: LS  =
     sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}, S})
 MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.ScalarQuadraticFunction{Float64}, S}) where S <: LS  =
@@ -223,7 +223,6 @@ function MOI.add_constraint(model::Optimizer,
     elseif isa(set, MOI.Zeros)
         KN_set_con_eqbnds(model.inner, index_cons, - func.constants)
     else
-        # TODO
         error("Invalid set $set for VectorAffineFunction constraint")
     end
     # Add constraints to index.
