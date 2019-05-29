@@ -14,8 +14,12 @@ const MIPOLY_SOLVERS = []
 @testset "JuMP Model Tests" begin
     @testset "$(solver.constructor): nlp" for solver in NLP_SOLVERS
         MINLPTests.test_nlp(solver, exclude = [
+            "005_010",
             "005_011",  # Uses the function `\`
         ])
+        # For 005_010, Knitro founds a different solution, close
+        # to those of MINLPTests.
+        MINLPTests.nlp_005_010(solver, 1e-5, 1e-5, 1e-5)
         MINLPTests.test_nlp_cvx(solver)
     end
     @testset "$(solver.constructor): nlp_mi" for solver in MINLP_SOLVERS
