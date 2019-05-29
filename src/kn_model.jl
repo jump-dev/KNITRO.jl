@@ -75,12 +75,13 @@ function KN_load_tuner_file(m::Model, filename::AbstractString)
     _checkraise(ret)
 end
 
-"Load MPS file."
-function KN_load_mps_file(m::Model, filename::AbstractString)
-    @assert KNITRO_VERSION >= v"12.0"
-    ret = @kn_ccall(load_mps_file, Cint, (Ptr{Cvoid}, Ptr{Cchar}),
-                    m.env, filename)
-    _checkraise(ret)
+if KNITRO_VERSION >= v"12.0"
+    "Load MPS file."
+    function KN_load_mps_file(m::Model, filename::AbstractString)
+        ret = @kn_ccall(load_mps_file, Cint, (Ptr{Cvoid}, Ptr{Cchar}),
+                        m.env, filename)
+        _checkraise(ret)
+    end
 end
 
 
