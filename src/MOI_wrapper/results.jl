@@ -1,5 +1,4 @@
 # MathOptInterface results
-MOI.supports(model::Optimizer, ::MOI.DualObjectiveValue) = true
 MOI.get(model::Optimizer, ::MOI.RawStatusString) = string(get_status(model.inner))
 
 # Refer to KNITRO manual for solver status:
@@ -101,7 +100,7 @@ function MOI.get(model::Optimizer, ::MOI.DualStatus)
     end
 end
 
-function MOI.get(model::Optimizer, ::S) where S <: Union{MOI.ObjectiveValue, MOI.DualObjectiveValue}
+function MOI.get(model::Optimizer, ::S) where S <: MOI.ObjectiveValue
     if model.number_solved == 0
         error("ObjectiveValue not available.")
     end

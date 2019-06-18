@@ -114,7 +114,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     # Constraint mappings.
     constraint_mapping::Dict{MOI.ConstraintIndex, Union{Cint, Vector{Cint}}}
     license_manager::Union{LMcontext, Nothing}
-    options::Dict
+    options::Dict{String, Any}
 end
 
 function set_options(model::Optimizer)
@@ -143,9 +143,14 @@ function Optimizer(;license_manager=nothing, options...)
     else
         kc = Model()
     end
+    # Convert Symbol to String in options dictionnary.
+    options_dict = Dict{String, Any}()
+    for (name, value) in options
+        options_dict[string(name)] = value
+    end
     model = Optimizer(kc, [], 0, false, empty_nlp_data(),
                       Cint[], MOI.FEASIBILITY_SENSE, nothing, 0, 0,
-                      Dict{MOI.ConstraintIndex, Int}(), license_manager, options)
+                      Dict{MOI.ConstraintIndex, Int}(), license_manager, options_dict)
 
     set_options(model)
     return model
@@ -201,11 +206,14 @@ function MOI.is_empty(model::Optimizer)
            !model.nlp_loaded
 end
 
+# Some utilities.
 number_variables(model::Optimizer) = length(model.variable_info)
 number_constraints(model::Optimizer) = KN_get_number_cons(model.inner)
 
+# Getter for solver's name.
 MOI.get(model::Optimizer, ::MOI.SolverName) = "Knitro"
 
+# MOI.Silent.
 MOI.supports(model::Optimizer, ::MOI.Silent) = true
 function MOI.get(model::Optimizer, ::MOI.Silent)
     return KN_get_int_param(model.inner, "outlev") == 0
@@ -214,6 +222,22 @@ end
 function MOI.set(model::Optimizer, ::MOI.Silent, value)
     outlev = value ? 0 : 2
     KN_set_param(model.inner, "outlev", outlev)
+    return
+end
+
+# RawParameters
+MOI.supports(model::Optimizer, ::MOI.RawParameter) = true
+
+function MOI.set(model::Optimizer, p::MOI.RawParameter, value)
+    model.options[p.name] = value
+    return
+end
+
+function MOI.get(model::Optimizer, p::MOI.RawParameter)
+    if haskey(model.options, p.name)
+        return model.options[p.name]
+    end
+    error("RawParameter with name $(p.name) is not set.")
 end
 
 ##################################################

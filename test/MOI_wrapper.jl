@@ -7,14 +7,24 @@ const MOIB = MOI.Bridges
 
 import KNITRO
 
-
-const config = MOIT.TestConfig(atol=1e-4, rtol=1e-4,
+# Default configuration.
+const config = MOIT.TestConfig(atol=1e-5, rtol=1e-8,
                                optimal_status=MOI.LOCALLY_SOLVED,
                                query=false,
-                               infeas_certificates=false,
+                               infeas_certificates=false, # Do not ask for infeasibility certificates.
                                modify_lhs=false)
 
-const OPTIMIZER = KNITRO.Optimizer(outlev=0)
+const config_noduals = MOIT.TestConfig(atol=1e-5, rtol=1e-8,
+                                       optimal_status=MOI.LOCALLY_SOLVED,
+                                       query=false,
+                                       duals=false,
+                                       infeas_certificates=false,
+                                       modify_lhs=false)
+
+const OPTIMIZER = KNITRO.Optimizer()
+MOI.set(OPTIMIZER, MOI.RawParameter("outlev"), 0)
+
+# Build bridge optimizer.
 const BRIDGED = MOIB.full_bridge_optimizer(OPTIMIZER, Float64)
 
 @testset "SolverName" begin
@@ -23,7 +33,7 @@ const BRIDGED = MOIB.full_bridge_optimizer(OPTIMIZER, Float64)
 end
 
 @testset "supports_default_copy_to" begin
-    optimizer = KNITRO.Optimizer(outlev=0, algorithm=3)
+    optimizer = KNITRO.Optimizer()
     @test MOIU.supports_default_copy_to(optimizer, false)
     # Use `@test !...` if names are not supported
     @test MOIU.supports_default_copy_to(optimizer, true)
@@ -31,20 +41,24 @@ end
 
 @testset "MOI Linear tests" begin
     exclude = ["linear1",
+               "linear2", # DualObjectivevalue not supported
                "linear4", # ConstraintSet not supported
                "linear5",
                "linear6", # ConstraintSet not supported
                "linear7", # Delete not allowed
                "linear8a", # Behavior in infeasible case doesn't match test.
                "linear8b", # Investigate
-               "linear8c", # Investigate
+               "linear8c", # Problem catching infeasibility ray
                "linear10", # Delete not allowed
                "linear11", # problem accessing constraint function
                "linear12", # Same as above.
                "linear14", # Delete not allowed
-               "linear8c", # Problem catching infeasibility ray
+               "linear15", # DualObjectivevalue not supported
                ]
     MOIT.contlineartest(BRIDGED, config, exclude)
+    # Test linear2 and linear15 without querying the dual solution.
+    MOIT.linear15test(BRIDGED, config_noduals)
+    MOIT.linear2test(BRIDGED, config_noduals)
 end
 
 @testset "MOI QP/QCQP tests" begin
