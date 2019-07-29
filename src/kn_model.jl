@@ -109,10 +109,11 @@ mutable struct LMcontext
         return lm
     end
 end
+Base.unsafe_convert(ptr::Type{Ptr{Cvoid}}, lm::LMcontext) = lm.ptr_lmcontext::Ptr{Cvoid}
 
 function Env(lm::LMcontext)
     ptrptr_env = Ref{Ptr{Cvoid}}()
-    res = @kn_ccall(new_lm, Cint, (Ptr{Cvoid},Ptr{Cvoid}), lm.ptr_lmcontext, ptrptr_env)
+    res = @kn_ccall(new_lm, Cint, (Ptr{Cvoid},Ptr{Cvoid}), lm, ptrptr_env)
     if res != 0
         error("Fail to retrieve a valid KNITRO KN_context. Error $res")
     end
