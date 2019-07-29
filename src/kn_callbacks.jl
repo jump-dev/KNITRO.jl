@@ -1,42 +1,15 @@
 # Callbacks utilities.
 
-"""
-Structure specifying the callback context.
-
-Each evaluation callbacks (for objective, gradient or hessian)
-is attached to a unique callback context.
-
-"""
-mutable struct CallbackContext
-    context::Ptr{Cvoid}
-    # Keep a reference to the optimization model.
-    model::Model
-    # we sometime need some user params
-    userparams::Dict
-
-    # Oracle's callbacks are context dependent, so store
-    # them inside dedicated CallbackContext.
-    eval_f::Function
-    eval_g::Function
-    eval_h::Function
-    eval_rsd::Function
-    eval_jac_rsd::Function
-
-    function CallbackContext(ptr::Ptr{Cvoid}, model::Model)
-        return new(ptr, model, Dict())
-    end
-end
-
-Base.unsafe_convert(ptr::Type{Ptr{Cvoid}}, cb::CallbackContext) = cb.context::Ptr{Cvoid}
 
 ##################################################
 # Utils
 ##################################################
 function KN_set_cb_user_params(m::Model, cb::CallbackContext, userParams=nothing)
-    # Store the model in the C model to use callbacks function.
     if userParams != nothing
         cb.userparams[:data] = userParams
     end
+    # Store the model inside userParams
+    cb.userparams[:model] = m
     # Store callback context inside KNITRO user data.
     c_userdata = cb
 
@@ -303,8 +276,8 @@ macro wrap_function(wrap_name, name)
             if !isa(cb, CallbackContext)
                 return Cint(KN_RC_CALLBACK_ERR)
             end
-            request = EvalRequest(cb.model, evalRequest)
-            result = EvalResult(cb.model, ptr_cb, evalResult)
+            request = EvalRequest(cb.userparams[:model], evalRequest)
+            result = EvalResult(cb.userparams[:model], ptr_cb, evalResult)
             try
                 res = cb.$name(ptr_model, ptr_cb, request, result, cb.userparams)
                 return Cint(res)
@@ -387,7 +360,8 @@ function KN_add_eval_callback_all(m::Model, funccallback::Function)
                     (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}),
                     m.env, c_f, rfptr)
     _checkraise(ret)
-    cb = CallbackContext(rfptr[], m)
+    cb = CallbackContext(rfptr[])
+    register_callback(m, cb)
 
     # Store function in callback environment:
     cb.eval_f = funccallback
@@ -412,7 +386,8 @@ function KN_add_objective_callback(m::Model, objcallback::Function)
                     (Ptr{Cvoid}, Cint, Ptr{Cvoid}, Ptr{Cvoid}),
                     m.env, Cint(-1), c_f, rfptr)
     _checkraise(ret)
-    cb = CallbackContext(rfptr[], m)
+    cb = CallbackContext(rfptr[])
+    register_callback(m, cb)
 
     # store function in callback environment:
     cb.eval_f = objcallback
@@ -440,7 +415,8 @@ function KN_add_eval_callback(m::Model, evalObj::Bool,  # switch on obj eval
                     (Ptr{Cvoid}, KNBOOL, Cint, Ptr{Cint}, Ptr{Cvoid}, Ptr{Cvoid}),
                     m.env, KNBOOL(evalObj), nC, indexCons, c_f, rfptr)
     _checkraise(ret)
-    cb = CallbackContext(rfptr[], m)
+    cb = CallbackContext(rfptr[])
+    register_callback(m, cb)
 
     # Store function in callback environment.
     cb.eval_f = funccallback
@@ -612,7 +588,8 @@ function KN_add_lsq_eval_callback(m::Model, rsdCallBack::Function)
                     (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}),
                     m.env, c_f, rfptr)
     _checkraise(ret)
-    cb = CallbackContext(rfptr[], m)
+    cb = CallbackContext(rfptr[])
+    register_callback(m, cb)
 
     # Store function inside model.
     cb.eval_rsd = rsdCallBack

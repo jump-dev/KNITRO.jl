@@ -1,5 +1,31 @@
 # Knitro model.
 
+"""
+Structure specifying the callback context.
+
+Each evaluation callbacks (for objective, gradient or hessian)
+is attached to a unique callback context.
+
+"""
+mutable struct CallbackContext
+    context::Ptr{Cvoid}
+    # Add a dictionnary to store user params.
+    userparams::Dict
+
+    # Oracle's callbacks are context dependent, so store
+    # them inside dedicated CallbackContext.
+    eval_f::Function
+    eval_g::Function
+    eval_h::Function
+    eval_rsd::Function
+    eval_jac_rsd::Function
+
+    function CallbackContext(ptr::Ptr{Cvoid})
+        return new(ptr, Dict())
+    end
+end
+
+Base.unsafe_convert(ptr::Type{Ptr{Cvoid}}, cb::CallbackContext) = cb.context::Ptr{Cvoid}
 
 ##################################################
 # Model definition.
@@ -8,6 +34,8 @@ mutable struct Model
     # KNITRO context environment.
     env::Env
     userdata::Dict
+    # Keep reference to callbacks for garbage collector.
+    callbacks::Vector{CallbackContext}
 
     # Solution values.
     # Optimization status. Equal to 1 if problem is unsolved.
@@ -26,7 +54,7 @@ mutable struct Model
 
     # Constructor.
     function Model()
-        model = new(Env(), Dict(), 1, Inf, Cdouble[], Cdouble[])
+        model = new(Env(), Dict(), CallbackContext[], 1, Inf, Cdouble[], Cdouble[])
         # Add a destructor to properly delete model.
         finalizer(KN_free, model)
         return model
@@ -84,6 +112,7 @@ if KNITRO_VERSION >= v"12.0"
     end
 end
 
+register_callback(model::Model, cb::CallbackContext) = push!(model.callbacks, cb)
 
 ##################################################
 # LM license manager
