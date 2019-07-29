@@ -305,8 +305,16 @@ macro wrap_function(wrap_name, name)
             end
             request = EvalRequest(cb.model, evalRequest)
             result = EvalResult(cb.model, ptr_cb, evalResult)
-            res = cb.$name(ptr_model, ptr_cb, request, result, cb.userparams)
-            return Cint(res)
+            try
+                res = cb.$name(ptr_model, ptr_cb, request, result, cb.userparams)
+                return Cint(res)
+            catch ex
+                if isa(ex, InterruptException)
+                    return Cint(KN_RC_USER_TERMINATION)
+                else
+                    rethrow(ex)
+                end
+            end
         end
     end
 end
