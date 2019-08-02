@@ -59,7 +59,7 @@ mutable struct Model
         finalizer(KN_free, model)
         return model
     end
-    Model(env::Env, options::Dict) = new(env, options)
+    Model(env::Env, options::Dict) = new(env, options, CallbackContext[])
 end
 
 "Free solver object."
