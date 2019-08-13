@@ -225,7 +225,20 @@ function MOI.set(model::Optimizer, ::MOI.Silent, value)
     return
 end
 
-# RawParameters
+# MOI.TimeLimitSec.
+MOI.supports(model::Optimizer, ::MOI.TimeLimitSec) = true
+function MOI.get(model::Optimizer, ::MOI.TimeLimitSec)
+    return KN_get_double_param(model.inner, "maxtime_cpu")
+end
+
+function MOI.set(model::Optimizer, ::MOI.TimeLimitSec, value)
+    # By default, maxtime is set to 1e8 in Knitro.
+    maxtime = isnothing(value) ? 1e8 : value
+    KN_set_param(model.inner, "maxtime_cpu", value)
+    return
+end
+
+# MOI.RawParameters
 MOI.supports(model::Optimizer, ::MOI.RawParameter) = true
 
 function MOI.set(model::Optimizer, p::MOI.RawParameter, value)
