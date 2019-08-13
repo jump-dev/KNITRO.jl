@@ -228,12 +228,12 @@ end
     @test status == 0
 
     # Retrieve relevant solve information
-    @test KNITRO.KN_get_number_FC_evals(kc) == 17
-    @test KNITRO.KN_get_number_GA_evals(kc) == 13
-    @test KNITRO.KN_get_number_H_evals(kc) == 7
+    @test KNITRO.KN_get_number_FC_evals(kc) >= 1
+    @test KNITRO.KN_get_number_GA_evals(kc) >= 1
+    @test KNITRO.KN_get_number_H_evals(kc) >= 1
     @test KNITRO.KN_get_number_HV_evals(kc) == 0
-    @test KNITRO.KN_get_number_iters(kc) == 7
-    @test KNITRO.KN_get_number_cg_iters(kc) == 3
+    @test KNITRO.KN_get_number_iters(kc) >= 1
+    @test KNITRO.KN_get_number_cg_iters(kc) >= 0
     @test KNITRO.KN_get_abs_feas_error(kc) < 1e-10
     @test KNITRO.KN_get_rel_feas_error(kc) < 1e-10
     @test KNITRO.KN_get_abs_opt_error(kc) < 1e-7
@@ -461,7 +461,8 @@ end
 
     # Set MIP parameters
     KNITRO.KN_set_mip_branching_priorities(kc, Int32[0, 1, 2])
-    # KNITRO.KN_set_mip_intvar_strategies(kc, 2, KNITRO.KN_MIP_INTVAR_STRATEGY_MPEC) # not compatible with MPEC constraint as a variable cannot be involved in two different complementarity constraints.
+    # not compatible with MPEC constraint as a variable cannot be involved in two different complementarity constraints.
+    # KNITRO.KN_set_mip_intvar_strategies(kc, 2, KNITRO.KN_MIP_INTVAR_STRATEGY_MPEC)
     KNITRO.KN_set_mip_node_callback(kc, callback("mip_node"))
 
     # Set var, con and obj names
@@ -481,8 +482,8 @@ end
     status = KNITRO.KN_solve(kc)
     @test status == 0
 
-    @test KNITRO.KN_get_mip_number_nodes(kc) == 5
-    @test KNITRO.KN_get_mip_number_solves(kc) == 10
+    @test KNITRO.KN_get_mip_number_nodes(kc) >= 1
+    @test KNITRO.KN_get_mip_number_solves(kc) >= 1
     @test KNITRO.KN_get_mip_relaxation_bnd(kc) ≈ 31.0495680023
     @test KNITRO.KN_get_mip_lastnode_obj(kc) ≈ 32.0
     @test KNITRO.KN_get_con_values(kc)[1] == 4.0
