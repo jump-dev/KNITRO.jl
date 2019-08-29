@@ -1,7 +1,7 @@
 name = "KNITRO"
 uuid = "67920dd8-b58e-52a8-8622-53c4cffbe346"
 authors = ["Artelys", "JuliaOpt"]
-version = "0.7.1"
+version = "0.7.2"
 
 [deps]
 Libdl = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
@@ -10,8 +10,8 @@ MathProgBase = "fdba3010-5040-5b88-9595-932c9decdf73"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [compat]
-JuMP = ">= 0.19"
-MathOptInterface = ">= 0.9"
+JuMP = "~0.20"
+MathOptInterface = "~0.9.1"
 julia = "^1"
 
 [extras]
