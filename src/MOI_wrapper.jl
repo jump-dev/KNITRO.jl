@@ -117,21 +117,11 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     options::Dict{String, Any}
 end
 
-function set_options(model::Optimizer)
+function set_options(model::Optimizer, options)
     # Set KNITRO option.
-    for (name, value) in model.options
+    for (name, value) in options
         sname = string(name)
-        if sname == "option_file"
-            KN_load_param_file(model.inner, value)
-        elseif sname == "tuner_file"
-            KN_load_tuner_file(model.inner, value)
-        else
-            if haskey(KN_paramName2Indx, sname) # KN_PARAM_*
-                KN_set_param(model.inner, paramName2Indx[sname], value)
-            else # string name
-                KN_set_param(model.inner, sname, value)
-            end
-        end
+        MOI.set(model, MOI.RawParameter(sname), value)
     end
     return
 end
@@ -150,9 +140,9 @@ function Optimizer(;license_manager=nothing, options...)
     end
     model = Optimizer(kc, [], 0, false, empty_nlp_data(),
                       Cint[], MOI.FEASIBILITY_SENSE, nothing, 0, 0,
-                      Dict{MOI.ConstraintIndex, Int}(), license_manager, options_dict)
+                      Dict{MOI.ConstraintIndex, Int}(), license_manager, Dict())
 
-    set_options(model)
+    set_options(model, options)
     return model
 end
 
@@ -191,7 +181,7 @@ function MOI.empty!(model::Optimizer)
     model.number_integer_constraints = 0
     model.constraint_mapping = Dict()
     model.license_manager = model.license_manager
-    set_options(model)
+    set_options(model, model.options)
     return
 end
 
@@ -239,10 +229,26 @@ function MOI.set(model::Optimizer, ::MOI.TimeLimitSec, value)
 end
 
 # MOI.RawParameters
-MOI.supports(model::Optimizer, ::MOI.RawParameter) = true
+function MOI.supports(model::Optimizer, param::MOI.RawParameter)
+    name = param.name
+    if name in KNITRO_OPTIONS || haskey(KN_paramName2Indx, name)
+        return true
+    end
+    return false
+end
 
 function MOI.set(model::Optimizer, p::MOI.RawParameter, value)
+    if !MOI.supports(model, p)
+        throw(MOI.UnsupportedAttribute)
+    end
     model.options[p.name] = value
+    if p.name == "option_file"
+        KN_load_param_file(model.inner, value)
+    elseif p.name == "tuner_file"
+        KN_load_tuner_file(model.inner, value)
+    else
+        KN_set_param(model.inner, p.name, value)
+    end
     return
 end
 
