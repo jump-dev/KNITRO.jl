@@ -1,5 +1,4 @@
-using Compat
-using Compat.Libdl
+using Libdl, Base.Sys
 
 depsfile = joinpath(dirname(@__FILE__), "deps.jl")
 
@@ -20,7 +19,7 @@ end
 
 paths_to_try = String[]
 
-libname = string(Compat.Sys.iswindows() ? "" : "lib", "knitro", ".", Libdl.dlext)
+libname = string(Sys.iswindows() ? "" : "lib", "knitro", ".", Libdl.dlext)
 
 # try to load absolute path before
 if haskey(ENV, "KNITRODIR")

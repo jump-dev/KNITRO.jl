@@ -114,24 +114,14 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     # Constraint mappings.
     constraint_mapping::Dict{MOI.ConstraintIndex, Union{Cint, Vector{Cint}}}
     license_manager::Union{LMcontext, Nothing}
-    options::Dict
+    options::Dict{String, Any}
 end
 
-function set_options(model::Optimizer)
+function set_options(model::Optimizer, options)
     # Set KNITRO option.
-    for (name, value) in model.options
+    for (name, value) in options
         sname = string(name)
-        if sname == "option_file"
-            KN_load_param_file(model.inner, value)
-        elseif sname == "tuner_file"
-            KN_load_tuner_file(model.inner, value)
-        else
-            if haskey(KN_paramName2Indx, sname) # KN_PARAM_*
-                KN_set_param(model.inner, paramName2Indx[sname], value)
-            else # string name
-                KN_set_param(model.inner, sname, value)
-            end
-        end
+        MOI.set(model, MOI.RawParameter(sname), value)
     end
     return
 end
@@ -143,11 +133,16 @@ function Optimizer(;license_manager=nothing, options...)
     else
         kc = Model()
     end
+    # Convert Symbol to String in options dictionnary.
+    options_dict = Dict{String, Any}()
+    for (name, value) in options
+        options_dict[string(name)] = value
+    end
     model = Optimizer(kc, [], 0, false, empty_nlp_data(),
                       Cint[], MOI.FEASIBILITY_SENSE, nothing, 0, 0,
-                      Dict{MOI.ConstraintIndex, Int}(), license_manager, options)
+                      Dict{MOI.ConstraintIndex, Int}(), license_manager, Dict())
 
-    set_options(model)
+    set_options(model, options)
     return model
 end
 
@@ -186,7 +181,7 @@ function MOI.empty!(model::Optimizer)
     model.number_integer_constraints = 0
     model.constraint_mapping = Dict()
     model.license_manager = model.license_manager
-    set_options(model)
+    set_options(model, model.options)
     return
 end
 
@@ -201,9 +196,68 @@ function MOI.is_empty(model::Optimizer)
            !model.nlp_loaded
 end
 
+# Some utilities.
 number_variables(model::Optimizer) = length(model.variable_info)
 number_constraints(model::Optimizer) = KN_get_number_cons(model.inner)
 
+# Getter for solver's name.
+MOI.get(model::Optimizer, ::MOI.SolverName) = "Knitro"
+
+# MOI.Silent.
+MOI.supports(model::Optimizer, ::MOI.Silent) = true
+function MOI.get(model::Optimizer, ::MOI.Silent)
+    return KN_get_int_param(model.inner, "outlev") == 0
+end
+
+function MOI.set(model::Optimizer, ::MOI.Silent, value)
+    outlev = value ? 0 : 2
+    KN_set_param(model.inner, "outlev", outlev)
+    return
+end
+
+# MOI.TimeLimitSec.
+MOI.supports(model::Optimizer, ::MOI.TimeLimitSec) = true
+function MOI.get(model::Optimizer, ::MOI.TimeLimitSec)
+    return KN_get_double_param(model.inner, "maxtime_cpu")
+end
+
+function MOI.set(model::Optimizer, ::MOI.TimeLimitSec, value)
+    # By default, maxtime is set to 1e8 in Knitro.
+    maxtime = isnothing(value) ? 1e8 : value
+    KN_set_param(model.inner, "maxtime_cpu", value)
+    return
+end
+
+# MOI.RawParameters
+function MOI.supports(model::Optimizer, param::MOI.RawParameter)
+    name = param.name
+    if name in KNITRO_OPTIONS || haskey(KN_paramName2Indx, name)
+        return true
+    end
+    return false
+end
+
+function MOI.set(model::Optimizer, p::MOI.RawParameter, value)
+    if !MOI.supports(model, p)
+        throw(MOI.UnsupportedAttribute)
+    end
+    model.options[p.name] = value
+    if p.name == "option_file"
+        KN_load_param_file(model.inner, value)
+    elseif p.name == "tuner_file"
+        KN_load_tuner_file(model.inner, value)
+    else
+        KN_set_param(model.inner, p.name, value)
+    end
+    return
+end
+
+function MOI.get(model::Optimizer, p::MOI.RawParameter)
+    if haskey(model.options, p.name)
+        return model.options[p.name]
+    end
+    error("RawParameter with name $(p.name) is not set.")
+end
 
 ##################################################
 # Optimize

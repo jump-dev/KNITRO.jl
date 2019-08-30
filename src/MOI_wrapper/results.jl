@@ -1,5 +1,5 @@
 # MathOptInterface results
-
+MOI.get(model::Optimizer, ::MOI.RawStatusString) = string(get_status(model.inner))
 
 # Refer to KNITRO manual for solver status:
 # https://www.artelys.com/tools/knitro_doc/3_referenceManual/returnCodes.html#returncodes
@@ -100,7 +100,7 @@ function MOI.get(model::Optimizer, ::MOI.DualStatus)
     end
 end
 
-function MOI.get(model::Optimizer, ::MOI.ObjectiveValue)
+function MOI.get(model::Optimizer, ::S) where S <: MOI.ObjectiveValue
     if model.number_solved == 0
         error("ObjectiveValue not available.")
     end
@@ -137,9 +137,8 @@ end
 
 ##################################################
 ## ConstraintPrimal
-# TODO: Getters for Interval?
 function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
-                 ci::MOI.ConstraintIndex{S, T}) where {S <: SF, T <: LS}
+                 ci::MOI.ConstraintIndex{S, T}) where {S <: SF, T <: SS}
     @checkcons(model, ci)
     g = KN_get_con_values(model.inner)
     index = model.constraint_mapping[ci] .+ 1
@@ -221,7 +220,7 @@ end
 sense_dual(model::Optimizer) = (model.sense == MOI.MAX_SENSE) ? 1. : -1.
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
-                 ci::MOI.ConstraintIndex{S, T}) where {S <: SF, T <: LS}
+                 ci::MOI.ConstraintIndex{S, T}) where {S <: SF, T <: SS}
     @checkcons(model, ci)
 
     index = model.constraint_mapping[ci] + 1
@@ -336,8 +335,11 @@ function MOI.get(model::Optimizer, ::MOI.NLPBlockDual)
 end
 
 ###
+if KNITRO_VERSION >= v"12.0"
+    MOI.get(model::Optimizer, ::MOI.SolveTime) = KN_get_solve_time_cpu(model.inner)
+end
 # Additional getters
-MOI.get(model::Optimizer, ::MOI.NodeCount) = KN_get_mip_number_nodes(model)
-MOI.get(model::Optimizer, ::MOI.BarrierIterations) = KN_get_number_iters(model)
-MOI.get(model::Optimizer, ::MOI.RelativeGap) = KN_get_mip_rel_gap(model)
-MOI.get(model::Optimizer, ::MOI.ObjectiveBound) = KN_get_mip_relaxation_bnd(model)
+MOI.get(model::Optimizer, ::MOI.NodeCount) = KN_get_mip_number_nodes(model.inner)
+MOI.get(model::Optimizer, ::MOI.BarrierIterations) = KN_get_number_iters(model.inner)
+MOI.get(model::Optimizer, ::MOI.RelativeGap) = KN_get_mip_rel_gap(model.inner)
+MOI.get(model::Optimizer, ::MOI.ObjectiveBound) = KN_get_mip_relaxation_bnd(model.inner)
