@@ -262,23 +262,23 @@ macro wrap_function(wrap_name, name)
                                    evalRequest_::Ptr{Cvoid},
                                    evalResults_::Ptr{Cvoid},
                                    userdata_::Ptr{Cvoid})
-            # Load evalRequest object.
-            ptr0 = Ptr{KN_eval_request}(evalRequest_)
-            evalRequest = unsafe_load(ptr0)::KN_eval_request
-            # Load evalResult object.
-            ptr = Ptr{KN_eval_result}(evalResults_)
-            evalResult = unsafe_load(ptr)::KN_eval_result
-            # Eventually, load callback context.
-            cb = unsafe_pointer_to_objref(userdata_)
-            # Ensure that cb is a CallbackContext.
-            # Otherwise, we tell KNITRO that a problem occurs by returning a
-            # non-zero status.
-            if !isa(cb, CallbackContext)
-                return Cint(KN_RC_CALLBACK_ERR)
-            end
-            request = EvalRequest(cb.userparams[:model], evalRequest)
-            result = EvalResult(cb.userparams[:model], ptr_cb, evalResult)
             try
+                # Load evalRequest object.
+                ptr0 = Ptr{KN_eval_request}(evalRequest_)
+                evalRequest = unsafe_load(ptr0)::KN_eval_request
+                # Load evalResult object.
+                ptr = Ptr{KN_eval_result}(evalResults_)
+                evalResult = unsafe_load(ptr)::KN_eval_result
+                # Eventually, load callback context.
+                cb = unsafe_pointer_to_objref(userdata_)
+                # Ensure that cb is a CallbackContext.
+                # Otherwise, we tell KNITRO that a problem occurs by returning a
+                # non-zero status.
+                if !isa(cb, CallbackContext)
+                    return Cint(KN_RC_CALLBACK_ERR)
+                end
+                request = EvalRequest(cb.userparams[:model], evalRequest)
+                result = EvalResult(cb.userparams[:model], ptr_cb, evalResult)
                 res = cb.$name(ptr_model, ptr_cb, request, result, cb.userparams)
                 return Cint(res)
             catch ex
