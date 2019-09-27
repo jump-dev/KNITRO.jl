@@ -170,158 +170,164 @@ const KN_paramName2Indx = Dict(
 )
 
 const KNITRO_OPTIONS = String[
-    "newpoint",
-    "honorbnds",
-    "algorithm",
-    "alg",
-    "bar_murule",
-    "bar_feasible",
-    "gradopt",
-    "hessopt",
-    "bar_initpt",
-    "act_lpsolver",
-    "cg_maxit",
-    "maxit",
-    "outlev",
-    "outmode",
-    "scale",
-    "soc",
-    "delta",
-    "bar_feasmodetol",
-    "feastol",
-    "feastolabs",
-    "maxtimecpu",
-    "bar_initmu",
-    "objrange",
-    "opttol",
-    "opttolabs",
-    "linsolver_pivottol",
-    "xtol",
-    "debug",
-    "multistart",
-    "msenable",
-    "msmaxsolves",
-    "msmaxbndrange",
-    "msmaxtimecpu",
-    "msmaxtimereal",
-    "lmsize",
-    "bar_maxcrossit",
-    "maxtimereal",
-    "cg_precond",
-    "blasoption",
-    "bar_maxrefactor",
-    "linesearch_maxtrials",
-    "blasoptionlib",
-    "outappend",
-    "outdir",
-    "cplexlib",
-    "bar_penrule",
-    "bar_pencons",
-    "msnumtosave",
-    "mssavetol",
-    "presolvedebug",
-    "msterminate",
-    "msstartptrange",
-    "infeastol",
-    "linsolver",
-    "bar_directinterval",
-    "presolve",
-    "presolve_tol",
-    "bar_switchrule",
-    "hessian_no_f",
-    "ma_terminate",
-    "ma_maxtimecpu",
-    "ma_maxtimereal",
-    "msseed",
-    "ma_outsub",
-    "ms_outsub",
-    "xpresslib",
-    "tuner",
-    "tuner_optionsfile",
-    "tuner_maxtimecpu",
-    "tuner_maxtimereal",
-    "tuner_outsub",
-    "tuner_terminate",
-    "linsolver_ooc",
-    "bar_relaxcons",
-    "msdeterministic",
-    "bar_refinement",
-    "derivcheck",
-    "derivcheck_type",
-    "derivcheck_tol",
-    "linsolver_inexact",
-    "linsolver_inexacttol",
-    "maxfevals",
-    "fstopval",
-    "datacheck",
-    "derivcheck_terminate",
-    "bar_watchdog",
-    "ftol",
-    "ftol_iters",
-    "act_qpalg",
-    "bar_initpi_mpec",
-    "xtol_iters",
-    "linesearch",
-    "out_csvinfo",
-    "initpenalty",
-    "act_lpfeastol",
-    "cg_stoptol",
-    "restarts",
-    "restarts_maxit",
-    "bar_slackboundpush",
-    "cg_pmem",
-    "bar_switchobj",
-    "outname",
-    "out_csvname",
-    "act_parametric",
-    "act_lpdumpmps",
-    "act_lpalg",
-    "act_lppresolve",
-    "act_lppenalty",
-    "bndrange",
-    "bar_conic_enable",
-    "convex",
-    "out_hints",
-    "eval_fcga",
-    "mip_method",
-    "mip_branchrule",
-    "mip_selectrule",
-    "mip_intgapabs",
-    "mip_intgaprel",
-    "mip_maxtimecpu",
-    "mip_maxtimereal",
-    "mip_maxsolves",
-    "mip_integertol",
-    "mip_outlevel",
-    "mip_outinterval",
-    "mip_outsub",
-    "mip_debug",
-    "mip_implicatns",
-    "mip_gub_branch",
-    "mip_knapsack",
-    "mip_rounding",
-    "mip_rootalg",
-    "mip_lpalg",
-    "mip_terminate",
-    "mip_maxnodes",
-    "mip_heuristic",
-    "mip_heur_maxit",
-    "mip_heur_maxtimecpu",
-    "mip_heur_maxtimereal",
-    "mip_pseudoinit",
-    "mip_strong_maxit",
-    "mip_strong_candlim",
-    "mip_strong_level",
-    "mip_intvar_strategy",
-    "mip_relaxable",
-    "mip_nodealg",
-    "mip_heur_terminate",
-    "mip_selectdir",
-    "par_numthreads",
-    "par_concurrent_evals",
-    "par_blasnumthreads",
-    "par_lsnumthreads",
-    "par_msnumthreads",
-    "option_file",
-    "tuner_file",
+    "newpoint",                  # KTR_PARAM_NEWPOINT=               #
+    "honorbnds",                 # KTR_PARAM_HONORBNDS            #
+    "algorithm",                 # KTR_PARAM_ALGORITHM            #
+    "bar_murule",                # KTR_PARAM_BAR_MURULE           #
+    "bar_feasible",              # KTR_PARAM_BAR_FEASIBLE         #
+    "gradopt",                   # KTR_PARAM_GRADOPT              #
+    "hessopt",                   # KTR_PARAM_HESSOPT              #
+    "bar_initpt",                # KTR_PARAM_BAR_INITPT           #
+    "act_lpsolver",              # KTR_PARAM_ACT_LPSOLVER         #
+    "cg_maxit",                  # KTR_PARAM_CG_MAXIT             #
+    "maxit",                     # KTR_PARAM_MAXIT                #
+    "outlev",                    # KTR_PARAM_OUTLEV               #
+    "outmode",                   # KTR_PARAM_OUTMODE              #
+    "scale",                     # KTR_PARAM_SCALE                #
+    "soc",                       # KTR_PARAM_SOC                  #
+    "delta",                     # KTR_PARAM_DELTA                #
+    "bar_feasmodetol",           # KTR_PARAM_BAR_FEASMODETOL      #
+    "feastol",                   # KTR_PARAM_FEASTOL              #
+    "feastolabs",                # KTR_PARAM_FEASTOLABS           #
+    "maxtimecpu",                # KTR_PARAM_MAXTIMECPU           #
+    "bar_initmu",                # KTR_PARAM_BAR_INITMU           #
+    "objrange",                  # KTR_PARAM_OBJRANGE             #
+    "opttol",                    # KTR_PARAM_OPTTOL               #
+    "opttolabs",                 # KTR_PARAM_OPTTOLABS            #
+    "linsolver_pivottol",        # KTR_PARAM_LINSOLVER_PIVOTTOL   #
+    "xtol",                      # KTR_PARAM_XTOL                 #
+    "debug",                     # KTR_PARAM_DEBUG                #
+    "ms_enable",                 # KTR_PARAM_MULTISTART           #
+    "ms_maxsolves",              # KTR_PARAM_MSMAXSOLVES          #
+    "ms_maxbndrange",            # KTR_PARAM_MSMAXBNDRANGE        #
+    "ms_maxtime_cpu",            # KTR_PARAM_MSMAXTIMECPU         #
+    "ms_maxtime_real",           # KTR_PARAM_MSMAXTIMEREAL        #
+    "lmsize",                    # KTR_PARAM_LMSIZE               #
+    "bar_maxcrossit",            # KTR_PARAM_BAR_MAXCROSSIT       #
+    "maxtime_real",              # KTR_PARAM_MAXTIMEREAL          #
+    "cg_precond",                # KTR_PARAM_CG_PRECOND           #
+    "blasoption",                # KTR_PARAM_BLASOPTION           #
+    "bar_maxrefactor",           # KTR_PARAM_BAR_MAXREFACTOR      #
+    "linesearch_maxtrials",      # KTR_PARAM_LINESEARCH_MAXTRIALS #
+    "blasoptionlib",             # KTR_PARAM_BLASOPTIONLIB        #
+    "outappend",                 # KTR_PARAM_OUTAPPEND            #
+    "outdir",                    # KTR_PARAM_OUTDIR               #
+    "cplexlibname",              # KTR_PARAM_CPLEXLIB             #
+    "bar_penaltyrule",           # KTR_PARAM_BAR_PENRULE          #
+    "bar_penaltycons",           # KTR_PARAM_BAR_PENCONS          #
+    "ms_num_to_save",            # KTR_PARAM_MSNUMTOSAVE          #
+    "ms_savetol",                # KTR_PARAM_MSSAVETOL            #
+    "ms_terminate",              # KTR_PARAM_MSTERMINATE          #
+    "ms_startptrange",           # KTR_PARAM_MSSTARTPTRANGE       #
+    "infeastol",                 # KTR_PARAM_INFEASTOL            #
+    "linsolver",                 # KTR_PARAM_LINSOLVER            #
+    "bar_directinterval",        # KTR_PARAM_BAR_DIRECTINTERVAL   #
+    "presolve",                  # KTR_PARAM_PRESOLVE             #
+    "presolve_tol",              # KTR_PARAM_PRESOLVE_TOL         #
+    "bar_switchrule",            # KTR_PARAM_BAR_SWITCHRULE       #
+    "hessian_no_f",              # KTR_PARAM_HESSIAN_NO_F         #
+    "ma_terminate",              # KTR_PARAM_MA_TERMINATE         #
+    "ma_maxtime_cpu",            # KTR_PARAM_MA_MAXTIMECPU        #
+    "ma_maxtime_real",           # KTR_PARAM_MA_MAXTIMEREAL       #
+    "ms_seed",                   # KTR_PARAM_MSSEED               #
+    "ma_outsub",                 # KTR_PARAM_MA_OUTSUB            #
+    "ms_outsub",                 # KTR_PARAM_MS_OUTSUB            #
+    "xpresslibname",             # KTR_PARAM_XPRESSLIB            #
+    "tuner",                     # KTR_PARAM_TUNER                #
+    "tuner_optionsfile",         # KTR_PARAM_TUNER_OPTIONSFILE    #
+    "tuner_maxtime_cpu",         # KTR_PARAM_TUNER_MAXTIMECPU     #
+    "tuner_maxtime_real",        # KTR_PARAM_TUNER_MAXTIMEREAL    #
+    "tuner_outsub",              # KTR_PARAM_TUNER_OUTSUB         #
+    "tuner_terminate",           # KTR_PARAM_TUNER_TERMINATE      #
+    "linsolver_ooc",             # KTR_PARAM_LINSOLVER_OOC        #
+    "bar_relaxcons",             # KTR_PARAM_BAR_RELAXCONS        #
+    "ms_deterministic",          # KTR_PARAM_MSDETERMINISTIC      #
+    "bar_refinement",            # KTR_PARAM_BAR_REFINEMENT       #
+    "derivcheck",                # KTR_PARAM_DERIVCHECK           #
+    "derivcheck_type",           # KTR_PARAM_DERIVCHECK_TYPE      #
+    "derivcheck_tol",            # KTR_PARAM_DERIVCHECK_TOL       #
+    "maxfevals",                 # KTR_PARAM_MAXFEVALS            #
+    "fstopval",                  # KTR_PARAM_FSTOPVAL             #
+    "datacheck",                 # KTR_PARAM_DATACHECK            #
+    "derivcheck_terminate",      # KTR_PARAM_DERIVCHECK_TERMINATE #
+    "bar_watchdog",              # KTR_PARAM_BAR_WATCHDOG         #
+    "ftol",                      # KTR_PARAM_FTOL                 #
+    "ftol_iters",                # KTR_PARAM_FTOL_ITERS           #
+    "act_qpalg",                 # KTR_PARAM_ACT_QPALG            #
+    "bar_initpi_mpec",           # KTR_PARAM_BAR_INITPI_MPEC      #
+    "xtol_iters",                # KTR_PARAM_XTOL_ITERS           #
+    "linesearch",                # KTR_PARAM_LINESEARCH           #
+    "out_csvinfo",               # KTR_PARAM_OUT_CSVINFO          #
+    "initpenalty",               # KTR_PARAM_INITPENALTY          #
+    "act_lpfeastol",             # KTR_PARAM_ACT_LPFEASTOL        #
+    "cg_stoptol",                # KTR_PARAM_CG_STOPTOL           #
+    "restarts",                  # KTR_PARAM_RESTARTS             #
+    "restarts_maxit",            # KTR_PARAM_RESTARTS_MAXIT       #
+    "bar_slackboundpush",        # KTR_PARAM_BAR_SLACKBOUNDPUSH   #
+    "cg_pmem",                   # KTR_PARAM_CG_PMEM              #
+    "bar_switchobj",             # KTR_PARAM_BAR_SWITCHOBJ        #
+    "outname",                   # KTR_PARAM_OUTNAME              #
+    "out_csvname",               # KTR_PARAM_OUT_CSVNAME          #
+    "act_parametric",            # KTR_PARAM_ACT_PARAMETRIC       #
+    "act_lpdumpmps",             # KTR_PARAM_ACT_LPDUMPMPS        #
+    "act_lpalg",                 # KTR_PARAM_ACT_LPALG            #
+    "act_lppresolve",            # KTR_PARAM_ACT_LPPRESOLVE       #
+    "act_lppenalty",             # KTR_PARAM_ACT_LPPENALTY        #
+    "bndrange",                  # KN_PARAM_BNDRANGE              #
+    "bar_conic_enable",          # KN_PARAM_BAR_CONIC_ENABLE      #
+    "convex",                    # KN_PARAM_CONVEX                #
+    "out_hints",                 # KN_PARAM_OUT_HINTS             #
+    "eval_fcga",                 # KN_PARAM_EVAL_FCGA             #
+    "bar_maxcorrectors",         # KN_PARAM_BAR_MAXCORRECTORS     #
+    "strat_warm_start",          # KN_PARAM_STRAT_WARM_START      #
+    "findiff_terminate",         # KN_PARAM_FINDIFF_TERMINATE     #
+    "cpuplatform",               # KN_PARAM_CPUPLATFORM           #
+    "presolve_passes",           # KN_PARAM_PRESOLVE_PASSES       #
+    "presolve_level",            # KN_PARAM_PRESOLVE_LEVEL        #
+    "findiff_relstepsize",       # KN_PARAM_FINDIFF_RELSTEPSIZE   #
+    "infeastol_iters",           # KN_PARAM_INFEASTOL_ITERS       #
+    "mip_method",                # KTR_PARAM_MIP_METHOD           #
+    "mip_branchrule",            # KTR_PARAM_MIP_BRANCHRULE       #
+    "mip_selectrule",            # KTR_PARAM_MIP_SELECTRULE       #
+    "mip_integral_gap_abs",      # KTR_PARAM_MIP_INTGAPABS        #
+    "mip_integral_gap_rel",      # KTR_PARAM_MIP_INTGAPREL        #
+    "mip_maxtimecpu",            # KTR_PARAM_MIP_MAXTIMECPU       #
+    "mip_maxtimereal",           # KTR_PARAM_MIP_MAXTIMEREAL      #
+    "mip_maxsolves",             # KTR_PARAM_MIP_MAXSOLVES        #
+    "mip_integer_tol",           # KTR_PARAM_MIP_INTEGERTOL       #
+    "mip_outlevel",              # KTR_PARAM_MIP_OUTLEVEL         #
+    "mip_outinterval",           # KTR_PARAM_MIP_OUTINTERVAL      #
+    "mip_outsub",                # KTR_PARAM_MIP_OUTSUB           #
+    "mip_debug",                 # KTR_PARAM_MIP_DEBUG            #
+    "mip_implications",          # KTR_PARAM_MIP_IMPLICATNS       #
+    "mip_gub_branch",            # KTR_PARAM_MIP_GUB_BRANCH       #
+    "mip_knapsack",              # KTR_PARAM_MIP_KNAPSACK         #
+    "mip_rounding",              # KTR_PARAM_MIP_ROUNDING         #
+    "mip_rootalg",               # KTR_PARAM_MIP_ROOTALG          #
+    "mip_lpalg",                 # KTR_PARAM_MIP_LPALG            #
+    "mip_terminate",             # KTR_PARAM_MIP_TERMINATE        #
+    "mip_maxnodes",              # KTR_PARAM_MIP_MAXNODES         #
+    "mip_heuristic",             # KTR_PARAM_MIP_HEURISTIC        #
+    "mip_heuristic_maxit",       # KTR_PARAM_MIP_HEUR_MAXIT       #
+    "mip_heuristic_maxtimecpu",  # KTR_PARAM_MIP_HEUR_MAXTIMECPU  #
+    "mip_heuristic_maxtimereal", # KTR_PARAM_MIP_HEUR_MAXTIMEREAL #
+    "mip_pseudoinit",            # KTR_PARAM_MIP_PSEUDOINIT       #
+    "mip_strong_maxit",          # KTR_PARAM_MIP_STRONG_MAXIT     #
+    "mip_strong_candlim",        # KTR_PARAM_MIP_STRONG_CANDLIM   #
+    "mip_strong_level",          # KTR_PARAM_MIP_STRONG_LEVEL     #
+    "mip_intvar_strategy",       # KTR_PARAM_MIP_INTVAR_STRATEGY  #
+    "mip_relaxable",             # KTR_PARAM_MIP_RELAXABLE        #
+    "mip_nodealg",               # KTR_PARAM_MIP_NODEALG          #
+    "mip_heuristic_terminate",   # KTR_PARAM_MIP_HEUR_TERMINATE   #
+    "mip_selectdir",             # KTR_PARAM_MIP_SELECTDIR        #
+    "mip_cutfactor",             #  KTR_PARAM_MIP_CUTFACTOR       #
+    "mip_zerohalf",              # KTR_PARAM_MIP_ZEROHALF         #
+	"mip_mir",                   # KTR_PARAM_MIP_MIR              #
+	"mip_clique",                # KTR_PARAM_MIP_CLIQUE           #
+    "par_numthreads",            # KTR_PARAM_PAR_NUMTHREADS       #
+    "par_concurrent_evals",      # KTR_PARAM_PAR_CONCURRENT_EVALS #
+    "par_blasnumthreads",        # KTR_PARAM_PAR_BLASNUMTHREADS   #
+    "par_lsnumthreads",          # KTR_PARAM_PAR_LSNUMTHREADS     #
+    "par_msnumthreads",          # KTR_PARAM_PAR_MSNUMTHREADS     #
+	"par_conicnumthreads"        # KTR_PARAM_PAR_CONICNUMTHREADS  # //FGN
 ]
