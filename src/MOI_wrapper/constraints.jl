@@ -18,6 +18,7 @@ MOI.supports_constraint(::Optimizer, ::Type{VAF}, ::Type{<:VLS}) = true
 MOI.supports_constraint(::Optimizer, ::Type{VOV}, ::Type{<:VLS}) = true
 MOI.supports_constraint(::Optimizer, ::Type{VAF}, ::Type{MOI.SecondOrderCone}) = true
 MOI.supports_constraint(::Optimizer, ::Type{VOV}, ::Type{MOI.SecondOrderCone}) = true
+MOI.supports_constraint(::Optimizer, ::Type{VOV}, ::Type{MOI.Complements}) = true
 
 ##################################################
 ## Getters
@@ -326,6 +327,23 @@ function MOI.add_constraint(model::Optimizer,
     ci = MOI.ConstraintIndex{typeof(func), typeof(set)}(index_con)
     model.constraint_mapping[ci] = convert.(Cint, indv)
     return ci
+end
+
+function MOI.add_constraint(model::Optimizer,
+                            func::MOI.VectorOfVariables, set::MOI.Complements)
+    (model.number_solved >= 1) && throw(AddConstraintError())
+    indv = Cint[v.value - 1 for v in func.variables]
+    # Currently, only complementarity constraints between two variables
+    # are supported.
+    comp_type = fill(KN_CCTYPE_VARVAR, set.dimension)
+
+    KN_set_compcons(model.inner, comp_type,
+                    convert.(Cint, indv[1:set.dimension]),
+                    convert.(Cint, indv[set.dimension+1:end]))
+
+    # Add constraints to index.
+    # TODO: which constraint to consider there?
+    return
 end
 
 ##################################################
