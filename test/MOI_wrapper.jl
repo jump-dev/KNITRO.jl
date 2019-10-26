@@ -85,6 +85,11 @@ end
     MOIT.contquadratictest(BRIDGED, config, exclude)
 end
 
+@testset "MOI complementarity tests" begin
+    MOIT.test_qp_complementarity_constraint(BRIDGED, config)
+    MOIT.test_linear_mixed_complementarity(BRIDGED, config)
+end
+
 #= @testset "MOI SOCP tests" begin =#
 #=     # TODO: DualObjectivevalue not supported =#
 #=     # Presolve must be switch off to get proper dual variables. =#

@@ -4,7 +4,7 @@
 ## Support constraints
 MOI.supports_constraint(::Optimizer, ::Type{MOI.SingleVariable}, ::Type{MOI.ZeroOne}) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.SingleVariable}, ::Type{MOI.Integer}) = true
-MOI.supports_constraint(::Optimizer, ::Type{MOI.SingleVariable}, ::Type{<:LS}) = true
+MOI.supports_constraint(::Optimizer, ::Type{MOI.SingleVariable}, ::Type{<:SS}) = true
 
 MOI.supports_constraint(::Optimizer, ::Type{MOI.ScalarAffineFunction{Float64}}, ::Type{MOI.LessThan{Float64}}) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.ScalarAffineFunction{Float64}}, ::Type{MOI.GreaterThan{Float64}}) = true
@@ -18,6 +18,8 @@ MOI.supports_constraint(::Optimizer, ::Type{VAF}, ::Type{<:VLS}) = true
 MOI.supports_constraint(::Optimizer, ::Type{VOV}, ::Type{<:VLS}) = true
 MOI.supports_constraint(::Optimizer, ::Type{VAF}, ::Type{MOI.SecondOrderCone}) = true
 MOI.supports_constraint(::Optimizer, ::Type{VOV}, ::Type{MOI.SecondOrderCone}) = true
+MOI.supports_constraint(::Optimizer, ::Type{VOV}, ::Type{MOI.Complements}) = true
+MOI.supports_constraint(::Optimizer, ::Type{VAF}, ::Type{MOI.Complements}) = true
 
 ##################################################
 ## Getters
@@ -91,6 +93,32 @@ function MOI.add_constraint(model::Optimizer,
     # We assume that MOI's indexing is the same as KNITRO's indexing.
     KN_set_var_lobnds(model.inner, vi.value - 1, lb)
     ci = MOI.ConstraintIndex{MOI.SingleVariable, MOI.GreaterThan{Float64}}(vi.value)
+    model.constraint_mapping[ci] = convert(Cint, vi.value)
+    return ci
+end
+
+function MOI.add_constraint(model::Optimizer,
+                            v::MOI.SingleVariable, set::MOI.Interval{Float64})
+    (model.number_solved >= 1) && throw(AddConstraintError())
+    vi = v.variable
+    check_inbounds(model, vi)
+    if isnan(set.lower) || isnan(set.upper)
+        error("Invalid lower bound value $(set.lower).")
+    end
+    if has_lower_bound(model, vi) || has_upper_bound(model, vi)
+        error("Bounds on variable $vi already exists.")
+    end
+    if is_fixed(model, vi)
+        error("Variable $vi is fixed. Cannot also set lower bound.")
+    end
+    lb = check_value(set.lower)
+    ub = check_value(set.upper)
+    model.variable_info[vi.value].has_lower_bound = true
+    model.variable_info[vi.value].has_upper_bound = true
+    # We assume that MOI's indexing is the same as KNITRO's indexing.
+    KN_set_var_lobnds(model.inner, vi.value - 1, lb)
+    KN_set_var_upbnds(model.inner, vi.value - 1, ub)
+    ci = MOI.ConstraintIndex{MOI.SingleVariable, MOI.Interval{Float64}}(vi.value)
     model.constraint_mapping[ci] = convert(Cint, vi.value)
     return ci
 end
@@ -326,6 +354,91 @@ function MOI.add_constraint(model::Optimizer,
     ci = MOI.ConstraintIndex{typeof(func), typeof(set)}(index_con)
     model.constraint_mapping[ci] = convert.(Cint, indv)
     return ci
+end
+
+# Complementarity constraint
+
+# Complementarity constraints (M x + b  complements x)
+# As Knitro supports only complementarity constraints between variables,
+# we reformulate it by adding auxiliary variables:
+#
+# x_aux = Mx + b
+# (x_aux complements x)
+#
+function MOI.add_constraint(model::Optimizer,
+                            func::MOI.VectorAffineFunction, set::MOI.Complements)
+    (model.number_solved >= 1) && throw(AddConstraintError())
+
+    # Add auxiliary variables `x_aux`.
+    x_aux = KN_add_vars(model.inner, set.dimension)
+
+    # Add new constraints in Knitro to formulate x_aux = Mx + b
+    n_cons = KN_add_cons(model.inner, set.dimension)
+    offset = n_cons[1]
+
+    # Parse VectorAffineFunction defining the complementarity constraints
+    indexcoords, indexvars, coefs = canonical_vector_affine_reduction(func)
+
+    # Convert VectorAffineFunction in Knitro format
+    x_comp = Cint[]
+    jac_cons = Cint[]
+    jac_vars = Cint[]
+    jac_coefs = Cdouble[]
+    for (c, v, f) in zip(indexcoords, indexvars, coefs)
+        # By convention, if c is greater than the dimension of
+        # the complementarity constraint set, then it specifies
+        # the complementarity variable `x`.
+        if c >= set.dimension
+            push!(x_comp, v)
+        else
+            # Otherwise, the index corresponds to one of the matrix `M`.
+            # Add it to the Jacobian structure of the problem.
+            push!(jac_cons, c + offset)
+            push!(jac_vars, v)
+            push!(jac_coefs, f)
+        end
+    end
+    # Add the index corresponding to `x_aux` in the Jacobian.
+    for (icons, ivar) in zip(n_cons, x_aux)
+        push!(jac_cons, icons)
+        push!(jac_vars, ivar)
+        push!(jac_coefs, -1.0)
+    end
+    # Get constant structure
+    q = func.constants[1:set.dimension]
+
+    # Add structure of new constaints to Knitro.
+    KN_add_con_linear_struct(model.inner, jac_cons, jac_vars, jac_coefs)
+    KN_set_con_eqbnds(model.inner, n_cons, -q)
+
+    # Currently, only complementarity constraints between two variables
+    # are supported.
+    comp_type = fill(KN_CCTYPE_VARVAR, set.dimension)
+
+    KN_set_compcons(model.inner, comp_type, x_comp, x_aux)
+    # Add constraints to index.
+    # TODO: which constraint to consider there?
+    return
+end
+
+# Complementarity constraints (x_1 complements x_2), with x_1 and x_2
+# being two variables of the problem.
+function MOI.add_constraint(model::Optimizer,
+                            func::MOI.VectorOfVariables, set::MOI.Complements)
+    (model.number_solved >= 1) && throw(AddConstraintError())
+    indv = Cint[v.value - 1 for v in func.variables]
+    n_comp = set.dimension
+    # Currently, only complementarity constraints between two variables
+    # are supported.
+    comp_type = fill(KN_CCTYPE_VARVAR, n_comp)
+
+    KN_set_compcons(model.inner, comp_type,
+                    indv[1:n_comp],
+                    indv[n_comp+1:end])
+
+    # Add constraints to index.
+    # TODO: which constraint to consider there?
+    return
 end
 
 ##################################################
