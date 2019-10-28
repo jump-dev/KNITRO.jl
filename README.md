@@ -50,7 +50,7 @@ register(m, :mysquare, 1, mysquare, autodiff = true) # (4)
 @constraint(m, z == x + y)
 
 optimize!(m)
-(value(x), value(y), value(z), value(v), value(u), objective_value(m), termination_status(m)) # (5)
+(value(x), value(y), value(z), value(u), objective_value(m), termination_status(m)) # (5)
 ```
 
 1. Setting `KNITRO` options. 
