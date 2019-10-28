@@ -46,7 +46,7 @@ m = Model(with_optimizer(KNITRO.Optimizer, honorbnds = 1, outlev = 1, algorithm 
 mysquare(x) = x^2 
 register(m, :mysquare, 1, mysquare, autodiff = true) # (4)
 
-@NLobjective(m, Min, mysquare(1 - x) + 100(y-x^2)^2 + u) 
+@NLobjective(m, Min, mysquare(1 - x) + 100(y - x^2)^2 + u) 
 @constraint(m, z == x + y)
 
 optimize!(m)
@@ -55,7 +55,7 @@ optimize!(m)
 
 1. Setting `KNITRO` options. 
 2. Setting initial conditions on variables. 
-3. Setting box bounds on variables.
+3. Setting box constraints on variables.
 4. Registering a user-defined function for use in the problem. 
 5. Querying various results from the solver. 
 
