@@ -46,7 +46,7 @@ m = Model(with_optimizer(KNITRO.Optimizer, honorbnds = 1, outlev = 1, algorithm 
 mysquare(x) = x^2 
 register(m, :mysquare, 1, mysquare, autodiff = true) # (4)
 
-@NLobjective(m, Min, mysquare(1 - x) + 100(y - x^2)^2 + u) 
+@NLobjective(m, Min, mysquare(1 - x) + 100 * (y - x^2)^2 + u) 
 @constraint(m, z == x + y)
 
 optimize!(m)
