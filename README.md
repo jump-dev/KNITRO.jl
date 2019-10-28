@@ -30,39 +30,34 @@ MathOptInterface Interface
 ==========================
 
 KNITRO.jl now supports [MathOptInterface](https://github.com/JuliaOpt/MathOptInterface.jl)
-and [JuMP 0.19](https://github.com/JuliaOpt/JuMP.jl).
+and [JuMP 0.19](https://github.com/JuliaOpt/JuMP.jl). The `MathProgBase` interface has been deprecated. 
 
-Here's an example with a linear objective
+ 
+Here's an example showcasing various features. 
 
 ```julia
-using JuMP,KNITRO
-m = Model(with_optimizer(KNITRO.Optimizer)) # settings for the solver
-@variable(m, x, start = 0.0)
-@variable(m, y, start = 0.0)
-
-@NLobjective(m, Min, (1-x)^2 + 100(y-x^2)^2)
-
-JuMP.optimize!(m)
-println("x = ", value(x), " y = ", value(y))
-```
-
-And a nonlinear one
-
-```julia 
 using JuMP, KNITRO
-# solve
-# max( x[1] + x[2] )
-# st sqrt(x[1]^2 + x[2]^2) <= 1
+m = Model(with_optimizer(KNITRO.Optimizer, honorbnds = 1, outlev = 1, algorithm = 4)) # (1)
+@variable(m, x, start = 1.2) # (2)
+@variable(m, y)
+@variable(m, z)
+@variable(m, 4.0 <= u <= 4.0) # (3)
 
-m = Model(with_optimizer(KNITRO.Optimizer))
+mysquare(x) = x^2 
+register(m, :mysquare, 1, mysquare, autodiff = true) # (4)
 
-@variable(m, x[1:2], start=0.5) # start is the initial condition
-@objective(m, Max, sum(x))
-@NLconstraint(m, sqrt(x[1]^2+x[2]^2) <= 1)
-@show JuMP.optimize!(m)
+@NLobjective(m, Min, mysquare(1 - x) + 100 * (y - x^2)^2 + u) 
+@constraint(m, z == x + y)
+
+optimize!(m)
+(value(x), value(y), value(z), value(u), objective_value(m), termination_status(m)) # (5)
 ```
 
-The `MathProgBase` interface has been deprecated. 
+1. Setting `KNITRO` options. 
+2. Setting initial conditions on variables. 
+3. Setting box constraints on variables.
+4. Registering a user-defined function for use in the problem. 
+5. Querying various results from the solver. 
 
 Low-level wrapper
 =================
