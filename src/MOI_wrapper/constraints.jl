@@ -416,9 +416,10 @@ function MOI.add_constraint(model::Optimizer,
     comp_type = fill(KN_CCTYPE_VARVAR, set.dimension)
 
     KN_set_compcons(model.inner, comp_type, x_comp, x_aux)
-    # Add constraints to index.
-    # TODO: which constraint to consider there?
-    return
+    # Add constraints to index (KNITRO supports only 1 complementarity
+    # contraint).
+    ci = MOI.ConstraintIndex{typeof(func), typeof(set)}(0)
+    return ci
 end
 
 # Complementarity constraints (x_1 complements x_2), with x_1 and x_2
@@ -436,9 +437,10 @@ function MOI.add_constraint(model::Optimizer,
                     indv[1:n_comp],
                     indv[n_comp+1:end])
 
-    # Add constraints to index.
-    # TODO: which constraint to consider there?
-    return
+    # Add constraints to index (KNITRO supports only 1 complementarity
+    # contraint).
+    ci = MOI.ConstraintIndex{typeof(func), typeof(set)}(0)
+    return ci
 end
 
 ##################################################
