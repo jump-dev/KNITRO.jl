@@ -12,25 +12,27 @@ function write_depsfile(knpath, libpath)
         show(f, libpath)
         println(f)
         print(f,"const amplexe = ")
-        show(f, joinpath(knpath, "knitroampl", "knitroampl"))
+        show(f, joinpath(knpath, "..", "knitroampl", "knitroampl"))
         println(f)
     end
 end
 
-paths_to_try = String[]
-
 libname = string(Sys.iswindows() ? "" : "lib", "knitro", ".", Libdl.dlext)
 
-# try to load absolute path before
-if haskey(ENV, "KNITRODIR")
-    push!(paths_to_try, ENV["KNITRODIR"])
+if haskey(ENV, "LD_LIBRARY_PATH")
+    paths_to_try = split(ENV["LD_LIBRARY_PATH"], ':')
+else
+    paths_to_try = String[]
 end
 
-push!(paths_to_try, libname)
+if haskey(ENV, "KNITRODIR")
+    push!(paths_to_try, joinpath(ENV["KNITRODIR"], "lib"))
+end
 
 global found_knitro = false
-for path in paths_to_try
-    l = joinpath(path, "lib", libname)
+# test KNITRODIR first
+for path in reverse(paths_to_try)
+    l = joinpath(path, libname)
     d = Libdl.dlopen_e(l)
     if d != C_NULL
         global found_knitro = true
