@@ -1,6 +1,5 @@
 # Callbacks utilities.
 
-
 ##################################################
 # Utils
 ##################################################
@@ -8,8 +7,6 @@ function KN_set_cb_user_params(m::Model, cb::CallbackContext, userParams=nothing
     if userParams != nothing
         cb.userparams[:data] = userParams
     end
-    # Store the model inside userParams
-    cb.userparams[:model] = m
     # Store callback context inside KNITRO user data.
     c_userdata = cb
 
@@ -78,60 +75,26 @@ end
 #--------------------
 # callback context getters
 #--------------------
-# TODO: dry this code with a macro.
-function KN_get_cb_number_cons(m::Model, cb::Ptr{Cvoid})
-    num = Cint[0]
-    ret = @kn_ccall(get_cb_number_cons,
-                    Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
-                    m.env, cb, num)
-    _checkraise(ret)
-    return num[1]
+macro callback_getter(function_name, return_type)
+    fname = Symbol("KN_" * string(function_name))
+    quote
+        function $(esc(fname))(kc::Ptr{Cvoid}, cb::Ptr{Cvoid})
+            result = zeros($return_type, 1)
+            ret = @kn_ccall($function_name, Cint,
+                            (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
+                            kc, cb, result)
+            _checkraise(ret)
+            return result[1]
+        end
+    end
 end
 
-function KN_get_cb_objgrad_nnz(m::Model, cb::Ptr{Cvoid})
-    num = Cint[0]
-    ret = @kn_ccall(get_cb_objgrad_nnz,
-                    Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
-                    m.env, cb, num)
-    _checkraise(ret)
-    return num[1]
-end
-
-function KN_get_cb_jacobian_nnz(m::Model, cb::Ptr{Cvoid})
-    num = KNLONG[0]
-    ret = @kn_ccall(get_cb_jacobian_nnz,
-                    Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
-                    m.env, cb, num)
-    _checkraise(ret)
-    return num[1]
-end
-
-function KN_get_cb_hessian_nnz(m::Model, cb::Ptr{Cvoid})
-    num = KNLONG[0]
-    ret = @kn_ccall(get_cb_hessian_nnz,
-                    Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
-                    m.env, cb, num)
-    _checkraise(ret)
-    return num[1]
-end
-
-function KN_get_cb_number_rsds(m::Model, cb::Ptr{Cvoid})
-    num = Cint[0]
-    ret = @kn_ccall(get_cb_number_rsds,
-                    Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
-                    m.env, cb, num)
-    _checkraise(ret)
-    return num[1]
-end
-
-function KN_get_cb_rsd_jacobian_nnz(m::Model, cb::Ptr{Cvoid})
-    num = KNLONG[0]
-    ret = @kn_ccall(get_cb_rsd_jacobian_nnz,
-                    Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
-                    m.env, cb, num)
-    _checkraise(ret)
-    return num[1]
-end
+@callback_getter get_cb_number_cons Cint
+@callback_getter get_cb_objgrad_nnz Cint
+@callback_getter get_cb_jacobian_nnz KNLONG
+@callback_getter get_cb_hessian_nnz KNLONG
+@callback_getter get_cb_number_rsds Cint
+@callback_getter get_cb_rsd_jacobian_nnz KNLONG
 
 
 ##################################################
@@ -175,9 +138,9 @@ mutable struct EvalRequest
 end
 
 # Import low level request to Julia object.
-function EvalRequest(m::Model, evalRequest_::KN_eval_request)
-    nx = KN_get_number_vars(m)
-    nc = KN_get_number_cons(m)
+function EvalRequest(ptr_model::Ptr{Cvoid}, evalRequest_::KN_eval_request)
+    nx = KN_get_number_vars(ptr_model)
+    nc = KN_get_number_cons(ptr_model)
 
     # Import objective's scaling.
     sigma = (evalRequest_.sigma != C_NULL) ? unsafe_wrap(Array, evalRequest_.sigma, 1)[1] : 1.
@@ -243,16 +206,16 @@ mutable struct EvalResult
     rsdJac::Array{Float64}
 end
 
-function EvalResult(m::Model, cb::Ptr{Cvoid}, evalResult_::KN_eval_result)
+function EvalResult(kc::Ptr{Cvoid}, cb::Ptr{Cvoid}, evalResult_::KN_eval_result)
     return EvalResult(
             unsafe_wrap(Array, evalResult_.obj, 1),
-            unsafe_wrap(Array, evalResult_.c, KN_get_cb_number_cons(m, cb)),
-            unsafe_wrap(Array, evalResult_.objGrad, KN_get_cb_objgrad_nnz(m, cb)),
-            unsafe_wrap(Array, evalResult_.jac, KN_get_cb_jacobian_nnz(m, cb)),
-            unsafe_wrap(Array, evalResult_.hess, KN_get_cb_hessian_nnz(m, cb)),
-            unsafe_wrap(Array, evalResult_.hessVec, KN_get_number_vars(m)),
-            unsafe_wrap(Array, evalResult_.rsd, KN_get_cb_number_rsds(m, cb)),
-            unsafe_wrap(Array, evalResult_.rsdJac, KN_get_cb_rsd_jacobian_nnz(m, cb))
+            unsafe_wrap(Array, evalResult_.c, KN_get_cb_number_cons(kc, cb)),
+            unsafe_wrap(Array, evalResult_.objGrad, KN_get_cb_objgrad_nnz(kc, cb)),
+            unsafe_wrap(Array, evalResult_.jac, KN_get_cb_jacobian_nnz(kc, cb)),
+            unsafe_wrap(Array, evalResult_.hess, KN_get_cb_hessian_nnz(kc, cb)),
+            unsafe_wrap(Array, evalResult_.hessVec, KN_get_number_vars(kc)),
+            unsafe_wrap(Array, evalResult_.rsd, KN_get_cb_number_rsds(kc, cb)),
+            unsafe_wrap(Array, evalResult_.rsdJac, KN_get_cb_rsd_jacobian_nnz(kc, cb))
                      )
 end
 
@@ -277,8 +240,8 @@ macro wrap_function(wrap_name, name)
                 if !isa(cb, CallbackContext)
                     return Cint(KN_RC_CALLBACK_ERR)
                 end
-                request = EvalRequest(cb.userparams[:model], evalRequest)
-                result = EvalResult(cb.userparams[:model], ptr_cb, evalResult)
+                request = EvalRequest(ptr_model, evalRequest)
+                result = EvalResult(ptr_model, ptr_cb, evalResult)
                 res = cb.$name(ptr_model, ptr_cb, request, result, cb.userparams)
                 return Cint(res)
             catch ex
