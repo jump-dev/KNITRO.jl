@@ -5,7 +5,7 @@
 ##################################################
 function KN_set_cb_user_params(m::Model, cb::CallbackContext, userParams=nothing)
     if userParams != nothing
-        cb.userparams[:data] = userParams
+        cb.userparams = userParams
     end
     # Store callback context inside KNITRO user data.
     c_userdata = cb
@@ -227,11 +227,11 @@ macro wrap_function(wrap_name, name)
                                    userdata_::Ptr{Cvoid})
             try
                 # Load evalRequest object.
-                ptr0 = Ptr{KN_eval_request}(evalRequest_)
-                evalRequest = unsafe_load(ptr0)::KN_eval_request
+                ptr_request = Ptr{KN_eval_request}(evalRequest_)
+                evalRequest = unsafe_load(ptr_request)::KN_eval_request
                 # Load evalResult object.
-                ptr = Ptr{KN_eval_result}(evalResults_)
-                evalResult = unsafe_load(ptr)::KN_eval_result
+                ptr_result = Ptr{KN_eval_result}(evalResults_)
+                evalResult = unsafe_load(ptr_result)::KN_eval_result
                 # Eventually, load callback context.
                 cb = unsafe_pointer_to_objref(userdata_)
                 # Ensure that cb is a CallbackContext.
