@@ -320,7 +320,7 @@ const KNITRO_OPTIONS = String[
     "mip_nodealg",               # KTR_PARAM_MIP_NODEALG          #
     "mip_heuristic_terminate",   # KTR_PARAM_MIP_HEUR_TERMINATE   #
     "mip_selectdir",             # KTR_PARAM_MIP_SELECTDIR        #
-    "mip_cutfactor",             #  KTR_PARAM_MIP_CUTFACTOR       #
+    "mip_cutfactor",             # KTR_PARAM_MIP_CUTFACTOR        #
     "mip_zerohalf",              # KTR_PARAM_MIP_ZEROHALF         #
 	"mip_mir",                   # KTR_PARAM_MIP_MIR              #
 	"mip_clique",                # KTR_PARAM_MIP_CLIQUE           #
@@ -329,5 +329,10 @@ const KNITRO_OPTIONS = String[
     "par_blasnumthreads",        # KTR_PARAM_PAR_BLASNUMTHREADS   #
     "par_lsnumthreads",          # KTR_PARAM_PAR_LSNUMTHREADS     #
     "par_msnumthreads",          # KTR_PARAM_PAR_MSNUMTHREADS     #
-	"par_conicnumthreads"        # KTR_PARAM_PAR_CONICNUMTHREADS  # //FGN
+	"par_conicnumthreads",       # KTR_PARAM_PAR_CONICNUMTHREADS  #
+    "findiff_relstepsize",       # KN_PARAM_FINDIFF_RELSTEPSIZE
+    "infeastol_iters",           # KN_PARAM_INFEASTOL_ITERS
+    "presolveop_tighten",        # KN_PARAM_PRESOLVEOP_TIGHTEN
+    "pre_redundancylevel",       # KTR_CNT_REDUNDANCY_DETECTION
+    "pre_improvecoefficients",   # KTR_IMPROVE_COEFFICIENTS
 ]

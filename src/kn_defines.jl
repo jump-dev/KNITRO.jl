@@ -8,7 +8,7 @@
 
 const KNTRUE = Int32(1)
 const KNFALSE = Int32(0)
-const KN_INFINITY = Float64(1.0e20)
+const KN_INFINITY = Float64(1.79769e+308) # equal to DBL_MAX
 const KN_PARAMTYPE_INTEGER = Int32(0)
 const KN_PARAMTYPE_FLOAT = Int32(1)
 const KN_PARAMTYPE_STRING = Int32(2)
@@ -536,24 +536,36 @@ const KN_PAR_MSNUMTHREADS_AUTO = Int32(0)
 if KNITRO_VERSION >= v"12.0"
     # Cuts parameters
     const KN_PARAM_MIP_ZEROHALF = Int32(2036)
-    const KN_PARAM_MIP_ZEROHALF_NONE = Int32(0)
-    const KN_PARAM_MIP_ZEROHALF_ROOT = Int32(1)
-    const KN_PARAM_MIP_ZEROHALF_TREE = Int32(2)
-    const KN_PARAM_MIP_ZEROHALF_ALL = Int32(3)
+    const KN_MIP_ZEROHALF_NONE = Int32(0)
+    const KN_MIP_ZEROHALF_ROOT = Int32(1)
+    const KN_MIP_ZEROHALF_TREE = Int32(2)
+    const KN_MIP_ZEROHALF_ALL = Int32(3)
     const KN_PARAM_MIP_MIR = Int32(2037)
-    const KN_PARAM_MIP_MIR_NONE = Int32(0)
-    const KN_PARAM_MIP_MIR_TREE = Int32(1)
+    const KN_MIP_MIR_NONE = Int32(0)
+    const KN_MIP_MIR_TREE = Int32(1)
     const KN_PARAM_MIP_CLIQUE = Int32(2038)
-    const KN_PARAM_MIP_CLIQUE_NONE = Int32(0)
-    const KN_PARAM_MIP_CLIQUE_ROOT = Int32(1)
-    const KN_PARAM_MIP_CLIQUE_TREE = Int32(2)
-    const KN_PARAM_MIP_CLIQUE_ALL = Int32(3)
+    const KN_MIP_CLIQUE_NONE = Int32(0)
+    const KN_MIP_CLIQUE_ROOT = Int32(1)
+    const KN_MIP_CLIQUE_TREE = Int32(2)
+    const KN_MIP_CLIQUE_ALL = Int32(3)
     # SOCP parameters
     const KN_PARAM_PAR_CONICNUMTHREADS = Int32(3006)
     # Presolve parameters
     const KN_PARAM_PRESOLVE_PASSES = Int32(1121)
     const KN_PARAM_PRESOLVE_LEVEL = Int32(1122)
-    const KN_PARAM_PRESOLVE_LEVEL_AUTO = Int32(-1)
-    const KN_PARAM_PRESOLVE_LEVEL_1 = Int32(1)
-    const KN_PARAM_PRESOLVE_LEVEL_2 = Int32(2)
+    const KN_PRESOLVE_LEVEL_AUTO = Int32(-1)
+    const KN_PRESOLVE_LEVEL_1 = Int32(1)
+    const KN_PRESOLVE_LEVEL_2 = Int32(2)
+end
+if KNITRO_VERSION >= v"12.1"
+    const KN_PARAM_FINDIFF_RELSTEPSIZE = Int32(1123)
+    const KN_PARAM_INFEASTOL_ITERS = Int32(1124)
+    # New options for MIP MIR cuts
+    const KN_MIP_MIR_AUTO = Int32(-1)
+    const KN_MIP_MIR_NLP = Int32(2)
+    # New options for presolve
+    const KN_PARAM_PRESOLVEOP_TIGHTEN = Int32(1125)
+    const KN_PRESOLVEOP_TIGHTEN_AUTO = Cint(-1)
+    const KN_PRESOLVEOP_TIGHTEN_NONE = Cint(0)
+    const KN_PRESOLVEOP_TIGHTEN_VARBND = Cint(1)
 end
