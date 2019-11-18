@@ -8,7 +8,7 @@
 
 const KNTRUE = Int32(1)
 const KNFALSE = Int32(0)
-const KN_INFINITY = Float64(1.79769e+308) # equal to DBL_MAX
+const KN_INFINITY = Float64(0x1.fffffffffffffp+1023) # equal to DBL_MAX
 const KN_PARAMTYPE_INTEGER = Int32(0)
 const KN_PARAMTYPE_FLOAT = Int32(1)
 const KN_PARAMTYPE_STRING = Int32(2)
