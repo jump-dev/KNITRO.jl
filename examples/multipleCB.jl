@@ -179,7 +179,7 @@ KNITRO.KN_set_cb_grad(kc, cbC0, callbackEvalC0Grad, jacIndexCons=[indexCons],
 # Set callback data for nonlinear constraint 1 term
 cbC1 = KNITRO.KN_add_eval_callback(kc, false, [cIndices[2]], callbackEvalC1)
 indexCons = [cIndices[2], cIndices[2]]  # constraint c1
-indexVars = [xIndices[1], xIndices[1]]  # variables x0 and x3
+indexVars = [xIndices[1], xIndices[3]]  # variables x0 and x3
 KNITRO.KN_set_cb_grad(kc, cbC1, nothing, jacIndexCons=indexCons, jacIndexVars=indexVars)
 # This one will be approximated via forward finite differences.
 KNITRO.KN_set_cb_gradopt(kc, cbC1, KNITRO.KN_GRADOPT_FORWARD)
