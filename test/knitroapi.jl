@@ -2,6 +2,39 @@
 using KNITRO
 using Test
 
+const MPS_PROBLEM =
+"""
+NAME         lo1
+OBJSENSE     MAX
+ROWS
+ N  obj
+ E  c1
+ G  c2
+ L  c3
+COLUMNS
+    x1        obj       3
+    x1        c1        3
+    x1        c2        2
+    x2        obj       1
+    x2        c1        1
+    x2        c2        1
+    x2        c3        2
+    x3        obj       5
+    x3        c1        2
+    x3        c2        3
+    x4        obj       1
+    x4        c2        1
+    x4        c3        3
+RHS
+    rhs       c1        30
+    rhs       c2        15
+    rhs       c3        25
+RANGES
+BOUNDS
+ UP bound     x2        10
+ENDATA
+"""
+
 @testset "Instantiation Knitro C interface" begin
     # get KNITRO.KNITRO release version
     rel = KNITRO.get_release()
@@ -115,6 +148,34 @@ if KNITRO.KNITRO_VERSION >= v"12.0"
         @test cnames == outnames
 
         KNITRO.KN_free(kc)
+    end
+end
+if KNITRO.KNITRO_VERSION >= v"12.1"
+    @testset "MPS reader/writer" begin
+        mps_name = joinpath(dirname(@__FILE__), "lp.mps")
+        mps_name_out = joinpath(dirname(@__FILE__), "lp2.mps")
+        open(mps_name, "w") do io
+            write(io, MPS_PROBLEM)
+        end
+        kc = KNITRO.KN_new()
+        KNITRO.KN_load_mps_file(kc, mps_name)
+        KNITRO.KN_set_param(kc, "outlev", 0)
+        KNITRO.KN_write_mps_file(kc, mps_name_out)
+        status = KNITRO.KN_solve(kc)
+        obj = KNITRO.get_objective(kc)
+        KNITRO.KN_free(kc)
+        @test status == 0
+        @test obj ≈ 250.0 / 3.0
+
+        # Resolve with dumped MPS file
+        kc = KNITRO.KN_new()
+        KNITRO.KN_load_mps_file(kc, mps_name_out)
+        KNITRO.KN_set_param(kc, "outlev", 0)
+        status = KNITRO.KN_solve(kc)
+        obj = KNITRO.get_objective(kc)
+        KNITRO.KN_free(kc)
+        @test status == 0
+        @test obj ≈ 250.0 / 3.0
     end
 end
 

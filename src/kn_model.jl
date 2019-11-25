@@ -111,6 +111,14 @@ if KNITRO_VERSION >= v"12.0"
         _checkraise(ret)
     end
 end
+if KNITRO_VERSION >= v"12.1"
+    "Dump MPS file."
+    function KN_write_mps_file(m::Model, filename::AbstractString)
+        ret = @kn_ccall(write_mps_file, Cint, (Ptr{Cvoid}, Ptr{Cchar}),
+                        m.env, filename)
+        _checkraise(ret)
+    end
+end
 
 register_callback(model::Model, cb::CallbackContext) = push!(model.callbacks, cb)
 
