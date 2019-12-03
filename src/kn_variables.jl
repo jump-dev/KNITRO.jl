@@ -269,7 +269,12 @@ function KN_set_var_primal_init_values(m::Model, xinitval::Vector{Cdouble})
                     m.env, xinitval)
     _checkraise(ret)
 end
-
+function KN_set_var_primal_init_values(m::Model, xindex::Vector{Cint}, xinitval::Vector{Cdouble})
+    ret = @kn_ccall(set_var_primal_init_values, Cint,
+                    (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env, length(xindex), xindex, xinitval)
+    _checkraise(ret)
+end
 function KN_set_var_primal_init_values(m::Model, indx::Integer, xinitval::Cdouble)
     ret = @kn_ccall(set_var_primal_init_value, Cint,
                     (Ptr{Cvoid}, Cint, Cdouble), m.env, indx, xinitval)
@@ -283,7 +288,12 @@ function KN_set_var_dual_init_values(m::Model, xinitval::Vector{Cdouble})
                     m.env, xinitval)
     _checkraise(ret)
 end
-
+function KN_set_var_dual_init_values(m::Model, cindex::Vector{Cint}, initval::Vector{Cdouble})
+    ret = @kn_ccall(set_var_dual_init_values, Cint,
+                    (Ptr{Cvoid}, Ptr{Cint}, Ptr{Cdouble}),
+                    m.env, cindex, initval)
+    _checkraise(ret)
+end
 function KN_set_var_dual_init_values(m::Model, indx::Integer, xinitval::Cdouble)
     ret = @kn_ccall(set_var_dual_init_value, Cint,
                     (Ptr{Cvoid}, Cint, Cdouble), m.env, indx, xinitval)
