@@ -600,17 +600,22 @@ function newpt_wrapper(ptr_model::Ptr{Cvoid},
                        ptr_x::Ptr{Cdouble},
                        ptr_lambda::Ptr{Cdouble},
                        userdata_::Ptr{Cvoid})
-
     # Load KNITRO's Julia Model.
-    m = unsafe_pointer_to_objref(userdata_)::Model
-    nx = KN_get_number_vars(m)
-    nc = KN_get_number_cons(m)
-
-    x = unsafe_wrap(Array, ptr_x, nx)
-    lambda = unsafe_wrap(Array, ptr_lambda, nx + nc)
-    ret = m.user_callback(ptr_model, x, lambda, m)
-
-    return Cint(ret)
+    try
+        m = unsafe_pointer_to_objref(userdata_)::Model
+        nx = KN_get_number_vars(m)
+        nc = KN_get_number_cons(m)
+        x = unsafe_wrap(Array, ptr_x, nx)
+        lambda = unsafe_wrap(Array, ptr_lambda, nx + nc)
+        ret = m.user_callback(ptr_model, x, lambda, m)
+        return Cint(ret)
+    catch ex
+        if isa(ex, InterruptException)
+            return Cint(KN_RC_USER_TERMINATION)
+        else
+            rethrow(ex)
+        end
+    end
 end
 
 """
@@ -660,15 +665,21 @@ function ms_process_wrapper(ptr_model::Ptr{Cvoid},
                             userdata_::Ptr{Cvoid})
 
     # Load KNITRO's Julia Model.
-    m = unsafe_pointer_to_objref(userdata_)::Model
-    nx = KN_get_number_vars(m)
-    nc = KN_get_number_cons(m)
-
-    x = unsafe_wrap(Array, ptr_x, nx)
-    lambda = unsafe_wrap(Array, ptr_lambda, nx + nc)
-    res = m.ms_process(ptr_model, x, lambda, m)
-
-    return Cint(res)
+    try
+        m = unsafe_pointer_to_objref(userdata_)::Model
+        nx = KN_get_number_vars(m)
+        nc = KN_get_number_cons(m)
+        x = unsafe_wrap(Array, ptr_x, nx)
+        lambda = unsafe_wrap(Array, ptr_lambda, nx + nc)
+        res = m.ms_process(ptr_model, x, lambda, m)
+        return Cint(res)
+    catch ex
+        if isa(ex, InterruptException)
+            return Cint(KN_RC_USER_TERMINATION)
+        else
+            rethrow(ex)
+        end
+    end
 end
 
 """
@@ -712,15 +723,21 @@ function mip_node_callback_wrapper(ptr_model::Ptr{Cvoid},
                                    ptr_lambda::Ptr{Cdouble},
                                    userdata_::Ptr{Cvoid})
     # Load KNITRO's Julia Model.
-    m = unsafe_pointer_to_objref(userdata_)::Model
-    nx = KN_get_number_vars(m)
-    nc = KN_get_number_cons(m)
-
-    x = unsafe_wrap(Array, ptr_x, nx)
-    lambda = unsafe_wrap(Array, ptr_lambda, nx + nc)
-    res = m.mip_callback(ptr_model, x, lambda, m)
-
-    return Cint(res)
+    try
+        m = unsafe_pointer_to_objref(userdata_)::Model
+        nx = KN_get_number_vars(m)
+        nc = KN_get_number_cons(m)
+        x = unsafe_wrap(Array, ptr_x, nx)
+        lambda = unsafe_wrap(Array, ptr_lambda, nx + nc)
+        res = m.mip_callback(ptr_model, x, lambda, m)
+        return Cint(res)
+    catch ex
+        if isa(ex, InterruptException)
+            return Cint(KN_RC_USER_TERMINATION)
+        else
+            rethrow(ex)
+        end
+    end
 end
 
 """
@@ -814,10 +831,17 @@ end
 function puts_callback_wrapper(str::Ptr{Cchar}, userdata_::Ptr{Cvoid})
 
     # Load KNITRO's Julia Model.
-    m = unsafe_pointer_to_objref(userdata_)::Model
-    res = m.puts_callback(unsafe_string(str), m.userdata)
-
-    return Cint(res)
+    try
+        m = unsafe_pointer_to_objref(userdata_)::Model
+        res = m.puts_callback(unsafe_string(str), m.userdata)
+        return Cint(res)
+    catch ex
+        if isa(ex, InterruptException)
+            return Cint(KN_RC_USER_TERMINATION)
+        else
+            rethrow(ex)
+        end
+    end
 end
 
 """

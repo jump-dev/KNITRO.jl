@@ -1,9 +1,5 @@
 # Knitro model.
 
-struct UserParams{T}
-    params::T
-end
-UserParams() = UserParams(nothing)
 
 """
 Structure specifying the callback context.
@@ -15,7 +11,7 @@ is attached to a unique callback context.
 mutable struct CallbackContext
     context::Ptr{Cvoid}
     # Add a dictionnary to store user params.
-    userparams::UserParams
+    userparams
 
     # Oracle's callbacks are context dependent, so store
     # them inside dedicated CallbackContext.
@@ -26,7 +22,7 @@ mutable struct CallbackContext
     eval_jac_rsd::Function
 
     function CallbackContext(ptr_cb::Ptr{Cvoid})
-        return new(ptr_cb, UserParams())
+        return new(ptr_cb, nothing)
     end
 end
 
