@@ -10,6 +10,8 @@ is attached to a unique callback context.
 """
 mutable struct CallbackContext
     context::Ptr{Cvoid}
+    n::Int
+    m::Int
     # Add a dictionnary to store user params.
     userparams
 
@@ -22,7 +24,7 @@ mutable struct CallbackContext
     eval_jac_rsd::Function
 
     function CallbackContext(ptr_cb::Ptr{Cvoid})
-        return new(ptr_cb, nothing)
+        return new(ptr_cb, 0, 0, nothing)
     end
 end
 
