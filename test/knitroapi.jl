@@ -556,6 +556,8 @@ end
 
 
 @testset "Fifth problem test" begin
+    # Test in this environment the setting of user params
+    myParams = "stringUserParam"
     kc = KNITRO.KN_new()
 
     # START: Some specific parameter settings
@@ -565,6 +567,9 @@ end
 
     function evalR(kc, cb, evalRequest, evalResult, userParams)
         x = evalRequest.x
+        # Each time we call this callback, the userParams should
+        # be as specified.
+        @test userParams == myParams
         evalResult.rsd[1] = x[1] * 1.309^x[2] - 2.138
         evalResult.rsd[2] = x[1] * 1.471^x[2] - 3.421
         evalResult.rsd[3] = x[1] * 1.49^x[2] - 3.597
@@ -576,6 +581,9 @@ end
 
     function evalJ(kc, cb, evalRequest, evalResult, userParams)
         x = evalRequest.x
+        # Each time we call this callback, the userParams should
+        # be as specified.
+        @test userParams == myParams
         evalResult.rsdJac[1] = 1.309^x[2]
         evalResult.rsdJac[2] = x[1] * log(1.309) * 1.309^x[2]
         evalResult.rsdJac[3] = 1.471^x[2]
@@ -607,6 +615,7 @@ end
     KNITRO.KN_set_cb_rsd_jac(kc, cb, nnzJ, evalJ,
                             jacIndexRsds=Int32[ 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5 ],
                             jacIndexVars=Int32[ 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1 ])
+    KNITRO.KN_set_cb_user_params(kc, cb, myParams)
 
     # Solve the problem.
     status = KNITRO.KN_solve(kc)

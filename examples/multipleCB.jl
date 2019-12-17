@@ -30,7 +30,7 @@ using KNITRO, Test
 # The signature of this function matches KNITRO.KN_eval_callback in knitro.h.
 # Only "obj" is set in the KNITRO.KN_eval_result structure.
 function callbackEvalObj(kc, cb, evalRequest, evalResult, userParams)
-    xind = userParams[:data]
+    xind = userParams
 
     if evalRequest.evalRequestCode != KNITRO.KN_RC_EVALFC
         println("*** callbackEvalObj incorrectly called with eval type ", evalRequest.evalRequestCode)
@@ -47,7 +47,7 @@ end
 # The signature of this function matches KNITRO.KN_eval_callback in knitro.h.
 # Only "c0" is set in the KNITRO.KN_eval_result structure.
 function callbackEvalC0(kc, cb, evalRequest, evalResult, userParams)
-    xind = userParams[:data]
+    xind = userParams
 
     if evalRequest.evalRequestCode != KNITRO.KN_RC_EVALFC
         println("*** callbackEvalC0 incorrectly called with eval type ", evalRequest.evalRequestCode)
@@ -64,7 +64,7 @@ end
 # The signature of this function matches KNITRO.KN_eval_callback in knitro.h.
 # Only "c1" is set in the KNITRO.KN_eval_result structure.
 function callbackEvalC1(kc, cb, evalRequest, evalResult, userParams)
-    xind = userParams[:data]
+    xind = userParams
 
     if evalRequest.evalRequestCode != KNITRO.KN_RC_EVALFC
         println("*** callbackEvalC1 incorrectly called with eval type %d" % evalRequest.evalRequestCode)
@@ -85,7 +85,7 @@ end
 # The signature of this function matches KNITRO.KN_eval_callback in knitro.h.
 # Only "objGrad" is set in the KNITRO.KN_eval_result structure.
 function callbackEvalObjGrad(kc, cb, evalRequest, evalResult, userParams)
-    xind = userParams[:data]
+    xind = userParams
 
     if evalRequest.evalRequestCode != KNITRO.KN_RC_EVALGA
         println("*** callbackEvalObjGrad incorrectly called with eval type %d" % evalRequest.evalRequestCode)
@@ -105,7 +105,7 @@ end
 # The signature of this function matches KNITRO.KN_eval_callback in knitro.h.
 # Only gradient of c0 is set in the KNITRO.KN_eval_result structure.
 function callbackEvalC0Grad(kc, cb, evalRequest, evalResult, userParams)
-    xind = userParams[:data]
+    xind = userParams
 
     if evalRequest.evalRequestCode != KNITRO.KN_RC_EVALGA
         println("*** callbackEvalC0Grad incorrectly called with eval type ", evalRequest.evalRequestCode)

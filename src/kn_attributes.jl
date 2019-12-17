@@ -103,21 +103,23 @@ end
 ##################################################
 # Generic getters
 ##################################################
-function KN_get_number_vars(m::Model)
+function KN_get_number_vars(kc::Ptr{Cvoid})
     num_vars = Cint[0]
     ret = @kn_ccall(get_number_vars, Cint, (Ptr{Cvoid}, Ptr{Cint}),
-                    m.env, num_vars)
+                    kc, num_vars)
     _checkraise(ret)
     return num_vars[1]
 end
+KN_get_number_vars(model::Model) = KN_get_number_vars(model.env.ptr_env)
 
-function KN_get_number_cons(m::Model)
+function KN_get_number_cons(kc::Ptr{Cvoid})
     num_cons = Cint[0]
     ret = @kn_ccall(get_number_cons, Cint, (Ptr{Cvoid}, Ptr{Cint}),
-                    m.env, num_cons)
+                    kc, num_cons)
     _checkraise(ret)
     return num_cons[1]
 end
+KN_get_number_cons(model::Model) = KN_get_number_cons(model.env.ptr_env)
 
 function KN_get_obj_value(m::Model)
     obj = Cdouble[0]

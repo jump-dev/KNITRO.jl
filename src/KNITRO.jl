@@ -17,7 +17,7 @@ module KNITRO
         f = Base.Meta.quot(Symbol("KTR_$(func)"))
         args = [esc(a) for a in args]
         quote
-            ccall(($f,libknitro), $(args...))
+            ccall(($f, libknitro), $(args...))
         end
     end
     "Load KNITRO version number via KTR API."

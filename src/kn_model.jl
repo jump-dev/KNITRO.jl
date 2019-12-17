@@ -1,5 +1,6 @@
 # Knitro model.
 
+
 """
 Structure specifying the callback context.
 
@@ -9,8 +10,10 @@ is attached to a unique callback context.
 """
 mutable struct CallbackContext
     context::Ptr{Cvoid}
+    n::Int
+    m::Int
     # Add a dictionnary to store user params.
-    userparams::Dict
+    userparams
 
     # Oracle's callbacks are context dependent, so store
     # them inside dedicated CallbackContext.
@@ -20,8 +23,8 @@ mutable struct CallbackContext
     eval_rsd::Function
     eval_jac_rsd::Function
 
-    function CallbackContext(ptr::Ptr{Cvoid})
-        return new(ptr, Dict())
+    function CallbackContext(ptr_cb::Ptr{Cvoid})
+        return new(ptr_cb, 0, 0, nothing)
     end
 end
 
