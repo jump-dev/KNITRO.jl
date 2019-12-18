@@ -54,6 +54,14 @@ const BRIDGED = MOIB.full_bridge_optimizer(OPTIMIZER, Float64)
         MOI.set(optimizer, MOI.TimeLimitSec(), my_time_limit)
         @test MOI.get(optimizer, MOI.TimeLimitSec()) == my_time_limit
     end
+    @testset "MOI.RawAttribute" begin
+        # Test special RawAttributes
+        optimizer = KNITRO.Optimizer()
+        option_file = joinpath(dirname(pathof(KNITRO)),"..", "examples", "knitro.opt")
+        MOI.set(optimizer, MOI.RawParameter("option_file"), option_file)
+        tuner_file = joinpath(dirname(pathof(KNITRO)),"..", "examples", "tuner-fixed.opt")
+        MOI.set(optimizer, MOI.RawParameter("tuner_file"), tuner_file)
+    end
 end
 
 @testset "MOI Linear tests" begin

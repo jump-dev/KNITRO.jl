@@ -335,4 +335,6 @@ const KNITRO_OPTIONS = String[
     "presolveop_tighten",        # KN_PARAM_PRESOLVEOP_TIGHTEN
     "pre_redundancylevel",       # KTR_CNT_REDUNDANCY_DETECTION
     "pre_improvecoefficients",   # KTR_IMPROVE_COEFFICIENTS
+    "option_file",
+    "tuner_file",
 ]
