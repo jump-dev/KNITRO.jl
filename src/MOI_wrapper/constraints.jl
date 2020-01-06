@@ -477,18 +477,38 @@ end
 
 ##################################################
 ## Constraint DualStart
-function MOI.supports(::Optimizer, ::MOI.ConstraintDualStart,
-                      ::Type{MOI.ConstraintIndex})
+function MOI.supports(::Optimizer,
+                      ::MOI.ConstraintDualStart,
+                      ::MOI.ConstraintIndex{<:SF, <:SS})
     return true
 end
-function MOI.set(model::Optimizer, ::MOI.ConstraintDualStart,
-                 ci::MOI.ConstraintIndex, value::Union{Real, Nothing})
-    check_inbounds(model, ci)
+function MOI.set(model::Optimizer,
+                 ::MOI.ConstraintDualStart,
+                 ci::MOI.ConstraintIndex{<:SF,<:SS},
+                 value::Union{Real, Nothing})
     if isa(value, Real)
-        KN_set_con_dual_init_values(model.inner, vi.value - 1, Cdouble(value))
+        KN_set_con_dual_init_values(model.inner, ci.value, Cdouble(value))
     else
         # By default, initial value is set to 0.
-        KN_set_con_dual_init_values(model.inner, vi.value - 1, Cdouble(0.))
+        KN_set_con_dual_init_values(model.inner, ci.value, Cdouble(0.0))
+    end
+    return
+end
+
+function MOI.supports(::Optimizer,
+                      ::MOI.ConstraintDualStart,
+                      ::MOI.ConstraintIndex{MOI.SingleVariable, <:LS})
+    return true
+end
+function MOI.set(model::Optimizer,
+                 ::MOI.ConstraintDualStart,
+                 ci::MOI.ConstraintIndex{MOI.SingleVariable, <:LS},
+                 value::Union{Real, Nothing})
+    if isa(value, Real)
+        KN_set_var_dual_init_values(model.inner, ci.value, Cdouble(value))
+    else
+        # By default, initial value is set to 0.
+        KN_set_var_dual_init_values(model.inner, ci.value, Cdouble(0.0))
     end
     return
 end
