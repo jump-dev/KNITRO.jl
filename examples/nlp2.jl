@@ -111,18 +111,18 @@ end
 function callbackNewPoint(kc, x, lambda_, userParams)
 
     # Get the number of variables in the model
-    n = KNITRO.KN_get_number_vars(userParams)
+    n = KNITRO.KN_get_number_vars(kc)
 
     println(">> New point computed by Knitro:(", x, ")")
 
     # Query information about the current problem.
-    dFeasError = KNITRO.KN_get_abs_feas_error(userParams)
-    println("Number FC evals= ", KNITRO.KN_get_number_FC_evals(userParams))
+    dFeasError = KNITRO.KN_get_abs_feas_error(kc)
+    println("Number FC evals= ", KNITRO.KN_get_number_FC_evals(kc))
     println("Current feasError= " , dFeasError)
 
     # Demonstrate user-defined termination
     #(Uncomment to activate)
-    if KNITRO.KN_get_obj_value(userParams) > 0.2 && dFeasError <= 1.0e-4
+    if KNITRO.KN_get_obj_value(kc) > 0.2 && dFeasError <= 1.0e-4
         return KNITRO.KN_RC_USER_TERMINATION
     end
 

@@ -36,9 +36,13 @@ Base.unsafe_convert(ptr::Type{Ptr{Cvoid}}, cb::CallbackContext) = cb.context::Pt
 mutable struct Model
     # KNITRO context environment.
     env::Env
-    userdata::Dict
     # Keep reference to callbacks for garbage collector.
     callbacks::Vector{CallbackContext}
+    # Some structures for userParams
+    puts_user::Any
+    multistart_user::Any
+    mip_user::Any
+    newpoint_user::Any
 
     # Solution values.
     # Optimization status. Equal to 1 if problem is unsolved.
@@ -50,6 +54,7 @@ mutable struct Model
     # Special callbacks (undefined by default).
     # (this functions do not depend on callback environments)
     ms_process::Function
+    newpt_callback::Function
     mip_callback::Function
     user_callback::Function
     ms_initpt_callback::Function
@@ -57,12 +62,14 @@ mutable struct Model
 
     # Constructor.
     function Model()
-        model = new(Env(), Dict(), CallbackContext[], 1, Inf, Cdouble[], Cdouble[])
+        model = new(Env(), CallbackContext[],
+                    nothing, nothing, nothing, nothing,
+                    1, Inf, Cdouble[], Cdouble[])
         # Add a destructor to properly delete model.
         finalizer(KN_free, model)
         return model
     end
-    Model(env::Env, options::Dict) = new(env, options, CallbackContext[])
+    Model(env::Env) = new(env, CallbackContext[])
 end
 
 "Free solver object."
@@ -167,7 +174,7 @@ end
 
 # create Model with license manager
 function Model(lm::LMcontext)
-    model = Model(Env(lm), Dict())
+    model = Model(Env(lm))
     attach!(lm, model)
     return model
 end
