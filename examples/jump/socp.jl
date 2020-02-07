@@ -1,7 +1,7 @@
 # Adaptation of some examples in MosekTools
 # Refer to:
 # https://github.com/JuliaOpt/MosekTools.jl/blob/master/test/jump_soc.jl
-#
+# This code is subject to:
 # MIT License
 # Copyright (c) 2017, Ulf Worsøe, Mosek Aps
 
@@ -11,7 +11,7 @@ using Test
 using MathOptInterface
 const MOI = MathOptInterface
 
-model = Model(with_optimizer(KNITRO.Optimizer, outlev=0))
+model = Model(KNITRO.Optimizer)
 @variable(model, x)
 @variable(model, y)
 @variable(model, t >= 0.0)
