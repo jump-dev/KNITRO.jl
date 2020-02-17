@@ -30,3 +30,14 @@ function load_nlp_constraints(model::Optimizer)
     end
     return
 end
+
+function MOI.supports(::Optimizer, ::MOI.NLPBlockDualStart)
+    return true
+end
+
+function MOI.set(model::Optimizer, ::MOI.NLPBlockDualStart, values)
+    @assert model.nlp_loaded
+    @assert length(values) == length(model.nlp_index_cons)
+    KN_set_con_dual_init_values(model.inner, model.nlp_index_cons, values)
+    return
+end
