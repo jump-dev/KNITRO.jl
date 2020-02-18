@@ -11,6 +11,7 @@
 
 
 using KNITRO
+using Test
 
 # Absolute path to MPS file.
 mps_file = joinpath(dirname(@__FILE__), "..", "examples", "lp.mps")

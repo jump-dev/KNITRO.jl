@@ -20,6 +20,7 @@
 
 
 using KNITRO
+using Test
 
 # Create a new Knitro solver instance.
 kc = KNITRO.KN_new()
