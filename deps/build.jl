@@ -43,5 +43,5 @@ end
 
 if !found_knitro
     error("Unable to locate KNITRO installation, " *
-          "please check your enviroment variable KNITRODIR.")
+          "please check your environment variable KNITRODIR.")
 end
