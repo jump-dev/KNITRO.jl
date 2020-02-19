@@ -32,6 +32,7 @@
 
 
 using KNITRO
+using Test
 
 #*------------------------------------------------------------------*
 #*     FUNCTION callbackEvalFC                                      *

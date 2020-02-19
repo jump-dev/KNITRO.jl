@@ -21,6 +21,7 @@
 
 
 using KNITRO
+using Test
 
 #*------------------------------------------------------------------*/
 #*     FUNCTION callbackEvalFCGA                                    */

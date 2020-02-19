@@ -23,6 +23,7 @@
 
 
 using KNITRO
+using Test
 
 # Used to specify whether linear and quadratic objective
 # terms are loaded separately or together in this example.
