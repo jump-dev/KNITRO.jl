@@ -103,11 +103,11 @@ end
 Set variable types (e.g. KN_VARTYPE_CONTINUOUS, KN_VARTYPE_BINARY,
 KN_VARTYPE_INTEGER). If not set, variables are assumed to be continuous.
 """
-function KN_set_var_types(m::Model, valindex::Vector{Cint}, xTypes::Vector{Cdouble})
+function KN_set_var_types(m::Model, valindex::Vector{Cint}, xTypes::Vector{Cint})
     nvar = length(valindex)
     @assert nvar == length(xTypes)
     ret = @kn_ccall(set_var_types, Cint,
-                    (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                    (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cint}),
                     m.env, nvar, valindex, xTypes)
     _checkraise(ret)
 end
