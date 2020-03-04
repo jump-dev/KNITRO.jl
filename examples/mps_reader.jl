@@ -40,7 +40,7 @@ nStatus, objSol, x, lambda_ =  KNITRO.KN_get_solution(kc)
 # Delete the Knitro solver instance.
 KNITRO.KN_free(kc)
 
-@testset "Exemple lp1" begin
+@testset "Example lp1" begin
     @test nStatus == 0
     @test objSol ≈ 250 / 3 atol=1e-5
 end
