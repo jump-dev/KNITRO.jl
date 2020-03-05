@@ -141,7 +141,7 @@ println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
 KNITRO.KN_free(kc)
 
 
-@testset "Exemple HS15 nlp1noderivs" begin
+@testset "Example HS15 nlp1noderivs" begin
     @test nStatus == 0
     @test objSol  ≈ 306.5
     @test x ≈ [0.5, 2]
