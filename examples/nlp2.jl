@@ -225,7 +225,7 @@ println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
 # Delete the Knitro solver instance.
 KNITRO.KN_free(kc)
 
-@testset "Exemple HS40 nlp2" begin
+@testset "Example HS40 nlp2" begin
     @test nStatus == KNITRO.KN_RC_USER_TERMINATION
     @test objSol ≈ 0.25 atol=1e-4
     @test x ≈ [0.793701, 0.707107, 0.529732, 0.840896] atol=1e-4

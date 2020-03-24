@@ -16,7 +16,7 @@
 
 
 using KNITRO
-
+using Test
 
 #*------------------------------------------------------------------*
 #*     FUNCTION callbackEvalR                                       *

@@ -222,7 +222,7 @@ println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
 # Delete the Knitro solver instance.
 KNITRO.KN_free(kc)
 
-@testset "Exemple multipleCB" begin
+@testset "Example multipleCB" begin
     @test nStatus == 0
     @test_broken objSol ≈ 0.25
     @test_broken x ≈ [0.793701, 0.707107, 0.529732, 0.840896] atol=1e-5

@@ -15,14 +15,14 @@ const MOI = MathOptInterface
 # End at (1.000..., 4.743..., 3.821..., 1.379...)
 
 # Create JuMP Model in automatic mode.
-model = Model(with_optimizer(KNITRO.Optimizer))
+model = Model(KNITRO.Optimizer)
 
-initval = [1, 5, 5, 1]
+initval = [1.0, 5.0, 5.0, 1.0]
 
-@variable(model, 1 <= x[i=1:4] <= 5, start=initval[i])
+@variable(model, 1.0 <= x[i=1:4] <= 5.0, start=initval[i])
 @NLobjective(model, Min, x[1] * x[4] * (x[1] + x[2] + x[3]) + x[3])
-c1 = @NLconstraint(model, x[1] * x[2] * x[3] * x[4] >= 25)
-c2 = @NLconstraint(model, sum(x[i]^2 for i=1:4) == 40)
+c1 = @NLconstraint(model, x[1] * x[2] * x[3] * x[4] >= 25.0)
+c2 = @NLconstraint(model, sum(x[i]^2 for i=1:4) == 40.0)
 
 JuMP.optimize!(model)
 
