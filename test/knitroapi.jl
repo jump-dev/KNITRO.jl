@@ -220,7 +220,7 @@ end
     # Perform a derivative check.
     KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_DERIVCHECK, KNITRO.KN_DERIVCHECK_ALL)
 
-    function newpt_callback(kc_ptr, x, lambda_, kc)
+    function newpt_callback(kc, x, lambda_, user_data)
         a = KNITRO.KN_get_rel_feas_error(kc)
         b = KNITRO.KN_get_rel_opt_error(kc)
         return 0
@@ -626,7 +626,7 @@ end
     nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
     @test nStatus == 0
 
-    @test objSol ≈ 21.5848 atol=1e-4
+    @test objSol ≈ 21.5848 atol=1e-3
     @test x ≈ [1., 1.] atol=1e-5
 
     KNITRO.KN_free(kc)
@@ -666,7 +666,7 @@ end
 
     KNITRO.KN_set_compcons(kc, [KNITRO.KN_CCTYPE_VARVAR], Int32[0], Int32[1])
 
-    function newpt_callback(kc_ptr, x, lambda_, kc)
+    function newpt_callback(kc, x, lambda_, user_data)
         if KNITRO.KN_get_number_iters(kc) > 1
             return KNITRO.KN_RC_USER_TERMINATION
         end

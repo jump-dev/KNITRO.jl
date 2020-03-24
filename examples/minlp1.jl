@@ -112,9 +112,8 @@ end
 # Argument "kcSub" is the context pointer for the last node
 # subproblem solved inside Knitro.  The application level context
 # pointer is passed in through "userParams".
-function callbackProcessNode(kcSub, x, lambda_, userParams)
+function callbackProcessNode(kc, x, lambda_, userParams)
     # The Knitro context pointer was passed in through "userParams".
-    kc = userParams
 
     # Print info about the status of the MIP solution.
     numNodes = KNITRO.KN_get_mip_number_nodes(kc)

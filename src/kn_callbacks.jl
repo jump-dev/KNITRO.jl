@@ -617,7 +617,7 @@ function newpt_wrapper(ptr_model::Ptr{Cvoid},
         nc = KN_get_number_cons(m)
         x = unsafe_wrap(Array, ptr_x, nx)
         lambda = unsafe_wrap(Array, ptr_lambda, nx + nc)
-        ret = m.user_callback(ptr_model, x, lambda, m)
+        ret = m.newpt_callback(m, x, lambda, m.newpoint_user)
         return Cint(ret)
     catch ex
         if isa(ex, InterruptException)
@@ -650,9 +650,12 @@ queried using the corresonding KN_get_XXX_values methods.
 Note: Currently only active for continuous models.
 
 """
-function KN_set_newpt_callback(m::Model, callback::Function)
+function KN_set_newpt_callback(m::Model, callback::Function, userparams=nothing)
     # Store callback function inside model.
-    m.user_callback = callback
+    m.newpt_callback = callback
+    if userparams != nothing
+        m.newpoint_user = userparams
+    end
 
     # Wrap user callback wrapper as C function.
     c_func = @cfunction(newpt_wrapper, Cint,
@@ -681,7 +684,7 @@ function ms_process_wrapper(ptr_model::Ptr{Cvoid},
         nc = KN_get_number_cons(m)
         x = unsafe_wrap(Array, ptr_x, nx)
         lambda = unsafe_wrap(Array, ptr_lambda, nx + nc)
-        res = m.ms_process(ptr_model, x, lambda, m)
+        res = m.ms_process(m, x, lambda, m.multistart_user)
         return Cint(res)
     catch ex
         if isa(ex, InterruptException)
@@ -710,9 +713,12 @@ Knitro arguments.  Arguments `x` and `lambda` contain the solution from
 the last solve.
 
 """
-function KN_set_ms_process_callback(m::Model, callback::Function)
+function KN_set_ms_process_callback(m::Model, callback::Function, userparams=nothing)
     # Store callback function inside model.
     m.ms_process = callback
+    if userparams != nothing
+        m.multistart_user = userparams
+    end
 
     # Wrap user callback wrapper as C function.
     c_func = @cfunction(ms_process_wrapper, Cint,
@@ -739,7 +745,7 @@ function mip_node_callback_wrapper(ptr_model::Ptr{Cvoid},
         nc = KN_get_number_cons(m)
         x = unsafe_wrap(Array, ptr_x, nx)
         lambda = unsafe_wrap(Array, ptr_lambda, nx + nc)
-        res = m.mip_callback(ptr_model, x, lambda, m)
+        res = m.mip_callback(m, x, lambda, m.mip_user)
         return Cint(res)
     catch ex
         if isa(ex, InterruptException)
@@ -768,9 +774,12 @@ The function should not modify any Knitro arguments.
 Arguments `x` and `lambda` contain the solution from the node solve.
 
 """
-function KN_set_mip_node_callback(m::Model, callback::Function)
+function KN_set_mip_node_callback(m::Model, callback::Function, userparams=nothing)
     # Store callback function inside model.
     m.mip_callback = callback
+    if userparams != nothing
+        m.mip_user = userparams
+    end
 
     # Wrap user callback wrapper as C function.
     c_func = @cfunction(mip_node_callback_wrapper, Cint,
@@ -799,7 +808,7 @@ function ms_initpt_wrapper(ptr_model::Ptr{Cvoid},
 
     x = unsafe_wrap(Array, ptr_x, nx)
     lambda = unsafe_wrap(Array, ptr_lambda, nx + nc)
-    res = m.ms_initpt_callback(ptr_model, nSolveNumber, x, lambda, m)
+    res = m.ms_initpt_callback(m, nSolveNumber, x, lambda, m.multistart_user)
 
     return Cint(res)
 end
@@ -820,9 +829,12 @@ by the user.  The argument `nSolveNumber` is the number of the
 multistart solve.
 
 """
-function KN_set_ms_initpt_callback(m::Model, callback::Function)
+function KN_set_ms_initpt_callback(m::Model, callback::Function, userparams=nothing)
     # Store callback function inside model.
     m.ms_initpt_callback = callback
+    if userparams != nothing
+        m.multistart_user = userparams
+    end
 
     # Wrap user callback wrapper as C function.
     c_func = @cfunction(ms_initpt_wrapper, Cint,
@@ -871,9 +883,12 @@ passed directly from KN_solve. The function should return the number of
 characters that were printed.
 
 """
-function KN_set_puts_callback(m::Model, callback::Function)
+function KN_set_puts_callback(m::Model, callback::Function, userparams=nothing)
     # Store callback function inside model.
     m.puts_callback = callback
+    if userparams != nothing
+        m.puts_user = userparams
+    end
 
     # Wrap user callback wrapper as C function.
     c_func = @cfunction(puts_callback_wrapper, Cint,
