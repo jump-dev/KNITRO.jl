@@ -1,11 +1,19 @@
 # Optimization and solution query.
 
 """
-Call Knitro to solve the problem.  The return value indicates
+Call Knitro to solve the problem. The return value indicates
 the solution status.
 
 """
 function KN_solve(m::Model)
+    # Check sanity. If model has Julia callbacks, we need to ensure
+    # that Knitro is not multithreaded. Otherwise, the code will segfault
+    # as we have trouble calling Julia code from multithreaded C
+    # code. See issue #93 on https://github.com/JuliaOpt/KNITRO.jl.
+    if has_callbacks(m)
+        KN_set_param(m, "par_numthreads", 1)
+        KN_set_param(m, "par_msnumthreads", 1)
+    end
     # For KN_solve, we do not return an error if ret is different of 0.
     m.status = @kn_ccall(solve, Cint, (Ptr{Cvoid},), m.env)
     return m.status

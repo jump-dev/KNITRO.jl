@@ -182,6 +182,8 @@ end
 @testset "First problem" begin
     kc = KNITRO.KN_new()
     @test isa(kc, KNITRO.Model)
+    # By default, kc does not have any callback
+    @test !KNITRO.has_callbacks(kc)
 
     release = KNITRO.get_release()
 
@@ -261,6 +263,7 @@ end
 
     # Define callback functions.
     cb = KNITRO.KN_add_objective_callback(kc, evalAll)
+    @test KNITRO.has_callbacks(kc)
     KNITRO.KN_set_cb_grad(kc, cb, evalAll)
     KNITRO.KN_set_cb_hess(kc, cb, 5, evalAll,
                           hessIndexVars1=Int32[0, 0, 1, 1, 2],
