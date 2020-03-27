@@ -137,6 +137,9 @@ function initializeProblem(kp, objGoal, objType, objFnType,
 end
 
 function solveProblem(kp::KnitroProblem)
+    # Ensure that Knitro will not segfault when using Julia callbacks.
+    setOption(kp, "par_numthreads", 1)
+    setOption(kp, "par_msnumthreads", 1)
     if kp.mip
         kp.status = mip_solve_problem(kp, kp.x, kp.lambda, kp.eval_status,
                                         kp.obj_val)
@@ -152,6 +155,9 @@ function solveProblem(kp::KnitroProblem,
                         jac::Vector{Float64},
                         hess::Vector{Float64},
                         hessVector::Vector{Float64})
+    # Ensure that Knitro will not segfault when using Julia callbacks.
+    setOption(kp, "par_numthreads", 1)
+    setOption(kp, "par_msnumthreads", 1)
     if kp.mip
         kp.status = mip_solve_problem(kp, kp.x, kp.lambda, kp.eval_status,
                                         kp.obj_val, cons, objGrad, jac, hess,

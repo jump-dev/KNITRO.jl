@@ -82,6 +82,7 @@ KN_free(m::Model) = free_env(m.env)
 KN_new() = Model()
 
 is_valid(m::Model) = is_valid(m.env)
+has_callbacks(m::Model) = !isempty(m.callbacks)
 
 
 ##################################################
