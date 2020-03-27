@@ -69,7 +69,10 @@ mutable struct Model
         finalizer(KN_free, model)
         return model
     end
-    Model(env::Env) = new(env, CallbackContext[])
+    # Instantiate a new Knitro instance in current environment `env`.
+    Model(env::Env) = new(env, CallbackContext[],
+                          nothing, nothing, nothing, nothing,
+                          1, Inf, Cdouble[], Cdouble[])
 end
 
 "Free solver object."
