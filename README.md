@@ -29,35 +29,36 @@ any problem with this interface or the solver.*
 MathOptInterface Interface
 ==========================
 
-KNITRO.jl now supports [MathOptInterface](https://github.com/JuliaOpt/MathOptInterface.jl)
-and [JuMP 0.19](https://github.com/JuliaOpt/JuMP.jl). The `MathProgBase` interface has been deprecated. 
+KNITRO.jl supports [MathOptInterface](https://github.com/JuliaOpt/MathOptInterface.jl)
+and [JuMP](https://github.com/JuliaOpt/JuMP.jl).
 
- 
-Here's an example showcasing various features. 
+
+Here's an example showcasing various features.
 
 ```julia
 using JuMP, KNITRO
-m = Model(with_optimizer(KNITRO.Optimizer, honorbnds = 1, outlev = 1, algorithm = 4)) # (1)
+m = Model(optimizer_with_attributes(KNITRO.Optimizer,
+                                    "honorbnds" => 1, "outlev" => 1, "algorithm" => 4)) # (1)
 @variable(m, x, start = 1.2) # (2)
 @variable(m, y)
 @variable(m, z)
 @variable(m, 4.0 <= u <= 4.0) # (3)
 
-mysquare(x) = x^2 
+mysquare(x) = x^2
 register(m, :mysquare, 1, mysquare, autodiff = true) # (4)
 
-@NLobjective(m, Min, mysquare(1 - x) + 100 * (y - x^2)^2 + u) 
+@NLobjective(m, Min, mysquare(1 - x) + 100 * (y - x^2)^2 + u)
 @constraint(m, z == x + y)
 
 optimize!(m)
 (value(x), value(y), value(z), value(u), objective_value(m), termination_status(m)) # (5)
 ```
 
-1. Setting `KNITRO` options. 
-2. Setting initial conditions on variables. 
+1. Setting `KNITRO` options.
+2. Setting initial conditions on variables.
 3. Setting box constraints on variables.
-4. Registering a user-defined function for use in the problem. 
-5. Querying various results from the solver. 
+4. Registering a user-defined function for use in the problem.
+5. Querying various results from the solver.
 
 Low-level wrapper
 =================
@@ -83,8 +84,7 @@ The usage is as follow:
 ```julia
 using JuMP, KNITRO, AmplNLWriter
 
-model = with_optimizer(AmplNLWriter.Optimizer, KNITRO.amplexe, ["outlev=3"])
+model = Model(() -> AmplNLWriter.Optimizer(KNITRO.amplexe, ["outlev=3"]))
 
 ```
 
-Note that supports is still experimental for JuMP 0.19.
