@@ -275,10 +275,12 @@ function MOI.optimize!(model::Optimizer)
         # Instantiate NLPEvaluator once and for all.
         features = MOI.features_available(model.nlp_data.evaluator)
         has_hessian = (:Hess in features)
+        has_hessvec = (:HessVec in features)
         # Build initial features for solver.
         init_feat = Symbol[]
         model.nlp_data.has_objective && push!(init_feat, :Grad)
         has_hessian && push!(init_feat, :Hess)
+        has_hessvec && push!(init_feat, :HessVec)
         num_nlp_constraints = length(model.nlp_data.constraint_bounds)
         num_nlp_constraints > 0 && push!(init_feat, :Jac)
         # initialize!
@@ -319,20 +321,6 @@ function MOI.optimize!(model::Optimizer)
             return 0
         end
 
-        if has_hessian
-            # Hessian callback.
-            function eval_h_cb(kc, cb, evalRequest, evalResult, userParams)
-                MOI.eval_hessian_lagrangian(model.nlp_data.evaluator,
-                                            evalResult.hess,
-                                            evalRequest.x,
-                                            evalRequest.sigma,
-                                            view(evalRequest.lambda, offset+1:num_cons))
-                return 0
-            end
-        else
-            eval_h_cb = nothing
-        end
-
         # Be careful that sometimes objective is not evaluated here.
         # In any case, NLP objective has precedence over model.objective.
         if model.nlp_data.has_objective
@@ -368,6 +356,15 @@ function MOI.optimize!(model::Optimizer)
         end
 
         if has_hessian
+            # Hessian callback.
+            function eval_h_cb(kc, cb, evalRequest, evalResult, userParams)
+                MOI.eval_hessian_lagrangian(model.nlp_data.evaluator,
+                                            evalResult.hess,
+                                            evalRequest.x,
+                                            evalRequest.sigma,
+                                            view(evalRequest.lambda, offset+1:num_cons))
+                return 0
+            end
             # Get hessian structure.
             hessian_structure = MOI.hessian_lagrangian_structure(model.nlp_data.evaluator)
             nnzH = length(hessian_structure)
@@ -379,6 +376,23 @@ function MOI.optimize!(model::Optimizer)
             KN_set_cb_hess(model.inner, cb, nnzH, eval_h_cb,
                            hessIndexVars1=hessIndexVars1,
                            hessIndexVars2=hessIndexVars2)
+        elseif has_hessvec
+            function eval_hv_cb(kc, cb, evalRequest, evalResult, userParams)
+                MOI.eval_hessian_lagrangian_product(
+                                            model.nlp_data.evaluator,
+                                            evalResult.hessVec,
+                                            evalRequest.x,
+                                            evalRequest.vec,
+                                            evalRequest.sigma,
+                                            view(evalRequest.lambda, offset+1:num_cons))
+                return 0
+            end
+            # Set callback (do not need to specify sparsity pattern
+            # for Hessian vector product).
+            KN_set_cb_hess(model.inner, cb, 0, eval_hv_cb)
+            # Specify to Knitro that we are using Hessian-vector
+            # product afterwise.
+            KN_set_param(model.inner, KN_PARAM_HESSOPT, KN_HESSOPT_PRODUCT)
         end
 
         model.nlp_loaded = true
