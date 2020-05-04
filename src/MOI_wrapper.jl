@@ -210,7 +210,11 @@ function MOI.get(model::Optimizer, ::MOI.Silent)
 end
 
 function MOI.set(model::Optimizer, ::MOI.Silent, value)
-    outlev = value ? 0 : 2
+    # Default outlev is KN_OUTLEV_ITER_10.
+    outlev = value ? KN_OUTLEV_NONE : KN_OUTLEV_ITER_10
+    # Register change in outlev in options in case model is emptied.
+    model.options["outlev"] = outlev
+    # Set option in Knitro's model.
     KN_set_param(model.inner, "outlev", outlev)
     return
 end
