@@ -462,9 +462,11 @@ sparsity structure.
 function KN_set_cb_hess(m::Model, cb::CallbackContext, nnzH::Integer, hesscallback::Function;
                         hessIndexVars1=C_NULL, hessIndexVars2=C_NULL)
 
+    # If Hessian is dense, ensure that sparsity pattern is empty
     if nnzH == KN_DENSE_ROWMAJOR || nnzH == KN_DENSE_COLMAJOR
         @assert hessIndexVars1 == hessIndexVars2 == C_NULL
-    else
+    # Otherwise, check validity of sparsity pattern
+    elseif nnzH > 0
         @assert hessIndexVars1 != C_NULL && hessIndexVars2 != C_NULL
         @assert length(hessIndexVars1) == length(hessIndexVars2) == nnzH
     end
