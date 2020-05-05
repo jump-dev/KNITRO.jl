@@ -720,3 +720,20 @@ end
     end
     KNITRO.KN_release_license(lm)
 end
+
+@testset "Handling exception in callbacks" begin
+    function eval_kn(kc, cb, evalRequest, evalResult, userParams)
+        # Generate exception in callback
+        throw(LoadError)
+        return 0
+    end
+
+    kc = KNITRO.KN_new()
+    KNITRO.KN_set_param(kc, "outlev", 0)
+    KNITRO.KN_add_vars(kc, 1)
+    KNITRO.KN_set_var_primal_init_values(kc, [0.0])
+    cb = KNITRO.KN_add_objective_callback(kc, eval_kn)
+    nstatus = KNITRO.KN_solve(kc)
+    @test nstatus == KNITRO.KN_RC_CALLBACK_ERR
+    KNITRO.KN_free(kc)
+end
