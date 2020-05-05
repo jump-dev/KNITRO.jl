@@ -258,7 +258,8 @@ macro wrap_function(wrap_name, name)
                 if isa(ex, InterruptException)
                     return Cint(KN_RC_USER_TERMINATION)
                 else
-                    rethrow(ex)
+                    @warn("Knitro encounters an exception in evaluation callback: $ex")
+                    return Cint(KN_RC_CALLBACK_ERR)
                 end
             end
         end
@@ -625,7 +626,8 @@ function newpt_wrapper(ptr_model::Ptr{Cvoid},
         if isa(ex, InterruptException)
             return Cint(KN_RC_USER_TERMINATION)
         else
-            rethrow(ex)
+            @warn("Knitro encounters an exception in newpoint callback: $ex")
+            return Cint(KN_RC_CALLBACK_ERR)
         end
     end
 end
@@ -692,7 +694,8 @@ function ms_process_wrapper(ptr_model::Ptr{Cvoid},
         if isa(ex, InterruptException)
             return Cint(KN_RC_USER_TERMINATION)
         else
-            rethrow(ex)
+            @warn("Knitro encounters an exception in multistart callback: $ex")
+            return Cint(KN_RC_CALLBACK_ERR)
         end
     end
 end
@@ -753,7 +756,8 @@ function mip_node_callback_wrapper(ptr_model::Ptr{Cvoid},
         if isa(ex, InterruptException)
             return Cint(KN_RC_USER_TERMINATION)
         else
-            rethrow(ex)
+            @warn("Knitro encounters an exception in MIP callback: $ex")
+            return Cint(KN_RC_CALLBACK_ERR)
         end
     end
 end
@@ -863,7 +867,8 @@ function puts_callback_wrapper(str::Ptr{Cchar}, userdata_::Ptr{Cvoid})
         if isa(ex, InterruptException)
             return Cint(KN_RC_USER_TERMINATION)
         else
-            rethrow(ex)
+            @warn("Knitro encounters an exception in puts callback: $ex")
+            return Cint(KN_RC_CALLBACK_ERR)
         end
     end
 end
