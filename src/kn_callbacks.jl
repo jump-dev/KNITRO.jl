@@ -258,8 +258,7 @@ macro wrap_function(wrap_name, name)
                 if isa(ex, InterruptException)
                     return Cint(KN_RC_USER_TERMINATION)
                 else
-                    println("Knitro encounters an error in evaluation callback: ",
-                            ex)
+                    @warn("Knitro encounters an exception in evaluation callback: $ex")
                     return Cint(KN_RC_CALLBACK_ERR)
                 end
             end
@@ -627,7 +626,7 @@ function newpt_wrapper(ptr_model::Ptr{Cvoid},
         if isa(ex, InterruptException)
             return Cint(KN_RC_USER_TERMINATION)
         else
-            println("Knitro encounters an error in newpoint callback: ", ex)
+            @warn("Knitro encounters an exception in newpoint callback: $ex")
             return Cint(KN_RC_CALLBACK_ERR)
         end
     end
@@ -695,7 +694,7 @@ function ms_process_wrapper(ptr_model::Ptr{Cvoid},
         if isa(ex, InterruptException)
             return Cint(KN_RC_USER_TERMINATION)
         else
-            println("Knitro encounters an error in multistart callback: ", ex)
+            @warn("Knitro encounters an exception in multistart callback: $ex")
             return Cint(KN_RC_CALLBACK_ERR)
         end
     end
@@ -757,7 +756,7 @@ function mip_node_callback_wrapper(ptr_model::Ptr{Cvoid},
         if isa(ex, InterruptException)
             return Cint(KN_RC_USER_TERMINATION)
         else
-            println("Knitro encounters an error in MIP callback: ", ex)
+            @warn("Knitro encounters an exception in MIP callback: $ex")
             return Cint(KN_RC_CALLBACK_ERR)
         end
     end
@@ -868,7 +867,7 @@ function puts_callback_wrapper(str::Ptr{Cchar}, userdata_::Ptr{Cvoid})
         if isa(ex, InterruptException)
             return Cint(KN_RC_USER_TERMINATION)
         else
-            println("Knitro encounters an error in puts callback: ", ex)
+            @warn("Knitro encounters an exception in puts callback: $ex")
             return Cint(KN_RC_CALLBACK_ERR)
         end
     end
