@@ -569,3 +569,23 @@ if KNITRO_VERSION >= v"12.1"
     const KN_PRESOLVEOP_TIGHTEN_NONE = Cint(0)
     const KN_PRESOLVEOP_TIGHTEN_VARBND = Cint(1)
 end
+if KNITRO_VERSION >= v"12.2"
+    const KN_LINESEARCH_WEAKWOLFE = Cint(3)
+    # Tune factorization of KKT system
+    const KN_PARAM_BAR_LINSYS = Cint(1126)
+    const KN_BAR_LINSYS_AUTO = Cint(-1)
+    const KN_BAR_LINSYS_FULL = Cint(0)
+    const KN_BAR_LINSYS_COMPACT1 = Cint(1)
+    const KN_BAR_LINSYS_COMPACT2 = Cint(2)
+    # Add new ways to handle init point during presolve
+    const KN_PARAM_PRESOLVE_INITPT = Cint(1127)
+    const KN_PRESOLVE_INITPT_AUTO = Cint(-1)
+    const KN_PRESOLVE_INITPT_NOSHIFT = Cint(0)
+    const KN_PRESOLVE_INITPT_LINSHIFT = Cint(1)
+    const KN_PRESOLVE_INITPT_ANYSHIFT = Cint(2)
+    # QP penalty in active set algorithm
+    const KN_PARAM_ACT_QPPENALTY = Cint(1128)
+    const KN_ACT_QPPENALTY_AUTO = Cint(-1)
+    const KN_ACT_QPPENALTY_NONE = Cint(0)
+    const KN_ACT_QPPENALTY_ALL = Cint(1)
+end

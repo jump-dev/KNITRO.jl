@@ -128,6 +128,9 @@ const KN_paramName2Indx = Dict(
     "KN_PARAM_CONVEX" => Int32(1114),
     "KN_PARAM_OUT_HINTS" => Int32(1115),
     "KN_PARAM_EVAL_FCGA" => Int32(1116),
+    "KN_PARAM_BAR_LINSYS" => Int32(1126),
+    "KN_PARAM_PRESOLVE_INITPT" => Int32(1127),
+    "KN_PARAM_ACT_QPPENALTY" => Int32(1128),
     "KN_PARAM_MIP_METHOD" => Int32(2001),
     "KN_PARAM_MIP_BRANCHRULE" => Int32(2002),
     "KN_PARAM_MIP_SELECTRULE" => Int32(2003),
@@ -335,6 +338,9 @@ const KNITRO_OPTIONS = String[
     "presolveop_tighten",        # KN_PARAM_PRESOLVEOP_TIGHTEN
     "pre_redundancylevel",       # KTR_CNT_REDUNDANCY_DETECTION
     "pre_improvecoefficients",   # KTR_IMPROVE_COEFFICIENTS
+    "bar_linsys",                # KN_PARAM_BAR_LINSYS
+    "presolve_initpt",           # KN_PARAM_PRESOLVE_INITPT
+    "act_qppenalty",             # KN_PARAM_ACT_QPPENALTY
     "option_file",
     "tuner_file",
 ]
