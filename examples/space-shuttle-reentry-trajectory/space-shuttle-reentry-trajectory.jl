@@ -1,15 +1,11 @@
-#*******************************************************/
-#* Copyright ???                                       */
-#*******************************************************/
-
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # This example demonstrates how to use Knitro to calculate a reentry
 # trajectory for the space shuttle, which is a large and sparse
 # nonlinear trajectory optimization problem.
 #
-# This examples shows how to integrate multiple functionalities:
+# This example shows how to integrate multiple functionalities:
 # - Definition of separate callbacks for constraint function
-#   evaluation and contraint Jacobian evaluation;
+#   evaluation and constraint Jacobian evaluation;
 # - Automatic detection of the Jacobian sparsity pattern;
 # - Automatic differentiation for Jacobian evaluation;
 # - Definition of lower and upper bounds for decision variables;
@@ -39,10 +35,10 @@ const m  = w / g₀  # mass (slug)
 
 # Aerodynamic and atmospheric forces on the vehicle
 const ρ₀ =  0.002378
-const hᵣ =  23800
-const Rₑ =  20902900
+const hᵣ =  23800.0
+const Rₑ =  20902900.0
 const μ  =  0.14076539e17
-const S  =  2690
+const S  =  2690.0
 const a₀ = -0.20704
 const a₁ =  0.029244
 const b₀ =  0.07854
@@ -184,7 +180,7 @@ end
 input = rand(15)
 output = zeros(6)
 sparsity_pattern = jacobian_sparsity(dynamics_defects!, output, input)
-jac_dyn = Float64.(sparse(sparsity_pattern))
+jac_dyn = convert.(Float64, sparse(sparsity_pattern))
 length_jac = nnz(jac_dyn)
 
 jac_cache = ForwardColorJacCache(dynamics_defects!, input, dx = output,
@@ -218,7 +214,6 @@ KNITRO.KN_set_var_upbnds(kc, collect(Cint, ind_α .- 1), fill(deg2rad( 90), M)) 
 KNITRO.KN_set_var_lobnds(kc, collect(Cint, ind_β .- 1), fill(deg2rad(-89), M))  # `β` lower bounds
 KNITRO.KN_set_var_upbnds(kc, collect(Cint, ind_β .- 1), fill(deg2rad(  1), M))  # `β` upper bounds
 
-# KNITRO.KN_set_var_lobnds(kc, collect(Cint, ind_t .- 1), zeros(M))  # `t` lower bounds
 KNITRO.KN_set_var_fxbnds(kc, collect(Cint, ind_t .- 1), fill(1.00, M))  # Fix time steps
 
 # Fix initial and final conditions
@@ -230,8 +225,12 @@ KNITRO.KN_add_cons(kc, m_dyn)
 
 KNITRO.KN_set_con_eqbnds(kc, collect(Cint, ind_con_dyn .- 1), zeros(m_dyn))  # defects
 
+# This callback does not evaluate the objective function. As such,
+# we pass `false` as the second argument to `KN_add_eval_callback()`.
 cb_dyn = KNITRO.KN_add_eval_callback(kc, false, collect(Cint, ind_con_dyn .- 1), cb_eval_fc_con_dyn)
 
+# Similarly to above, this callback does not evaluate the gradient of the objective.
+# As such, we pass `nV = 0`, and `objGradIndexVars = C_NULL` in the `KN_set_cb_grad()` call.
 KNITRO.KN_set_cb_grad(kc, cb_dyn, cb_eval_ga_con_dyn,
                       nV = 0, objGradIndexVars = C_NULL,
                       jacIndexCons = jacIndexConsCB,
@@ -241,8 +240,6 @@ KNITRO.KN_set_cb_grad(kc, cb_dyn, cb_eval_ga_con_dyn,
 objIndex, objCoef = ind_θ[end], 1.0
 KNITRO.KN_add_obj_linear_struct(kc, objIndex - 1, objCoef)
 KNITRO.KN_set_obj_goal(kc, KNITRO.KN_OBJGOAL_MAXIMIZE)
-
-KNITRO.KN_set_newpt_callback(kc, (kc, x, duals, userParams) -> (print(""); return 0))
 
 KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_ALG,        KNITRO.KN_ALG_BAR_DIRECT)
 KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_BAR_MURULE, KNITRO.KN_BAR_MURULE_PROBING)
