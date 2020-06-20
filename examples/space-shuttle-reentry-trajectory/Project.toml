@@ -1,0 +1,6 @@
+[deps]
+Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
+KNITRO = "67920dd8-b58e-52a8-8622-53c4cffbe346"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+SparseDiffTools = "47a9eef4-7e08-11e9-0b38-333d64bd3804"
+SparsityDetection = "684fba80-ace3-11e9-3d08-3bc7ed6f96df"
