@@ -49,10 +49,8 @@ const c₁ = -0.19213774e-1
 const c₂ =  0.21286289e-3
 const c₃ = -0.10117249e-5
 
-â(a) = 180 * a / π
-
-c_L(a) = a₀ + a₁ * â(a)
-c_D(a) = b₀ + b₁ * â(a) + b₂ * â(a)^2
+c_L(a) = a₀ + a₁ * rad2deg(a)
+c_D(a) = b₀ + b₁ * rad2deg(a) + b₂ * rad2deg(a)^2
 
 D(h, v, a) = 0.5 * c_D(a) * S * ρ(h) * v^2
 L(h, v, a) = 0.5 * c_L(a) * S * ρ(h) * v^2
@@ -62,7 +60,7 @@ g(h) = μ / r(h)^2
 ρ(h) = ρ₀ * exp(-h / hᵣ)
 
 # Aerodynamic heating on the vehicle wing leading edge
-qₐ(a) = c₀ + c₁ * â(a) + c₂ * â(a)^2 + c₃ * â(a)^3
+qₐ(a) = c₀ + c₁ * rad2deg(a) + c₂ * rad2deg(a)^2 + c₃ * rad2deg(a)^3
 qᵣ(h, v) = 17700 * √ρ(h) * (0.0001 * v)^3.07
 q(h, v, a) = qₐ(a) * qᵣ(h, v)
 
@@ -158,6 +156,7 @@ end
 
 function cb_eval_ga_con_dyn(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
+    jac_data = userParams
 
     for i = 0:M - 2
         ind_xᵢ = (1:nₓ) .+ i * nₓ
@@ -167,30 +166,46 @@ function cb_eval_ga_con_dyn(kc, cb, evalRequest, evalResult, userParams)
         xᵢ = x[ind_xᵢ][1:9]
         xⱼ = x[ind_xⱼ][1:6]
 
-        forwarddiff_color_jacobian!(jac_dyn, dynamics_defects!, [xᵢ; xⱼ], jac_cache)
+        forwarddiff_color_jacobian!(jac_data.jac_dyn, dynamics_defects!, [xᵢ; xⱼ], jac_data.jac_cache)
 
-        aux_jac = i * length_jac
-        ind_jac = aux_jac + 1 : aux_jac + length_jac
-        evalResult.jac[ind_jac] = nonzeros(jac_dyn)
+        aux_jac = i * jac_data.length_jac
+        ind_jac = aux_jac + 1 : aux_jac + jac_data.length_jac
+        evalResult.jac[ind_jac] = nonzeros(jac_data.jac_dyn)
     end
 
     return 0
 end
 
+struct JacobianData
+    jac_dyn
+    jac_cache
+    length_jac
+
+    function JacobianData(;
+                          input = rand(15), output = zeros(6))
+        sparsity_pattern = jacobian_sparsity(dynamics_defects!, output, input)
+        jac_dyn = convert.(Float64, sparse(sparsity_pattern))
+        
+        jac_cache = ForwardColorJacCache(dynamics_defects!, input, dx = output,
+                                         colorvec = matrix_colors(jac_dyn),
+                                         sparsity = sparsity_pattern)
+
+        length_jac = nnz(jac_dyn)
+
+        new(jac_dyn, jac_cache, length_jac)
+    end
+end
+
 input = rand(15)
-output = zeros(6)
-sparsity_pattern = jacobian_sparsity(dynamics_defects!, output, input)
-jac_dyn = convert.(Float64, sparse(sparsity_pattern))
-length_jac = nnz(jac_dyn)
+jac_data = JacobianData(input = input)
+forwarddiff_color_jacobian!(jac_data.jac_dyn, dynamics_defects!, input, jac_data.jac_cache)
 
-jac_cache = ForwardColorJacCache(dynamics_defects!, input, dx = output,
-                                 colorvec = matrix_colors(jac_dyn),
-                                 sparsity = sparsity_pattern)
+jacIndexConsCB = Cint.(hcat([rowvals(jac_data.jac_dyn) .+ i*6 for i = 0:N-1]...) .- 1)
+jacIndexVarsCB = Cint.(hcat([vcat([fill(j + i*nₓ, length(nzrange(jac_data.jac_dyn, j))) for j = 1:15]...) for i = 0:N-1]...) .- 1)
 
-forwarddiff_color_jacobian!(jac_dyn, dynamics_defects!, input, jac_cache)
-
-jacIndexConsCB = Cint.(hcat([rowvals(jac_dyn) .+ i*6 for i = 0:N-1]...) .- 1)
-jacIndexVarsCB = Cint.(hcat([vcat([fill(j + i*nₓ, length(nzrange(jac_dyn, j))) for j = 1:15]...) for i = 0:N-1]...) .- 1)
+# Note: the code above this point formulates the problem, and implements
+# callbacks in a format compatible with Knitro's interface, but the
+# actual use of Knitro only starts from this point onwards.
 
 lm = KNITRO.LMcontext()
 kc = KNITRO.KN_new_lm(lm)
@@ -235,6 +250,8 @@ KNITRO.KN_set_cb_grad(kc, cb_dyn, cb_eval_ga_con_dyn,
                       nV = 0, objGradIndexVars = C_NULL,
                       jacIndexCons = jacIndexConsCB,
                       jacIndexVars = jacIndexVarsCB)
+
+KNITRO.KN_set_cb_user_params(kc, cb_dyn, jac_data)
 
 # Add objective
 objIndex, objCoef = ind_θ[end], 1.0
