@@ -9,7 +9,7 @@
 # - Automatic detection of the Jacobian sparsity pattern;
 # - Automatic differentiation for Jacobian evaluation;
 # - Definition of lower and upper bounds for decision variables;
-# - Setting an initial seed (for the primal values) based on a
+# - Setting an initial guess (for the primal values) based on a
 #   linear interpolation to improve convergence speed;
 # - Setup of an objective function with a linear structure;
 # - Manual specification of solver user-options.
@@ -98,11 +98,11 @@ M = N + 1  # number of mesh points
 
 # Linear initial guess between the boundary conditions
 interp_linear = LinearInterpolation([1, M], [xₛ, xₜ])
-seed = [value for x = 1:M for value in interp_linear(x)]
+initial_guess = [value for x = 1:M for value in interp_linear(x)]
 
 nₓ = length(xₛ)  # mesh points dimension
 n = nₓ * M  # number of decision variables
-@assert n == length(seed)
+@assert n == length(initial_guess)
 
 ind_h = 1:nₓ:n  # indices of the `h` decision variables
 ind_ϕ = 2:nₓ:n  # indices of the `ϕ` decision variables
@@ -212,7 +212,7 @@ kc = KNITRO.KN_new_lm(lm)
 
 KNITRO.KN_add_vars(kc, n)
 
-!isempty(seed) && KNITRO.KN_set_var_primal_init_values(kc, seed)
+!isempty(initial_guess) && KNITRO.KN_set_var_primal_init_values(kc, initial_guess)
 
 KNITRO.KN_set_var_lobnds(kc, collect(Cint, ind_h .- 1), zeros(M))  # `h` bounds
 KNITRO.KN_set_var_lobnds(kc, collect(Cint, ind_v .- 1), fill(1 / 1e4, M))  # `v` bounds
