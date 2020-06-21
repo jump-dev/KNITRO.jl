@@ -176,23 +176,26 @@ function cb_eval_ga_con_dyn(kc, cb, evalRequest, evalResult, userParams)
     return 0
 end
 
-struct JacobianData
-    jac_dyn
-    jac_cache
-    length_jac
+struct JacobianData{T1 <: SparseMatrixCSC,T2 <: ForwardColorJacCache}
+    jac_dyn::T1
+    jac_cache::T2
+    length_jac::Int
 
     function JacobianData(;
                           input = rand(15), output = zeros(6))
         sparsity_pattern = jacobian_sparsity(dynamics_defects!, output, input)
         jac_dyn = convert.(Float64, sparse(sparsity_pattern))
-        
+
         jac_cache = ForwardColorJacCache(dynamics_defects!, input, dx = output,
                                          colorvec = matrix_colors(jac_dyn),
                                          sparsity = sparsity_pattern)
 
         length_jac = nnz(jac_dyn)
 
-        new(jac_dyn, jac_cache, length_jac)
+        T1 = typeof(jac_dyn)
+        T2 = typeof(jac_cache)
+
+        new{T1,T2}(jac_dyn, jac_cache, length_jac)
     end
 end
 
