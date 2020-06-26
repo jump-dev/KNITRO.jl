@@ -1,6 +1,6 @@
 KNITRO.jl
 =========
-[![](https://img.shields.io/badge/docs-latest-blue.svg)](https://juliaopt.github.io/KNITRO.jl/latest)
+[![](https://img.shields.io/badge/docs-latest-blue.svg)](https://jump.dev/KNITRO.jl/latest)
 
 The KNITRO.jl package provides an interface for using the [Artelys Knitro
 solver](https://www.artelys.com/knitro) from
@@ -10,7 +10,7 @@ This package is available free of charge and in no way replaces or alters any
 functionality of Artelys Knitro solver.
 
 Documentation is available at
-[https://juliaopt.github.io/KNITRO.jl/latest](https://juliaopt.github.io/KNITRO.jl/latest).
+[https://jump.dev/KNITRO.jl/latest](https://jump.dev/KNITRO.jl/latest).
 
 Note that the current package provides a wrapper both for the new Knitro's API
 (whose functions start by `KN_`) and the deprecated Knitro's API (whose functions
@@ -20,7 +20,7 @@ Using the new `KN_` API requires Knitro >= `v11.0`.
 Refer to [Knitro documentation](https://www.artelys.com/tools/knitro_doc/3_referenceManual/callableLibraryAPI.html)
 for a full specification of the Knitro's API.
 
-*The Artelys Knitro wrapper for Julia is supported by the JuliaOpt
+*The Artelys Knitro wrapper for Julia is supported by the JuMP
 community (which originates the development of this package) and
 Artelys. Feel free to contact [Artelys support](mailto:support-knitro@artelys.com) if you encounter
 any problem with this interface or the solver.*
@@ -29,8 +29,8 @@ any problem with this interface or the solver.*
 MathOptInterface Interface
 ==========================
 
-KNITRO.jl supports [MathOptInterface](https://github.com/JuliaOpt/MathOptInterface.jl)
-and [JuMP](https://github.com/JuliaOpt/JuMP.jl).
+KNITRO.jl supports [MathOptInterface](https://github.com/jump-dev/MathOptInterface.jl)
+and [JuMP](https://github.com/jump-dev/JuMP.jl).
 
 
 Here's an example showcasing various features.

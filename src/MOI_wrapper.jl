@@ -2,9 +2,9 @@
 # MOI wrapper
 ################################################################################
 # This file is largely inspired from MOI wrappers existing in other
-# JuliaOpt packages:
-# https://www.juliaopt.org/
-# The authors are indebted to the developers of JuliaOpt for
+# JuMP packages:
+# https://jump.dev/
+# The authors are indebted to the developers of JuMP for
 # the current MOI wrapper.
 #
 #--------------------------------------------------

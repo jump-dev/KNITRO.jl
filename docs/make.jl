@@ -6,6 +6,6 @@ makedocs(
 
 deploydocs(
     deps = Deps.pip("pygments", "mkdocs", "mkdocs-material", "python-markdown-math"),
-    repo = "github.com/JuliaOpt/KNITRO.jl.git",
+    repo = "github.com/jump-dev/KNITRO.jl.git",
     julia = "0.4"
 )
