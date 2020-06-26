@@ -9,7 +9,7 @@ function KN_solve(m::Model)
     # Check sanity. If model has Julia callbacks, we need to ensure
     # that Knitro is not multithreaded. Otherwise, the code will segfault
     # as we have trouble calling Julia code from multithreaded C
-    # code. See issue #93 on https://github.com/JuliaOpt/KNITRO.jl.
+    # code. See issue #93 on https://github.com/jump-dev/KNITRO.jl.
     if has_callbacks(m)
         KN_set_param(m, "par_numthreads", 1)
         KN_set_param(m, "par_msnumthreads", 1)

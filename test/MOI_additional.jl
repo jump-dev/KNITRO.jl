@@ -2,7 +2,7 @@
 #
 # This file is largely adapted from :
 # MathOptInterface/src/Tests/contconic.jl
-# https://github.com/JuliaOpt/MathOptInterface.jl/blob/master/src/Test/contconic.jl
+# https://github.com/jump-dev/MathOptInterface.jl/blob/master/src/Test/contconic.jl
 #
 # LICENSE:
 # MIT "expat" license

@@ -1,5 +1,5 @@
 site_name:        KNITRO.jl
-repo_url:         https://github.com/JuliaOpt/KNITRO.jl
+repo_url:         https://github.com/jump-dev/KNITRO.jl
 site_description: Julia interface to the Artelys Knitro solver
 site_author:      JuliaOpt
 
