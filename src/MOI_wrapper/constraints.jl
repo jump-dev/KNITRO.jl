@@ -13,6 +13,7 @@ MOI.supports_constraint(::Optimizer, ::Type{MOI.ScalarAffineFunction{Float64}}, 
 MOI.supports_constraint(::Optimizer, ::Type{MOI.ScalarQuadraticFunction{Float64}}, ::Type{MOI.LessThan{Float64}}) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.ScalarQuadraticFunction{Float64}}, ::Type{MOI.GreaterThan{Float64}}) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.ScalarQuadraticFunction{Float64}}, ::Type{MOI.EqualTo{Float64}}) = true
+MOI.supports_constraint(::Optimizer, ::Type{MOI.ScalarQuadraticFunction{Float64}}, ::Type{MOI.Interval{Float64}}) = true
 MOI.supports_constraint(::Optimizer, ::Type{<:SF}, ::Type{<:SS}) = true
 MOI.supports_constraint(::Optimizer, ::Type{VAF}, ::Type{<:VLS}) = true
 MOI.supports_constraint(::Optimizer, ::Type{VOV}, ::Type{<:VLS}) = true
@@ -196,7 +197,7 @@ function MOI.add_constraint(model::Optimizer,
 end
 
 function MOI.add_constraint(model::Optimizer,
-                            func::MOI.ScalarQuadraticFunction{Float64}, set::LS)
+                            func::MOI.ScalarQuadraticFunction{Float64}, set::SS)
     (model.number_solved >= 1) && throw(AddConstraintError())
     check_inbounds(model, func)
     # We add a constraint in KNITRO.
@@ -211,6 +212,11 @@ function MOI.add_constraint(model::Optimizer,
     elseif isa(set, MOI.EqualTo{Float64})
         val = check_value(set.value)
         KN_set_con_eqbnd(model.inner, num_cons, val - func.constant)
+    elseif isa(set, MOI.Interval{Float64})
+        lb = check_value(set.lower)
+        ub = check_value(set.upper)
+        KN_set_con_lobnd(model.inner, num_cons, lb - func.constant)
+        KN_set_con_upbnd(model.inner, num_cons, ub - func.constant)
     end
     # Parse linear structure of constraint.
     indexvars, coefs = canonical_linear_reduction(func)
