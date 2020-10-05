@@ -131,6 +131,9 @@ const KN_paramName2Indx = Dict(
     "KN_PARAM_BAR_LINSYS" => Int32(1126),
     "KN_PARAM_PRESOLVE_INITPT" => Int32(1127),
     "KN_PARAM_ACT_QPPENALTY" => Int32(1128),
+    "KN_PARAM_BAR_LINSYS_STORAGE" => Int32(1129),
+    "KN_PARAM_LINSOLVER_MAXITREF" => Int32(1130),
+    "KN_PARAM_BFGS_SCALING" => Int32(1131),
     "KN_PARAM_MIP_METHOD" => Int32(2001),
     "KN_PARAM_MIP_BRANCHRULE" => Int32(2002),
     "KN_PARAM_MIP_SELECTRULE" => Int32(2003),
@@ -333,7 +336,7 @@ const KNITRO_OPTIONS = String[
     "par_lsnumthreads",          # KTR_PARAM_PAR_LSNUMTHREADS     #
     "par_msnumthreads",          # KTR_PARAM_PAR_MSNUMTHREADS     #
     "par_conicnumthreads",       # KTR_PARAM_PAR_CONICNUMTHREADS  #
-    "findiff_relstepsize",       # KN_PARAM_FINDIFF_RELSTEPSIZE
+    "findiff_relstepsize",       # KN_PARAM_FINDIFF_RELSTEPSIZE   
     "infeastol_iters",           # KN_PARAM_INFEASTOL_ITERS
     "presolveop_tighten",        # KN_PARAM_PRESOLVEOP_TIGHTEN
     "pre_redundancylevel",       # KTR_CNT_REDUNDANCY_DETECTION
@@ -341,6 +344,9 @@ const KNITRO_OPTIONS = String[
     "bar_linsys",                # KN_PARAM_BAR_LINSYS
     "presolve_initpt",           # KN_PARAM_PRESOLVE_INITPT
     "act_qppenalty",             # KN_PARAM_ACT_QPPENALTY
+    "bar_linsys_storage",        # KN_PARAM_BAR_LINSYS_STORAGE
+    "linsolver_maxitref",        # KN_PARAM_LINSOLVER_MAXITREF
+    "bfgs_scaling",              # KN_PARAM_BFGS_SCALING
     "option_file",
     "tuner_file",
 ]
