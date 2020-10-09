@@ -619,4 +619,3 @@ if KNITRO_VERSION >= v"12.3"
 	const KN_BFGS_SCALING_INVHESS = Cint(1)
 	const KN_BFGS_SCALING_HESS = Cint(2)
 end
-
