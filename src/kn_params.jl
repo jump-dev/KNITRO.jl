@@ -190,7 +190,7 @@ const KN_paramName2Indx = Dict(
 )
 
 const KNITRO_OPTIONS = String[
-    "newpoint",                  # KN_PARAM_NEWPOINT=               #
+    "newpoint",                  # KN_PARAM_NEWPOINT=            #
     "honorbnds",                 # KN_PARAM_HONORBNDS            #
     "algorithm",                 # KN_PARAM_ALGORITHM            #
     "bar_murule",                # KN_PARAM_BAR_MURULE           #
@@ -293,19 +293,19 @@ const KNITRO_OPTIONS = String[
     "act_lpalg",                 # KN_PARAM_ACT_LPALG            #
     "act_lppresolve",            # KN_PARAM_ACT_LPPRESOLVE       #
     "act_lppenalty",             # KN_PARAM_ACT_LPPENALTY        #
-    "bndrange",                  # KN_PARAM_BNDRANGE              #
-    "bar_conic_enable",          # KN_PARAM_BAR_CONIC_ENABLE      #
-    "convex",                    # KN_PARAM_CONVEX                #
-    "out_hints",                 # KN_PARAM_OUT_HINTS             #
-    "eval_fcga",                 # KN_PARAM_EVAL_FCGA             #
-    "bar_maxcorrectors",         # KN_PARAM_BAR_MAXCORRECTORS     #
-    "strat_warm_start",          # KN_PARAM_STRAT_WARM_START      #
-    "findiff_terminate",         # KN_PARAM_FINDIFF_TERMINATE     #
-    "cpuplatform",               # KN_PARAM_CPUPLATFORM           #
-    "presolve_passes",           # KN_PARAM_PRESOLVE_PASSES       #
-    "presolve_level",            # KN_PARAM_PRESOLVE_LEVEL        #
-    "findiff_relstepsize",       # KN_PARAM_FINDIFF_RELSTEPSIZE   #
-    "infeastol_iters",           # KN_PARAM_INFEASTOL_ITERS       #
+    "bndrange",                  # KN_PARAM_BNDRANGE             #
+    "bar_conic_enable",          # KN_PARAM_BAR_CONIC_ENABLE     #
+    "convex",                    # KN_PARAM_CONVEX               #
+    "out_hints",                 # KN_PARAM_OUT_HINTS            #
+    "eval_fcga",                 # KN_PARAM_EVAL_FCGA            #
+    "bar_maxcorrectors",         # KN_PARAM_BAR_MAXCORRECTORS    #
+    "strat_warm_start",          # KN_PARAM_STRAT_WARM_START     #
+    "findiff_terminate",         # KN_PARAM_FINDIFF_TERMINATE    #
+    "cpuplatform",               # KN_PARAM_CPUPLATFORM          #
+    "presolve_passes",           # KN_PARAM_PRESOLVE_PASSES      #
+    "presolve_level",            # KN_PARAM_PRESOLVE_LEVEL       #
+    "findiff_relstepsize",       # KN_PARAM_FINDIFF_RELSTEPSIZE  #
+    "infeastol_iters",           # KN_PARAM_INFEASTOL_ITERS      #
     "mip_method",                # KN_PARAM_MIP_METHOD           #
     "mip_branchrule",            # KN_PARAM_MIP_BRANCHRULE       #
     "mip_selectrule",            # KN_PARAM_MIP_SELECTRULE       #
@@ -350,17 +350,17 @@ const KNITRO_OPTIONS = String[
     "par_lsnumthreads",          # KN_PARAM_PAR_LSNUMTHREADS     #
     "par_msnumthreads",          # KN_PARAM_PAR_MSNUMTHREADS     #
     "par_conicnumthreads",       # KN_PARAM_PAR_CONICNUMTHREADS  #
-    "findiff_relstepsize",       # KN_PARAM_FINDIFF_RELSTEPSIZE   
-    "infeastol_iters",           # KN_PARAM_INFEASTOL_ITERS
-    "presolveop_tighten",        # KN_PARAM_PRESOLVEOP_TIGHTEN
-    "pre_redundancylevel",       # KN_CNT_REDUNDANCY_DETECTION
-    "pre_improvecoefficients",   # KN_IMPROVE_COEFFICIENTS
-    "bar_linsys",                # KN_PARAM_BAR_LINSYS
-    "presolve_initpt",           # KN_PARAM_PRESOLVE_INITPT
-    "act_qppenalty",             # KN_PARAM_ACT_QPPENALTY
-    "bar_linsys_storage",        # KN_PARAM_BAR_LINSYS_STORAGE
-    "linsolver_maxitref",        # KN_PARAM_LINSOLVER_MAXITREF
-    "bfgs_scaling",              # KN_PARAM_BFGS_SCALING
+    "findiff_relstepsize",       # KN_PARAM_FINDIFF_RELSTEPSIZE  #
+    "infeastol_iters",           # KN_PARAM_INFEASTOL_ITERS      #
+    "presolveop_tighten",        # KN_PARAM_PRESOLVEOP_TIGHTEN   #
+    "pre_redundancylevel",       # KN_CNT_REDUNDANCY_DETECTION   #
+    "pre_improvecoefficients",   # KN_IMPROVE_COEFFICIENTS       #
+    "bar_linsys",                # KN_PARAM_BAR_LINSYS           #
+    "presolve_initpt",           # KN_PARAM_PRESOLVE_INITPT      #
+    "act_qppenalty",             # KN_PARAM_ACT_QPPENALTY        #
+    "bar_linsys_storage",        # KN_PARAM_BAR_LINSYS_STORAGE   #
+    "linsolver_maxitref",        # KN_PARAM_LINSOLVER_MAXITREF   #
+    "bfgs_scaling",              # KN_PARAM_BFGS_SCALING         #
     "option_file",
     "tuner_file",
 ]
