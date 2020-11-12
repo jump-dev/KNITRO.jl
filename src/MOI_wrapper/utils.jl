@@ -37,9 +37,9 @@ ordered, that is no deletion or swap has occured.
 """
 function canonical_quadratic_reduction(func::MOI.ScalarQuadraticFunction)
     quad_columns_1, quad_columns_2, quad_coefficients = (
-        Int32[term.variable_index_1.value for term in func.quadratic_terms],
-        Int32[term.variable_index_2.value for term in func.quadratic_terms],
-        [term.coefficient for term in func.quadratic_terms]
+        Cint[term.variable_index_1.value for term in func.quadratic_terms],
+        Cint[term.variable_index_2.value for term in func.quadratic_terms],
+        Cdouble[term.coefficient for term in func.quadratic_terms]
     )
     # Take care of difference between MOI standards and KNITRO ones.
     for i in 1:length(quad_coefficients)
@@ -62,20 +62,20 @@ Warning: we assume in this function that all variables are correctly
 ordered, that is no deletion or swap has occured.
 """
 function canonical_linear_reduction(func::MOI.ScalarQuadraticFunction)
-    affine_columns = Int32[term.variable_index.value - 1 for term in func.affine_terms]
-    affine_coefficients = [term.coefficient for term in func.affine_terms]
+    affine_columns = Cint[term.variable_index.value - 1 for term in func.affine_terms]
+    affine_coefficients = Cdouble[term.coefficient for term in func.affine_terms]
     return affine_columns, affine_coefficients
 end
 function canonical_linear_reduction(func::MOI.ScalarAffineFunction)
-    affine_columns = Int32[term.variable_index.value - 1 for term in func.terms]
-    affine_coefficients = [term.coefficient for term in func.terms]
+    affine_columns = Cint[term.variable_index.value - 1 for term in func.terms]
+    affine_coefficients = Cdouble[term.coefficient for term in func.terms]
     return affine_columns, affine_coefficients
 end
 
 function canonical_vector_affine_reduction(func::MOI.VectorAffineFunction)
-    index_cols = Int32[]
-    index_vars = Int32[]
-    coefs = Float64[]
+    index_cols = Cint[]
+    index_vars = Cint[]
+    coefs = Cdouble[]
 
     for t in func.terms
         push!(index_cols, t.output_index - 1)
