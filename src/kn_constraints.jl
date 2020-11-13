@@ -212,7 +212,7 @@ to constraint c[indexCons[i]].
 function KN_add_con_linear_struct(m::Model,
                                   jacIndexCons::Vector{Cint},
                                   jacIndexVars::Vector{Cint},
-                                  jacCoefs::Vector{Float64})
+                                  jacCoefs::Vector{Cdouble})
     # get number of constraints
     nnz = length(jacIndexCons)
     @assert nnz == length(jacIndexVars) == length(jacCoefs)
@@ -230,7 +230,7 @@ end
 function KN_add_con_linear_struct(m::Model,
                                   indexCon::Integer,
                                   indexVar::Vector{Cint},
-                                  coefs::Vector{Float64})
+                                  coefs::Vector{Cdouble})
     # get number of constraints
     nnz = length(indexVar)
     @assert nnz == length(coefs)
@@ -244,8 +244,8 @@ function KN_add_con_linear_struct(m::Model,
                     coefs)
     _checkraise(ret)
 end
-KN_add_con_linear_struct(m::Model, indexCon::Integer, indexVar::Integer, coef::Float64) =
-    KN_add_con_linear_struct(m, indexCon, Int32[indexVar], [coef])
+KN_add_con_linear_struct(m::Model, indexCon::Integer, indexVar::Integer, coef::Cdouble) =
+    KN_add_con_linear_struct(m, indexCon, Cint[indexVar], [coef])
 
 #------------------------------
 # add constraint quadratic structure

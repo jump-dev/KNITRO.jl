@@ -358,11 +358,11 @@ function MOI.optimize!(model::Optimizer)
             KN_set_cb_grad(model.inner, cb, eval_grad_cb, nV=nV)
         else
             # Take care to convert 1-indexing to 0-indexing!
-            # KNITRO supports only Int32 array for integer.
-            jacIndexVars = Int32[j - 1 for (_, j) in jacob_structure]
+            # KNITRO supports only Cint array for integer.
+            jacIndexVars = Cint[j - 1 for (_, j) in jacob_structure]
             # NLP constraints are set after all other constraints
             # inside Knitro.
-            jacIndexCons = Int32[i - 1 + offset for (i, _) in jacob_structure]
+            jacIndexCons = Cint[i - 1 + offset for (i, _) in jacob_structure]
             KN_set_cb_grad(model.inner, cb, eval_grad_cb, nV=nV,
                            jacIndexCons=jacIndexCons, jacIndexVars=jacIndexVars)
         end
@@ -372,9 +372,9 @@ function MOI.optimize!(model::Optimizer)
             hessian_structure = MOI.hessian_lagrangian_structure(model.nlp_data.evaluator)
             nnzH = length(hessian_structure)
             # Take care to convert 1-indexing to 0-indexing!
-            # Knitro supports only Int32 array for integer.
-            hessIndexVars1 = Int32[i - 1 for (i, _) in hessian_structure]
-            hessIndexVars2 = Int32[j - 1 for (_, j) in hessian_structure]
+            # Knitro supports only Cint array for integer.
+            hessIndexVars1 = Cint[i - 1 for (i, _) in hessian_structure]
+            hessIndexVars2 = Cint[j - 1 for (_, j) in hessian_structure]
 
             KN_set_cb_hess(model.inner, cb, nnzH, eval_h_cb,
                            hessIndexVars1=hessIndexVars1,
