@@ -6,13 +6,10 @@ version = "0.9.3"
 [deps]
 Libdl = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
 MathOptInterface = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
-MathProgBase = "fdba3010-5040-5b88-9595-932c9decdf73"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [compat]
-JuMP = "~0.21"
 MathOptInterface = "~0.9.6"
-MathProgBase = "~0.5.0, ~0.6, ~0.7"
 julia = "^1"
 
 [extras]
