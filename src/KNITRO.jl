@@ -37,8 +37,6 @@ module KNITRO
     include("ktr_functions.jl")
     include("ktr_defines.jl")
     include("ktr_params.jl")
-    # wrapper with MathProgBase (only work with old API)
-    include("MPBWrapper.jl")
 
     # Wrapper of new API (KNITRO's version > 11.0)
     # We load the new API only if KNITRO has correct version
