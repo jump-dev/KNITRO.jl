@@ -276,14 +276,22 @@ function MOI.optimize!(model::Optimizer)
         features = MOI.features_available(model.nlp_data.evaluator)
         has_hessian = (:Hess in features)
         has_hessvec = (:HessVec in features)
+        has_nlp_objective = model.nlp_data.has_objective
+        num_nlp_constraints = length(model.nlp_data.constraint_bounds)
+        has_nlp_constraints = (num_nlp_constraints > 0)
         # Build initial features for solver.
         init_feat = Symbol[]
-        model.nlp_data.has_objective && push!(init_feat, :Grad)
-        has_hessian && push!(init_feat, :Hess)
-        has_hessvec && push!(init_feat, :HessVec)
-        num_nlp_constraints = length(model.nlp_data.constraint_bounds)
-        num_nlp_constraints > 0 && push!(init_feat, :Jac)
-        # initialize!
+        has_nlp_objective && push!(init_feat, :Grad)
+        # Knitro could not mix Hessian callback with Hessian-vector callback.
+        if has_hessian
+            push!(init_feat, :Hess)
+        elseif has_hessvec
+            push!(init_feat, :HessVec)
+        end
+        if has_nlp_constraints
+            push!(init_feat, :Jac)
+        end
+
         MOI.initialize(model.nlp_data.evaluator, init_feat)
 
         # Load NLP structure inside Knitro.
@@ -291,78 +299,97 @@ function MOI.optimize!(model::Optimizer)
         load_nlp_constraints(model)
         num_cons = KN_get_number_cons(model.inner)
 
-        # The callbacks must match the signature of the callbacks
-        # defined in knitro.h.
-        # Objective callback (set both objective and constraint evaluation).
+        # 1/ Definition of the callbacks
+        # Objective callback (used both for objective and constraint evaluation).
         function eval_f_cb(kc, cb, evalRequest, evalResult, userParams)
             # Evaluate objective if specified in nlp_data.
-            if model.nlp_data.has_objective
+            if has_nlp_objective
                 evalResult.obj[1] = MOI.eval_objective(model.nlp_data.evaluator,
                                                        evalRequest.x)
             end
             # Evaluate nonlinear term in constraint.
-            MOI.eval_constraint(model.nlp_data.evaluator,
-                                evalResult.c, evalRequest.x)
+            if has_nlp_constraints
+                MOI.eval_constraint(model.nlp_data.evaluator,
+                                    evalResult.c, evalRequest.x)
+            end
             return 0
         end
 
-        # Objective gradient callback.
+        # Gradient and Jacobian callback.
         function eval_grad_cb(kc, cb, evalRequest, evalResult, userParams)
             # Evaluate non-linear term in objective gradient.
-            if model.nlp_data.has_objective
+            if has_nlp_objective
                 MOI.eval_objective_gradient(model.nlp_data.evaluator,
                                             evalResult.objGrad,
                                             evalRequest.x)
             end
             # Evaluate non linear part of jacobian.
-            MOI.eval_constraint_jacobian(model.nlp_data.evaluator,
-                                         evalResult.jac,
-                                         evalRequest.x)
+            if has_nlp_constraints
+                MOI.eval_constraint_jacobian(model.nlp_data.evaluator,
+                                             evalResult.jac,
+                                             evalRequest.x)
+            end
             return 0
         end
 
-        # Be careful that sometimes objective is not evaluated here.
-        # In any case, NLP objective has precedence over model.objective.
-        if model.nlp_data.has_objective
-            if num_nlp_constraints == 0
-                # Add only a callback for objective if no NLP constraint
-                cb = KN_add_objective_callback(model.inner, eval_f_cb)
-            else
-                cb = KN_add_eval_callback(model.inner, true, model.nlp_index_cons, eval_f_cb)
-            end
-        elseif num_nlp_constraints > 0
-            cb = KN_add_eval_callback(model.inner, false, model.nlp_index_cons, eval_f_cb)
-
-            # If a objective is specified in model.objective, load it.
-            !isa(model.objective, Nothing) && add_objective!(model, model.objective)
+        # 2/ Passing the callbacks to Knitro
+        # 2.1/ Objective & constraints
+        # Objective defined in NLP structure has precedence over model.objective.
+        # If we have a NLP structure, we have three possible choices
+        #   1. We have both a NLP objective and NLP constraints
+        #   2. We have NLP constraints, with a linear or quadratic objective
+        #   3. We have a NLP objective, without NLP constraints
+        if has_nlp_constraints
+            # Add only a callback for objective if no NLP constraint
+            cb = KN_add_eval_callback(
+                model.inner,
+                has_nlp_objective,
+                model.nlp_index_cons,
+                eval_f_cb,
+            )
+        elseif has_nlp_objective
+            cb = KN_add_objective_callback(model.inner, eval_f_cb)
+        end
+        # If a objective is specified in model.objective, load it.
+        if !has_nlp_objective && !isnothing(model.objective)
+            add_objective!(model, model.objective)
         end
 
-        # Gradient structure.
-        nV = (model.nlp_data.has_objective) ? KN_DENSE : 0
-        # Get jacobian structure.
-        jacob_structure = MOI.jacobian_structure(model.nlp_data.evaluator)
-        nnzJ = length(jacob_structure)
-        if nnzJ == 0
-            KN_set_cb_grad(model.inner, cb, eval_grad_cb, nV=nV)
+        # 2.2/ Gradient & Jacobian
+        nV = has_nlp_objective ? KN_DENSE : 0
+        if !has_nlp_constraints
+            KN_set_cb_grad(model.inner, cb, eval_grad_cb; nV=nV)
         else
+            # Get jacobian structure.
+            jacob_structure = MOI.jacobian_structure(model.nlp_data.evaluator)
             # Take care to convert 1-indexing to 0-indexing!
             # KNITRO supports only Cint array for integer.
             jacIndexVars = Cint[j - 1 for (_, j) in jacob_structure]
             # NLP constraints are set after all other constraints
             # inside Knitro.
             jacIndexCons = Cint[i - 1 + offset for (i, _) in jacob_structure]
-            KN_set_cb_grad(model.inner, cb, eval_grad_cb, nV=nV,
-                           jacIndexCons=jacIndexCons, jacIndexVars=jacIndexVars)
+            KN_set_cb_grad(
+                model.inner,
+                cb,
+                eval_grad_cb;
+                nV=nV,
+                jacIndexCons=jacIndexCons,
+                jacIndexVars=jacIndexVars,
+            )
         end
 
+        # 2.3/ Hessian
+        # By default, Hessian callback takes precedence over Hessvec callback.
         if has_hessian
             # Hessian callback.
             function eval_h_cb(kc, cb, evalRequest, evalResult, userParams)
-                MOI.eval_hessian_lagrangian(model.nlp_data.evaluator,
-                                            evalResult.hess,
-                                            evalRequest.x,
-                                            evalRequest.sigma,
-                                            view(evalRequest.lambda, offset+1:num_cons))
+                MOI.eval_hessian_lagrangian(
+                    model.nlp_data.evaluator,
+                    evalResult.hess,
+                    evalRequest.x,
+                    evalRequest.sigma,
+                    view(evalRequest.lambda, offset+1:num_cons)
+                )
                 return 0
             end
             # Get hessian structure.
@@ -379,19 +406,19 @@ function MOI.optimize!(model::Optimizer)
         elseif has_hessvec
             function eval_hv_cb(kc, cb, evalRequest, evalResult, userParams)
                 MOI.eval_hessian_lagrangian_product(
-                                            model.nlp_data.evaluator,
-                                            evalResult.hessVec,
-                                            evalRequest.x,
-                                            evalRequest.vec,
-                                            evalRequest.sigma,
-                                            view(evalRequest.lambda, offset+1:num_cons))
+                    model.nlp_data.evaluator,
+                    evalResult.hessVec,
+                    evalRequest.x,
+                    evalRequest.vec,
+                    evalRequest.sigma,
+                    view(evalRequest.lambda, offset+1:num_cons)
+                )
                 return 0
             end
-            # Set callback (do not need to specify sparsity pattern
-            # for Hessian vector product).
+            # Set callback
+            # (no need to specify sparsity pattern for Hessian-vector product).
             KN_set_cb_hess(model.inner, cb, 0, eval_hv_cb)
-            # Specify to Knitro that we are using Hessian-vector
-            # product afterwise.
+            # Specify to Knitro that we are using Hessian-vector product.
             KN_set_param(model.inner, KN_PARAM_HESSOPT, KN_HESSOPT_PRODUCT)
         end
 
