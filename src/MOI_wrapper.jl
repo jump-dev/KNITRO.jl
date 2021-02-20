@@ -273,7 +273,7 @@ function MOI.optimize!(model::Optimizer)
     # Add NLP structure if specified.
     if !isa(model.nlp_data.evaluator, EmptyNLPEvaluator) && !model.nlp_loaded
         # Instantiate NLPEvaluator once and for all.
-        features = MOI.features_available(model.nlp_data.evaluator)
+        features = MOI.features_available(model.nlp_data.evaluator)::Vector{Symbol}
         has_hessian = (:Hess in features)
         has_hessvec = (:HessVec in features)
         has_nlp_objective = model.nlp_data.has_objective
@@ -356,12 +356,12 @@ function MOI.optimize!(model::Optimizer)
         end
 
         # 2.2/ Gradient & Jacobian
-        nV = has_nlp_objective ? KN_DENSE : 0
+        nV = has_nlp_objective ? KN_DENSE : Cint(0)
         if !has_nlp_constraints
             KN_set_cb_grad(model.inner, cb, eval_grad_cb; nV=nV)
         else
             # Get jacobian structure.
-            jacob_structure = MOI.jacobian_structure(model.nlp_data.evaluator)
+            jacob_structure = MOI.jacobian_structure(model.nlp_data.evaluator)::Vector{Tuple{Int, Int}}
             # Take care to convert 1-indexing to 0-indexing!
             # KNITRO supports only Cint array for integer.
             jacIndexVars = Cint[j - 1 for (_, j) in jacob_structure]
@@ -393,7 +393,7 @@ function MOI.optimize!(model::Optimizer)
                 return 0
             end
             # Get hessian structure.
-            hessian_structure = MOI.hessian_lagrangian_structure(model.nlp_data.evaluator)
+            hessian_structure = MOI.hessian_lagrangian_structure(model.nlp_data.evaluator)::Vector{Tuple{Int, Int}}
             nnzH = length(hessian_structure)
             # Take care to convert 1-indexing to 0-indexing!
             # Knitro supports only Cint array for integer.
