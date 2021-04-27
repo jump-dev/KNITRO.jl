@@ -91,6 +91,37 @@ empty_nlp_data() = MOI.NLPBlockData([], EmptyNLPEvaluator(), false)
 
 
 ##################################################
+# Cache for complementarity constraints
+mutable struct ComplementarityCache
+    n::Int
+    index_comps_1::Vector{Cint}
+    index_comps_2::Vector{Cint}
+    cc_types::Vector{Cint}
+    function ComplementarityCache()
+        return new(0, Cint[], Cint[], Cint[])
+    end
+end
+has_complementarity(cache::ComplementarityCache) = (cache.n >= 1)
+
+# Add a new complementarity constraint
+function _add_complementarity_constraint!(
+    cache::ComplementarityCache,
+    index_vars_1::Vector{Cint},
+    index_vars_2::Vector{Cint},
+    cc_types::Vector{Cint},
+)
+    if !(length(index_vars_1) == length(index_vars_2) == length(cc_types))
+        error("Arrays `index_vars_1`, `index_vars_2` and `cc_types` should"*
+              " share the same length to specify a valid complementarity"*
+              "constraint")
+    end
+    cache.n += 1
+    append!(cache.index_comps_1, index_vars_1)
+    append!(cache.index_comps_2, index_vars_2)
+    append!(cache.cc_types, cc_types)
+end
+
+##################################################
 # MOI Optimizer
 mutable struct Optimizer <: MOI.AbstractOptimizer
     inner::Union{Model, Nothing}
@@ -111,6 +142,8 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     # Constraint counters.
     number_zeroone_constraints::Int
     number_integer_constraints::Int
+    # Complementarity cache
+    complementarity_cache::ComplementarityCache
     # Constraint mappings.
     constraint_mapping::Dict{MOI.ConstraintIndex, Union{Cint, Vector{Cint}}}
     license_manager::Union{LMcontext, Nothing}
@@ -140,7 +173,10 @@ function Optimizer(;license_manager=nothing, options...)
     end
     model = Optimizer(kc, [], 0, false, empty_nlp_data(),
                       Cint[], MOI.FEASIBILITY_SENSE, nothing, 0, 0,
-                      Dict{MOI.ConstraintIndex, Int}(), license_manager, Dict())
+                      ComplementarityCache(),
+                      Dict{MOI.ConstraintIndex, Int}(),
+                      license_manager,
+                      Dict())
 
     set_options(model, options)
     return model
@@ -179,6 +215,7 @@ function MOI.empty!(model::Optimizer)
     model.objective = nothing
     model.number_zeroone_constraints = 0
     model.number_integer_constraints = 0
+    model.complementarity_cache = ComplementarityCache()
     model.constraint_mapping = Dict()
     model.license_manager = model.license_manager
     set_options(model, model.options)
@@ -193,6 +230,7 @@ function MOI.is_empty(model::Optimizer)
            isa(model.objective, Nothing) &&
            model.number_zeroone_constraints == 0 &&
            model.number_integer_constraints == 0 &&
+           !has_complementarity(model.complementarity_cache) &&
            !model.nlp_loaded
 end
 
@@ -263,12 +301,30 @@ function MOI.get(model::Optimizer, p::MOI.RawParameter)
     error("RawParameter with name $(p.name) is not set.")
 end
 
+# Copy cache to Knitro's model
+function _load_complementarity_constraint(
+    model::Optimizer,
+    cache::ComplementarityCache,
+)
+    KN_set_compcons(
+        model.inner,
+        cache.cc_types,
+        cache.index_comps_1,
+        cache.index_comps_2
+    )
+end
+
 ##################################################
 # Optimize
 ##################################################
 function MOI.optimize!(model::Optimizer)
     KN_set_param(model.inner, "datacheck", 0)
     KN_set_param(model.inner, "hessian_no_f", 1)
+
+    # Add complementarity structure if specified.
+    if has_complementarity(model.complementarity_cache)
+        _load_complementarity_constraint(model, model.complementarity_cache)
+    end
 
     # Add NLP structure if specified.
     if !isa(model.nlp_data.evaluator, EmptyNLPEvaluator) && !model.nlp_loaded
@@ -437,3 +493,4 @@ include(joinpath("MOI_wrapper", "constraints.jl"))
 include(joinpath("MOI_wrapper", "objective.jl"))
 include(joinpath("MOI_wrapper", "results.jl"))
 include(joinpath("MOI_wrapper", "nlp.jl"))
+include(joinpath("MOI_wrapper", "complementarity.jl"))
