@@ -21,22 +21,19 @@ const config_noduals = MOIT.TestConfig(atol=1e-5, rtol=1e-8,
                                        infeas_certificates=false,
                                        modify_lhs=false)
 
-const OPTIMIZER = KNITRO.Optimizer()
-MOI.set(OPTIMIZER, MOI.RawParameter("outlev"), 0)
-
-# Build bridge optimizer.
-const BRIDGED = MOIB.full_bridge_optimizer(OPTIMIZER, Float64)
-
 @testset "MOI utils" begin
     @testset "SolverName" begin
         optimizer = KNITRO.Optimizer()
         @test MOI.get(optimizer, MOI.SolverName()) == "Knitro"
+        MOI.empty!(optimizer)
+        KNITRO.KN_free(optimizer.inner)
     end
     @testset "supports_default_copy_to" begin
         optimizer = KNITRO.Optimizer()
         @test MOIU.supports_default_copy_to(optimizer, false)
         # Use `@test !...` if names are not supported
         @test MOIU.supports_default_copy_to(optimizer, true)
+        KNITRO.KN_free(optimizer.inner)
     end
     @testset "MOI.Silent" begin
         optimizer = KNITRO.Optimizer()
@@ -44,6 +41,7 @@ const BRIDGED = MOIB.full_bridge_optimizer(OPTIMIZER, Float64)
         @test MOI.get(optimizer, MOI.Silent()) == false
         MOI.set(optimizer, MOI.Silent(), true)
         @test MOI.get(optimizer, MOI.Silent()) == true
+        KNITRO.KN_free(optimizer.inner)
     end
     @testset "MOI.TimeLimitSec" begin
         optimizer = KNITRO.Optimizer()
@@ -53,6 +51,7 @@ const BRIDGED = MOIB.full_bridge_optimizer(OPTIMIZER, Float64)
         my_time_limit = 10.
         MOI.set(optimizer, MOI.TimeLimitSec(), my_time_limit)
         @test MOI.get(optimizer, MOI.TimeLimitSec()) == my_time_limit
+        KNITRO.KN_free(optimizer.inner)
     end
     @testset "MOI.RawAttribute" begin
         # Test special RawAttributes
@@ -61,8 +60,17 @@ const BRIDGED = MOIB.full_bridge_optimizer(OPTIMIZER, Float64)
         MOI.set(optimizer, MOI.RawParameter("option_file"), option_file)
         tuner_file = joinpath(dirname(pathof(KNITRO)),"..", "examples", "tuner-fixed.opt")
         MOI.set(optimizer, MOI.RawParameter("tuner_file"), tuner_file)
+        KNITRO.KN_free(optimizer.inner)
     end
 end
+
+const OPTIMIZER = KNITRO.Optimizer()
+MOI.set(OPTIMIZER, MOI.RawParameter("outlev"), 0)
+MOI.empty!(OPTIMIZER)
+
+# Build bridge optimizer.
+const BRIDGED = MOIB.full_bridge_optimizer(OPTIMIZER, Float64)
+
 
 @testset "MOI Linear tests" begin
     exclude = ["linear1",
@@ -116,3 +124,5 @@ end
 @testset "MOI MILP test" begin
     MOIT.knapsacktest(OPTIMIZER, config)
 end
+
+KNITRO.KN_free(OPTIMIZER.inner)

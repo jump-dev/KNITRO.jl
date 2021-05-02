@@ -29,6 +29,7 @@ using JuMP
 
         @test JuMP.value.([x, y, t]) ≈ [0.5, 0.5, sqrt(1/2)] atol=1e-3
 
+        set_optimizer_attribute(m, "free", nothing)
     end
 
     @testset "RotatedSOC1" begin
@@ -53,5 +54,7 @@ using JuMP
         @test JuMP.value.(x) ≈ [1,0,0,0,0] atol=1e-2
         @test JuMP.value(u) ≈ 5.0 atol=1e-4
         @test JuMP.value(v) ≈ sqrt(5.0) atol=1e-4
+
+        set_optimizer_attribute(m, "free", nothing)
     end
 end

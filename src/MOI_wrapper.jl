@@ -195,11 +195,15 @@ function MOI.copy_to(model::Optimizer, src::MOI.ModelLike; kws...)
     return MOI.Utilities.automatic_copy_to(model, src; kws...)
 end
 
-function MOI.empty!(model::Optimizer)
-    # Free KNITRO model properly.
+function free(model::Optimizer)
     if model.inner != nothing
         KN_free(model.inner)
     end
+end
+
+function MOI.empty!(model::Optimizer)
+    # Free KNITRO model properly.
+    free(model)
     # Handle properly license manager
     if isa(model.license_manager, LMcontext)
         model.inner = Model(model.license_manager)
@@ -275,6 +279,8 @@ function MOI.supports(model::Optimizer, param::MOI.RawParameter)
     name = param.name
     if name in KNITRO_OPTIONS || haskey(KN_paramName2Indx, name)
         return true
+    elseif name == "free"
+        return true
     end
     return false
 end
@@ -288,6 +294,8 @@ function MOI.set(model::Optimizer, p::MOI.RawParameter, value)
         KN_load_param_file(model.inner, value)
     elseif p.name == "tuner_file"
         KN_load_tuner_file(model.inner, value)
+    elseif p.name == "free"
+        free(model)
     else
         KN_set_param(model.inner, p.name, value)
     end
