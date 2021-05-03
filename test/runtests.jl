@@ -30,14 +30,12 @@ if KNITRO.KNITRO_VERSION >= v"11.0"
         include("jump_soc.jl")
     end
     try
-        @testset "License tests" begin
-            @testset "Test C API" begin
-                include("knitroapi_licman.jl")
-            end
+        @testset "Test C API License" begin
+            include("knitroapi_licman.jl")
         end
     catch e
         @warn("License tests failed, but this might be due to License Manager" *
-        " not being supporte by your license.")
+        " not being supported by your license.")
         println("The error catched was:\n")
         println("$e\n")
         println("See table above for more details.")

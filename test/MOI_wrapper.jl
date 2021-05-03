@@ -25,15 +25,14 @@ const config_noduals = MOIT.TestConfig(atol=1e-5, rtol=1e-8,
     @testset "SolverName" begin
         optimizer = KNITRO.Optimizer()
         @test MOI.get(optimizer, MOI.SolverName()) == "Knitro"
-        MOI.empty!(optimizer)
-        KNITRO.KN_free(optimizer.inner)
+        KNITRO.free(optimizer)
     end
     @testset "supports_default_copy_to" begin
         optimizer = KNITRO.Optimizer()
         @test MOIU.supports_default_copy_to(optimizer, false)
         # Use `@test !...` if names are not supported
         @test MOIU.supports_default_copy_to(optimizer, true)
-        KNITRO.KN_free(optimizer.inner)
+        KNITRO.free(optimizer)
     end
     @testset "MOI.Silent" begin
         optimizer = KNITRO.Optimizer()
@@ -41,7 +40,7 @@ const config_noduals = MOIT.TestConfig(atol=1e-5, rtol=1e-8,
         @test MOI.get(optimizer, MOI.Silent()) == false
         MOI.set(optimizer, MOI.Silent(), true)
         @test MOI.get(optimizer, MOI.Silent()) == true
-        KNITRO.KN_free(optimizer.inner)
+        KNITRO.free(optimizer)
     end
     @testset "MOI.TimeLimitSec" begin
         optimizer = KNITRO.Optimizer()
@@ -51,7 +50,7 @@ const config_noduals = MOIT.TestConfig(atol=1e-5, rtol=1e-8,
         my_time_limit = 10.
         MOI.set(optimizer, MOI.TimeLimitSec(), my_time_limit)
         @test MOI.get(optimizer, MOI.TimeLimitSec()) == my_time_limit
-        KNITRO.KN_free(optimizer.inner)
+        KNITRO.free(optimizer)
     end
     @testset "MOI.RawAttribute" begin
         # Test special RawAttributes
@@ -60,7 +59,7 @@ const config_noduals = MOIT.TestConfig(atol=1e-5, rtol=1e-8,
         MOI.set(optimizer, MOI.RawParameter("option_file"), option_file)
         tuner_file = joinpath(dirname(pathof(KNITRO)),"..", "examples", "tuner-fixed.opt")
         MOI.set(optimizer, MOI.RawParameter("tuner_file"), tuner_file)
-        KNITRO.KN_free(optimizer.inner)
+        KNITRO.free(optimizer)
     end
 end
 
@@ -125,4 +124,4 @@ end
     MOIT.knapsacktest(OPTIMIZER, config)
 end
 
-KNITRO.KN_free(OPTIMIZER.inner)
+KNITRO.free(OPTIMIZER)
