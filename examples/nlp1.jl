@@ -192,7 +192,7 @@ function example_nlp1()
     println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
 
     # Delete the Knitro solver instance.
-    #= KNITRO.KN_free(kc) =#
+    KNITRO.KN_free(kc)
 
     @testset "Example HS15 nlp1" begin
         @test nStatus == 0
