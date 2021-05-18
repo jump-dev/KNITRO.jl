@@ -1,6 +1,5 @@
 KNITRO.jl
 =========
-[![](https://img.shields.io/badge/docs-latest-blue.svg)](https://jump.dev/KNITRO.jl/latest)
 
 The KNITRO.jl package provides an interface for using the [Artelys Knitro
 solver](https://www.artelys.com/knitro) from
@@ -9,14 +8,12 @@ purchased and installed a copy of Knitro from [Artelys](https://www.artelys.com/
 This package is available free of charge and in no way replaces or alters any
 functionality of Artelys Knitro solver.
 
-Documentation is available at
-[https://jump.dev/KNITRO.jl/latest](https://jump.dev/KNITRO.jl/latest).
-
 Note that the current package provides a wrapper both for the new Knitro's API
 (whose functions start by `KN_`) and the deprecated Knitro's API (whose functions
 start by `KTR_`). We recommend using the latest version of Knitro available and
 the new API to get access to all of the new functionalities from the solver.
 Using the new `KN_` API requires Knitro >= `v11.0`.
+
 Refer to [Knitro documentation](https://www.artelys.com/tools/knitro_doc/3_referenceManual/callableLibraryAPI.html)
 for a full specification of the Knitro's API.
 

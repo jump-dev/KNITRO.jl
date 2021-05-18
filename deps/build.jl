@@ -1,13 +1,13 @@
 using Libdl, Base.Sys
 
-depsfile = joinpath(dirname(@__FILE__), "deps.jl")
+const DEPS_FILE = joinpath(dirname(@__FILE__), "deps.jl")
 
-if isfile(depsfile)
-    rm(depsfile)
+if isfile(DEPS_FILE)
+    rm(DEPS_FILE)
 end
 
 function write_depsfile(knpath, libpath)
-    open(depsfile,"w") do f
+    open(DEPS_FILE, "w") do f
         print(f,"const libknitro = ")
         show(f, libpath)
         println(f)
@@ -30,6 +30,7 @@ if haskey(ENV, "KNITRODIR")
 end
 
 global found_knitro = false
+
 # test KNITRODIR first
 for path in reverse(paths_to_try)
     l = joinpath(path, libname)
@@ -41,7 +42,9 @@ for path in reverse(paths_to_try)
     end
 end
 
-if !found_knitro
+if get(ENV, "JULIA_REGISTRYCI_AUTOMERGE", "false") == "true"
+    write_depsfile("", "julia_registryci_automerge")
+elseif !found_knitro
     error("Unable to locate KNITRO installation, " *
           "please check your environment variable KNITRODIR.")
 end

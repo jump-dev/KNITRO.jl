@@ -147,7 +147,6 @@ end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
                  ci::MOI.ConstraintIndex{S, T}) where {S <: VAF, T <: Union{MOI.Nonnegatives, MOI.Nonpositives}}
-    @warn("Support for MOI getter for MOI.Nonpositives and Nonnegatives constraints is still experimental in Knitro")
     @checkcons(model, ci)
     g = KN_get_con_values(model.inner)
     index = model.constraint_mapping[ci] .+ 1
@@ -164,7 +163,6 @@ end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
                  ci::MOI.ConstraintIndex{S, T}) where {S <: Union{VAF, VOV}, T <: MOI.Zeros}
-    @warn("Support for MOI getter for MOI.Zeros constraints is still experimental in Knitro")
     @checkcons(model, ci)
     ncons = length(model.constraint_mapping[ci])
     return zeros(ncons)
