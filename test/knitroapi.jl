@@ -526,7 +526,8 @@ end
 
     # Solve the problem.
     status = KNITRO.KN_solve(kc)
-    @test status == 0
+    # Test for return codes 0 for optimality, and KN_RC_MIP_EXH_FEAS for all nodes explored, assumed optimal
+    @test status == 0 || status == KNITRO.KN_RC_MIP_EXH_FEAS
 
     @test KNITRO.KN_get_mip_number_nodes(kc) >= 1
     @test KNITRO.KN_get_mip_number_solves(kc) >= 1
