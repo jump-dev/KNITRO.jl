@@ -35,7 +35,7 @@ to residual r[indexRsds[i]].
 function KN_add_rsd_linear_struct(m::Model,
                                   indexRsds::Vector{Cint},
                                   indexVars::Vector{Cint},
-                                  coefs::Vector{Float64})
+                                  coefs::Vector{Cdouble})
     # get number of constraints
     nnz = length(indexRsds)
     @assert nnz == length(indexVars) == length(coefs)
@@ -53,7 +53,7 @@ end
 function KN_add_rsd_linear_struct(m::Model,
                                   indexRsd::Integer,
                                   indexVar::Vector{Cint},
-                                  coefs::Vector{Float64})
+                                  coefs::Vector{Cdouble})
     # get number of constraints
     nnz = length(indexVar)
     @assert nnz == length(coefs)
@@ -67,8 +67,8 @@ function KN_add_rsd_linear_struct(m::Model,
                     coefs)
     _checkraise(ret)
 end
-KN_add_rsd_linear_struct(m::Model, indexRsd::Integer, indexVar::Integer, coef::Float64) =
-    KN_add_rsd_linear_struct(m, indexRsd, Int32[indexVar], [coef])
+KN_add_rsd_linear_struct(m::Model, indexRsd::Integer, indexVar::Integer, coef::Cdouble) =
+    KN_add_rsd_linear_struct(m, indexRsd, Cint[indexVar], [coef])
 
 
 ##################################################

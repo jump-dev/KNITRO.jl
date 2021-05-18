@@ -492,7 +492,7 @@ end
 # Get callbacks info
 ##################################################
 function KN_get_number_FC_evals(m::Model)
-    fc_eval = Int32[0]
+    fc_eval = Cint[0]
     ret = @kn_ccall(get_number_FC_evals, Cint, (Ptr{Cvoid}, Ptr{Cint}),
                     m.env, fc_eval)
     _checkraise(ret)
@@ -500,7 +500,7 @@ function KN_get_number_FC_evals(m::Model)
 end
 
 function KN_get_number_GA_evals(m::Model)
-    fc_eval = Int32[0]
+    fc_eval = Cint[0]
     ret = @kn_ccall(get_number_GA_evals, Cint, (Ptr{Cvoid}, Ptr{Cint}),
                     m.env, fc_eval)
     _checkraise(ret)
@@ -508,7 +508,7 @@ function KN_get_number_GA_evals(m::Model)
 end
 
 function KN_get_number_H_evals(m::Model)
-    fc_eval = Int32[0]
+    fc_eval = Cint[0]
     ret = @kn_ccall(get_number_H_evals, Cint, (Ptr{Cvoid}, Ptr{Cint}),
                     m.env, fc_eval)
     _checkraise(ret)
@@ -516,7 +516,7 @@ function KN_get_number_H_evals(m::Model)
 end
 
 function KN_get_number_HV_evals(m::Model)
-    fc_eval = Int32[0]
+    fc_eval = Cint[0]
     ret = @kn_ccall(get_number_HV_evals, Cint, (Ptr{Cvoid}, Ptr{Cint}),
                     m.env, fc_eval)
     _checkraise(ret)

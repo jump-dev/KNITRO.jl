@@ -139,3 +139,5 @@ MOI.empty!(CONIC_BRIDGED)
     @test MOI.get(model, MOI.ConstraintDual(), ceq) ≈ [√2] atol=atol rtol=rtol
     @test MOI.get(model, MOI.ConstraintDual(), csoc) ≈ [√2, 1.0, -1.0] atol=atol rtol=rtol
 end
+
+KNITRO.free(CONIC_OPTIMIZER)
