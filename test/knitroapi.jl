@@ -687,3 +687,22 @@ end
     @test nstatus == KNITRO.KN_RC_CALLBACK_ERR
     KNITRO.KN_free(kc)
 end
+
+@testset "Knitro evaluation exception" begin
+    function eval_kn(kc, cb, evalRequest, evalResult, userParams)
+        x = evalRequest.x
+        evalResult.obj[1] = sqrt(x[1])
+        return 0
+    end
+
+    kc = KNITRO.KN_new()
+    KNITRO.KN_set_param(kc, "outlev", 0)
+    KNITRO.KN_add_vars(kc, 1)
+    # Start from a non-evaluable point
+    KNITRO.KN_set_var_primal_init_values(kc, [-1.0])
+    cb = KNITRO.KN_add_objective_callback(kc, eval_kn)
+    nstatus = KNITRO.KN_solve(kc)
+    nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
+    @test x ≈ [0.] atol=1e-5
+    KNITRO.KN_free(kc)
+end
