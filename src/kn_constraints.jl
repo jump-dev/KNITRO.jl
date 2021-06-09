@@ -102,8 +102,8 @@ end
 
 if KNITRO_VERSION >= v"12.4"
     function KN_get_con_viols(kc::Model, index::Vector{Cint})
-        infeas::Vector{Cint} = zeros(Cint, length(index))
-        viols::Vector{Cdouble} = zeros(Cdouble, length(index))
+        infeas = zeros(Cint, length(index))
+        viols = zeros(Cdouble, length(index))
         ret = @kn_ccall(get_con_viols, Cint,
                         (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
                         kc.env, length(index), index, infeas, viols)

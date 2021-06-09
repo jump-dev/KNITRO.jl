@@ -607,9 +607,9 @@ if KNITRO_VERSION >= v"12.3"
 end
 if KNITRO_VERSION >= v"12.4"
     # Possible model components
-	const KN_COMPONENT_VAR              = Cint(1)
-	const KN_COMPONENT_OBJ              = Cint(2)
-	const KN_COMPONENT_CON              = Cint(3)
+    const KN_COMPONENT_VAR              = Cint(1)
+    const KN_COMPONENT_OBJ              = Cint(2)
+    const KN_COMPONENT_CON              = Cint(3)
     const KN_COMPONENT_RSD              = Cint(4)
     # mip_heuristic_strategy
     const KN_PARAM_MIP_HEUR_STRATEGY    = Cint(2039)
