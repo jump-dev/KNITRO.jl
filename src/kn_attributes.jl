@@ -101,6 +101,55 @@ function KN_set_obj_name(m::Model, name::AbstractString)
 end
 
 ##################################################
+# Modifiers
+##################################################
+if KNITRO_VERSION >= v"12.4"
+    function KN_del_obj_constant(kc::Model)
+        ret = @kn_ccall(del_obj_constant, Cint, (Ptr{Cvoid},), kc.env)
+        _checkraise(ret)
+    end
+
+    function KN_chg_obj_constant(kc::Model, constant::Cdouble)
+        ret = @kn_ccall(chg_obj_constant, Cint, (Ptr{Cvoid}, Cdouble), kc.env, constant)
+        _checkraise(ret)
+    end
+
+    function KN_add_obj_linear_term(kc::Model, indexVar::Cint, coef::Cdouble)
+        ret = @kn_ccall(add_obj_linear_term, Cint, (Ptr{Cvoid}, Cint, Cdouble), kc.env, indexVar, coef)
+        _checkraise(ret)
+    end
+
+    function KN_chg_obj_linear_term(kc::Model, indexVar::Cint, coef::Cdouble)
+        ret = @kn_ccall(chg_obj_linear_term, Cint, (Ptr{Cvoid}, Cint, Cdouble), kc.env, indexVar, coef)
+        _checkraise(ret)
+    end
+
+    function KN_del_obj_linear_term(kc::Model, indexVar::Cint)
+        ret = @kn_ccall(del_obj_linear_term, Cint, (Ptr{Cvoid}, Cint), kc.env, indexVar)
+        _checkraise(ret)
+    end 
+
+    function KN_del_obj_linear_struct(kc::Model, indexVars::Vector{Cint})
+        ret = @kn_ccall(del_obj_linear_struct, Cint, (Ptr{Cvoid}, Cint, Ptr{Cint}), 
+                        kc.env, length(indexVars), indexVars)
+        _checkraise(ret)
+    end
+
+    function KN_chg_obj_linear_struct(kc::Model, indexVars::Vector{Cint}, coefs::Vector{Cdouble})
+        nnz = length(indexVars)
+        @assert nnz == length(coefs)
+        ret = @kn_ccall(chg_obj_linear_struct, Cint, (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cdouble}), 
+                        kc.env, nnz, indexVars, coefs)
+        _checkraise(ret)
+    end
+
+    function KN_add_obj_quadratic_term(kc::Model, indexVar1::Cint, indexVar2::Cint, coef::Cdouble)
+        ret = @kn_ccall(add_obj_quadratic_term, Cint, (Ptr{Cvoid}, Cint, Cint, Cdouble), kc.env, indexVar1, indexVar2, coef)
+        _checkraise(ret)
+    end
+end
+
+##################################################
 # Generic getters
 ##################################################
 function KN_get_number_vars(kc::Ptr{Cvoid})

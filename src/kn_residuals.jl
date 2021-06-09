@@ -131,3 +131,14 @@ function KN_add_rsd_constant(m::Model, indexRsd::Integer, constant::Cdouble)
                     m.env, indexRsd, constant)
     _checkraise(ret)
 end
+
+
+##################################################
+# Modifiers
+##################################################
+if KNITRO_VERSION >= v"12.4"
+    function KN_add_rsd_linear_term(kc::Model, indexRsd::Cint, indexVar::Cint, coef::Cdouble)
+        ret = @kn_ccall(add_rsd_linear_term, Cint, (Ptr{Cvoid}, Cint, Cint, Cdouble), kc.env, indexRsd, indexVar, coef)
+        _checkraise(ret)
+    end
+end

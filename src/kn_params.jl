@@ -179,6 +179,11 @@ const KN_paramName2Indx = Dict(
     "KN_PARAM_MIP_ZEROHALF" => Cint(2036),
     "KN_PARAM_MIP_MIR" => Cint(2037),
     "KN_PARAM_MIP_CLIQUE" => Cint(2038),
+    "KN_PARAM_MIP_HEUR_STRATEGY" => Cint(2039),
+    "KN_PARAM_MIP_HEUR_FEASPUMP" => Cint(2040),   
+    "KN_PARAM_MIP_HEUR_MPEC" => Cint(2041), 
+    "KN_PARAM_MIP_HEUR_DIVING" => Cint(2042),
+    "KN_PARAM_MIP_CUTTINGPLANE" => Cint(2043),
     "KN_PARAM_PAR_NUMTHREADS" => Cint(3001),
     "KN_PARAM_PAR_CONCURRENT_EVALS" => Cint(3002),
     "KN_PARAM_PAR_BLASNUMTHREADS" => Cint(3003),
@@ -342,6 +347,11 @@ const KNITRO_OPTIONS = String[
     "mip_zerohalf",              # KN_PARAM_MIP_ZEROHALF         #
     "mip_mir",                   # KN_PARAM_MIP_MIR              #
     "mip_clique",                # KN_PARAM_MIP_CLIQUE           #
+    "mip_heuristic_strategy",    # KN_PARAM_MIP_HEUR_STRATEGY    #
+    "mip_heuristic_feaspump",    # KN_PARAM_MIP_HEUR_FEASPUMP    #
+    "mip_heuristic_mpec",        # KN_PARAM_MIP_HEUR_MPEC        #
+    "mip_heuristic_diving",      # KN_PARAM_MIP_HEUR_DIVING      #
+    "mip_cutting_plane",         # KN_PARAM_MIP_CUTTINGPLANE     #
     "par_numthreads",            # KN_PARAM_PAR_NUMTHREADS       #
     "par_concurrent_evals",      # KN_PARAM_PAR_CONCURRENT_EVALS #
     "par_blasnumthreads",        # KN_PARAM_PAR_BLASNUMTHREADS   #

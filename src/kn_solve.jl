@@ -123,3 +123,16 @@ if KNITRO_VERSION >= v"12.0"
     @define_getters get_var_dual_values
     @define_getters get_con_dual_values
 end
+
+if KNITRO_VERSION >= v"12.4"
+    function KN_get_presolve_error(m::Model)
+        @assert m.env != C_NULL
+        component, index, error = Cint[0], Cint[0], Cint[0]
+        viol = Cdouble[0.0]
+        ret = @kn_ccall(get_presolve_error, Cint,
+                        (Ptr{Cvoid}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
+                        m.env, component, index, error, viol)
+        _checkraise(ret)
+        return convert(Bool, component[1]), convert(Int64, index[1]), convert(Int64, error[1]) , convert(Float64, viol[1]) 
+    end
+end

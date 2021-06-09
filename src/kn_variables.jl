@@ -71,6 +71,20 @@ if KNITRO_VERSION >= v"12.0"
     @define_getters get_var_fxbnds
 end
 
+if KNITRO_VERSION >= v"12.4"
+    function KN_get_var_viols(kc::Model, index::Vector{Cint})
+        bndInfeas::Vector{Cint} = zeros(Cint, length(index))
+        intInfeas::Vector{Cint} = zeros(Cint, length(index))
+        viols::Vector{Cdouble} = zeros(Cdouble, length(index))
+        ret = @kn_ccall(get_var_viols, Cint,
+                        (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
+                        kc.env, length(index), index, bndInfeas, intInfeas, viols)
+        _checkraise(ret)
+        return bndInfeas, intInfeas, viols
+    end
+end
+
+
 ##################################################
 ## Fix bounds
 ##################################################
