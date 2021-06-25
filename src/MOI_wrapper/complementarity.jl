@@ -9,11 +9,14 @@ function MOI.add_constraint(model::Optimizer,
                             func::MOI.VectorAffineFunction, set::MOI.Complements)
     (model.number_solved >= 1) && throw(AddConstraintError())
 
+    # Number of complementarity in Knitro is half the dimension of the MOI set
+    n_comp = div(set.dimension, 2)
+
     # Add auxiliary variables `x_aux`.
-    x_aux = KN_add_vars(model.inner, set.dimension)
+    x_aux = KN_add_vars(model.inner, n_comp)
 
     # Add new constraints in Knitro to formulate x_aux = Mx + b
-    n_cons = KN_add_cons(model.inner, set.dimension)
+    n_cons = KN_add_cons(model.inner, n_comp)
     offset = n_cons[1]
 
     # Parse VectorAffineFunction defining the complementarity constraints
@@ -28,7 +31,7 @@ function MOI.add_constraint(model::Optimizer,
         # By convention, if c is greater than the dimension of
         # the complementarity constraint set, then it specifies
         # the complementarity variable `x`.
-        if c >= set.dimension
+        if c >= n_comp
             push!(x_comp, v)
         else
             # Otherwise, the index corresponds to one of the matrix `M`.
@@ -45,7 +48,7 @@ function MOI.add_constraint(model::Optimizer,
         push!(jac_coefs, -1.0)
     end
     # Get constant structure
-    q = func.constants[1:set.dimension]
+    q = func.constants[1:n_comp]
 
     # Add structure of new constaints to Knitro.
     KN_add_con_linear_struct(model.inner, jac_cons, jac_vars, jac_coefs)
@@ -53,7 +56,7 @@ function MOI.add_constraint(model::Optimizer,
 
     # Currently, only complementarity constraints between two variables
     # are supported.
-    comp_type = fill(KN_CCTYPE_VARVAR, set.dimension)
+    comp_type = fill(KN_CCTYPE_VARVAR, n_comp)
 
     # Number of complementarity constraint previously added
     n_comp_cons = model.complementarity_cache.n
@@ -64,8 +67,7 @@ function MOI.add_constraint(model::Optimizer,
         comp_type,
     )
 
-    ci = MOI.ConstraintIndex{typeof(func), typeof(set)}(n_comp_cons)
-    return ci
+    return MOI.ConstraintIndex{typeof(func), typeof(set)}(n_comp_cons)
 end
 
 # Complementarity constraints (x_1 complements x_2), with x_1 and x_2
@@ -74,7 +76,9 @@ function MOI.add_constraint(model::Optimizer,
                             func::MOI.VectorOfVariables, set::MOI.Complements)
     (model.number_solved >= 1) && throw(AddConstraintError())
     indv = Cint[v.value - 1 for v in func.variables]
-    n_comp = set.dimension
+
+    # Number of complementarity in Knitro is half the dimension of the MOI set
+    n_comp = div(set.dimension, 2)
     # Currently, only complementarity constraints between two variables
     # are supported.
     comp_type = fill(KN_CCTYPE_VARVAR, n_comp)
@@ -89,7 +93,5 @@ function MOI.add_constraint(model::Optimizer,
         comp_type
     )
 
-    # Add constraints to index
-    ci = MOI.ConstraintIndex{typeof(func), typeof(set)}(n_comp_cons)
-    return ci
+    return MOI.ConstraintIndex{typeof(func), typeof(set)}(n_comp_cons)
 end

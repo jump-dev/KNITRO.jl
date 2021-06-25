@@ -1,25 +1,25 @@
 using Test
 using MathOptInterface
 const MOI = MathOptInterface
-const MOIT = MOI.Test
+const MOIT = MOI.DeprecatedTest
 const MOIU = MOI.Utilities
 const MOIB = MOI.Bridges
 
 import KNITRO
 
 # Default configuration.
-const config = MOIT.TestConfig(atol=1e-5, rtol=1e-8,
-                               optimal_status=MOI.LOCALLY_SOLVED,
-                               query=false,
-                               infeas_certificates=false, # Do not ask for infeasibility certificates.
-                               modify_lhs=false)
+const config = MOIT.Config(atol=1e-5, rtol=1e-8,
+                           optimal_status=MOI.LOCALLY_SOLVED,
+                           query=false,
+                           infeas_certificates=false, # Do not ask for infeasibility certificates.
+                           modify_lhs=false)
 
-const config_noduals = MOIT.TestConfig(atol=1e-5, rtol=1e-8,
-                                       optimal_status=MOI.LOCALLY_SOLVED,
-                                       query=false,
-                                       duals=false,
-                                       infeas_certificates=false,
-                                       modify_lhs=false)
+const config_noduals = MOIT.Config(atol=1e-5, rtol=1e-8,
+                                   optimal_status=MOI.LOCALLY_SOLVED,
+                                   query=false,
+                                   duals=false,
+                                   infeas_certificates=false,
+                                   modify_lhs=false)
 
 @testset "MOI utils" begin
     @testset "SolverName" begin
@@ -56,15 +56,15 @@ const config_noduals = MOIT.TestConfig(atol=1e-5, rtol=1e-8,
         # Test special RawAttributes
         optimizer = KNITRO.Optimizer()
         option_file = joinpath(dirname(pathof(KNITRO)),"..", "examples", "knitro.opt")
-        MOI.set(optimizer, MOI.RawParameter("option_file"), option_file)
+        MOI.set(optimizer, MOI.RawOptimizerAttribute("option_file"), option_file)
         tuner_file = joinpath(dirname(pathof(KNITRO)),"..", "examples", "tuner-fixed.opt")
-        MOI.set(optimizer, MOI.RawParameter("tuner_file"), tuner_file)
+        MOI.set(optimizer, MOI.RawOptimizerAttribute("tuner_file"), tuner_file)
         KNITRO.free(optimizer)
     end
 end
 
 const OPTIMIZER = KNITRO.Optimizer()
-MOI.set(OPTIMIZER, MOI.RawParameter("outlev"), 0)
+MOI.set(OPTIMIZER, MOI.RawOptimizerAttribute("outlev"), 0)
 MOI.empty!(OPTIMIZER)
 
 # Build bridge optimizer.

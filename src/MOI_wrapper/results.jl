@@ -334,7 +334,7 @@ end
 
 ###
 if KNITRO_VERSION >= v"12.0"
-    MOI.get(model::Optimizer, ::MOI.SolveTime) = KN_get_solve_time_cpu(model.inner)
+    MOI.get(model::Optimizer, ::MOI.SolveTimeSec) = KN_get_solve_time_cpu(model.inner)
 end
 # Additional getters
 MOI.get(model::Optimizer, ::MOI.NodeCount) = KN_get_mip_number_nodes(model.inner)

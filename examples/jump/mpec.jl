@@ -41,7 +41,7 @@ model = JuMP.Model(KNITRO.Optimizer)
 @variable(model, x[1:5] >= 0)
 @constraint(model, -1.5 * x[1] + 2.0 * x[2] + x[3] - 0.5 * x[4] + x[5] == 2.0)
 
-@constraint(model, [M*x + b; x[3:5]] in MOI.Complements(3))
+@constraint(model, [M*x + b; x[3:5]] in MOI.Complements(6))
 @objective(model, Min, (x[1] - 5.0)^2 + (2.0 * x[2] + 1.0)^2)
 
 JuMP.optimize!(model)

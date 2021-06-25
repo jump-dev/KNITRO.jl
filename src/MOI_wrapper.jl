@@ -112,8 +112,8 @@ function _add_complementarity_constraint!(
 )
     if !(length(index_vars_1) == length(index_vars_2) == length(cc_types))
         error("Arrays `index_vars_1`, `index_vars_2` and `cc_types` should"*
-              " share the same length to specify a valid complementarity"*
-              "constraint")
+              " share the same length to specify a valid complementarity "*
+              "constraint.")
     end
     cache.n += 1
     append!(cache.index_comps_1, index_vars_1)
@@ -154,7 +154,7 @@ function set_options(model::Optimizer, options)
     # Set KNITRO option.
     for (name, value) in options
         sname = string(name)
-        MOI.set(model, MOI.RawParameter(sname), value)
+        MOI.set(model, MOI.RawOptimizerAttribute(sname), value)
     end
     return
 end
@@ -190,7 +190,7 @@ function Base.show(io::IO, model::Optimizer)
 end
 
 # copy
-MOIU.supports_default_copy_to(model::Optimizer, copy_names::Bool) = true
+MOI.supports_incremental_interface(model::Optimizer, copy_names::Bool) = true
 function MOI.copy_to(model::Optimizer, src::MOI.ModelLike; kws...)
     return MOI.Utilities.automatic_copy_to(model, src; kws...)
 end
@@ -274,8 +274,8 @@ function MOI.set(model::Optimizer, ::MOI.TimeLimitSec, value)
     return
 end
 
-# MOI.RawParameters
-function MOI.supports(model::Optimizer, param::MOI.RawParameter)
+# MOI.RawOptimizerAttribute
+function MOI.supports(model::Optimizer, param::MOI.RawOptimizerAttribute)
     name = param.name
     if name in KNITRO_OPTIONS || haskey(KN_paramName2Indx, name)
         return true
@@ -285,7 +285,7 @@ function MOI.supports(model::Optimizer, param::MOI.RawParameter)
     return false
 end
 
-function MOI.set(model::Optimizer, p::MOI.RawParameter, value)
+function MOI.set(model::Optimizer, p::MOI.RawOptimizerAttribute, value)
     if !MOI.supports(model, p)
         throw(MOI.UnsupportedAttribute)
     end
@@ -302,11 +302,11 @@ function MOI.set(model::Optimizer, p::MOI.RawParameter, value)
     return
 end
 
-function MOI.get(model::Optimizer, p::MOI.RawParameter)
+function MOI.get(model::Optimizer, p::MOI.RawOptimizerAttribute)
     if haskey(model.options, p.name)
         return model.options[p.name]
     end
-    error("RawParameter with name $(p.name) is not set.")
+    error("RawOptimizerAttribute with name $(p.name) is not set.")
 end
 
 # Copy cache to Knitro's model

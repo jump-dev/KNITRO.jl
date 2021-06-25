@@ -41,18 +41,18 @@ end
 
 function check_inbounds(model::Optimizer, aff::MOI.ScalarAffineFunction)
     for term in aff.terms
-        check_inbounds(model, term.variable_index)
+        check_inbounds(model, term.variable)
     end
     return
 end
 
 function check_inbounds(model::Optimizer, quad::MOI.ScalarQuadraticFunction)
     for term in quad.affine_terms
-        check_inbounds(model, term.variable_index)
+        check_inbounds(model, term.variable)
     end
     for term in quad.quadratic_terms
-        check_inbounds(model, term.variable_index_1)
-        check_inbounds(model, term.variable_index_2)
+        check_inbounds(model, term.variable_1)
+        check_inbounds(model, term.variable_2)
     end
     return
 end
