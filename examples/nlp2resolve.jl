@@ -249,5 +249,8 @@ function example_nlp2resolve()
     KNITRO.KN_free(kc)
 end
 
-example_nlp2resolve()
-
+if KNITRO.KNITRO_VERSION >= v"12.4"
+    example_nlp2resolve()
+else
+    println("This example is only available with Knitro >= 12.4")
+end

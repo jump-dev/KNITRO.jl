@@ -129,4 +129,8 @@ function example_nlp2noderivs()
     KNITRO.KN_free(kc)
 end
 
-example_nlp2noderivs()
+if KNITRO.KNITRO_VERSION >= v"12.4"
+    example_nlp2noderivs()
+else
+    println("This example is only available with Knitro >= 12.4")
+end

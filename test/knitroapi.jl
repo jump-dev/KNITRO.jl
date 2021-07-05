@@ -708,6 +708,9 @@ end
 end
 
 @testset "Knitro violation information" begin
+    if KNITRO.KNITRO_VERSION <= v"12.4"
+        return 0
+    end
     #*------------------------------------------------------------------*
     #*     FUNCTION callbackEvalFC                                      *
     #*------------------------------------------------------------------*
@@ -782,7 +785,6 @@ end
     # in the Knitro manual.
     nStatus = KNITRO.KN_solve(kc)
 
-    println()
     println("Knitro converged with final status = ", nStatus)
 
     # An example of obtaining solution information.
