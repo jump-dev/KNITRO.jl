@@ -1,5 +1,0 @@
-# This file is used to specify any non-default options that will 
-# be fixed by the Knitro-Tuner.
-
-algorithm          direct
-tuner_maxtime_real 3600
