@@ -818,6 +818,9 @@ end
 end
 
 @testset "Knitro structural manipulation" begin
+    if KNITRO.KNITRO_VERSION <= v"12.4"
+        return 0
+    end
     #*------------------------------------------------------------------*
     #*     FUNCTION callbackEvalFC                                      *
     #*------------------------------------------------------------------*
