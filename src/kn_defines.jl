@@ -533,6 +533,11 @@ const KN_MIP_SELECTDIR_UP = Cint(1)
 const KN_PAR_CONCURRENT_EVALS_NO = Cint(0)
 const KN_PAR_CONCURRENT_EVALS_YES = Cint(1)
 const KN_PAR_MSNUMTHREADS_AUTO = Cint(0)
+
+const KN_PARAM_STRAT_WARM_START = Cint(1118)
+const KN_STRAT_WARM_START_NO    = Cint(0)
+const KN_STRAT_WARM_START_YES   = Cint(1)
+
 if KNITRO_VERSION >= v"12.0"
     # Cuts parameters
     const KN_PARAM_MIP_ZEROHALF = Cint(2036)
@@ -599,4 +604,37 @@ if KNITRO_VERSION >= v"12.3"
     const KN_BFGS_SCALING_DYNAMIC = Cint(0)
     const KN_BFGS_SCALING_INVHESS = Cint(1)
     const KN_BFGS_SCALING_HESS = Cint(2)
+end
+if KNITRO_VERSION >= v"12.4"
+    # Possible model components
+    const KN_COMPONENT_VAR              = Cint(1)
+    const KN_COMPONENT_OBJ              = Cint(2)
+    const KN_COMPONENT_CON              = Cint(3)
+    const KN_COMPONENT_RSD              = Cint(4)
+    # mip_heuristic_strategy
+    const KN_PARAM_MIP_HEUR_STRATEGY    = Cint(2039)
+    const KN_MIP_HEUR_STRATEGY_AUTO     = Cint(-1)
+    const KN_MIP_HEUR_STRATEGY_NONE     = Cint(0)
+    const KN_MIP_HEUR_STRATEGY_BASIC    = Cint(1)
+    const KN_MIP_HEUR_STRATEGY_ADVANCED = Cint(2)
+    const KN_MIP_HEUR_STRATEGY_EXTENSIVE= Cint(3)
+    # mip_heuristic_feaspump
+    const KN_PARAM_MIP_HEUR_FEASPUMP    = Cint(2040)
+    const KN_MIP_HEUR_FEASPUMP_AUTO     = Cint(-1)
+    const KN_MIP_HEUR_FEASPUMP_OFF      = Cint(0)
+    const KN_MIP_HEUR_FEASPUMP_ON       = Cint(1)
+    # mip_heuristic_mpec
+    const KN_PARAM_MIP_HEUR_MPEC        = Cint(2041)
+    const KN_MIP_HEUR_MPEC_AUTO         = Cint(-1)
+    const KN_MIP_HEUR_MPEC_OFF          = Cint(0)
+    const KN_MIP_HEUR_MPEC_ON           = Cint(1)
+    # mip_heuristic_diving
+    const KN_PARAM_MIP_HEUR_DIVING      = Cint(2042)
+    const KN_MIP_HEUR_DIVING_AUTO       = Cint(-1)
+    const KN_MIP_HEUR_DIVING_OFF        = Cint(0)
+    const KN_MIP_HEUR_DIVING_ON         = Cint(1)
+    # mip_cutting_plane
+    const KN_PARAM_MIP_CUTTINGPLANE     = Cint(2043)
+    const KN_MIP_CUTTINGPLANE_NONE      = Cint(0)
+    const KN_MIP_CUTTINGPLANE_ROOT      = Cint(1)
 end

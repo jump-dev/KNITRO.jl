@@ -100,6 +100,18 @@ if KNITRO_VERSION >= v"12.0"
     @define_getters get_con_eqbnds
 end
 
+if KNITRO_VERSION >= v"12.4"
+    function KN_get_con_viols(kc::Model, index::Vector{Cint})
+        infeas = zeros(Cint, length(index))
+        viols = zeros(Cdouble, length(index))
+        ret = @kn_ccall(get_con_viols, Cint,
+                        (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
+                        kc.env, length(index), index, infeas, viols)
+        _checkraise(ret)
+        return infeas, viols
+    end
+end
+
 ##################################################
 # Dual init values
 ##################################################
@@ -170,7 +182,7 @@ end
 ##################################################
 function KN_add_con_constants(m::Model, indexCons::Vector{Cint}, constants::Vector{Cdouble})
     nnc = length(constants)
-    @assert length(indexCons) == length(constant)
+    @assert length(indexCons) == nnc
     ret = @kn_ccall(add_con_constants, Cint,
                     (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cdouble}),
                     m.env,
@@ -181,7 +193,6 @@ function KN_add_con_constants(m::Model, indexCons::Vector{Cint}, constants::Vect
 end
 
 function KN_add_con_constants(m::Model, constants::Vector{Cdouble})
-    nnc = length(constants)
     ret = @kn_ccall(add_con_constants_all, Cint,
                     (Ptr{Cvoid}, Ptr{Cdouble}),
                     m.env, constants)
@@ -210,20 +221,20 @@ to constraint c[indexCons[i]].
 
 """
 function KN_add_con_linear_struct(m::Model,
-                                  jacIndexCons::Vector{Cint},
-                                  jacIndexVars::Vector{Cint},
-                                  jacCoefs::Vector{Cdouble})
+                                  indexCons::Vector{Cint},
+                                  indexVars::Vector{Cint},
+                                  coefs::Vector{Cdouble})
     # get number of constraints
-    nnz = length(jacIndexCons)
-    @assert nnz == length(jacIndexVars) == length(jacCoefs)
+    nnz = length(indexCons)
+    @assert nnz == length(indexVars) == length(coefs)
     ret = @kn_ccall(add_con_linear_struct,
                     Cint,
                     (Ptr{Cvoid}, KNLONG, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
                     m.env,
                     nnz,
-                    jacIndexCons,
-                    jacIndexVars,
-                    jacCoefs)
+                    indexCons,
+                    indexVars,
+                    coefs)
     _checkraise(ret)
 end
 
@@ -551,4 +562,158 @@ function KN_set_con_properties(m::Model, cProperties::Vector{Cint})
     ret = @kn_ccall(set_con_properties_all, Cint, (Ptr{Cvoid}, Ptr{Cint}),
                     m.env, cProperties)
     _checkraise(ret)
+end
+
+##################################################
+# Modifiers
+##################################################
+if KNITRO_VERSION >= v"12.4"
+    ##################################################
+    # Constraints constants
+    ##################################################
+    function KN_del_con_constants(kc::Model, indexCons::Vector{Cint})
+        ret = @kn_ccall(del_con_constants, Cint,
+                        (Ptr{Cvoid}, Cint, Ptr{Cint}),
+                        kc.env,
+                        length(indexCons),
+                        indexCons)
+        _checkraise(ret)
+    end
+
+    function KN_del_con_constants(kc::Model)
+        ret = @kn_ccall(del_con_constants_all, Cint,
+                        (Ptr{Cvoid},), kc.env)
+        _checkraise(ret)
+    end
+
+    function KN_add_con_constant(kc::Model, indexCon::Integer)
+        ret = @kn_ccall(add_con_constant, Cint,
+                        (Ptr{Cvoid}, Cint),
+                        kc.env, indexCon)
+        _checkraise(ret)
+    end
+
+    function KN_chg_con_constants(kc::Model, indexCons::Vector{Cint}, constants::Vector{Cdouble})
+        nnc = length(constants)
+        @assert length(indexCons) == nnc
+        ret = @kn_ccall(chg_con_constants, Cint,
+                        (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                        kc.env,
+                        nnc,
+                        indexCons,
+                        constants)
+        _checkraise(ret)
+    end
+    
+    function KN_chg_con_constants(kc::Model, constants::Vector{Cdouble})
+        ret = @kn_ccall(chg_con_constants_all, Cint,
+                        (Ptr{Cvoid}, Ptr{Cdouble}),
+                        kc.env, constants)
+        _checkraise(ret)
+    end
+
+    function KN_chg_con_constant(kc::Model, indexCon::Integer, constant::Cdouble)
+        ret = @kn_ccall(chg_con_constant, Cint,
+                        (Ptr{Cvoid}, Cint, Cdouble),
+                        kc.env, indexCon, constant)
+        _checkraise(ret)
+    end
+    ##################################################
+    # Constraint structure
+    ##################################################
+    #------------------------------
+    # delete structure of linear constraint
+    #------------------------------
+    function KN_del_con_linear_struct(kc::Model,
+                                    indexCons::Vector{Cint},
+                                    indexVars::Vector{Cint})
+        # get number of constraints
+        nnz = length(indexCons)
+        @assert nnz == length(indexVars)
+        ret = @kn_ccall(del_con_linear_struct,
+                        Cint,
+                        (Ptr{Cvoid}, KNLONG, Ptr{Cint}, Ptr{Cint}),
+                        kc.env,
+                        nnz,
+                        indexCons,
+                        indexVars)
+        _checkraise(ret)
+    end
+
+    function KN_del_con_linear_struct(kc::Model,
+                                    indexCon::Integer,
+                                    indexVar::Vector{Cint})
+        # get number of constraints
+        nnz = length(indexVar)
+        ret = @kn_ccall(del_con_linear_struct_one,
+                        Cint,
+                        (Ptr{Cvoid}, KNLONG, Cint, Ptr{Cint}),
+                        kc.env,
+                        nnz,
+                        indexCon,
+                        indexVar,
+                        )
+        _checkraise(ret)
+    end
+    KN_del_con_linear_term(kc::Model, indexCon::Integer, indexVar::Integer) =
+        KN_del_con_linear_struct(kc, indexCon, Cint[indexVar])
+    #------------------------------
+    # change structure of linear constraint
+    #------------------------------
+    function KN_chg_con_linear_struct(kc::Model,
+                                    indexCons::Vector{Cint},
+                                    indexVars::Vector{Cint},
+                                    coefs::Vector{Cdouble})
+        # get number of constraints
+        nnz = length(indexCons)
+        @assert nnz == length(indexVars) == length(coefs)
+        ret = @kn_ccall(chg_con_linear_struct,
+                        Cint,
+                        (Ptr{Cvoid}, KNLONG, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
+                        kc.env,
+                        nnz,
+                        indexCons,
+                        indexVars,
+                        coefs)
+        _checkraise(ret)
+    end
+    function KN_chg_con_linear_struct(kc::Model,
+                                    indexCon::Integer,
+                                    indexVar::Vector{Cint},
+                                    coefs::Vector{Cdouble})
+        # get number of constraints
+        nnz = length(indexVar)
+        @assert nnz == length(coefs)
+        ret = @kn_ccall(chg_con_linear_struct_one,
+                        Cint,
+                        (Ptr{Cvoid}, KNLONG, Cint, Ptr{Cint}, Ptr{Cdouble}),
+                        kc.env,
+                        nnz,
+                        indexCon,
+                        indexVar,
+                        coefs)
+        _checkraise(ret)
+    end
+    KN_chg_con_linear_term(kc::Model, indexCon::Integer, indexVar::Integer, coef::Cdouble) =
+        KN_chg_con_linear_struct(kc, indexCon, Cint[indexVar], [coef])
+
+    #------------------------------
+    # add constraint quadratic structure
+    #------------------------------
+    function KN_add_con_quadratic_term(kc::Model,
+                                        indexCon::Cint,
+                                        indexVar1::Cint,
+                                        indexVar2::Cint,
+                                        coef::Cdouble)
+
+        ret = @kn_ccall(add_con_quadratic_term,
+                        Cint,
+                        (Ptr{Cvoid}, Cint, Cint, Cint, Cdouble),
+                        kc.env,
+                        indexCon,
+                        indexVar1,
+                        indexVar2,
+                        coef)
+        _checkraise(ret)
+    end
 end
