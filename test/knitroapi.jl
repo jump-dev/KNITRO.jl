@@ -708,7 +708,7 @@ end
 end
 
 @testset "Knitro violation information" begin
-    if KNITRO.KNITRO_VERSION <= v"12.4"
+    if KNITRO.KNITRO_VERSION < v"12.4"
         return 0
     end
     #*------------------------------------------------------------------*
@@ -818,7 +818,7 @@ end
 end
 
 @testset "Knitro structural manipulation" begin
-    if KNITRO.KNITRO_VERSION <= v"12.4"
+    if KNITRO.KNITRO_VERSION < v"12.4"
         return 0
     end
     #*------------------------------------------------------------------*
