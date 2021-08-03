@@ -491,6 +491,11 @@ function MOI.optimize!(model::Optimizer)
         add_objective!(model, model.objective)
     end
 
+    # Re-adding user options that could have been overrided by MOI wrapper
+    for (kn_option, value) in model.options
+        KN_set_param(model.inner, kn_option, value)
+    end
+
     KN_solve(model.inner)
     model.number_solved += 1
     return
