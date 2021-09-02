@@ -138,7 +138,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     # Store optimization sense.
     sense::MOI.OptimizationSense
     # Store the structure of the objective.
-    objective::Union{MOI.SingleVariable,MOI.ScalarAffineFunction{Float64},MOI.ScalarQuadraticFunction{Float64},Nothing}
+    objective::Union{MOI.VariableIndex,MOI.ScalarAffineFunction{Float64},MOI.ScalarQuadraticFunction{Float64},Nothing}
     # Constraint counters.
     number_zeroone_constraints::Int
     number_integer_constraints::Int
@@ -190,9 +190,9 @@ function Base.show(io::IO, model::Optimizer)
 end
 
 # copy
-MOI.supports_incremental_interface(model::Optimizer, copy_names::Bool) = true
-function MOI.copy_to(model::Optimizer, src::MOI.ModelLike; kws...)
-    return MOI.Utilities.automatic_copy_to(model, src; kws...)
+MOI.supports_incremental_interface(model::Optimizer) = true
+function MOI.copy_to(model::Optimizer, src::MOI.ModelLike)
+    return MOI.Utilities.automatic_copy_to(model, src)
 end
 
 function free(model::Optimizer)

@@ -33,12 +33,6 @@ function check_inbounds(model::Optimizer, vi::MOI.VariableIndex)
     return
 end
 
-##################################################
-## Check inbounds for safety.
-function check_inbounds(model::Optimizer, var::MOI.SingleVariable)
-    return check_inbounds(model, var.variable)
-end
-
 function check_inbounds(model::Optimizer, aff::MOI.ScalarAffineFunction)
     for term in aff.terms
         check_inbounds(model, term.variable)

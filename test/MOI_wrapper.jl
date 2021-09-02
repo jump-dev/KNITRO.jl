@@ -29,9 +29,7 @@ const config_noduals = MOIT.Config(atol=1e-5, rtol=1e-8,
     end
     @testset "supports_default_copy_to" begin
         optimizer = KNITRO.Optimizer()
-        @test MOIU.supports_default_copy_to(optimizer, false)
-        # Use `@test !...` if names are not supported
-        @test MOIU.supports_default_copy_to(optimizer, true)
+        @test MOIU.supports_default_copy_to(optimizer)
         KNITRO.free(optimizer)
     end
     @testset "MOI.Silent" begin

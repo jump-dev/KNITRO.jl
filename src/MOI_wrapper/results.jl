@@ -177,7 +177,7 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
-                 ci::MOI.ConstraintIndex{MOI.SingleVariable,
+                 ci::MOI.ConstraintIndex{MOI.VariableIndex,
                                          MOI.LessThan{Float64}})
     if model.number_solved == 0
         error("ConstraintPrimal not available.")
@@ -193,7 +193,7 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
-                 ci::MOI.ConstraintIndex{MOI.SingleVariable, <:LS})
+                 ci::MOI.ConstraintIndex{MOI.VariableIndex, <:LS})
     if model.number_solved == 0
         error("ConstraintPrimal not available.")
     end
@@ -203,7 +203,7 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
-                 ci::Vector{MOI.ConstraintIndex{MOI.SingleVariable, <:LS}})
+                 ci::Vector{MOI.ConstraintIndex{MOI.VariableIndex, <:LS}})
     if model.number_solved == 0
         error("ConstraintPrimal not available.")
     end
@@ -272,7 +272,7 @@ end
 
 ## Reduced costs.
 function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
-                 ci::MOI.ConstraintIndex{MOI.SingleVariable, MOI.LessThan{Float64}})
+                 ci::MOI.ConstraintIndex{MOI.VariableIndex, MOI.LessThan{Float64}})
     if model.number_solved == 0
         error("ConstraintDual not available.")
     end
@@ -290,7 +290,7 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
-                 ci::MOI.ConstraintIndex{MOI.SingleVariable, MOI.GreaterThan{Float64}})
+                 ci::MOI.ConstraintIndex{MOI.VariableIndex, MOI.GreaterThan{Float64}})
     if model.number_solved == 0
         error("ConstraintDual not available.")
     end
@@ -308,7 +308,7 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
-                 ci::MOI.ConstraintIndex{MOI.SingleVariable, MOI.EqualTo{Float64}})
+                 ci::MOI.ConstraintIndex{MOI.VariableIndex, MOI.EqualTo{Float64}})
     if model.number_solved == 0
         error("ConstraintDual not available.")
     end

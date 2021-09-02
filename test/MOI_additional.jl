@@ -26,7 +26,7 @@ const CONIC_BRIDGED = MOIB.full_bridge_optimizer(CONIC_OPTIMIZER, Float64)
     #  st  x            == 1
     #      x >= ||(y,z)||
 
-    @test MOIU.supports_default_copy_to(model, #=copy_names=# false)
+    @test MOI.supports_incremental_interface(model)
     @test MOI.supports(model, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
     @test MOI.supports(model, MOI.ObjectiveSense())
     @test MOI.supports_constraint(model, MOI.VectorAffineFunction{Float64}, MOI.Zeros)
@@ -92,7 +92,7 @@ MOI.empty!(CONIC_BRIDGED)
     #        1 - t ∈ {0}
     #      (t,x,y) ∈ SOC₃
 
-    @test MOIU.supports_default_copy_to(model, #=copy_names=# false)
+    @test MOI.supports_incremental_interface(model)
     @test MOI.supports(model, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
     @test MOI.supports(model, MOI.ObjectiveSense())
     @test MOI.supports_constraint(model, MOI.VectorAffineFunction{Float64}, MOI.Zeros)
