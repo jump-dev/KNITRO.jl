@@ -29,7 +29,7 @@
 
 using KNITRO, Test
 
-function example_nlp1noderivs()
+function example_nlp1noderivs(; verbose=true)
     #*------------------------------------------------------------------*
     #*     FUNCTION callbackEvalF                                       *
     #*------------------------------------------------------------------*
@@ -56,6 +56,8 @@ function example_nlp1noderivs()
     # the knitro.opt file.
     options = joinpath(dirname(@__FILE__), "..", "examples", "knitro.opt")
     KNITRO.KN_load_param_file(kc, options)
+    kn_outlev = verbose ? KNITRO.KN_OUTLEV_ALL : KNITRO.KN_OUTLEV_NONE
+    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
 
     # Initialize Knitro with the problem definition.
 
@@ -125,22 +127,23 @@ function example_nlp1noderivs()
 
     # An example of obtaining solution information.
     nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
-    println("Optimal objective value  = ", objSol)
-    println("Optimal x(with corresponding multiplier)")
-    for i in 1:n
-        println("  x[$i] = ", x[i], "(lambda = ",  lambda_[m+i], ")")
+    if verbose
+        println("Optimal objective value  = ", objSol)
+        println("Optimal x(with corresponding multiplier)")
+        for i in 1:n
+            println("  x[$i] = ", x[i], "(lambda = ",  lambda_[m+i], ")")
+        end
+        println("Optimal constraint values(with corresponding multiplier)")
+        c = KNITRO.KN_get_con_values(kc)
+        for j in 1:m
+            println("  c[$j] = ", c[j], "(lambda = ",  lambda_[j], ")")
+        end
+        println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
+        println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
     end
-    println("Optimal constraint values(with corresponding multiplier)")
-    c = KNITRO.KN_get_con_values(kc)
-    for j in 1:m
-        println("  c[$j] = ", c[j], "(lambda = ",  lambda_[j], ")")
-    end
-    println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
-    println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
 
     # Delete the Knitro solver instance.
     KNITRO.KN_free(kc)
-
 
     @testset "Example HS15 nlp1noderivs" begin
         @test nStatus == 0
@@ -149,5 +152,5 @@ function example_nlp1noderivs()
     end
 end
 
-example_nlp1noderivs()
+example_nlp1noderivs(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
 

@@ -35,7 +35,7 @@
 
 using KNITRO, Test
 
-function example_mpec1()
+function example_mpec1(; verbose=true)
     # Create a new Knitro solver instance.
     kc = KNITRO.KN_new()
 
@@ -107,23 +107,29 @@ function example_mpec1()
     indexComps2 = Int32[5, 6, 7]
     KNITRO.KN_set_compcons(kc, ccTypes, indexComps1, indexComps2)
 
+    kn_outlev = verbose ? KNITRO.KN_OUTLEV_ALL : KNITRO.KN_OUTLEV_NONE
+    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
+
     # Solve the problem.
     #
     # Return status codes are defined in "knitro.h" and described
     # in the Knitro manual.
     nStatus = KNITRO.KN_solve(kc)
-    println("Knitro converged with final status = ", nStatus)
 
     # An example of obtaining solution information.
     nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
-    println("  optimal objective value  = ", objSol)
-    println("  optimal primal values x0=", x[1])
-    println("                        x1=", x[2])
-    println("                        x2=", (x[3], x[6]))
-    println("                        x3=", (x[4], x[7]))
-    println("                        x4=", (x[5], x[8]))
-    println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
-    println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
+
+    if verbose
+        println("Knitro converged with final status = ", nStatus)
+        println("  optimal objective value  = ", objSol)
+        println("  optimal primal values x0=", x[1])
+        println("                        x1=", x[2])
+        println("                        x2=", (x[3], x[6]))
+        println("                        x3=", (x[4], x[7]))
+        println("                        x4=", (x[5], x[8]))
+        println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
+        println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
+    end
 
     # Delete the Knitro solver instance.
     KNITRO.KN_free(kc)
@@ -135,5 +141,5 @@ function example_mpec1()
     end
 end
 
-example_mpec1()
+example_mpec1(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
 

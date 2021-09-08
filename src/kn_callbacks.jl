@@ -259,7 +259,6 @@ macro wrap_function(wrap_name, name)
                     return Cint(KN_RC_USER_TERMINATION)
                 end
                 if isa(ex, DomainError)
-                    @warn("Knitro encounters an evaluation error in evaluation callback: $ex")
                     return Cint(KN_RC_EVAL_ERR)
                 else
                     @warn("Knitro encounters an exception in evaluation callback: $ex")

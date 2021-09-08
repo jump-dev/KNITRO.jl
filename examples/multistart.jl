@@ -28,7 +28,7 @@
 using KNITRO
 using Test
 
-function example_multistart()
+function example_multistart(; verbose=true)
     #*------------------------------------------------------------------*
     #*     FUNCTION callbackEvalF                                       *
     #*------------------------------------------------------------------*
@@ -96,10 +96,12 @@ function example_multistart()
         # Print solution of the just completed multi-start solve.
 
         n = KNITRO.KN_get_number_vars(kc)
-        println("callbackMSProcess: ")
-        println("    Last solution: obj= ", KNITRO.KN_get_obj_value(kc))
-        for i in 1:n
-            println("                   x[$i]= ", x[i])
+        if verbose
+            println("callbackMSProcess: ")
+            println("    Last solution: obj= ", KNITRO.KN_get_obj_value(kc))
+            for i in 1:n
+                println("                   x[$i]= ", x[i])
+            end
         end
 
         return 0
@@ -194,10 +196,13 @@ function example_multistart()
     # Enable multi-start
     KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_MULTISTART, KNITRO.KN_MULTISTART_YES)
 
+    kn_outlev = verbose ? KNITRO.KN_OUTLEV_ALL : KNITRO.KN_OUTLEV_NONE
+    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
+
     # Perform multistart in parallel using max number of available threads
     nThreads = Sys.CPU_THREADS
     if nThreads > 1
-        println("Running Knitro multistart in parallel with $nThreads threads.")
+        println("Force Knitro multistart to run in parallel with 1 threads (instead of $nThreads).")
         KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_PAR_MSNUMTHREADS, 1)
     end
 
@@ -210,18 +215,21 @@ function example_multistart()
 
     # An example of obtaining solution information.
     nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
-    println("Optimal objective value  = ", objSol)
-    println("Optimal x(with corresponding multiplier)")
-    for i in 1:n
-        println("  x[$i] = ", x[i], "(lambda = ",  lambda_[m+i], ")")
+
+    if verbose
+        println("Optimal objective value  = ", objSol)
+        println("Optimal x(with corresponding multiplier)")
+        for i in 1:n
+            println("  x[$i] = ", x[i], "(lambda = ",  lambda_[m+i], ")")
+        end
+        println("Optimal constraint values(with corresponding multiplier)")
+        c = KNITRO.KN_get_con_values(kc)
+        for j in 1:m
+            println("  c[$j] = ", c[j], "(lambda = ",  lambda_[j], ")")
+        end
+        println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
+        println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
     end
-    println("Optimal constraint values(with corresponding multiplier)")
-    c = KNITRO.KN_get_con_values(kc)
-    for j in 1:m
-        println("  c[$j] = ", c[j], "(lambda = ",  lambda_[j], ")")
-    end
-    println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
-    println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
 
     # Delete the Knitro solver instance.
     KNITRO.KN_free(kc)
@@ -233,5 +241,5 @@ function example_multistart()
     end
 end
 
-example_multistart()
+example_multistart(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
 

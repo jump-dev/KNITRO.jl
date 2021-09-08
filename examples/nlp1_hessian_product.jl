@@ -24,7 +24,7 @@
 using KNITRO
 using Test
 
-function example_nlp1_hessian_productt()
+function example_nlp1_hessian_product(; verbose=true)
     #*------------------------------------------------------------------*
     #*     FUNCTION callbackEvalF                                       *
     #*------------------------------------------------------------------*
@@ -95,7 +95,8 @@ function example_nlp1_hessian_productt()
     # the knitro.opt file.
     options = joinpath(dirname(@__FILE__), "..", "examples", "knitro.opt")
     KNITRO.KN_load_param_file(kc, options)
-    KNITRO.KN_set_param(kc, "outlev", 3)
+    kn_outlev = verbose ? KNITRO.KN_OUTLEV_ALL : KNITRO.KN_OUTLEV_NONE
+    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
 
     # Initialize Knitro with the problem definition.
 
@@ -185,18 +186,21 @@ function example_nlp1_hessian_productt()
 
     # An example of obtaining solution information.
     nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
-    println("Optimal objective value  = ", objSol)
-    println("Optimal x(with corresponding multiplier)")
-    for i in 1:n
-        println("  x[$i] = ", x[i], "(lambda = ",  lambda_[m+i], ")")
-    end
-    println("Optimal constraint values(with corresponding multiplier)")
     c = KNITRO.KN_get_con_values(kc)
-    for j in 1:m
-        println("  c[$j] = ", c[j], "(lambda = ",  lambda_[j], ")")
+
+    if verbose
+        println("Optimal objective value  = ", objSol)
+        println("Optimal x(with corresponding multiplier)")
+        for i in 1:n
+            println("  x[$i] = ", x[i], "(lambda = ",  lambda_[m+i], ")")
+        end
+        println("Optimal constraint values(with corresponding multiplier)")
+        for j in 1:m
+            println("  c[$j] = ", c[j], "(lambda = ",  lambda_[j], ")")
+        end
+        println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
+        println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
     end
-    println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
-    println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
 
     # Delete the Knitro solver instance.
     KNITRO.KN_free(kc)
@@ -208,5 +212,5 @@ function example_nlp1_hessian_productt()
     end
 end
 
-example_nlp1_hessian_productt()
+example_nlp1_hessian_product(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
 

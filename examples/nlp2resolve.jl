@@ -37,7 +37,7 @@
 
 using KNITRO, Test
 
-function example_nlp2resolve()
+function example_nlp2resolve(; verbose=true)
     #*------------------------------------------------------------------*
     #*     FUNCTION callbackEvalFC                                      *
     #*------------------------------------------------------------------*
@@ -182,7 +182,8 @@ function example_nlp2resolve()
     KNITRO.KN_set_obj_goal(kc, KNITRO.KN_OBJGOAL_MAXIMIZE)
 
     # Set option to println output after every iteration.
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, KNITRO.KN_OUTLEV_ITER)
+    kn_outlev = verbose ? KNITRO.KN_OUTLEV_ITER : KNITRO.KN_OUTLEV_NONE
+    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
 
     # Solve the initial problem.
     #
@@ -250,7 +251,8 @@ function example_nlp2resolve()
 end
 
 if KNITRO.KNITRO_VERSION >= v"12.4"
-    example_nlp2resolve()
+    example_nlp2resolve(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
 else
-    println("This example is only available with Knitro >= 12.4")
+    println("Example `nlp2resolve.jl` is only available with Knitro >= 12.4")
 end
+
