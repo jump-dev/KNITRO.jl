@@ -298,11 +298,6 @@ function MOI.add_constraint(model::Optimizer,
                       coefs_cone,
                       const_cone)
 
-    # set specific Knitro's params
-    KN_set_param(model.inner, KN_PARAM_BAR_CONIC_ENABLE, KN_BAR_CONIC_ENABLE_SOC)
-    KN_set_param(model.inner, KN_PARAM_ALGORITHM, KN_ALG_BAR_DIRECT)
-    KN_set_param(model.inner, KN_PARAM_BAR_MURULE, KN_BAR_MURULE_FULLMPC)
-
     # Add constraints to index.
     ci = MOI.ConstraintIndex{typeof(func), typeof(set)}(index_con)
     model.constraint_mapping[ci] = indexvars
@@ -322,7 +317,6 @@ function MOI.add_constraint(model::Optimizer, func::VOV, set::T) where T <: VLS
         KN_set_var_upbnds(model.inner, indv, bnd)
     end
 
-    # TODO
     ncons = MOI.get(model, MOI.NumberOfConstraints{VOV, T}())
     ci = MOI.ConstraintIndex{VOV, T}(ncons)
     model.constraint_mapping[ci] = indv
@@ -347,10 +341,6 @@ function MOI.add_constraint(model::Optimizer,
 
     KN_add_con_L2norm(model.inner, index_con, nnz, nnz,
                       indexCoords, indexVars, coefs, constants)
-
-    KN_set_param(model.inner, KN_PARAM_BAR_CONIC_ENABLE, KN_BAR_CONIC_ENABLE_SOC)
-    KN_set_param(model.inner, KN_PARAM_ALGORITHM, KN_ALG_BAR_DIRECT)
-    KN_set_param(model.inner, KN_PARAM_BAR_MURULE, KN_BAR_MURULE_FULLMPC)
 
     # Add constraints to index.
     ci = MOI.ConstraintIndex{typeof(func), typeof(set)}(index_con)
