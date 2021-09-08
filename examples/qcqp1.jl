@@ -22,7 +22,7 @@
 using KNITRO
 using Test
 
-function example_qcqp1()
+function example_qcqp1(; verbose=true)
     # Create a new Knitro solver instance.
     kc = KNITRO.KN_new()
 
@@ -30,6 +30,8 @@ function example_qcqp1()
     # the knitro.opt file.
     options = joinpath(dirname(@__FILE__), "..", "examples", "knitro.opt")
     KNITRO.KN_load_param_file(kc, options)
+    kn_outlev = verbose ? KNITRO.KN_OUTLEV_ITER : KNITRO.KN_OUTLEV_NONE
+    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
 
     # Initialize Knitro with the problem definition.
 
@@ -73,16 +75,16 @@ function example_qcqp1()
     # Return status codes are defined in "knitro.h" and described
     # in the Knitro manual.
     nStatus = KNITRO.KN_solve(kc)
-
-    println()
-    println("Knitro converged with final status = ", nStatus)
+    nStatus, objSol, x, lambda_ =  KNITRO.KN_get_solution(kc)
 
     # An example of obtaining solution information.
-    nStatus, objSol, x, lambda_ =  KNITRO.KN_get_solution(kc)
-    println("  optimal objective value  = ", objSol)
-    println("  optimal primal values x  = ", x)
-    println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
-    println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
+    if verbose
+        println("Knitro converged with final status = ", nStatus)
+        println("  optimal objective value  = ", objSol)
+        println("  optimal primal values x  = ", x)
+        println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
+        println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
+    end
 
     # Delete the Knitro solver instance.
     KNITRO.KN_free(kc)
@@ -94,5 +96,5 @@ function example_qcqp1()
     end
 end
 
-example_qcqp1()
+example_qcqp1(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
 

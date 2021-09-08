@@ -34,7 +34,7 @@
 using KNITRO
 using Test
 
-function example_minlp1()
+function example_minlp1(; verbose=true)
     #*------------------------------------------------------------------*
     #*     FUNCTION callbackEvalFC                                      *
     #*------------------------------------------------------------------*
@@ -122,16 +122,18 @@ function example_minlp1()
         # Note: To retrieve solution information about the node subproblem
         # we need to pass in "kcSub" here.
         nodeObj = KNITRO.KN_get_obj_value(kc)
-        println("callbackProcessNode:")
-        println("    Node number    = ", numNodes)
-        println("    Node objective = ", nodeObj)
-        println("    Current relaxation bound = ", relaxBound)
-        try
-            println("    Current incumbent bound  = ", KNITRO.KN_get_mip_incumbent_obj(kc))
-            println("    Absolute integrality gap = ", KNITRO.KN_get_mip_abs_gap(kc))
-            println("    Relative integrality gap = ", KNITRO.KN_get_mip_rel_gap(kc))
-        catch
-            println("    No integer feasible point found yet.")
+        mip_io = KNITRO.KN_get_mip_incumbent_obj(kc)
+        mip_ag = KNITRO.KN_get_mip_abs_gap(kc)
+        mip_rg = KNITRO.KN_get_mip_rel_gap(kc)
+
+        if verbose
+            println("callbackProcessNode:")
+            println("    Node number    = ", numNodes)
+            println("    Node objective = ", nodeObj)
+            println("    Current relaxation bound = ", relaxBound)
+            println("    Current incumbent bound  = ", mip_io)
+            println("    Absolute integrality gap = ", mip_ag)
+            println("    Relative integrality gap = ", mip_rg)
         end
 
         # User defined termination example.
@@ -255,6 +257,9 @@ function example_minlp1()
     # after completion of each node in the branch-and-bound tree.
     KNITRO.KN_set_mip_node_callback(kc, callbackProcessNode)
 
+    kn_outlev = verbose ? KNITRO.KN_OUTLEV_ALL : KNITRO.KN_OUTLEV_NONE
+    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
+
     # Solve the problem.
     #
     # Return status codes are defined in "knitro.h" and described
@@ -263,10 +268,13 @@ function example_minlp1()
     nStatus = KNITRO.KN_solve(kc)
     # An example of obtaining solution information.
     nSTatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
-    println("Optimal objective value  = ", objSol)
-    println("Optimal x")
-    for i in 1:n
-        println("  x[$i] = ", x[i])
+
+    if verbose
+        println("Optimal objective value  = ", objSol)
+        println("Optimal x")
+        for i in 1:n
+            println("  x[$i] = ", x[i])
+        end
     end
 
     # Delete the Knitro solver instance.
@@ -279,5 +287,5 @@ function example_minlp1()
     end
 end
 
-example_minlp1()
+example_minlp1(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
 

@@ -27,7 +27,7 @@
 using KNITRO
 using Printf
 
-function example_restart()
+function example_restart(; verbose=true)
     #*------------------------------------------------------------------*
     #*     FUNCTION callbackEvalF                                       *
     #*------------------------------------------------------------------*
@@ -96,6 +96,8 @@ function example_restart()
     # the knitro.opt file.
     options = joinpath(dirname(@__FILE__), "..", "examples", "knitro.opt")
     KNITRO.KN_load_param_file(kc, options)
+    kn_outlev = verbose ? KNITRO.KN_OUTLEV_ITER : KNITRO.KN_OUTLEV_NONE
+    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
 
     # Initialize knitro with the problem definition.
 
@@ -178,17 +180,19 @@ function example_restart()
     # First solve for the 6 different values of user option "bar_murule".
     # This option handles how the barrier parameter is updated each
     # iteration in the barrier/interior-point solver.
-    println("Changing a user option and re-solving...")
+    verbose && println("Changing a user option and re-solving...")
     for i in 1:6
         KNITRO.KN_set_param(kc, "bar_murule", i)
         # Reset original initial point
         KNITRO.KN_set_var_primal_init_values(kc, [-2.0, 1.0])
         nStatus = KNITRO.KN_solve(kc)
-        if nStatus != 0
-            println("  bar_murule=$i - Knitro failed to solve, status = $nStatus")
-        else
-            @printf("\n  bar_murule=%d - solved in %2d iters, %2d function evaluations, objective=%e",
-                i, KNITRO.KN_get_number_iters(kc), KNITRO.KN_get_number_FC_evals(kc), KNITRO.KN_get_obj_value(kc))
+        if verbose
+            if nStatus != 0
+                println("  bar_murule=$i - Knitro failed to solve, status = $nStatus")
+            else
+                @printf("\n  bar_murule=%d - solved in %2d iters, %2d function evaluations, objective=%e",
+                    i, KNITRO.KN_get_number_iters(kc), KNITRO.KN_get_number_FC_evals(kc), KNITRO.KN_get_obj_value(kc))
+            end
         end
     end
 
@@ -198,7 +202,7 @@ function example_restart()
     # there is no more significant change in the optimal solution.
     # Change to the active-set algorithm and do not reset the
     # initial point, so the re-solves are "warm-started".
-    println("\nChanging a variable bound and re-solving...")
+    verbose && println("\nChanging a variable bound and re-solving...")
     KNITRO.KN_set_param(kc, "algorithm", KNITRO.KN_ALG_ACT_CG)
     i = 0
 
@@ -208,12 +212,14 @@ function example_restart()
         KNITRO.KN_set_var_upbnds(kc, 0, tmpbound)
 
         nStatus = KNITRO.KN_solve(kc)
-        if nStatus != 0
-            @printf("\n  x0 upper bound=%e - Knitro failed to solve, status = %d", tmpbound, nStatus)
-        else
-            nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
-            @printf("\n  x0 upper bound=%e - solved in %2d iters, x0=%e, objective=%e",
-                    tmpbound, KNITRO.KN_get_number_iters(kc), x[1], objSol)
+        nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
+        if verbose
+            if nStatus != 0
+                @printf("\n  x0 upper bound=%e - Knitro failed to solve, status = %d", tmpbound, nStatus)
+            else
+                @printf("\n  x0 upper bound=%e - solved in %2d iters, x0=%e, objective=%e",
+                        tmpbound, KNITRO.KN_get_number_iters(kc), x[1], objSol)
+            end
         end
 
         if nStatus != 0 || x[1] < tmpbound - 1e-4
@@ -227,18 +233,20 @@ function example_restart()
     # Continually relax the lower bound until it is no longer
     # "active"(i.e. no longer restricting c0), at which point
     # there is no more significant change in the optimal solution.
-    println("\nChanging a constraint bound and re-solving...")
+    verbose && println("\nChanging a constraint bound and re-solving...")
     i = 0
     for i = 1:20
         tmpbound = 1. - 0.1*i
         KNITRO.KN_set_con_lobnds(kc, 0, tmpbound)
         nStatus = KNITRO.KN_solve(kc)
-        if nStatus != 0
-            @printf("\n  c0 lower bound=%e - Knitro failed to solve, status = %d", tmpbound, nStatus)
-        else
-            c0 = KNITRO.KN_get_con_values(kc, 0)
-            @printf("\n  c0 lower bound=%e - solved in %2d iters, c0=%e, objective=%e",
-                tmpbound, KNITRO.KN_get_number_iters(kc), c0, KNITRO.KN_get_obj_value(kc))
+        c0 = KNITRO.KN_get_con_values(kc, 0)
+        if verbose
+            if nStatus != 0
+                @printf("\n  c0 lower bound=%e - Knitro failed to solve, status = %d", tmpbound, nStatus)
+            else
+                @printf("\n  c0 lower bound=%e - solved in %2d iters, c0=%e, objective=%e",
+                    tmpbound, KNITRO.KN_get_number_iters(kc), c0, KNITRO.KN_get_obj_value(kc))
+            end
         end
         if nStatus != 0 || c0 > tmpbound + 1e-4
             break
@@ -249,5 +257,5 @@ function example_restart()
     KNITRO.KN_free(kc)
 end
 
-example_restart()
+example_restart(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
 

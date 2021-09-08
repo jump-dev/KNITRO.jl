@@ -62,10 +62,12 @@ function MOI.eval_hessian_lagrangian(d::HS15, H, x, σ, μ)
     return 0
 end
 
-function example_moi_nlp1()
+function example_moi_nlp1(; verbose=true)
     options = joinpath(dirname(@__FILE__), "..", "examples", "knitro.opt")
     # Define a Knitro solver instance through MOI.
     solver = KNITRO.Optimizer(outlev=3, opttol=1e-8)
+    MOI.set(solver, MOI.Silent(), !verbose)
+
     lb =[]; ub=[]
     block_data = MOI.NLPBlockData(MOI.NLPBoundsPair.(lb, ub), HS15(false), true)
 
@@ -76,7 +78,7 @@ function example_moi_nlp1()
     start = [-2., 1.]
 
     for i in 1:2
-        MOI.add_constraint(solver, MOI.SingleVariable(v[i]), MOI.LessThan(u[i]))
+        MOI.add_constraint(solver, v[i], MOI.LessThan(u[i]))
         MOI.set(solver, MOI.VariablePrimalStart(), v[i], start[i])
     end
 
@@ -109,5 +111,5 @@ function example_moi_nlp1()
     MOI.empty!(solver)
 end
 
-example_moi_nlp1()
+example_moi_nlp1(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
 

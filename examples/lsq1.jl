@@ -35,7 +35,7 @@
 using KNITRO, Test
 
 
-function example_lsq1()
+function example_lsq1(; verbose=true)
     # Create a new Knitro solver instance.
     kc = KNITRO.KN_new()
 
@@ -83,6 +83,9 @@ function example_lsq1()
     # Pass in the linear coefficients
     KNITRO.KN_add_rsd_linear_struct(kc, indexRsds, indexVars, coefs)
 
+    kn_outlev = verbose ? KNITRO.KN_OUTLEV_ALL : KNITRO.KN_OUTLEV_NONE
+    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
+
     # Solve the problem.
     #
     # Return status codes are defined in "knitro.h" and described
@@ -97,9 +100,11 @@ function example_lsq1()
         # Return status codes are defined in "knitro.h" and described
         # in the Knitro manual.
         nStatus, obj, x, lambda_ = KNITRO.KN_get_solution(kc)
-        println("Knitro successful. The optimal solution is:")
-        for i in 1:n
-            println("x[$i]=", x[i])
+        if verbose
+            println("Knitro successful. The optimal solution is:")
+            for i in 1:n
+                println("x[$i]=", x[i])
+            end
         end
     end
 
@@ -113,5 +118,5 @@ function example_lsq1()
     end
 end
 
-example_lsq1()
+example_lsq1(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
 

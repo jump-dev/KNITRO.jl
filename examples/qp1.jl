@@ -25,7 +25,7 @@
 using KNITRO
 using Test
 
-function example_qp1()
+function example_qp1(; verbose=true)
     # Used to specify whether linear and quadratic objective
     # terms are loaded separately or together in this example.
     bSeparate = false
@@ -37,6 +37,8 @@ function example_qp1()
     # the knitro.opt file.
     options = joinpath(dirname(@__FILE__), "..", "examples", "knitro.opt")
     KNITRO.KN_load_param_file(kc, options)
+    kn_outlev = verbose ? KNITRO.KN_OUTLEV_ITER : KNITRO.KN_OUTLEV_NONE
+    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
 
     # Initialize Knitro with the problem definition.
 
@@ -82,7 +84,6 @@ function example_qp1()
 
     # Enable iteration output and crossover procedure to try to
     # get more solution precision
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, KNITRO.KN_OUTLEV_ITER)
     KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_BAR_MAXCROSSIT, 5)
 
     # Solve the problem.
@@ -90,15 +91,16 @@ function example_qp1()
     # Return status codes are defined in "kn_defines.jl" and described
     # in the Knitro manual.
     nStatus = KNITRO.KN_solve(kc)
-
-    println("Knitro converged with final status = ", nStatus)
+    nStatus, objSol, x, lambda_ =  KNITRO.KN_get_solution(kc)
 
     # An example of obtaining solution information.
-    nStatus, objSol, x, lambda_ =  KNITRO.KN_get_solution(kc)
-    println("  optimal objective value  = ", objSol)
-    println("  optimal primal values x  = ",  x)
-    println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
-    println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
+    if verbose
+        println("Knitro converged with final status = ", nStatus)
+        println("  optimal objective value  = ", objSol)
+        println("  optimal primal values x  = ",  x)
+        println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
+        println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
+    end
     # Delete the Knitro solver instance.
     KNITRO.KN_free(kc)
 
@@ -109,5 +111,5 @@ function example_qp1()
     end
 end
 
-example_qp1()
+example_qp1(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
 

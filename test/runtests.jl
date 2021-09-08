@@ -1,6 +1,8 @@
 using KNITRO
 using Test
 
+const KN_VERBOSE = false
+
 @testset "Test C API" begin
     include("knitroapi.jl")
 end

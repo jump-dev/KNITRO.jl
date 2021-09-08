@@ -19,7 +19,7 @@
 
 using KNITRO, Test
 
-function example_nlp2noderivs()
+function example_nlp2noderivs(; verbose=true)
     #*------------------------------------------------------------------*
     #*     FUNCTION callbackEvalFC                                      *
     #*------------------------------------------------------------------*
@@ -88,7 +88,8 @@ function example_nlp2noderivs()
     KNITRO.KN_set_obj_goal(kc, KNITRO.KN_OBJGOAL_MAXIMIZE)
 
     # Set option to println output after every iteration.
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, KNITRO.KN_OUTLEV_ITER)
+    kn_outlev = verbose ? KNITRO.KN_OUTLEV_ITER : KNITRO.KN_OUTLEV_NONE
+    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
 
     # Solve the problem.
     #
@@ -130,7 +131,8 @@ function example_nlp2noderivs()
 end
 
 if KNITRO.KNITRO_VERSION >= v"12.4"
-    example_nlp2noderivs()
+    example_nlp2noderivs(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
 else
-    println("This example is only available with Knitro >= 12.4")
+    println("Example `nlp2noderivs.jl` is only available with Knitro >= 12.4")
 end
+

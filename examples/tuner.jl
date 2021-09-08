@@ -24,7 +24,7 @@
 
 using KNITRO, Test
 
-function example_tuner()
+function example_tuner(; verbose=true)
     #*------------------------------------------------------------------*
     #*     FUNCTION callbackEvalF                                       *
     #*------------------------------------------------------------------*
@@ -88,6 +88,9 @@ function example_tuner()
 
     # Create a new Knitro solver instance.
     kc = KNITRO.KN_new()
+
+    kn_outlev = verbose ? KNITRO.KN_OUTLEV_ITER : KNITRO.KN_OUTLEV_NONE
+    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
 
     # Initialize Knitro with the problem definition.
 
@@ -185,7 +188,7 @@ function example_tuner()
     # TODO: KNITRO.jl does not seem to be thread safe
     nThreads = Sys.CPU_THREADS
     if nThreads > 1
-        println("Running Knitro Tuner in parallel with $nThreads threads.")
+        println("Force Knitro multistart to run in parallel with 1 threads (instead of $nThreads).")
         KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_PAR_NUMTHREADS, 1)
     end
 
@@ -198,18 +201,21 @@ function example_tuner()
     # An example of obtaining solution information.
     # An example of obtaining solution information.
     nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
-    println("Optimal objective value  = ", objSol)
-    println("Optimal x(with corresponding multiplier)")
-    for i in 1:n
-        println("  x[$i] = ", x[i], "(lambda = ",  lambda_[m+i], ")")
+
+    if verbose
+        println("Optimal objective value  = ", objSol)
+        println("Optimal x(with corresponding multiplier)")
+        for i in 1:n
+            println("  x[$i] = ", x[i], "(lambda = ",  lambda_[m+i], ")")
+        end
+        println("Optimal constraint values(with corresponding multiplier)")
+        c = KNITRO.KN_get_con_values(kc)
+        for j in 1:m
+            println("  c[$j] = ", c[j], "(lambda = ",  lambda_[m+j], ")")
+        end
+        println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
+        println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
     end
-    println("Optimal constraint values(with corresponding multiplier)")
-    c = KNITRO.KN_get_con_values(kc)
-    for j in 1:m
-        println("  c[$j] = ", c[j], "(lambda = ",  lambda_[m+j], ")")
-    end
-    println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
-    println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
 
     # Delete the Knitro solver instance.
     KNITRO.KN_free(kc)
@@ -221,5 +227,5 @@ function example_tuner()
     end
 end
 
-example_tuner()
+example_tuner(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
 

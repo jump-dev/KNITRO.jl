@@ -24,7 +24,7 @@
 using KNITRO
 
 
-function example_conic()
+function example_conic(; verbose=true)
     #** Create a new Knitro solver instance. */
     kc = KNITRO.KN_new()
 
@@ -104,7 +104,8 @@ function example_conic()
     #** Enable the special barrier tools for second order cone(SOC) constraints. */
     KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_BAR_CONIC_ENABLE, KNITRO.KN_BAR_CONIC_ENABLE_SOC)
     #** Specify maximum output */
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, KNITRO.KN_OUTLEV_ALL)
+    outlev = verbose ? KNITRO.KN_OUTLEV_ALL : KNITRO.KN_OUTLEV_NONE
+    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, outlev)
     #** Specify special barrier update rule */
     KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_BAR_MURULE, KNITRO.KN_BAR_MURULE_FULLMPC)
 
@@ -113,22 +114,23 @@ function example_conic()
     ####*  Return status codes are defined in "knitro.h" and described
     ####*  in the Knitro manual. */
     nStatus = KNITRO.KN_solve(kc)
-
-    println("Knitro converged with final status = ", nStatus)
+    nStatus, objSol, x, _ = KNITRO.KN_get_solution(kc)
+    feasError = KNITRO.KN_get_abs_feas_error(kc)
+    optError = KNITRO.KN_get_abs_opt_error(kc)
 
     #** An example of obtaining solution information. */
-    nStatus, objSol, x, _ = KNITRO.KN_get_solution(kc)
-    println("  optimal objective value  = ", objSol)
-    println("  optimal primal values x  = ", x)
-
-    feasError = KNITRO.KN_get_abs_feas_error(kc)
-    println("  feasibility violation    = ", feasError)
-    optError = KNITRO.KN_get_abs_opt_error(kc)
-    println("  KKT optimality violation = ", optError)
+    if verbose
+        println("Knitro converged with final status = ", nStatus)
+        println("  optimal objective value  = ", objSol)
+        println("  optimal primal values x  = ", x)
+        println("  feasibility violation    = ", feasError)
+        println("  KKT optimality violation = ", optError)
+    end
 
     #** Delete the Knitro solver instance. */
     KNITRO.KN_free(kc)
 end
 
-example_conic()
+
+example_conic(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
 
