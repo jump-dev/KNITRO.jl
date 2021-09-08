@@ -21,10 +21,6 @@ end
     include("MOI_additional.jl")
 end
 
-@testset "Test JuMP" begin
-    include("jump_soc.jl")
-end
-
 try
     @testset "Test C API License" begin
         include("knitroapi_licman.jl")

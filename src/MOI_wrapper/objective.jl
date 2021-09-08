@@ -1,6 +1,6 @@
 # MathOptInterface objective
 
-MOI.supports(::Optimizer, ::MOI.ObjectiveFunction{MOI.SingleVariable}) = true
+MOI.supports(::Optimizer, ::MOI.ObjectiveFunction{MOI.VariableIndex}) = true
 MOI.supports(::Optimizer, ::MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}) = true
 MOI.supports(::Optimizer, ::MOI.ObjectiveFunction{MOI.ScalarQuadraticFunction{Float64}}) = true
 MOI.supports(::Optimizer, ::MOI.ObjectiveSense) = true
@@ -38,15 +38,15 @@ function add_objective!(model::Optimizer, objective::MOI.ScalarAffineFunction)
     return
 end
 
-function add_objective!(model::Optimizer, var::MOI.SingleVariable)
+function add_objective!(model::Optimizer, var::MOI.VariableIndex)
     # We load the objective inside KNITRO.
-    KN_add_obj_linear_struct(model.inner, var.variable.value - 1, 1.)
+    KN_add_obj_linear_struct(model.inner, var.value - 1, 1.)
     reset_objective!(model)
     return
 end
 
 function MOI.set(model::Optimizer, ::MOI.ObjectiveFunction,
-                 func::Union{MOI.SingleVariable, MOI.ScalarAffineFunction,
+                 func::Union{MOI.VariableIndex, MOI.ScalarAffineFunction,
                              MOI.ScalarQuadraticFunction})
     # 1/ if the model was already solved, we cannot change the objective.
     (model.number_solved >= 1) && throw(UpdateObjectiveError())

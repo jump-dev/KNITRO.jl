@@ -1,0 +1,8 @@
+[deps]
+JuMP = "4076af6c-e467-56ae-b986-b466b2749572"
+KNITRO = "67920dd8-b58e-52a8-8622-53c4cffbe346"
+
+[compat]
+JuMP = "~0.21"
+KNITRO = "~0.10"
+julia = "^1"
