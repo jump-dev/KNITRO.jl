@@ -1,125 +1,108 @@
+module TestMOIWrapper
+
 using Test
-using MathOptInterface
-const MOI = MathOptInterface
-const MOIT = MOI.DeprecatedTest
-const MOIU = MOI.Utilities
-const MOIB = MOI.Bridges
+using KNITRO
 
-import KNITRO
+const MOI = KNITRO.MOI
 
-# Default configuration.
-const config = MOIT.Config(atol=1e-5, rtol=1e-8,
-                           optimal_status=MOI.LOCALLY_SOLVED,
-                           query=false,
-                           infeas_certificates=false, # Do not ask for infeasibility certificates.
-                           modify_lhs=false)
-
-const config_noduals = MOIT.Config(atol=1e-5, rtol=1e-8,
-                                   optimal_status=MOI.LOCALLY_SOLVED,
-                                   query=false,
-                                   duals=false,
-                                   infeas_certificates=false,
-                                   modify_lhs=false)
-
-@testset "MOI utils" begin
-    @testset "SolverName" begin
-        optimizer = KNITRO.Optimizer()
-        @test MOI.get(optimizer, MOI.SolverName()) == "Knitro"
-        KNITRO.free(optimizer)
+function runtests()
+    for name in names(@__MODULE__; all = true)
+        if startswith("$(name)", "test_")
+            @testset "$(name)" begin
+                getfield(@__MODULE__, name)()
+            end
+        end
     end
-    @testset "supports_default_copy_to" begin
-        optimizer = KNITRO.Optimizer()
-        @test MOIU.supports_default_copy_to(optimizer)
-        KNITRO.free(optimizer)
-    end
-    @testset "MOI.Silent" begin
-        optimizer = KNITRO.Optimizer()
-        @test MOI.supports(optimizer, MOI.Silent())
-        @test MOI.get(optimizer, MOI.Silent()) == false
-        MOI.set(optimizer, MOI.Silent(), true)
-        @test MOI.get(optimizer, MOI.Silent()) == true
-        KNITRO.free(optimizer)
-    end
-    @testset "MOI.TimeLimitSec" begin
-        optimizer = KNITRO.Optimizer()
-        @test MOI.supports(optimizer, MOI.TimeLimitSec())
-        # TimeLimitSec is set to 1e8 by default in Knitro.
-        @test MOI.get(optimizer, MOI.TimeLimitSec()) == 1e8
-        my_time_limit = 10.
-        MOI.set(optimizer, MOI.TimeLimitSec(), my_time_limit)
-        @test MOI.get(optimizer, MOI.TimeLimitSec()) == my_time_limit
-        KNITRO.free(optimizer)
-    end
-    @testset "MOI.RawAttribute" begin
-        # Test special RawAttributes
-        optimizer = KNITRO.Optimizer()
-        option_file = joinpath(dirname(pathof(KNITRO)),"..", "examples", "knitro.opt")
-        MOI.set(optimizer, MOI.RawOptimizerAttribute("option_file"), option_file)
-        tuner_file = joinpath(dirname(pathof(KNITRO)),"..", "examples", "tuner-fixed.opt")
-        MOI.set(optimizer, MOI.RawOptimizerAttribute("tuner_file"), tuner_file)
-        KNITRO.free(optimizer)
-    end
+    return
 end
 
-const OPTIMIZER = KNITRO.Optimizer()
-MOI.set(OPTIMIZER, MOI.RawOptimizerAttribute("outlev"), 0)
-MOI.empty!(OPTIMIZER)
+const TEST_CONFIG = MOI.Test.Config(
+    atol = 1e-4,
+    rtol = 1e-4,
+    optimal_status = MOI.LOCALLY_SOLVED,
+    exclude = Any[
+        MOI.ConstraintBasisStatus,
+        MOI.DualObjectiveValue,
+        MOI.ObjectiveBound,
+        MOI.ListOfConstraintTypesPresent,
+        MOI.ConstraintFunction,
+        MOI.ObjectiveFunction,
+    ]
+)
 
-# Build bridge optimizer.
-const BRIDGED = MOIB.full_bridge_optimizer(OPTIMIZER, Float64)
+const MOI_BASE_EXCLUDED = String[
+    # KNITRO does not support problem's modification
+    "test_modification",
+    # KNITRO does not support delete
+    "_delete_",
+    # KNITRO returns LOCALLY_INFEASIBLE, not INFEASIBLE
+    "INFEASIBLE",
+    # MODEL
+    "test_model_copy_to_", # TODO: No Exception thrown when we copy BadConstraintModel
+    "test_model_ScalarFunctionConstantNotZero",  # RequirementUnmet: _supports(config, MOI.ConstraintFunction)
+    # VARIABLE
+    "test_variable_get_VariableIndex", # Knitro does not support get(::, ::MathOptInterface.VariableIndex, ::String)
+    # SOLVE
+    "test_solve_DualStatus_INFEASIBILITY_CERTIFICATE_",
+    # CONSTRAINTS
+    "test_constraint_ZeroOne", # Wrong solution returned
+    "test_constraint_VectorAffineFunction_duplicate", # Knitro does not support get(::, ::MathOptInterface.VariableIndex, ::String)
+    "test_constraint_PrimalStart_DualStart_SecondOrderCone", #TODO : bug in conic interface
+    # LINEAR
+    "test_linear_transform", # Knitro does not support model transform
+    "test_linear_Semicontinuous_integration", # Wrong return status
+    "test_linear_Semiinteger_integration", # Wrong return status
+    # QUADRATIC
+    "test_quadratic_Integer_SecondOrderCone", # MOI.get(model, MOI.TerminationStatus()) == MOI.OTHER_LIMIT
+    # CONIC
+    "test_conic", # TODO: solve issues with conic interface
+]
 
-
-@testset "MOI Linear tests" begin
-    exclude = ["linear1",
-               "linear2", # DualObjectivevalue not supported
-               "linear4", # ConstraintSet not supported
-               "linear5",
-               "linear6", # ConstraintSet not supported
-               "linear7", # Delete not allowed
-               "linear8a", # Behavior in infeasible case doesn't match test.
-               "linear8b", # Investigate
-               "linear8c", # Problem catching infeasibility ray
-               "linear10", # Delete not allowed
-               "linear11", # problem accessing constraint function
-               "linear12", # Same as above.
-               "linear14", # Delete not allowed
-               "linear15", # DualObjectivevalue not supported
-               ]
-    MOIT.contlineartest(BRIDGED, config, exclude)
-    # Test linear2 and linear15 without querying the dual solution.
-    MOIT.linear15test(BRIDGED, config_noduals)
-    MOIT.linear2test(BRIDGED, config_noduals)
+function test_MOI_Test_cached()
+    bridged = MOI.Bridges.full_bridge_optimizer(KNITRO.Optimizer(), Float64)
+    model = MOI.Utilities.CachingOptimizer(
+        MOI.Utilities.UniversalFallback(MOI.Utilities.Model{Float64}()),
+        bridged,
+    )
+    MOI.set(model, MOI.Silent(), true)
+    excluded = copy(MOI_BASE_EXCLUDED)
+    append!(excluded, [
+        "test_quadratic_nonhomogeneous", # Knitro diverges on second problem solved
+    ])
+    MOI.Test.runtests(
+        model,
+        TEST_CONFIG;
+        exclude = excluded,
+    )
 end
 
-@testset "MOI QP/QCQP tests" begin
-    # Exclude QP tests as Knitro does not support update in objective
-    # function after a solve.
-    exclude = String["qp2", "qp3"]
-    MOIT.contquadratictest(BRIDGED, config, exclude)
+function test_MOI_Test_bridged()
+    model = MOI.Bridges.full_bridge_optimizer(
+        KNITRO.Optimizer(),
+        Float64,
+    )
+    MOI.set(model, MOI.Silent(), true)
+    excluded = copy(MOI_BASE_EXCLUDED)
+    append!(excluded, [
+        "test_add_constrained_variables_vector", # Knitro does not support getting MOI.ConstraintSet
+        "test_basic", # TODO: Need better support for names
+        "test_model", # TODO: Need better support for names
+        "test_objective_set_via_modify", # KNITRO does not support getting MOI.ListOfModelAttributesSet
+        "test_objective_get_ObjectiveFunction_ScalarAffineFunction", # KNITRO does not support getting MOI.ObjectiveFunction
+        "test_objective_ObjectiveFunction_VariableIndex", # KNITRO does not support getting MOI.ObjectiveFunctionType
+        "test_quadratic_duplicate_terms", # Knitro does not support getting MOI.ObjectiveFunction / MOI.ConstraintFunction
+        "test_quadratic_integration", # Knitro does not support getting ObjectiveFunction / MOI.ConstraintFunction
+        "test_constraint_get_ConstraintIndex", # Knitro does not support get(::, ::MathOptInterface.VariableIndex, ::String)
+    ])
+    MOI.Test.runtests(
+        model,
+        TEST_CONFIG;
+        exclude = excluded,
+    )
+    return
 end
 
-@testset "MOI complementarity tests" begin
-    MOIT.test_qp_complementarity_constraint(BRIDGED, config)
-    MOIT.test_linear_mixed_complementarity(BRIDGED, config)
 end
 
-#= @testset "MOI SOCP tests" begin =#
-#=     # TODO: DualObjectivevalue not supported =#
-#=     # Presolve must be switch off to get proper dual variables. =#
-#=     config2 = MOIT.TestConfig(atol=1e-4, rtol=1e-4, infeas_certificates=false, =#
-#=                               optimal_status=MOI.LOCALLY_SOLVED, query=false) =#
-#=     # Behavior in infeasible case doesn't match test. =#
-#=     exclude = ["lin4"] =#
-#=     BRIDGED2 = MOIB.full_bridge_optimizer(KNITRO.Optimizer(outlev=0, presolve=0), Float64) =#
-#=     MOIT.lintest(BRIDGED2, config2) =#
-#= end =#
+TestMOIWrapper.runtests()
 
-@testset "MOI NLP tests" begin
-    MOIT.nlptest(OPTIMIZER, config)
-end
-
-@testset "MOI MILP test" begin
-    MOIT.knapsacktest(OPTIMIZER, config)
-end
-
-KNITRO.free(OPTIMIZER)

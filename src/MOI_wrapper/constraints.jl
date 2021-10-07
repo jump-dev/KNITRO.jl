@@ -23,6 +23,7 @@ MOI.supports_constraint(::Optimizer, ::Type{VOV}, ::Type{MOI.Complements}) = tru
 MOI.supports_constraint(::Optimizer, ::Type{VAF}, ::Type{MOI.Complements}) = true
 
 ##################################################
+# TODO: clean getters
 ## Getters
 MOI.get(model::Optimizer, ::MOI.NumberOfConstraints) =
     KN_get_number_cons(model.inner)
@@ -30,7 +31,7 @@ MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.VariableIndex, MOI.ZeroO
     model.number_zeroone_constraints
 MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.VariableIndex, MOI.Integer}) =
     model.number_integer_constraints
-MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.VariableIndex, S}) where S <: LS =
+MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.VariableIndex, S}) where S <: SS =
     sum(typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{MOI.VariableIndex, S})
 # TODO: a bit hacky, but that should work for MOI Test.
 MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{VAF, MOI.Nonnegatives}) =
@@ -366,7 +367,7 @@ function MOI.add_constraint(model::Optimizer,
     KN_set_var_upbnds(model.inner, indv, upbnd)
     KN_set_var_type(model.inner, vi.value - 1, KN_VARTYPE_BINARY)
 
-    return MOI.ConstraintIndex{MOI.VariableIndex, MOI.ZeroOne}(model.number_zeroone_constraints)
+    return MOI.ConstraintIndex{MOI.VariableIndex, MOI.ZeroOne}(vi.value)
 end
 
 function MOI.add_constraint(model::Optimizer,
@@ -375,7 +376,7 @@ function MOI.add_constraint(model::Optimizer,
     check_inbounds(model, vi)
     model.number_integer_constraints += 1
     KN_set_var_type(model.inner, vi.value - 1, KN_VARTYPE_INTEGER)
-    return MOI.ConstraintIndex{MOI.VariableIndex, MOI.Integer}(model.number_integer_constraints)
+    return MOI.ConstraintIndex{MOI.VariableIndex, MOI.Integer}(vi.value)
 end
 
 
