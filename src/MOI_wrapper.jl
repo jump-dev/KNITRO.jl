@@ -257,7 +257,8 @@ function MOI.set(model::Optimizer, ::MOI.Silent, value)
     # Register change in outlev in options in case model is emptied.
     model.options["outlev"] = outlev
     # Set option in Knitro's model.
-    KN_set_param(model.inner, "outlev", outlev)
+    # KN_set_param(model.inner, "outlev", outlev)
+    KN_set_param(model.inner, KN_PARAM_OUTLEV, outlev)
     return
 end
 

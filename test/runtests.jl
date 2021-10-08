@@ -20,7 +20,6 @@ end
 
 @testset "Test MathOptInterface" begin
     include("MOI_wrapper.jl")
-    include("MOI_additional.jl")
 end
 
 try

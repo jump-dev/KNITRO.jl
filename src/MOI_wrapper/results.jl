@@ -1,6 +1,73 @@
 # MathOptInterface results
 MOI.get(model::Optimizer, ::MOI.RawStatusString) = string(get_status(model.inner))
 
+KN_TO_MOI_RETURN_STATUS = Dict{Int, MOI.TerminationStatusCode}(
+       0 => MOI.LOCALLY_SOLVED,
+    -100 => MOI.ALMOST_OPTIMAL,
+    -101 => MOI.SLOW_PROGRESS,
+    -102 => MOI.SLOW_PROGRESS,
+    -103 => MOI.SLOW_PROGRESS,
+    -200 => MOI.LOCALLY_INFEASIBLE,
+    -201 => MOI.LOCALLY_INFEASIBLE,
+    -202 => MOI.LOCALLY_INFEASIBLE,
+    -203 => MOI.LOCALLY_INFEASIBLE,
+    -204 => MOI.LOCALLY_INFEASIBLE,
+    -205 => MOI.LOCALLY_INFEASIBLE,
+    -300 => MOI.DUAL_INFEASIBLE,
+    -301 => MOI.DUAL_INFEASIBLE,
+    -400 => MOI.ITERATION_LIMIT,
+    -401 => MOI.TIME_LIMIT,
+    -402 => MOI.OTHER_LIMIT,
+    -403 => MOI.OTHER_LIMIT,
+    -404 => MOI.OTHER_LIMIT,
+    -405 => MOI.OTHER_LIMIT,
+    -406 => MOI.NODE_LIMIT,
+    -410 => MOI.ITERATION_LIMIT,
+    -411 => MOI.TIME_LIMIT,
+    -412 => MOI.INFEASIBLE,
+    -413 => MOI.INFEASIBLE,
+    -414 => MOI.OTHER_LIMIT,
+    -415 => MOI.OTHER_LIMIT,
+    -416 => MOI.NODE_LIMIT,
+    -500 => MOI.INVALID_MODEL,
+    -501 => MOI.NUMERICAL_ERROR,
+    -502 => MOI.INVALID_MODEL,
+    -503 => MOI.MEMORY_LIMIT,
+    -504 => MOI.INTERRUPTED,
+    -505 => MOI.OTHER_ERROR,
+    -506 => MOI.OTHER_ERROR,
+    -507 => MOI.OTHER_ERROR,
+    -508 => MOI.OTHER_ERROR,
+    -509 => MOI.OTHER_ERROR,
+    -510 => MOI.OTHER_ERROR,
+    -511 => MOI.OTHER_ERROR,
+    -512 => MOI.OTHER_ERROR,
+    -513 => MOI.OTHER_ERROR,
+    -514 => MOI.OTHER_ERROR,
+    -515 => MOI.OTHER_ERROR,
+    -516 => MOI.OTHER_ERROR,
+    -517 => MOI.OTHER_ERROR,
+    -518 => MOI.OTHER_ERROR,
+    -519 => MOI.OTHER_ERROR,
+    -519 => MOI.OTHER_ERROR,
+    -520 => MOI.OTHER_ERROR,
+    -521 => MOI.OTHER_ERROR,
+    -522 => MOI.OTHER_ERROR,
+    -523 => MOI.OTHER_ERROR,
+    -524 => MOI.OTHER_ERROR,
+    -525 => MOI.OTHER_ERROR,
+    -526 => MOI.OTHER_ERROR,
+    -527 => MOI.OTHER_ERROR,
+    -528 => MOI.OTHER_ERROR,
+    -529 => MOI.OTHER_ERROR,
+    -530 => MOI.OTHER_ERROR,
+    -531 => MOI.OTHER_ERROR,
+    -532 => MOI.OTHER_ERROR,
+    -600 => MOI.OTHER_ERROR,
+)
+
+
+
 # Refer to KNITRO manual for solver status:
 # https://www.artelys.com/tools/knitro_doc/3_referenceManual/returnCodes.html#returncodes
 function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
@@ -8,40 +75,8 @@ function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
         return MOI.OPTIMIZE_NOT_CALLED
     end
     status = get_status(model.inner)
-    if status == 0
-        return MOI.LOCALLY_SOLVED
-    elseif status == -100
-        return MOI.ALMOST_OPTIMAL
-    elseif -109 <= status <= -101
-        return MOI.ALMOST_OPTIMAL
-    elseif -209 <= status <= -200
-        return MOI.LOCALLY_INFEASIBLE
-    elseif status == -300
-        return MOI.DUAL_INFEASIBLE
-    elseif (status == -400) || (status == -410)
-        return MOI.ITERATION_LIMIT
-    elseif (status == -401) || (status == -411)
-        return MOI.TIME_LIMIT
-    elseif (status == -413) || (status == -412)
-        return MOI.LOCALLY_INFEASIBLE
-    elseif (-405 <= status <= -402) || (-415 <= status <= -414)
-        return MOI.OTHER_LIMIT
-    elseif (status == -406) || (status == -416)
-        return MOI.NODE_LIMIT
-    elseif -599 <= status <= -500
-        return MOI.OTHER_ERROR
-    elseif status == -503
-        return MOI.MEMORY_LIMIT
-    elseif status == -504
-        return MOI.INTERRUPTED
-    elseif (status == -505 ) || (status == -521)
-        return MOI.INVALID_OPTION
-    elseif (-514 <= status <= -506 ) || (-532 <= status <= -522)
-        return MOI.INVALID_MODEL
-    elseif (-525 <= status <= -522 )
-        return MOI.NUMERICAL_ERROR
-    elseif (status == -600) || (-520 <= status <= -515)
-        return MOI.OTHER_ERROR
+    if haskey(KN_TO_MOI_RETURN_STATUS, status)
+        return KN_TO_MOI_RETURN_STATUS[status]
     else
         error("Unrecognized KNITRO status $status")
     end
@@ -52,8 +87,11 @@ function MOI.get(model::Optimizer, ::MOI.ResultCount)
     return (model.number_solved >= 1) ? 1 : 0
 end
 
-function MOI.get(model::Optimizer, ::MOI.PrimalStatus)
-    if model.number_solved == 0
+function MOI.get(model::Optimizer, status::MOI.PrimalStatus)
+    if (
+        (model.number_solved == 0) ||   # no solution available if the model is unsolved
+        (status.result_index > 1)       # KNITRO stores only a single solution
+    )
         return MOI.NO_SOLUTION
     end
     status = get_status(model.inner)
@@ -76,8 +114,11 @@ function MOI.get(model::Optimizer, ::MOI.PrimalStatus)
     end
 end
 
-function MOI.get(model::Optimizer, ::MOI.DualStatus)
-    if model.number_solved == 0
+function MOI.get(model::Optimizer, status::MOI.DualStatus)
+    if (
+        (model.number_solved == 0) ||   # no solution available if the model is unsolved
+        (status.result_index > 1)       # KNITRO stores only a single solution
+    )
         return MOI.NO_SOLUTION
     end
     status = get_status(model.inner)
@@ -100,34 +141,42 @@ function MOI.get(model::Optimizer, ::MOI.DualStatus)
     end
 end
 
-function MOI.get(model::Optimizer, ::S) where S <: MOI.ObjectiveValue
+function MOI.get(model::Optimizer, obj::MOI.ObjectiveValue)
     if model.number_solved == 0
         error("ObjectiveValue not available.")
+    elseif obj.result_index > 1
+        throw(MOI.ResultIndexBoundsError{MOI.ObjectiveValue}(obj, 1))
     end
     return get_objective(model.inner)
 end
 
 function MOI.get(model::Optimizer,
-                 ::MOI.VariablePrimal, vi::MOI.VariableIndex)
+                 v::MOI.VariablePrimal, vi::MOI.VariableIndex)
     if model.number_solved == 0
         error("VariablePrimal not available.")
+    elseif v.result_index > 1
+        throw(MOI.ResultIndexBoundsError{MOI.VariablePrimal}(v, 1))
     end
     check_inbounds(model, vi)
     return get_solution(model.inner, vi.value)
 end
 function MOI.get(model::Optimizer,
-                 ::MOI.VariablePrimal, vi::Vector{MOI.VariableIndex})
+                 v::MOI.VariablePrimal, vi::Vector{MOI.VariableIndex})
     if model.number_solved == 0
         error("VariablePrimal not available.")
+    elseif v.result_index > 1
+        throw(MOI.ResultIndexBoundsError{MOI.VariablePrimal}(v, 1))
     end
     x = get_solution(model.inner)
     return [x[v.value] for v in vi]
 end
 
-macro checkcons(model, ci)
+macro checkcons(model, ci, cp)
     quote
         if $(esc(model)).number_solved == 0
             error("Solve problem before accessing solution.")
+        elseif $(esc(cp)).result_index > 1
+            throw(MOI.ResultIndexBoundsError{typeof($(esc(cp)))}($(esc(cp)), 1))
         end
         if !(0 <= $(esc(ci)).value <= number_constraints($(esc(model))) - 1)
             error("Invalid constraint index ", $(esc(ci)).value)
@@ -137,75 +186,63 @@ end
 
 ##################################################
 ## ConstraintPrimal
-function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
+function MOI.get(model::Optimizer, cp::MOI.ConstraintPrimal,
                  ci::MOI.ConstraintIndex{S, T}) where {S <: SF, T <: SS}
-    @checkcons(model, ci)
+    @checkcons(model, ci, cp)
     g = KN_get_con_values(model.inner)
     index = model.constraint_mapping[ci] .+ 1
     return g[index]
 end
 
-function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
+function MOI.get(model::Optimizer, cp::MOI.ConstraintPrimal,
                  ci::MOI.ConstraintIndex{S, T}) where {S <: VAF, T <: Union{MOI.Nonnegatives, MOI.Nonpositives}}
-    @checkcons(model, ci)
+    @checkcons(model, ci, cp)
     g = KN_get_con_values(model.inner)
     index = model.constraint_mapping[ci] .+ 1
     return g[index]
 end
 
-function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
+function MOI.get(model::Optimizer, cp::MOI.ConstraintPrimal,
                  ci::MOI.ConstraintIndex{S, T}) where {S <: VOV, T <: Union{MOI.Nonnegatives, MOI.Nonpositives}}
-    @checkcons(model, ci)
+    @checkcons(model, ci, cp)
     x = get_solution(model.inner)
     index = model.constraint_mapping[ci] .+ 1
     return x[index]
 end
 
-function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
+function MOI.get(model::Optimizer, cp::MOI.ConstraintPrimal,
                  ci::MOI.ConstraintIndex{S, T}) where {S <: Union{VAF, VOV}, T <: MOI.Zeros}
-    @checkcons(model, ci)
+    @checkcons(model, ci, cp)
     ncons = length(model.constraint_mapping[ci])
     return zeros(ncons)
 end
 
-function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
+function MOI.get(model::Optimizer, cp::MOI.ConstraintPrimal,
                  ci::MOI.ConstraintIndex{S, T}) where {S <: Union{VAF, VOV}, T <: MOI.SecondOrderCone}
-    @checkcons(model, ci)
+    @checkcons(model, ci, cp)
     x = get_solution(model.inner)
     index = model.constraint_mapping[ci] .+ 1
     return x[index]
 end
 
-function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
-                 ci::MOI.ConstraintIndex{MOI.VariableIndex,
-                                         MOI.LessThan{Float64}})
-    if model.number_solved == 0
-        error("ConstraintPrimal not available.")
-    end
-    g = KN_get_con_values(model.inner)
-
-    allindex = Int[]
-    for ci in cis
-        append!(allindex, index + 1)
-    end
-
-    return g[allindex]
-end
-
-function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
+function MOI.get(model::Optimizer, cp::MOI.ConstraintPrimal,
                  ci::MOI.ConstraintIndex{MOI.VariableIndex, <:LS})
     if model.number_solved == 0
         error("ConstraintPrimal not available.")
+    elseif cp.result_index > 1
+        throw(MOI.ResultIndexBoundsError{MOI.ConstraintPrimal}(cp, 1))
     end
     vi = MOI.VariableIndex(ci.value)
     check_inbounds(model, vi)
     return get_solution(model.inner, vi.value)
 end
 
-function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal,
+function MOI.get(model::Optimizer, cp::MOI.ConstraintPrimal,
                  ci::Vector{MOI.ConstraintIndex{MOI.VariableIndex, <:LS}})
     if model.number_solved == 0
         error("ConstraintPrimal not available.")
+    elseif cp.result_index > 1
+        throw(MOI.ResultIndexBoundsError{MOI.ConstraintPrimal}(cp, 1))
     end
     x = get_solution(model.inner)
     return [x[c.value] for c in ci]
@@ -217,18 +254,18 @@ end
 # KNITRO's dual sign depends on optimization sense.
 sense_dual(model::Optimizer) = (model.sense == MOI.MAX_SENSE) ? 1. : -1.
 
-function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
+function MOI.get(model::Optimizer, cd::MOI.ConstraintDual,
                  ci::MOI.ConstraintIndex{S, T}) where {S <: SF, T <: SS}
-    @checkcons(model, ci)
+    @checkcons(model, ci, cd)
 
     index = model.constraint_mapping[ci] + 1
     lambda = get_dual(model.inner)
     return sense_dual(model) * lambda[index]
 end
 
-function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
+function MOI.get(model::Optimizer, cd::MOI.ConstraintDual,
                  ci::MOI.ConstraintIndex{S, T}) where {S <: VAF, T <: VLS}
-    @checkcons(model, ci)
+    @checkcons(model, ci, cd)
     index = model.constraint_mapping[ci] .+ 1
     lambda = get_dual(model.inner)
     return sense_dual(model) * lambda[index]
@@ -254,11 +291,12 @@ end
 #   w_i * u_i  = - t_i z_i
 #
 ###
-function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
+function MOI.get(model::Optimizer, cd::MOI.ConstraintDual,
                  ci::MOI.ConstraintIndex{S, T}) where {S <: Union{VAF, VOV}, T <: MOI.SecondOrderCone}
-    @checkcons(model, ci)
+    @checkcons(model, ci, cd)
     index_var = model.constraint_mapping[ci] .+ 1
-    index_con = ci.value
+    index = model.constraint_mapping[ci] .+ 1
+    index_con = ci.value + 1
     x =  get_solution(model.inner)[index_var]
     # By construction.
     t_i = x[1]
@@ -271,10 +309,12 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
 end
 
 ## Reduced costs.
-function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
+function MOI.get(model::Optimizer, cd::MOI.ConstraintDual,
                  ci::MOI.ConstraintIndex{MOI.VariableIndex, MOI.LessThan{Float64}})
     if model.number_solved == 0
         error("ConstraintDual not available.")
+    elseif cd.result_index > 1
+        throw(MOI.ResultIndexBoundsError{MOI.ConstraintDual}(cd, 1))
     end
     vi = MOI.VariableIndex(ci.value)
     check_inbounds(model, vi)
@@ -289,10 +329,12 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
     end
 end
 
-function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
+function MOI.get(model::Optimizer, cd::MOI.ConstraintDual,
                  ci::MOI.ConstraintIndex{MOI.VariableIndex, MOI.GreaterThan{Float64}})
     if model.number_solved == 0
         error("ConstraintDual not available.")
+    elseif cd.result_index > 1
+        throw(MOI.ResultIndexBoundsError{MOI.ConstraintDual}(cd, 1))
     end
     vi = MOI.VariableIndex(ci.value)
     check_inbounds(model, vi)
@@ -307,10 +349,12 @@ function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
     end
 end
 
-function MOI.get(model::Optimizer, ::MOI.ConstraintDual,
+function MOI.get(model::Optimizer, cd::MOI.ConstraintDual,
                  ci::MOI.ConstraintIndex{MOI.VariableIndex, MOI.EqualTo{Float64}})
     if model.number_solved == 0
         error("ConstraintDual not available.")
+    elseif cd.result_index > 1
+        throw(MOI.ResultIndexBoundsError{MOI.ConstraintDual}(cd, 1))
     end
     vi = MOI.VariableIndex(ci.value)
     check_inbounds(model, vi)
