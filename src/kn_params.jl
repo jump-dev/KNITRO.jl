@@ -185,11 +185,6 @@ const KN_paramName2Indx = Dict(
     "KN_PARAM_MIP_HEUR_DIVING" => Cint(2042),
     "KN_PARAM_MIP_CUTTINGPLANE" => Cint(2043),
     # Knitro 13.0
-    "KN_PARAM_MIP_HEUR_STRATEGY"    => Cint(2039),
-    "KN_PARAM_MIP_HEUR_FEASPUMP"    => Cint(2040),
-    "KN_PARAM_MIP_HEUR_MPEC"        => Cint(2041),
-    "KN_PARAM_MIP_HEUR_DIVING"      => Cint(2042),
-    "KN_PARAM_MIP_CUTTINGPLANE"     => Cint(2043),
     "KN_PARAM_MS_ENABLE"            => Cint(1033),
     "KN_PARAM_MS_MAXSOLVES"         => Cint(1034),
     "KN_PARAM_MS_MAXBNDRANGE"       => Cint(1035),
@@ -201,9 +196,6 @@ const KN_paramName2Indx = Dict(
     "KN_PARAM_MS_STARTPTRANGE"      => Cint(1055),
     "KN_PARAM_MS_SEED"              => Cint(1066),  
     "KN_PARAM_MS_DETERMINISTIC"     => Cint(1078),
-    "KN_PARAM_BAR_LINSYS_STORAGE"   => Cint(1129), 
-    "KN_PARAM_LINSOLVER_MAXITREF"   => Cint(1130),
-    "KN_PARAM_BFGS_SCALING"         => Cint(1131), 
     "KN_PARAM_BAR_INITSHIFTTOL"     => Cint(1132),
     "KN_PARAM_NUMTHREADS"           => Cint(1133),
     "KN_PARAM_CONCURRENT_EVALS"     => Cint(1134),
@@ -211,11 +203,11 @@ const KN_paramName2Indx = Dict(
     "KN_PARAM_LINSOLVER_NUMTHREADS" => Cint(1136),
     "KN_PARAM_MS_NUMTHREADS"        => Cint(1137),
     "KN_PARAM_CONIC_NUMTHREADS"     => Cint(1138),
-    "KN_PARAM_NCVX_QCQP_INIT"       => Cint(1139),
+    "KN_PARAM_NCVX_QCQP_INIT"       => Cint(1139), 
     "KN_PARAM_MIP_OPTGAPABS"        => Cint(2004),
-    "KN_PARAM_MIP_OPTGAPREL"        => Cint(2005),
-    "KN_PARAM_MIP_IMPLICATIONS"     => Cint(2014),
-    "KN_PARAM_MIP_CUTOFF"           => Cint(2044),
+    "KN_PARAM_MIP_OPTGAPREL"        => Cint(2005), 
+    "KN_PARAM_MIP_IMPLICATIONS"     => Cint(2014), 
+    "KN_PARAM_MIP_CUTOFF"           => Cint(2044), #
     "KN_PARAM_MIP_HEUR_LNS"         => Cint(2045),
     "KN_PARAM_MIP_MULTISTART"       => Cint(2046),
     # DEPRECATED starting Knitro 13.0
@@ -256,11 +248,11 @@ const KNITRO_OPTIONS = String[
     "linsolver_pivottol",        # KN_PARAM_LINSOLVER_PIVOTTOL   #
     "xtol",                      # KN_PARAM_XTOL                 #
     "debug",                     # KN_PARAM_DEBUG                #
-    "ms_enable",                 # KN_PARAM_MULTISTART           #
-    "ms_maxsolves",              # KN_PARAM_MSMAXSOLVES          #
-    "ms_maxbndrange",            # KN_PARAM_MSMAXBNDRANGE        #
-    "ms_maxtime_cpu",            # KN_PARAM_MSMAXTIMECPU         #
-    "ms_maxtime_real",           # KN_PARAM_MSMAXTIMEREAL        #
+    "ms_enable",                 # KN_PARAM_MS_ENABLE            #
+    "ms_maxsolves",              # KN_PARAM_MS_MAXSOLVES         #
+    "ms_maxbndrange",            # KN_PARAM_MS_MAXBNDRANGE       #
+    "ms_maxtime_cpu",            # KN_PARAM_MS_MAXTIMECPU        #
+    "ms_maxtime_real",           # KN_PARAM_MS_MAXTIMEREAL       #
     "lmsize",                    # KN_PARAM_LMSIZE               #
     "bar_maxcrossit",            # KN_PARAM_BAR_MAXCROSSIT       #
     "maxtime_real",              # KN_PARAM_MAXTIMEREAL          #
@@ -274,10 +266,10 @@ const KNITRO_OPTIONS = String[
     "cplexlibname",              # KN_PARAM_CPLEXLIB             #
     "bar_penaltyrule",           # KN_PARAM_BAR_PENRULE          #
     "bar_penaltycons",           # KN_PARAM_BAR_PENCONS          #
-    "ms_num_to_save",            # KN_PARAM_MSNUMTOSAVE          #
-    "ms_savetol",                # KN_PARAM_MSSAVETOL            #
-    "ms_terminate",              # KN_PARAM_MSTERMINATE          #
-    "ms_startptrange",           # KN_PARAM_MSSTARTPTRANGE       #
+    "ms_num_to_save",            # KN_PARAM_MS_NUMTOSAVE         #
+    "ms_savetol",                # KN_PARAM_MS_SAVETOL           #
+    "ms_terminate",              # KN_PARAM_MS_TERMINATE         #
+    "ms_startptrange",           # KN_PARAM_MS_STARTPTRANGE      #
     "infeastol",                 # KN_PARAM_INFEASTOL            #
     "linsolver",                 # KN_PARAM_LINSOLVER            #
     "bar_directinterval",        # KN_PARAM_BAR_DIRECTINTERVAL   #
@@ -288,7 +280,7 @@ const KNITRO_OPTIONS = String[
     "ma_terminate",              # KN_PARAM_MA_TERMINATE         #
     "ma_maxtime_cpu",            # KN_PARAM_MA_MAXTIMECPU        #
     "ma_maxtime_real",           # KN_PARAM_MA_MAXTIMEREAL       #
-    "ms_seed",                   # KN_PARAM_MSSEED               #
+    "ms_seed",                   # KN_PARAM_MS_SEED               #
     "ma_outsub",                 # KN_PARAM_MA_OUTSUB            #
     "ms_outsub",                 # KN_PARAM_MS_OUTSUB            #
     "xpresslibname",             # KN_PARAM_XPRESSLIB            #
@@ -300,7 +292,7 @@ const KNITRO_OPTIONS = String[
     "tuner_terminate",           # KN_PARAM_TUNER_TERMINATE      #
     "linsolver_ooc",             # KN_PARAM_LINSOLVER_OOC        #
     "bar_relaxcons",             # KN_PARAM_BAR_RELAXCONS        #
-    "ms_deterministic",          # KN_PARAM_MSDETERMINISTIC      #
+    "ms_deterministic",          # KN_PARAM_MS_DETERMINISTIC     #
     "bar_refinement",            # KN_PARAM_BAR_REFINEMENT       #
     "derivcheck",                # KN_PARAM_DERIVCHECK           #
     "derivcheck_type",           # KN_PARAM_DERIVCHECK_TYPE      #
@@ -358,7 +350,7 @@ const KNITRO_OPTIONS = String[
     "mip_outinterval",           # KN_PARAM_MIP_OUTINTERVAL      #
     "mip_outsub",                # KN_PARAM_MIP_OUTSUB           #
     "mip_debug",                 # KN_PARAM_MIP_DEBUG            #
-    "mip_implications",          # KN_PARAM_MIP_IMPLICATNS       #
+    "mip_implications",          # KN_PARAM_MIP_IMPLICATIONS     #
     "mip_gub_branch",            # KN_PARAM_MIP_GUB_BRANCH       #
     "mip_knapsack",              # KN_PARAM_MIP_KNAPSACK         #
     "mip_rounding",              # KN_PARAM_MIP_ROUNDING         #
@@ -388,12 +380,12 @@ const KNITRO_OPTIONS = String[
     "mip_heuristic_mpec",        # KN_PARAM_MIP_HEUR_MPEC        #
     "mip_heuristic_diving",      # KN_PARAM_MIP_HEUR_DIVING      #
     "mip_cutting_plane",         # KN_PARAM_MIP_CUTTINGPLANE     #
-    "par_numthreads",            # KN_PARAM_PAR_NUMTHREADS       #
-    "par_concurrent_evals",      # KN_PARAM_PAR_CONCURRENT_EVALS #
-    "par_blasnumthreads",        # KN_PARAM_PAR_BLASNUMTHREADS   #
-    "par_lsnumthreads",          # KN_PARAM_PAR_LSNUMTHREADS     #
-    "par_msnumthreads",          # KN_PARAM_PAR_MSNUMTHREADS     #
-    "par_conicnumthreads",       # KN_PARAM_PAR_CONICNUMTHREADS  #
+    "par_numthreads",            # KN_PARAM_PAR_NUMTHREADS (Knitro < 13.0) KN_PARAM_NUMTHREADS (Knitro >= 13.0)             #
+    "par_concurrent_evals",      # KN_PARAM_PAR_CONCURRENT_EVALS (Knitro < 13.0) KN_PARAM_CONCURRENT_EVALS (Knitro >= 13.0) #
+    "par_blasnumthreads",        # KN_PARAM_PAR_BLASNUMTHREADS (Knitro < 13.0) KN_PARAM_BLAS_NUMTHREADS (Knitro >= 13.0)    #
+    "par_lsnumthreads",          # KN_PARAM_PAR_LSNUMTHREADS (Knitro < 13.0) KN_PARAM_LINSOLVER_NUMTHREADS (Knitro >= 13.0) #
+    "par_msnumthreads",          # KN_PARAM_PAR_MSNUMTHREADS (Knitro < 13.0) KN_PARAM_MS_NUMTHREADS (Knitro >= 13.0)        #
+    "par_conicnumthreads",       # KN_PARAM_PAR_CONICNUMTHREADS (Knitro < 13.0) KN_PARAM_CONIC_NUMTHREADS (Knitro >= 13.0)  #
     "findiff_relstepsize",       # KN_PARAM_FINDIFF_RELSTEPSIZE  #
     "infeastol_iters",           # KN_PARAM_INFEASTOL_ITERS      #
     "presolveop_tighten",        # KN_PARAM_PRESOLVEOP_TIGHTEN   #
@@ -407,4 +399,11 @@ const KNITRO_OPTIONS = String[
     "bfgs_scaling",              # KN_PARAM_BFGS_SCALING         #
     "option_file",
     "tuner_file",
+    "bar_initshiftol",          # KN_PARAM_BAR_INITSHIFTTOL      #
+    "ncvx_qcqp_init",           # KN_PARAM_NCVX_QCQP_INIT        #
+    "mip_opt_gap_abs",          # KN_PARAM_MIP_OPTGAPABS         #
+    "mip_opt_gap_rel",          # KN_PARAM_MIP_OPTGAPREL         #
+    "mip_cutoff",               # KN_PARAM_MIP_CUTOFF            #
+    "mip_heuristic_lns",        # KN_PARAM_MIP_HEUR_LNS          #
+    "mip_multistart",           # KN_PARAM_MIP_MULTISTART        #
 ]
