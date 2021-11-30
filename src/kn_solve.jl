@@ -11,8 +11,9 @@ function KN_solve(m::Model)
     # as we have trouble calling Julia code from multithreaded C
     # code. See issue #93 on https://github.com/jump-dev/KNITRO.jl.
     if has_callbacks(m)
-        KN_set_param(m, "par_numthreads", 1)
-        KN_set_param(m, "par_msnumthreads", 1)
+        KN_set_param(m, KN_PARAM_MS_NUMTHREADS, 1)
+        KN_set_param(m, KN_PARAM_NUMTHREADS, 1)
+        KN_set_param(m, KN_PARAM_MIP_NUMTHREADS, 1)
     end
     # For KN_solve, we do not return an error if ret is different of 0.
     m.status = @kn_ccall(solve, Cint, (Ptr{Cvoid},), m.env)
