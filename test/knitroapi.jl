@@ -452,7 +452,7 @@ end
 
     # START: Some specific parameter settings
     KNITRO.KN_set_param(kc, "presolve", 0)
-    KNITRO.KN_set_param(kc, "outlev", 6)
+    KNITRO.KN_set_param(kc, "outlev", 0)
     KNITRO.KN_set_param(kc, "gradopt", 2)
     KNITRO.KN_set_param(kc, "hessopt", 2)
     # END:   Some specific parameter settings
@@ -901,7 +901,7 @@ end
 
     # Create a new Knitro solver instance.
     kc = KNITRO.KN_new()
-    KNITRO.KN_set_param(kc, "outlev", 6)
+    KNITRO.KN_set_param(kc, "outlev", 0)
 
     # Initialize Knitro with the problem definition.
 
