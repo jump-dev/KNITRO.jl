@@ -52,6 +52,7 @@ const MOI_BASE_EXCLUDED = String[
     "test_linear_transform", # Knitro does not support model transform
     "test_linear_Semicontinuous_integration", # Wrong return status
     "test_linear_Semiinteger_integration", # Wrong return status
+    "test_linear_integration_Interval", # TODO ? Knitro 13.0 converges to 9.99999* instead of 10.0
     # QUADRATIC
     "test_quadratic_Integer_SecondOrderCone", # MOI.get(model, MOI.TerminationStatus()) == MOI.OTHER_LIMIT
     # CONIC
