@@ -72,7 +72,7 @@ Extensive examples using the C wrapper can be found in `examples/`.
 Ampl wrapper
 ============
 
-The package [AmplNLWriter.jl](https://github.com/JuliaOpt/AmplNLWriter.jl")
+The package [AmplNLWriter.jl](https://github.com/JuliaOpt/AmplNLWriter.jl)
 allows to to call `knitroampl` through Julia to solve JuMP's optimization
 models.
 
