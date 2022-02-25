@@ -203,7 +203,7 @@ function example_multistart(; verbose=true)
     nThreads = Sys.CPU_THREADS
     if nThreads > 1
         println("Force Knitro multistart to run in parallel with 1 threads (instead of $nThreads).")
-        KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_PAR_MSNUMTHREADS, 1)
+        KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_MS_NUMTHREADS, 1)
     end
 
     # Solve the problem.

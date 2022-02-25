@@ -202,6 +202,7 @@ const KN_paramName2Indx = Dict(
     "KN_PARAM_BLAS_NUMTHREADS"      => Cint(1135),
     "KN_PARAM_LINSOLVER_NUMTHREADS" => Cint(1136),
     "KN_PARAM_MS_NUMTHREADS"        => Cint(1137),
+    "KN_PARAM_MIP_NUMTHREADS"       => Cint(2048),
     "KN_PARAM_CONIC_NUMTHREADS"     => Cint(1138),
     "KN_PARAM_NCVX_QCQP_INIT"       => Cint(1139), 
     "KN_PARAM_MIP_OPTGAPABS"        => Cint(2004),

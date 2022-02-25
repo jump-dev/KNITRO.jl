@@ -673,6 +673,7 @@ if KNITRO_VERSION >= v"13.0"
     const  KN_BFGS_SCALING_HESS         = Cint(2)
     const KN_PARAM_BAR_INITSHIFTTOL     = Cint(1132)
     const KN_PARAM_NUMTHREADS           = Cint(1133)
+    const KN_PARAM_MIP_NUMTHREADS       = Cint(2048)
     const KN_PARAM_CONCURRENT_EVALS     = Cint(1134)
     const KN_CONCURRENT_EVALS_NO        = Cint(0)
     const KN_CONCURRENT_EVALS_YES       = Cint(1)

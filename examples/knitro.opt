@@ -439,10 +439,10 @@ mip_implications yes
 mip_integer_tol 1e-08
 
 # Specifies absolute stop tolerance for sufficiently small integrality gap.
-mip_integral_gap_abs 1e-06
+mip_opt_gap_abs 1e-06
 
 # Specifies relative stop tolerance for sufficiently small integrality gap.
-mip_integral_gap_rel 1e-06
+mip_opt_gap_rel 1e-06
 
 # How to handle integer variables by default.
 #   none   = 0 = no special treatment
@@ -692,28 +692,28 @@ outmode      screen
 # Number of threads to use in parallel BLAS.
 #   choose any positive integer, or
 #   0 = determine automatically based on par_numthreads
-par_blasnumthreads 0
+blas_numthreads 0
 
 # Whether to allow simultaneous evaluations in parallel.
 #   no   = 0 = only one thread can perform an evaluation at a time
 #   yes  = 1 = allow multi-threaded simultaneous evaluations
-par_concurrent_evals  yes
+concurrent_evals  yes
 
 # Number of threads to use in parallel linear solver.
 #   choose any positive integer, or
 #   0 = determine automatically based on par_numthreads
-par_lsnumthreads 0
+linsolver_numthreads 0
 
 # Number of threads to use in parallel multistart.
 #   choose any positive integer, or
 #   0 = determine automatically based on par_numthreads
-par_msnumthreads 0
+ms_numthreads 0
 
 # Number of threads to use in parallel features.
 #   choose any positive integer, or
 #   0 = value determined by OMP_NUM_THREADS environment variable
 #  -1 = run sequential version of Knitro code
-par_numthreads 1
+numthreads 1
 
 # Specifies the initial pivot threshold used in the factorization routine.
 # The value must be in the range [0 0.5] with higher values resulting

@@ -531,8 +531,8 @@ end
 
     @test KNITRO.KN_get_mip_number_nodes(kc) >= 1
     @test KNITRO.KN_get_mip_number_solves(kc) >= 1
-    @test KNITRO.KN_get_mip_relaxation_bnd(kc) ≈ 31.0495680023
-    @test KNITRO.KN_get_mip_lastnode_obj(kc) ≈ 32.0
+    @test KNITRO.KN_get_mip_relaxation_bnd(kc) ≈ 31.3632000015
+    @test KNITRO.KN_get_mip_lastnode_obj(kc) ≈ 31.3632000015
     @test KNITRO.KN_get_con_values(kc)[1] == 4.0
     @test KNITRO.KN_get_mip_incumbent_obj(kc) ≈ 32.0
     @test KNITRO.KN_get_mip_incumbent_x(kc) == 0.0
@@ -901,7 +901,7 @@ end
 
     # Create a new Knitro solver instance.
     kc = KNITRO.KN_new()
-    KNITRO.KN_set_param(kc, "outlev", 6)
+    KNITRO.KN_set_param(kc, "outlev", 0)
 
     # Initialize Knitro with the problem definition.
 
