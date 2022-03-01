@@ -69,7 +69,7 @@ function MOI.add_constraint(model::Optimizer,
     ub = check_value(lt.upper)
     model.variable_info[vi.value].has_upper_bound = true
     # By construction, MOI's indexing is the same as KNITRO's indexing.
-    KN_set_var_upbnds(model.inner, vi.value - 1, ub)
+    KN_set_var_upbnd(model.inner, vi.value - 1, ub)
     ci = MOI.ConstraintIndex{MOI.VariableIndex, MOI.LessThan{Float64}}(vi.value)
     model.constraint_mapping[ci] = convert(Cint, vi.value)
     return ci
@@ -91,7 +91,7 @@ function MOI.add_constraint(model::Optimizer,
     lb = check_value(gt.lower)
     model.variable_info[vi.value].has_lower_bound = true
     # We assume that MOI's indexing is the same as KNITRO's indexing.
-    KN_set_var_lobnds(model.inner, vi.value - 1, lb)
+    KN_set_var_lobnd(model.inner, vi.value - 1, lb)
     ci = MOI.ConstraintIndex{MOI.VariableIndex, MOI.GreaterThan{Float64}}(vi.value)
     model.constraint_mapping[ci] = convert(Cint, vi.value)
     return ci
@@ -115,8 +115,8 @@ function MOI.add_constraint(model::Optimizer,
     model.variable_info[vi.value].has_lower_bound = true
     model.variable_info[vi.value].has_upper_bound = true
     # We assume that MOI's indexing is the same as KNITRO's indexing.
-    KN_set_var_lobnds(model.inner, vi.value - 1, lb)
-    KN_set_var_upbnds(model.inner, vi.value - 1, ub)
+    KN_set_var_lobnd(model.inner, vi.value - 1, lb)
+    KN_set_var_upbnd(model.inner, vi.value - 1, ub)
     ci = MOI.ConstraintIndex{MOI.VariableIndex, MOI.Interval{Float64}}(vi.value)
     model.constraint_mapping[ci] = convert(Cint, vi.value)
     return ci
@@ -141,7 +141,7 @@ function MOI.add_constraint(model::Optimizer,
     eqv = check_value(eq.value)
     model.variable_info[vi.value].is_fixed = true
     # We assume that MOI's indexing is the same as KNITRO's indexing.
-    KN_set_var_fxbnds(model.inner, vi.value - 1, eqv)
+    KN_set_var_fxbnd(model.inner, vi.value - 1, eqv)
     ci = MOI.ConstraintIndex{MOI.VariableIndex, MOI.EqualTo{Float64}}(vi.value)
     model.constraint_mapping[ci] = convert(Cint, vi.value)
     return ci
@@ -248,11 +248,11 @@ function MOI.add_constraint(model::Optimizer,
     # Load inside KNITRO.
     KN_add_con_linear_struct(model.inner, indexcols, indexvars, coefs)
     if isa(set, MOI.Nonnegatives)
-        KN_set_con_lobnds(model.inner, index_cons, - func.constants)
+        KN_set_con_lobnds(model.inner, num_cols, index_cons, - func.constants)
     elseif isa(set, MOI.Nonpositives)
-        KN_set_con_upbnds(model.inner, index_cons, - func.constants)
+        KN_set_con_upbnds(model.inner, num_cols, index_cons, - func.constants)
     elseif isa(set, MOI.Zeros)
-        KN_set_con_eqbnds(model.inner, index_cons, - func.constants)
+        KN_set_con_eqbnds(model.inner, num_cols, index_cons, - func.constants)
     else
         error("Invalid set $set for VectorAffineFunction constraint")
     end
@@ -363,8 +363,8 @@ function MOI.add_constraint(model::Optimizer,
     # preexisting MOI's bounds.
     lobnd = 0.
     upbnd = 1.
-    KN_set_var_lobnds(model.inner, indv, lobnd)
-    KN_set_var_upbnds(model.inner, indv, upbnd)
+    KN_set_var_lobnd(model.inner, indv, lobnd)
+    KN_set_var_upbnd(model.inner, indv, upbnd)
     KN_set_var_type(model.inner, vi.value - 1, KN_VARTYPE_BINARY)
 
     return MOI.ConstraintIndex{MOI.VariableIndex, MOI.ZeroOne}(vi.value)

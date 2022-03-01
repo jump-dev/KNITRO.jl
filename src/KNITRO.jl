@@ -26,17 +26,10 @@ if KNITRO_VERSION < v"11.0"
     ")
 end
 
-include("kn_common.jl")
-include("kn_env.jl")
+include("libknitro.jl")
+include("C_wrapper.jl")
 
-include("kn_model.jl")
-include("kn_defines.jl")
 include("kn_params.jl")
-include("kn_variables.jl")
-include("kn_attributes.jl")
-include("kn_constraints.jl")
-include("kn_residuals.jl")
-include("kn_solve.jl")
 include("kn_callbacks.jl")
 
 # the MathOptInterface wrapper works only with the new API

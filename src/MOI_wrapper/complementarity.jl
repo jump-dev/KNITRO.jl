@@ -52,7 +52,7 @@ function MOI.add_constraint(model::Optimizer,
 
     # Add structure of new constaints to Knitro.
     KN_add_con_linear_struct(model.inner, jac_cons, jac_vars, jac_coefs)
-    KN_set_con_eqbnds(model.inner, n_cons, -q)
+    KN_set_con_eqbnds(model.inner, n_comp, n_cons, -q)
 
     # Currently, only complementarity constraints between two variables
     # are supported.

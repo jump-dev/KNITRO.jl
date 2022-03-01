@@ -46,46 +46,6 @@ function KN_set_cb_gradopt(m::Model, cb::CallbackContext, gradopt::Integer)
 end
 
 #--------------------
-# Set relative step size
-#--------------------
-"""
-Set an array of relative stepsizes to use for the finite-difference
-gradient/Jacobian computations when using finite-difference
-first derivatives.  Finite-difference step sizes `delta` in Knitro are
-computed as:
-
-     delta[i] = relStepSizes[i]*max(abs(x[i]),1);
-
-The default relative step sizes for each component of `x` are sqrt(eps)
-for forward finite differences, and eps^(1/3) for central finite
-differences.  Use this function to overwrite the default values.
-
-"""
-function KN_set_cb_relstepsizes(m::Model, cb::CallbackContext, nindex::Integer, xRelStepSize::Cdouble)
-    ret = @kn_ccall(set_cb_relstepsize, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Cint, Cdouble),
-                    m.env, cb, nindex, xRelStepSize)
-    _checkraise(ret)
-    return nothing
-end
-
-function KN_set_cb_relstepsizes(m::Model, cb::CallbackContext, xIndex::Vector{Cint}, xRelStepSizes::Vector{Cdouble})
-    ncon = length(xIndex)
-    @assert length(xRelStepSizes) == ncon
-    ret = @kn_ccall(set_cb_relstepsizes, Cint,
-                    (Ptr{Cvoid}, Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cdouble}),
-                    m.env, cb, ncon, xIndex, xRelStepSizes)
-    _checkraise(ret)
-    return nothing
-end
-
-function KN_set_cb_relstepsizes(m::Model, cb::CallbackContext, xRelStepSizes::Vector{Cdouble})
-    ret = @kn_ccall(set_cb_relstepsizes_all, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cdouble}),
-                    m.env, cb, xRelStepSizes)
-    _checkraise(ret)
-    return nothing
-end
-
-#--------------------
 # callback context getters
 #--------------------
 macro callback_getter(function_name, return_type)
@@ -110,37 +70,7 @@ end
 @callback_getter get_cb_rsd_jacobian_nnz KNLONG
 
 
-##################################################
-# EvalRequest
-
-# low level EvalRequest structure
-"""
-Low-level structure used to pass back evaluation information for evaluation
-callbacks.
-
-# Attributes
- * `evalRequestCode`: indicates the type of evaluation requested
- * `threadID`: the thread ID associated with this evaluation request;
-                useful for multi-threaded, concurrent evaluations
- * `x`: values of unknown (primal) variables used for all evaluations
- * `lambda`: values of unknown dual variables/Lagrange multipliers
-                     used for the evaluation of the Hessian
- * `sigma`: scalar multiplier for the objective component of the Hessian
- * `vec`: vector array value for Hessian-vector products (only used
-          when user option hessopt=KN_HESSOPT_PRODUCT)
-
-"""
-mutable struct KN_eval_request
-    evalRequestCode::Cint
-    threadID::Cint
-    x::Ptr{Cdouble}
-    lambda::Ptr{Cdouble}
-    sigma::Ptr{Cdouble}
-    vec::Ptr{Cdouble}
-end
-
 # High level EvalRequest structure.
-"High level structure to wrap `KN_eval_request`."
 mutable struct EvalRequest
     evalRequestCode::Cint
     threadID::Cint
@@ -155,7 +85,7 @@ function EvalRequest(ptr_model::Ptr{Cvoid}, evalRequest_::KN_eval_request, n::In
     # Import objective's scaling.
     sigma = (evalRequest_.sigma != C_NULL) ? unsafe_wrap(Array, evalRequest_.sigma, 1)[1] : 1.
     # Wrap directly C arrays to avoid unnecessary copy.
-    return EvalRequest(evalRequest_.evalRequestCode,
+    return EvalRequest(evalRequest_.type,
                        evalRequest_.threadID,
                        unsafe_wrap(Array, evalRequest_.x, n),
                        unsafe_wrap(Array, evalRequest_.lambda, n + m),
@@ -163,48 +93,7 @@ function EvalRequest(ptr_model::Ptr{Cvoid}, evalRequest_::KN_eval_request, n::In
                        unsafe_wrap(Array, evalRequest_.vec, n))
 end
 
-
-##################################################
-# EvalResult
-
-# low level EvalResult structure
-"""
-Low-level structure used to return results information for evaluation callbacks.
-The arrays (and their indices and sizes) returned in this structure are
-local to the specific callback structure used for the evaluation.
-
-# Attributes
-* `obj`: objective function evaluated at `x` for EVALFC or
-                     EVALFCGA request (funcCallback)
-* `c`: (length nC) constraint values evaluated at `x` for
-                     EVALFC or EVALFCGA request (funcCallback)
-* `objGrad`: (length nV) objective gradient evaluated at `x` for
-                     EVALGA request (gradCallback) or EVALFCGA request (funcCallback)
-* `jac`: (length nnzJ) constraint Jacobian evaluated at `x` for
-                     EVALGA request (gradCallback) or EVALFCGA request (funcCallback)
-* `hess`: (length nnzH) Hessian evaluated at `x`, `lambda`, `sigma`
-                     for EVALH or EVALH_NO_F request (hessCallback)
-* `hessVec`: (length n=number variables in the model) Hessian-vector
-                     product evaluated at `x`, `lambda`, `sigma`
-                     for EVALHV or EVALHV_NO_F request (hessCallback)
-* `rsd`: (length nR) residual values evaluated at `x` for EVALR
-                     request (rsdCallback)
-* `rsdJac`: (length nnzJ) residual Jacobian evaluated at `x` for
-                     EVALRJ request (rsdJacCallback)
-
-"""
-mutable struct KN_eval_result
-    obj::Ptr{Cdouble}
-    c::Ptr{Cdouble}
-    objGrad::Ptr{Cdouble}
-    jac::Ptr{Cdouble}
-    hess::Ptr{Cdouble}
-    hessVec::Ptr{Cdouble}
-    rsd::Ptr{Cdouble}
-    rsdJac::Ptr{Cdouble}
-end
-
-# High level EvalRequest structure.
+# High level EvalResult structure.
 mutable struct EvalResult
     obj::Array{Float64}
     c::Array{Float64}
@@ -494,37 +383,10 @@ end
 ##################################################
 # Get callbacks info
 ##################################################
-function KN_get_number_FC_evals(m::Model)
-    fc_eval = Cint[0]
-    ret = @kn_ccall(get_number_FC_evals, Cint, (Ptr{Cvoid}, Ptr{Cint}),
-                    m.env, fc_eval)
-    _checkraise(ret)
-    return fc_eval[1]
-end
-
-function KN_get_number_GA_evals(m::Model)
-    fc_eval = Cint[0]
-    ret = @kn_ccall(get_number_GA_evals, Cint, (Ptr{Cvoid}, Ptr{Cint}),
-                    m.env, fc_eval)
-    _checkraise(ret)
-    return fc_eval[1]
-end
-
-function KN_get_number_H_evals(m::Model)
-    fc_eval = Cint[0]
-    ret = @kn_ccall(get_number_H_evals, Cint, (Ptr{Cvoid}, Ptr{Cint}),
-                    m.env, fc_eval)
-    _checkraise(ret)
-    return fc_eval[1]
-end
-
-function KN_get_number_HV_evals(m::Model)
-    fc_eval = Cint[0]
-    ret = @kn_ccall(get_number_HV_evals, Cint, (Ptr{Cvoid}, Ptr{Cint}),
-                    m.env, fc_eval)
-    _checkraise(ret)
-    return fc_eval[1]
-end
+@kn_get get_number_FC_evals Cint
+@kn_get get_number_GA_evals Cint
+@kn_get get_number_H_evals Cint
+@kn_get get_number_HV_evals Cint
 
 ##################################################
 # Residual callbacks
@@ -577,8 +439,6 @@ function KN_add_lsq_eval_callback(m::Model, rsdCallBack::Function)
 
     return cb
 end
-
-
 
 function KN_set_cb_rsd_jac(m::Model, cb::CallbackContext, nnzJ::Integer, evalRJ::Function;
                            jacIndexRsds=C_NULL, jacIndexVars=C_NULL)
@@ -864,7 +724,7 @@ function puts_callback_wrapper(str::Ptr{Cchar}, userdata_::Ptr{Cvoid})
     # Load KNITRO's Julia Model.
     try
         m = unsafe_pointer_to_objref(userdata_)::Model
-        res = m.puts_callback(unsafe_string(str), m.userdata)
+        res = m.puts_callback(unsafe_string(str), m.puts_user)
         return Cint(res)
     catch ex
         if isa(ex, InterruptException)

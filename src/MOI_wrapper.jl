@@ -108,7 +108,7 @@ function _add_complementarity_constraint!(
     cache::ComplementarityCache,
     index_vars_1::Vector{Cint},
     index_vars_2::Vector{Cint},
-    cc_types::Vector{Cint},
+    cc_types::Vector{Int},
 )
     if !(length(index_vars_1) == length(index_vars_2) == length(cc_types))
         error("Arrays `index_vars_1`, `index_vars_2` and `cc_types` should"*

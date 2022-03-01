@@ -41,8 +41,8 @@ end
         # At first, `newpoint_user` is nothing
         @test isnothing(kc.newpoint_user)
         KNITRO.KN_add_vars(kc, 1)
-        KNITRO.KN_set_var_lobnds(kc, Cint(0), 2.0)
-        KNITRO.KN_set_var_primal_init_values(kc, [0.0])
+        KNITRO.KN_set_var_lobnd(kc, Cint(0), 2.0)
+        KNITRO.KN_set_var_primal_init_values_all(kc, [0.0])
         KNITRO.KN_set_obj_goal(kc, KNITRO.KN_OBJGOAL_MINIMIZE)
         KNITRO.KN_add_obj_quadratic_struct(kc, Cint[0], Cint[0], [1.0])
         KNITRO.KN_set_newpt_callback(kc, callbackNewPoint, userparam)
