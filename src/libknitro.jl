@@ -1,3 +1,5 @@
+const DBL_MAX = Float64(0x1.fffffffffffffp+1023)
+
 
 const KNINT = Cint
 
@@ -1183,7 +1185,7 @@ const KN_LINSOLVER_PHASE_SOLVE = 3
 
 const KN_LINSOLVER_PHASE_FREE = 4
 
-const KN_INFINITY = Float64(0x1.fffffffffffffp+1023)
+const KN_INFINITY = DBL_MAX
 
 const KN_PARAMTYPE_INTEGER = 0
 
