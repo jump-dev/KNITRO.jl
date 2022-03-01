@@ -20,7 +20,6 @@
 # a customized stopping condition).
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-
 using KNITRO, Test
 
 function example_nlp2(; verbose=true)
@@ -114,14 +113,13 @@ function example_nlp2(; verbose=true)
         # Get the number of variables in the model
         n = KNITRO.KN_get_number_vars(kc)
 
-
         # Query information about the current problem.
         dFeasError = KNITRO.KN_get_abs_feas_error(kc)
 
         if verbose
             println(">> New point computed by Knitro:(", x, ")")
             println("Number FC evals= ", KNITRO.KN_get_number_FC_evals(kc))
-            println("Current feasError= " , dFeasError)
+            println("Current feasError= ", dFeasError)
         end
 
         # Demonstrate user-defined termination
@@ -170,8 +168,13 @@ function example_nlp2(; verbose=true)
     qconIndexVars2 = Int32[1, 3]
     qconCoefs = [1.0, 1.0]
 
-
-    KNITRO.KN_add_con_quadratic_struct(kc, qconIndexCons, qconIndexVars1, qconIndexVars2, qconCoefs)
+    KNITRO.KN_add_con_quadratic_struct(
+        kc,
+        qconIndexCons,
+        qconIndexVars1,
+        qconIndexVars2,
+        qconCoefs,
+    )
 
     # Add callback to evaluate nonlinear(non-quadratic) terms in the model:
     #    x0*x1*x2*x3  in the objective
@@ -184,7 +187,13 @@ function example_nlp2(; verbose=true)
     # structure for constraint Jacobian terms.
     cbjacIndexCons = Int32[0, 1, 1]
     cbjacIndexVars = Int32[0, 0, 3]
-    KNITRO.KN_set_cb_grad(kc, cb, callbackEvalGA, jacIndexCons=cbjacIndexCons, jacIndexVars=cbjacIndexVars)
+    KNITRO.KN_set_cb_grad(
+        kc,
+        cb,
+        callbackEvalGA,
+        jacIndexCons=cbjacIndexCons,
+        jacIndexVars=cbjacIndexVars,
+    )
 
     # Set nonlinear Hessian provided through callbacks. Since the
     # Hessian is symmetric, only the upper triangle is provided.
@@ -196,8 +205,14 @@ function example_nlp2(; verbose=true)
     #(7 nonzero elements)
     cbhessIndexVars1 = Int32[0, 0, 0, 0, 1, 1, 2]
     cbhessIndexVars2 = Int32[0, 1, 2, 3, 2, 3, 3]
-    KNITRO.KN_set_cb_hess(kc, cb, length(cbhessIndexVars1), callbackEvalH,
-                        hessIndexVars1=cbhessIndexVars1,  hessIndexVars2=cbhessIndexVars2)
+    KNITRO.KN_set_cb_hess(
+        kc,
+        cb,
+        length(cbhessIndexVars1),
+        callbackEvalH,
+        hessIndexVars1=cbhessIndexVars1,
+        hessIndexVars2=cbhessIndexVars2,
+    )
 
     # Set minimize or maximize(if not set, assumed minimize)
     KNITRO.KN_set_obj_goal(kc, KNITRO.KN_OBJGOAL_MAXIMIZE)
@@ -216,7 +231,7 @@ function example_nlp2(; verbose=true)
     # Return status codes are defined in "knitro.h" and described
     # in the Knitro manual.
     nStatus = KNITRO.KN_solve(kc)
-    nStatus, objSol, x, lambda_ =  KNITRO.KN_get_solution(kc)
+    nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
 
     # An example of obtaining solution information.
     if verbose
@@ -233,10 +248,9 @@ function example_nlp2(; verbose=true)
 
     @testset "Example HS40 nlp2" begin
         @test nStatus == KNITRO.KN_RC_USER_TERMINATION
-        @test objSol ≈ 0.25 atol=1e-4
-        @test x ≈ [0.793701, 0.707107, 0.529732, 0.840896] atol=1e-4
+        @test objSol ≈ 0.25 atol = 1e-4
+        @test x ≈ [0.793701, 0.707107, 0.529732, 0.840896] atol = 1e-4
     end
 end
 
 example_nlp2(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
-

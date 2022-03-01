@@ -24,10 +24,10 @@ for i in 1:nruns
 
     initval = [1, 5, 5, 1]
 
-    @variable(model, 1 <= x[i=1:4] <= 5, start=initval[i])
+    @variable(model, 1 <= x[i=1:4] <= 5, start = initval[i])
     @NLobjective(model, Min, x[1] * x[4] * (x[1] + x[2] + x[3]) + x[3])
     c1 = @NLconstraint(model, x[1] * x[2] * x[3] * x[4] >= 25)
-    c2 = @NLconstraint(model, sum(x[i]^2 for i=1:4) == 40)
+    c2 = @NLconstraint(model, sum(x[i]^2 for i in 1:4) == 40)
 
     JuMP.optimize!(model)
     @test JuMP.termination_status(model) == MOI.LOCALLY_SOLVED

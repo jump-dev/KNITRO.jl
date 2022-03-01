@@ -20,7 +20,6 @@
 # at(-0.79212, -1.26243), with final objective = 360.4.
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-
 using KNITRO, MathOptInterface
 using Test
 
@@ -34,24 +33,24 @@ MOI.features_available(d::HS15) = [:Grad, :Hess]
 MOI.initialize(d::HS15, features) = nothing
 
 MOI.jacobian_structure(d::HS15) = []
-MOI.hessian_lagrangian_structure(d::HS15) = Tuple{Int64,Int64}[(1,1), (1, 2), (2, 2)]
+MOI.hessian_lagrangian_structure(d::HS15) = Tuple{Int64,Int64}[(1, 1), (1, 2), (2, 2)]
 
 function MOI.eval_objective(d::HS15, x)
-    return 100*(x[2] - x[1]^2)^2 + (1 - x[1])^2
+    return 100 * (x[2] - x[1]^2)^2 + (1 - x[1])^2
 end
 
 function MOI.eval_constraint(::HS15, g, x)
-    nothing
+    return nothing
 end
 function MOI.eval_constraint_jacobian(::HS15, jac_g, x)
-    nothing
+    return nothing
 end
 
 function MOI.eval_objective_gradient(d::HS15, grad_f, x)
     # Evaluate gradient of nonlinear objective
     dTmp = x[2] - x[1] * x[1]
     grad_f[1] = (-400.0 * dTmp * x[1]) - (2.0 * (1.0 - x[1]))
-    grad_f[2] = 200.0 * dTmp
+    return grad_f[2] = 200.0 * dTmp
 end
 
 function MOI.eval_hessian_lagrangian(d::HS15, H, x, σ, μ)
@@ -68,14 +67,15 @@ function example_moi_nlp1(; verbose=true)
     solver = KNITRO.Optimizer(outlev=3, opttol=1e-8)
     MOI.set(solver, MOI.Silent(), !verbose)
 
-    lb =[]; ub=[]
+    lb = []
+    ub = []
     block_data = MOI.NLPBlockData(MOI.NLPBoundsPair.(lb, ub), HS15(false), true)
 
     n = 2
     v = MOI.add_variables(solver, n)
 
     u = [0.5, Inf]
-    start = [-2., 1.]
+    start = [-2.0, 1.0]
 
     for i in 1:2
         MOI.add_constraint(solver, v[i], MOI.LessThan(u[i]))
@@ -86,17 +86,17 @@ function example_moi_nlp1(; verbose=true)
     m = 2
     # First constraint: x0 * x1 >= 1.
     cf1 = MOI.ScalarQuadraticFunction(
-        [MOI.ScalarQuadraticTerm(1., v[1], v[2])],
+        [MOI.ScalarQuadraticTerm(1.0, v[1], v[2])],
         MOI.ScalarAffineTerm.(0.0, v),
-        0.0
+        0.0,
     )
-    c1 = MOI.add_constraint(solver, cf1, MOI.GreaterThan{Float64}(1.))
+    c1 = MOI.add_constraint(solver, cf1, MOI.GreaterThan{Float64}(1.0))
 
     # Second constraint: x0 + x1^2 >= 0.
     cf2 = MOI.ScalarQuadraticFunction(
-        [MOI.ScalarQuadraticTerm(10., v[2], v[2])],
+        [MOI.ScalarQuadraticTerm(10.0, v[2], v[2])],
         [MOI.ScalarAffineTerm(1.0, v[1])],
-        0.0
+        0.0,
     )
     c2 = MOI.add_constraint(solver, cf2, MOI.GreaterThan(0.0))
 
@@ -108,8 +108,7 @@ function example_moi_nlp1(; verbose=true)
     MOI.optimize!(solver)
 
     # Free solver environment properly
-    MOI.empty!(solver)
+    return MOI.empty!(solver)
 end
 
 example_moi_nlp1(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
-

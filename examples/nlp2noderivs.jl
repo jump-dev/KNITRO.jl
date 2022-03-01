@@ -16,7 +16,6 @@
 #
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-
 using KNITRO, Test
 
 function example_nlp2noderivs(; verbose=true)
@@ -75,8 +74,13 @@ function example_nlp2noderivs(; verbose=true)
     qconIndexVars2 = Int32[1, 3]
     qconCoefs = [1.0, 1.0]
 
-
-    KNITRO.KN_add_con_quadratic_struct(kc, qconIndexCons, qconIndexVars1, qconIndexVars2, qconCoefs)
+    KNITRO.KN_add_con_quadratic_struct(
+        kc,
+        qconIndexCons,
+        qconIndexVars1,
+        qconIndexVars2,
+        qconCoefs,
+    )
 
     # Add callback to evaluate nonlinear(non-quadratic) terms in the model:
     #    x0*x1*x2*x3  in the objective
@@ -96,9 +100,9 @@ function example_nlp2noderivs(; verbose=true)
     # Return status codes are defined in "knitro.h" and described
     # in the Knitro manual.
     nStatus = KNITRO.KN_solve(kc)
-    nStatus, objSol, x, lambda_ =  KNITRO.KN_get_solution(kc)
-    varbndInfeas, varintInfeas, varviols = KNITRO.KN_get_var_viols(kc, Cint[0,1,2,3])
-    coninfeas, conviols = KNITRO.KN_get_con_viols(kc, Cint[0,1,2])
+    nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
+    varbndInfeas, varintInfeas, varviols = KNITRO.KN_get_var_viols(kc, Cint[0, 1, 2, 3])
+    coninfeas, conviols = KNITRO.KN_get_con_viols(kc, Cint[0, 1, 2])
     err = KNITRO.KN_get_presolve_error(kc)
 
     if verbose
@@ -117,16 +121,16 @@ function example_nlp2noderivs(; verbose=true)
     end
 
     @testset "Example HS40 nlp1noderivs" begin
-        @test varbndInfeas == [0,0,0,0]
-        @test varintInfeas == [0,0,0,0]
-        @test varviols ≈ [0.,0.,0.,0.] atol=1e-6
-        @test coninfeas == [0,0,0]
-        @test conviols ≈ [0.,0.,0.] atol=1e-6
+        @test varbndInfeas == [0, 0, 0, 0]
+        @test varintInfeas == [0, 0, 0, 0]
+        @test varviols ≈ [0.0, 0.0, 0.0, 0.0] atol = 1e-6
+        @test coninfeas == [0, 0, 0]
+        @test conviols ≈ [0.0, 0.0, 0.0] atol = 1e-6
         @test KNITRO.KN_get_abs_feas_error(kc) == max(conviols...)
     end
 
     # Delete the Knitro solver instance.
-    KNITRO.KN_free(kc)
+    return KNITRO.KN_free(kc)
 end
 
 if KNITRO.KNITRO_VERSION >= v"12.4"
@@ -134,4 +138,3 @@ if KNITRO.KNITRO_VERSION >= v"12.4"
 else
     println("Example `nlp2noderivs.jl` is only available with Knitro >= 12.4")
 end
-

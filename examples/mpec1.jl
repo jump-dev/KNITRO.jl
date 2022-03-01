@@ -32,7 +32,6 @@
 # The solution is(1, 0, 3.5, 0, 0, 0, 3, 6), with objective value 17.
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-
 using KNITRO, Test
 
 function example_mpec1(; verbose=true)
@@ -136,10 +135,9 @@ function example_mpec1(; verbose=true)
 
     @testset "Example MPEC 1" begin
         @test nStatus == 0
-        @test objSol ≈ 17.
-        @test x ≈ [1., 0., 3.5, 0., 0., 0., 3., 6.]
+        @test objSol ≈ 17.0
+        @test x ≈ [1.0, 0.0, 3.5, 0.0, 0.0, 0.0, 3.0, 6.0]
     end
 end
 
 example_mpec1(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
-

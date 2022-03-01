@@ -23,7 +23,6 @@
 # value of the constraint bound "c0lb".
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-
 using KNITRO
 using Printf
 
@@ -83,7 +82,6 @@ function example_restart(; verbose=true)
 
         return 0
     end
-
 
     #*------------------------------------------------------------------*
     #*     main                                                         *
@@ -190,8 +188,13 @@ function example_restart(; verbose=true)
             if nStatus != 0
                 println("  bar_murule=$i - Knitro failed to solve, status = $nStatus")
             else
-                @printf("\n  bar_murule=%d - solved in %2d iters, %2d function evaluations, objective=%e",
-                    i, KNITRO.KN_get_number_iters(kc), KNITRO.KN_get_number_FC_evals(kc), KNITRO.KN_get_obj_value(kc))
+                @printf(
+                    "\n  bar_murule=%d - solved in %2d iters, %2d function evaluations, objective=%e",
+                    i,
+                    KNITRO.KN_get_number_iters(kc),
+                    KNITRO.KN_get_number_FC_evals(kc),
+                    KNITRO.KN_get_obj_value(kc)
+                )
             end
         end
     end
@@ -206,19 +209,28 @@ function example_restart(; verbose=true)
     KNITRO.KN_set_param(kc, "algorithm", KNITRO.KN_ALG_ACT_CG)
     i = 0
 
-    for i = 1:20
+    for i in 1:20
         # Modify bound for next solve.
-        tmpbound = 0.1*i
+        tmpbound = 0.1 * i
         KNITRO.KN_set_var_upbnd(kc, 0, tmpbound)
 
         nStatus = KNITRO.KN_solve(kc)
         nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
         if verbose
             if nStatus != 0
-                @printf("\n  x0 upper bound=%e - Knitro failed to solve, status = %d", tmpbound, nStatus)
+                @printf(
+                    "\n  x0 upper bound=%e - Knitro failed to solve, status = %d",
+                    tmpbound,
+                    nStatus
+                )
             else
-                @printf("\n  x0 upper bound=%e - solved in %2d iters, x0=%e, objective=%e",
-                        tmpbound, KNITRO.KN_get_number_iters(kc), x[1], objSol)
+                @printf(
+                    "\n  x0 upper bound=%e - solved in %2d iters, x0=%e, objective=%e",
+                    tmpbound,
+                    KNITRO.KN_get_number_iters(kc),
+                    x[1],
+                    objSol
+                )
             end
         end
 
@@ -235,17 +247,26 @@ function example_restart(; verbose=true)
     # there is no more significant change in the optimal solution.
     verbose && println("\nChanging a constraint bound and re-solving...")
     i = 0
-    for i = 1:20
-        tmpbound = 1. - 0.1*i
+    for i in 1:20
+        tmpbound = 1.0 - 0.1 * i
         KNITRO.KN_set_con_lobnd(kc, 0, tmpbound)
         nStatus = KNITRO.KN_solve(kc)
         c0 = KNITRO.KN_get_con_values(kc, 0)
         if verbose
             if nStatus != 0
-                @printf("\n  c0 lower bound=%e - Knitro failed to solve, status = %d", tmpbound, nStatus)
+                @printf(
+                    "\n  c0 lower bound=%e - Knitro failed to solve, status = %d",
+                    tmpbound,
+                    nStatus
+                )
             else
-                @printf("\n  c0 lower bound=%e - solved in %2d iters, c0=%e, objective=%e",
-                    tmpbound, KNITRO.KN_get_number_iters(kc), c0, KNITRO.KN_get_obj_value(kc))
+                @printf(
+                    "\n  c0 lower bound=%e - solved in %2d iters, c0=%e, objective=%e",
+                    tmpbound,
+                    KNITRO.KN_get_number_iters(kc),
+                    c0,
+                    KNITRO.KN_get_obj_value(kc)
+                )
             end
         end
         if nStatus != 0 || c0 > tmpbound + 1e-4
@@ -254,8 +275,7 @@ function example_restart(; verbose=true)
     end
 
     # Delete the Knitro solver instance.
-    KNITRO.KN_free(kc)
+    return KNITRO.KN_free(kc)
 end
 
 example_restart(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
-

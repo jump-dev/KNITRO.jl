@@ -21,7 +21,6 @@
 #  language API.
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-
 using KNITRO
 using Test
 
@@ -91,13 +90,13 @@ function example_qp1(; verbose=true)
     # Return status codes are defined in "kn_defines.jl" and described
     # in the Knitro manual.
     nStatus = KNITRO.KN_solve(kc)
-    nStatus, objSol, x, lambda_ =  KNITRO.KN_get_solution(kc)
+    nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
 
     # An example of obtaining solution information.
     if verbose
         println("Knitro converged with final status = ", nStatus)
         println("  optimal objective value  = ", objSol)
-        println("  optimal primal values x  = ",  x)
+        println("  optimal primal values x  = ", x)
         println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
         println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
     end
@@ -106,10 +105,9 @@ function example_qp1(; verbose=true)
 
     @testset "Example QP1" begin
         @test nStatus == 0
-        @test objSol ≈ -0.4861 atol=1e-4
-        @test x ≈ [0., 0., -5/6] atol=1e-5
+        @test objSol ≈ -0.4861 atol = 1e-4
+        @test x ≈ [0.0, 0.0, -5 / 6] atol = 1e-5
     end
 end
 
 example_qp1(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
-

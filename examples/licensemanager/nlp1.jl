@@ -20,7 +20,6 @@
 # at(-0.79212, -1.26243), with final objective = 360.4.
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-
 using KNITRO
 using Test
 
@@ -100,8 +99,8 @@ KNITRO.KN_load_param_file(kc, options)
 # assumed to be unbounded above.
 n = 2
 KNITRO.KN_add_vars(kc, n)
-KNITRO.KN_set_var_lobnds(kc,  [-KNITRO.KN_INFINITY, -KNITRO.KN_INFINITY]) # not necessary since infinite
-KNITRO.KN_set_var_upbnds(kc,  [0.5, KNITRO.KN_INFINITY])
+KNITRO.KN_set_var_lobnds(kc, [-KNITRO.KN_INFINITY, -KNITRO.KN_INFINITY]) # not necessary since infinite
+KNITRO.KN_set_var_upbnds(kc, [0.5, KNITRO.KN_INFINITY])
 # Define an initial point.  If not set, Knitro will generate one.
 KNITRO.KN_set_var_primal_init_values(kc, [-2.0, 1.0])
 
@@ -180,12 +179,12 @@ nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
 println("Optimal objective value  = ", objSol)
 println("Optimal x(with corresponding multiplier)")
 for i in 1:n
-    println("  x[$i] = ", x[i], "(lambda = ",  lambda_[m+i], ")")
+    println("  x[$i] = ", x[i], "(lambda = ", lambda_[m+i], ")")
 end
 println("Optimal constraint values(with corresponding multiplier)")
 c = KNITRO.KN_get_con_values(kc)
 for j in 1:m
-    println("  c[$j] = ", c[j], "(lambda = ",  lambda_[m+j], ")")
+    println("  c[$j] = ", c[j], "(lambda = ", lambda_[m+j], ")")
 end
 println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
 println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
@@ -195,7 +194,6 @@ KNITRO.KN_free(kc)
 
 @testset "Exemple HS15 nlp1" begin
     @test nStatus == 0
-    @test objSol  ≈ 306.5
+    @test objSol ≈ 306.5
     @test x ≈ [0.5, 2]
 end
-

@@ -26,7 +26,6 @@
 # at(-0.79212, -1.26243), with final objective = 360.4.
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-
 using KNITRO, Test
 
 function example_nlp1noderivs(; verbose=true)
@@ -100,7 +99,6 @@ function example_nlp1noderivs(; verbose=true)
     coef = 1.0
     KNITRO.KN_add_con_quadratic_struct(kc, 1, 1, 1, 1.0)
 
-
     # Add a callback function "callbackEvalF" to evaluate the nonlinear
     #(non-quadratic) objective.  Note that the linear and
     # quadratic terms in the objective could be loaded separately
@@ -131,12 +129,12 @@ function example_nlp1noderivs(; verbose=true)
         println("Optimal objective value  = ", objSol)
         println("Optimal x(with corresponding multiplier)")
         for i in 1:n
-            println("  x[$i] = ", x[i], "(lambda = ",  lambda_[m+i], ")")
+            println("  x[$i] = ", x[i], "(lambda = ", lambda_[m+i], ")")
         end
         println("Optimal constraint values(with corresponding multiplier)")
         c = KNITRO.KN_get_con_values(kc)
         for j in 1:m
-            println("  c[$j] = ", c[j], "(lambda = ",  lambda_[j], ")")
+            println("  c[$j] = ", c[j], "(lambda = ", lambda_[j], ")")
         end
         println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
         println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
@@ -147,10 +145,9 @@ function example_nlp1noderivs(; verbose=true)
 
     @testset "Example HS15 nlp1noderivs" begin
         @test nStatus == 0
-        @test objSol  ≈ 306.5
+        @test objSol ≈ 306.5
         @test x ≈ [0.5, 2]
     end
 end
 
 example_nlp1noderivs(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
-

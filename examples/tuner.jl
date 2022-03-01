@@ -21,7 +21,6 @@
 # objective = 360.4.
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-
 using KNITRO, Test
 
 function example_tuner(; verbose=true)
@@ -55,7 +54,6 @@ function example_tuner(; verbose=true)
 
         return 0
     end
-
 
     #*------------------------------------------------------------------*
     #*     FUNCTION callbackEvalH                                       *
@@ -188,7 +186,9 @@ function example_tuner(; verbose=true)
     # TODO: KNITRO.jl does not seem to be thread safe
     nThreads = Sys.CPU_THREADS
     if nThreads > 1
-        println("Force Knitro multistart to run in parallel with 1 threads (instead of $nThreads).")
+        println(
+            "Force Knitro multistart to run in parallel with 1 threads (instead of $nThreads).",
+        )
         if KNITRO.KNITRO_VERSION >= v"13.0"
             KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_NUMTHREADS, 1)
         else
@@ -210,12 +210,12 @@ function example_tuner(; verbose=true)
         println("Optimal objective value  = ", objSol)
         println("Optimal x(with corresponding multiplier)")
         for i in 1:n
-            println("  x[$i] = ", x[i], "(lambda = ",  lambda_[m+i], ")")
+            println("  x[$i] = ", x[i], "(lambda = ", lambda_[m+i], ")")
         end
         println("Optimal constraint values(with corresponding multiplier)")
         c = KNITRO.KN_get_con_values(kc)
         for j in 1:m
-            println("  c[$j] = ", c[j], "(lambda = ",  lambda_[m+j], ")")
+            println("  c[$j] = ", c[j], "(lambda = ", lambda_[m+j], ")")
         end
         println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
         println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
@@ -227,9 +227,8 @@ function example_tuner(; verbose=true)
     @testset "Example HS15 Tuner" begin
         @test nStatus == 0
         # we have two possible final positions
-        @test isapprox(objSol, 306.5, atol=1e-1) || isapprox(objSol, 360.4, atol=.1)
+        @test isapprox(objSol, 306.5, atol=1e-1) || isapprox(objSol, 360.4, atol=0.1)
     end
 end
 
 example_tuner(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
-

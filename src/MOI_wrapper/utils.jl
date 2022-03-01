@@ -11,7 +11,11 @@
 # Copyright (c) 2017 Oscar Dowson, Joaquim Dias Garcia and contributors
 ##################################################
 
-function reduce_duplicates!(rows::Vector{T}, cols::Vector{T}, vals::Vector{S}) where T where S
+function reduce_duplicates!(
+    rows::Vector{T},
+    cols::Vector{T},
+    vals::Vector{S},
+) where {T} where {S}
     @assert length(rows) == length(cols) == length(vals)
     for i in 1:length(rows)
         if rows[i] > cols[i]
@@ -39,12 +43,12 @@ function canonical_quadratic_reduction(func::MOI.ScalarQuadraticFunction)
     quad_columns_1, quad_columns_2, quad_coefficients = (
         Cint[term.variable_1.value for term in func.quadratic_terms],
         Cint[term.variable_2.value for term in func.quadratic_terms],
-        Cdouble[term.coefficient for term in func.quadratic_terms]
+        Cdouble[term.coefficient for term in func.quadratic_terms],
     )
     # Take care of difference between MOI standards and KNITRO ones.
     for i in 1:length(quad_coefficients)
         @inbounds if quad_columns_1[i] == quad_columns_2[i]
-            quad_coefficients[i] *= .5
+            quad_coefficients[i] *= 0.5
         end
     end
     return reduce_duplicates!(quad_columns_1, quad_columns_2, quad_coefficients)

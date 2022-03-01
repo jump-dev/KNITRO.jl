@@ -14,7 +14,6 @@
 # minimum at(0.76886, 3.86041), with final objective = 0.00216.
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-
 using KNITRO
 using Test
 
@@ -26,7 +25,10 @@ function example_lsq2(; verbose=true)
     # Only "rsd" is set in the KNITRO.KN_eval_result structure.
     function callbackEvalR(kc, cb, evalRequest, evalResult, userParams)
         if evalRequest.evalRequestCode != KNITRO.KN_RC_EVALR
-            println("*** callbackEvalR incorrectly called with eval type ", evalRequest.evalRequestCode)
+            println(
+                "*** callbackEvalR incorrectly called with eval type ",
+                evalRequest.evalRequestCode,
+            )
             return -1
         end
         x = evalRequest.x
@@ -54,7 +56,10 @@ function example_lsq2(; verbose=true)
     # Only "rsdJac" is set in the KNITRO.KN_eval_result structure.
     function callbackEvalRJ(kc, cb, evalRequest, evalResult, userParams)
         if evalRequest.evalRequestCode != KNITRO.KN_RC_EVALRJ
-            println("*** callbackEvalRJ incorrectly called with eval type %d" % evalRequest.evalRequestCode)
+            println(
+                "*** callbackEvalRJ incorrectly called with eval type %d" %
+                evalRequest.evalRequestCode,
+            )
             return -1
         end
         x = evalRequest.x
@@ -65,15 +70,15 @@ function example_lsq2(; verbose=true)
         end
 
         # Evaluate non-zero residual Jacobian elements(row major order).
-        evalResult.rsdJac[1]  = 1.309^x[2]
-        evalResult.rsdJac[2]  = x[1] * log(1.309) * 1.309^x[2]
-        evalResult.rsdJac[3]  = 1.471^x[2]
-        evalResult.rsdJac[4]  = x[1] * log(1.471) * 1.471^x[2]
-        evalResult.rsdJac[5]  = 1.49^x[2]
-        evalResult.rsdJac[6]  = x[1] * log(1.49) * 1.49^x[2]
-        evalResult.rsdJac[7]  = 1.565^x[2]
-        evalResult.rsdJac[8]  = x[1] * log(1.565) * 1.565^x[2]
-        evalResult.rsdJac[9]  = 1.611^x[2]
+        evalResult.rsdJac[1] = 1.309^x[2]
+        evalResult.rsdJac[2] = x[1] * log(1.309) * 1.309^x[2]
+        evalResult.rsdJac[3] = 1.471^x[2]
+        evalResult.rsdJac[4] = x[1] * log(1.471) * 1.471^x[2]
+        evalResult.rsdJac[5] = 1.49^x[2]
+        evalResult.rsdJac[6] = x[1] * log(1.49) * 1.49^x[2]
+        evalResult.rsdJac[7] = 1.565^x[2]
+        evalResult.rsdJac[8] = x[1] * log(1.565) * 1.565^x[2]
+        evalResult.rsdJac[9] = 1.611^x[2]
         evalResult.rsdJac[10] = x[1] * log(1.611) * 1.611^x[2]
         evalResult.rsdJac[11] = 1.68^x[2]
         evalResult.rsdJac[12] = x[1] * log(1.68) * 1.68^x[2]
@@ -153,10 +158,9 @@ function example_lsq2(; verbose=true)
 
     @testset "Example LSQ2" begin
         @test nStatus == 0
-        @test obj ≈ 0.00216 atol=1e-4
-        @test x ≈ [0.76886, 3.86041] atol=1e-4
+        @test obj ≈ 0.00216 atol = 1e-4
+        @test x ≈ [0.76886, 3.86041] atol = 1e-4
     end
 end
 
 example_lsq2(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
-

@@ -14,8 +14,8 @@ macro kn_get_values(function_name, type)
     fname = Symbol(name_plural)
     fnameshort = Symbol(name_singular)
     # Names of C function in knitro.h
-    c_fname      = Symbol(name_singular)
-    c_fnames     = Symbol(name_plural)
+    c_fname = Symbol(name_singular)
+    c_fnames = Symbol(name_plural)
     c_fnames_all = Symbol(name_plural * "_all")
 
     n = if occursin("var", name_singular)
@@ -60,15 +60,15 @@ function _format_output(output::AbstractString)
     # remove trailing whitespace
     res = strip(output)
     # remove special characters
-    res = strip(res, '\0')
+    return res = strip(res, '\0')
 end
 
 "Return the current KNITRO version."
 function get_release()
     len = 15
-    out = zeros(Cchar,len)
+    out = zeros(Cchar, len)
     KN_get_release(len, out)
-    return String(strip(String(convert(Vector{UInt8},out)), '\0'))
+    return String(strip(String(convert(Vector{UInt8}, out)), '\0'))
 end
 
 "Wrapper for KNITRO KN_context."
@@ -81,14 +81,14 @@ mutable struct Env
         if res != 0
             error("Fail to retrieve a valid KNITRO KN_context. Error $res")
         end
-        new(ptrptr_env[])
+        return new(ptrptr_env[])
     end
 
     Env(ptr::Ptr{Cvoid}) = new(ptr)
 end
 
 Base.unsafe_convert(ptr::Type{Ptr{Cvoid}}, env::Env) = env.ptr_env::Ptr{Cvoid}
-is_valid(env::Env)= env.ptr_env != C_NULL
+is_valid(env::Env) = env.ptr_env != C_NULL
 
 """
 Free all memory and release any Knitro license acquired by calling KN_new.
@@ -114,7 +114,7 @@ mutable struct CallbackContext
     n::Int
     m::Int
     # Add a dictionnary to store user params.
-    userparams
+    userparams::Any
 
     # Oracle's callbacks are context dependent, so store
     # them inside dedicated CallbackContext.
@@ -163,17 +163,37 @@ mutable struct Model
 
     # Constructor.
     function Model()
-        model = new(Env(), CallbackContext[],
-                    nothing, nothing, nothing, nothing,
-                    1, Inf, Cdouble[], Cdouble[])
+        model = new(
+            Env(),
+            CallbackContext[],
+            nothing,
+            nothing,
+            nothing,
+            nothing,
+            1,
+            Inf,
+            Cdouble[],
+            Cdouble[],
+        )
         # Add a destructor to properly delete model.
         finalizer(KN_free, model)
         return model
     end
     # Instantiate a new Knitro instance in current environment `env`.
-    Model(env::Env) = new(env, CallbackContext[],
-                          nothing, nothing, nothing, nothing,
-                          1, Inf, Cdouble[], Cdouble[])
+    function Model(env::Env)
+        return new(
+            env,
+            CallbackContext[],
+            nothing,
+            nothing,
+            nothing,
+            nothing,
+            1,
+            Inf,
+            Cdouble[],
+            Cdouble[],
+        )
+    end
 end
 
 Base.unsafe_convert(ptr::Type{Ptr{Cvoid}}, kn::Model) = kn.env.ptr_env::Ptr{Cvoid}
@@ -196,10 +216,22 @@ function Base.show(io::IO, m::Model)
         println(io, "-----------------------")
         println(io, "Objective goal:  Minimize")
         println(io, "Objective type:  $(KN_get_obj_type(m))")
-        println(io, "Number of variables:                             $(KN_get_number_vars(m))")
-        println(io, "Number of constraints:                           $(KN_get_number_cons(m))")
-        println(io, "Number of nonzeros in Jacobian:                  $(KN_get_jacobian_nnz(m))")
-        println(io, "Number of nonzeros in Hessian:                   $(KN_get_hessian_nnz(m))")
+        println(
+            io,
+            "Number of variables:                             $(KN_get_number_vars(m))",
+        )
+        println(
+            io,
+            "Number of constraints:                           $(KN_get_number_cons(m))",
+        )
+        println(
+            io,
+            "Number of nonzeros in Jacobian:                  $(KN_get_jacobian_nnz(m))",
+        )
+        println(
+            io,
+            "Number of nonzeros in Hessian:                   $(KN_get_hessian_nnz(m))",
+        )
 
     else
         println(io, "KNITRO Problem: NULL")
@@ -238,7 +270,7 @@ function Env(lm::LMcontext)
     if res != 0
         error("Fail to retrieve a valid KNITRO KN_context. Error $res")
     end
-    Env(ptrptr_env[])
+    return Env(ptrptr_env[])
 end
 
 function attach!(lm::LMcontext, model::Model)
@@ -298,10 +330,11 @@ function KN_add_obj_linear_struct(
 )
     nnz = length(objIndices)
     @assert nnz == length(objCoefs)
-    KN_add_obj_linear_struct(m, nnz, objIndices, objCoefs)
+    return KN_add_obj_linear_struct(m, nnz, objIndices, objCoefs)
 end
-KN_add_obj_linear_struct(m::Model, objindex::Int, objCoefs::Cdouble) =
-    KN_add_obj_linear_struct(m, Cint[objindex], [objCoefs])
+function KN_add_obj_linear_struct(m::Model, objindex::Int, objCoefs::Cdouble)
+    return KN_add_obj_linear_struct(m, Cint[objindex], [objCoefs])
+end
 
 function KN_add_obj_quadratic_struct(
     m::Model,
@@ -311,7 +344,7 @@ function KN_add_obj_quadratic_struct(
 )
     nnz = length(indexVars1)
     @assert nnz == length(indexVars2) == length(coefs)
-    KN_add_obj_quadratic_struct(m, nnz, indexVars1, indexVars2, coefs)
+    return KN_add_obj_quadratic_struct(m, nnz, indexVars1, indexVars2, coefs)
 end
 
 #=
@@ -335,24 +368,33 @@ end
 @kn_get_values get_con_value Cdouble
 
 function KN_add_con_linear_struct(
-    m::Model, index_cons::Vector{Cint}, index_vars::Vector{Cint}, coefs::Vector{Cdouble},
+    m::Model,
+    index_cons::Vector{Cint},
+    index_vars::Vector{Cint},
+    coefs::Vector{Cdouble},
 )
     @assert length(index_cons) == length(index_vars) == length(coefs)
     nnz = length(index_cons)
-    KN_add_con_linear_struct(m, nnz, index_cons, index_vars, coefs)
+    return KN_add_con_linear_struct(m, nnz, index_cons, index_vars, coefs)
 end
 function KN_add_con_linear_struct(
-    m::Model, index_con::Integer, index_vars::Vector{Cint}, coefs::Vector{Cdouble},
+    m::Model,
+    index_con::Integer,
+    index_vars::Vector{Cint},
+    coefs::Vector{Cdouble},
 )
     @assert length(index_vars) == length(coefs)
     nnz = length(index_vars)
-    KN_add_con_linear_struct_one(m, nnz, index_con, index_vars, coefs)
+    return KN_add_con_linear_struct_one(m, nnz, index_con, index_vars, coefs)
 end
 function KN_add_con_linear_struct(
-    m::Model, index_con::Integer, index_var::Integer, coef::Cdouble,
+    m::Model,
+    index_con::Integer,
+    index_var::Integer,
+    coef::Cdouble,
 )
     nnz = 1
-    KN_add_con_linear_struct_one(m, nnz, index_con, [index_var], [coef])
+    return KN_add_con_linear_struct_one(m, nnz, index_con, [index_var], [coef])
 end
 
 function KN_add_con_quadratic_struct(
@@ -362,9 +404,12 @@ function KN_add_con_quadratic_struct(
     index_vars2::Vector{Cint},
     coefs::Vector{Cdouble},
 )
-    @assert length(index_cons) == length(index_vars1) == length(index_vars2) == length(coefs)
+    @assert length(index_cons) ==
+            length(index_vars1) ==
+            length(index_vars2) ==
+            length(coefs)
     nnz = length(index_cons)
-    KN_add_con_quadratic_struct(m, nnz, index_cons, index_vars1, index_vars2, coefs)
+    return KN_add_con_quadratic_struct(m, nnz, index_cons, index_vars1, index_vars2, coefs)
 end
 function KN_add_con_quadratic_struct(
     m::Model,
@@ -375,7 +420,14 @@ function KN_add_con_quadratic_struct(
 )
     @assert length(index_vars1) == length(index_vars2) == length(coefs)
     nnz = length(index_vars1)
-    KN_add_con_quadratic_struct_one(m, nnz, index_con, index_vars1, index_vars2, coefs)
+    return KN_add_con_quadratic_struct_one(
+        m,
+        nnz,
+        index_con,
+        index_vars1,
+        index_vars2,
+        coefs,
+    )
 end
 function KN_add_con_quadratic_struct(
     m::Model,
@@ -385,17 +437,26 @@ function KN_add_con_quadratic_struct(
     coef::Cdouble,
 )
     nnz = 1
-    KN_add_con_quadratic_struct_one(m, nnz, index_con, Cint[index_var1], Cint[index_var2], [coef])
+    return KN_add_con_quadratic_struct_one(
+        m,
+        nnz,
+        index_con,
+        Cint[index_var1],
+        Cint[index_var2],
+        [coef],
+    )
 end
 
-function KN_set_compcons(m::Model,
-                         ccTypes::Vector{Cint},
-                         indexComps1::Vector{Cint},
-                         indexComps2::Vector{Cint})
+function KN_set_compcons(
+    m::Model,
+    ccTypes::Vector{Cint},
+    indexComps1::Vector{Cint},
+    indexComps2::Vector{Cint},
+)
     # get number of constraints
     nnc = length(ccTypes)
     @assert nnc == length(indexComps1) == length(indexComps2)
-    KN_set_compcons(m, nnc, ccTypes, indexComps1, indexComps2)
+    return KN_set_compcons(m, nnc, ccTypes, indexComps1, indexComps2)
 end
 
 #=
@@ -420,7 +481,7 @@ function KN_add_rsd_linear_struct(
 )
     nnz = length(indexRsds)
     @assert nnz == length(indexVars) == length(coefs)
-    KN_add_rsd_linear_struct(m, nnz, indexRsds, indexVars, coefs)
+    return KN_add_rsd_linear_struct(m, nnz, indexRsds, indexVars, coefs)
 end
 function KN_add_rsd_linear_struct(
     m::Model,
@@ -430,7 +491,7 @@ function KN_add_rsd_linear_struct(
 )
     nnz = length(indexVar)
     @assert nnz == length(coefs)
-    KN_add_rsd_linear_struct_one(m, nnz, indexRsd, indexVar, coefs)
+    return KN_add_rsd_linear_struct_one(m, nnz, indexRsd, indexVar, coefs)
 end
 
 #=
@@ -468,7 +529,7 @@ function KN_get_solution(m::Model)
     x = zeros(Cdouble, nx)
     lambda = zeros(Cdouble, nx + nc)
     status = Cint[0]
-    obj = Cdouble[0.]
+    obj = Cdouble[0.0]
 
     KN_get_solution(m, status, obj, x, lambda)
 
@@ -487,7 +548,7 @@ function get_status(m::Model)
         return m.status
     end
     status = Cint[0]
-    obj = Cdouble[0.]
+    obj = Cdouble[0.0]
     KN_get_solution(m, status, obj, C_NULL, C_NULL)
     # Keep status in cache.
     m.status = status[1]
@@ -500,7 +561,7 @@ function get_objective(m::Model)
         return m.obj_val
     end
     status = Cint[0]
-    obj = Cdouble[0.]
+    obj = Cdouble[0.0]
     KN_get_solution(m, status, obj, C_NULL, C_NULL)
     # Keep objective value in cache.
     m.obj_val = obj[1]
@@ -516,7 +577,7 @@ function get_solution(m::Model)
     nx = KN_get_number_vars(m)
     x = zeros(Cdouble, nx)
     status = Cint[0]
-    obj = Cdouble[0.]
+    obj = Cdouble[0.0]
     KN_get_solution(m, status, obj, x, C_NULL)
     # Keep solution in cache.
     m.x = x
@@ -534,7 +595,7 @@ function get_dual(m::Model)
     nc = KN_get_number_cons(m)
     lambda = zeros(Cdouble, nx + nc)
     status = Cint[0]
-    obj = Cdouble[0.]
+    obj = Cdouble[0.0]
     KN_get_solution(m, status, obj, C_NULL, lambda)
     # Keep multipliers in cache.
     m.mult = lambda
@@ -597,7 +658,10 @@ function KN_get_presolve_error(m::Model)
     component, index, error = Cint[0], Cint[0], Cint[0]
     viol = Cdouble[0.0]
     KN_get_presolve_error(m, component, index, error, viol)
-    return convert(Bool, component[1]), convert(Int64, index[1]), convert(Int64, error[1]) , convert(Float64, viol[1])
+    return convert(Bool, component[1]),
+    convert(Int64, index[1]),
+    convert(Int64, error[1]),
+    convert(Float64, viol[1])
 end
 
 @kn_get_attribute get_number_vars Cint
@@ -630,22 +694,22 @@ end
 PARAMS
 =#
 function KN_set_param(m::Model, id::Integer, value::Integer)
-    KN_set_int_param(m, id, value)
+    return KN_set_int_param(m, id, value)
 end
 function KN_set_param(m::Model, param::AbstractString, value::Integer)
-    KN_set_int_param_by_name(m, param, value)
+    return KN_set_int_param_by_name(m, param, value)
 end
 function KN_set_param(m::Model, id::Integer, value::Cdouble)
-    KN_set_double_param(m, id, value)
+    return KN_set_double_param(m, id, value)
 end
 function KN_set_param(m::Model, param::AbstractString, value::Cdouble)
-    KN_set_double_param_by_name(m, param, value)
+    return KN_set_double_param_by_name(m, param, value)
 end
 function KN_set_param(m::Model, id::Integer, value::AbstractString)
-    KN_set_char_param(m, id, value)
+    return KN_set_char_param(m, id, value)
 end
 function KN_set_param(m::Model, param::AbstractString, value::AbstractString)
-    KN_set_char_param_by_name(m, param, value)
+    return KN_set_char_param_by_name(m, param, value)
 end
 
 function KN_get_int_param(m::Model, id::Integer)
@@ -713,7 +777,9 @@ end
     NAMES
 =#
 function KN_get_var_names(m::Model, max_length=1024)
-    return String[KN_get_var_names(m, Cint(id-1), max_length) for id in 1:KN_get_number_vars(m)]
+    return String[
+        KN_get_var_names(m, Cint(id - 1), max_length) for id in 1:KN_get_number_vars(m)
+    ]
 end
 function KN_get_var_names(m::Model, index::Vector{Cint}, max_length=1024)
     return String[KN_get_var_names(m, id, max_length) for id in index]
@@ -725,7 +791,9 @@ function KN_get_var_names(m::Model, index::Cint, max_length=1024)
 end
 
 function KN_get_con_names(m::Model, max_length=1024)
-    return String[KN_get_con_names(m, Cint(id-1), max_length) for id in 1:KN_get_number_cons(m)]
+    return String[
+        KN_get_con_names(m, Cint(id - 1), max_length) for id in 1:KN_get_number_cons(m)
+    ]
 end
 function KN_get_con_names(m::Model, index::Vector{Cint}, max_length=1024)
     return String[KN_get_con_names(m, id, max_length) for id in index]
@@ -735,4 +803,3 @@ function KN_get_con_names(m::Model, index::Cint, max_length=1024)
     ret = KN_get_con_name(m, index, max_length, rawname)
     return String(strip(String(convert(Vector{UInt8}, rawname)), '\0'))
 end
-

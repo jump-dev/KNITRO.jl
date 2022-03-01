@@ -19,7 +19,6 @@
 #  way with separate callbacks for functions and gradients.
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-
 using KNITRO
 using Test
 
@@ -42,26 +41,25 @@ function example_fcga(; verbose=true)
         x = evalRequest.x
 
         # Evaluate nonlinear term in objective
-        evalResult.obj[1] = x[1]*x[2]*x[3]*x[4]
+        evalResult.obj[1] = x[1] * x[2] * x[3] * x[4]
 
         # Evaluate nonlinear terms in constraints
-        evalResult.c[1] = x[1]*x[1]*x[1]
-        evalResult.c[2] = x[1]*x[1]*x[4]
+        evalResult.c[1] = x[1] * x[1] * x[1]
+        evalResult.c[2] = x[1] * x[1] * x[4]
 
         # Evaluate nonlinear term in objective gradient
-        evalResult.objGrad[1] = x[2]*x[3]*x[4]
-        evalResult.objGrad[2] = x[1]*x[3]*x[4]
-        evalResult.objGrad[3] = x[1]*x[2]*x[4]
-        evalResult.objGrad[4] = x[1]*x[2]*x[3]
+        evalResult.objGrad[1] = x[2] * x[3] * x[4]
+        evalResult.objGrad[2] = x[1] * x[3] * x[4]
+        evalResult.objGrad[3] = x[1] * x[2] * x[4]
+        evalResult.objGrad[4] = x[1] * x[2] * x[3]
 
         # Evaluate nonlinear terms in constraint gradients(Jacobian)
-        evalResult.jac[1] = 3.0*x[1]*x[1] # derivative of x0^3 term  wrt x0
-        evalResult.jac[2] = 2.0*x[1]*x[4] # derivative of x0^2*x3 term  wrt x0
-        evalResult.jac[3] = x[1]*x[1]     # derivative of x0^2*x3 terms wrt x3
+        evalResult.jac[1] = 3.0 * x[1] * x[1] # derivative of x0^3 term  wrt x0
+        evalResult.jac[2] = 2.0 * x[1] * x[4] # derivative of x0^2*x3 term  wrt x0
+        evalResult.jac[3] = x[1] * x[1]     # derivative of x0^2*x3 terms wrt x3
 
         return 0
     end
-
 
     #*------------------------------------------------------------------*/
     #*     FUNCTION callbackEvalH                                       */
@@ -69,7 +67,6 @@ function example_fcga(; verbose=true)
     # The signature of this function matches KNITRO.KN_eval_callback in knitro.h.
     # Only "hess" and "hessVec" are set in the KNITRO.KN_eval_result structure.
     function callbackEvalH(kc, cb, evalRequest, evalResult, userParams)
-
         x = evalRequest.x
         lambda_ = evalRequest.lambda
         # Scale objective component of Hessian by sigma
@@ -78,18 +75,18 @@ function example_fcga(; verbose=true)
         # Evaluate nonlinear terms in the Hessian of the Lagrangian.
         # Note: If sigma=0, some computations can be avoided.
         if sigma > 0.0  # Evaluate the full Hessian of the Lagrangian
-            evalResult.hess[1] = lambda_[1]*6.0*x[1] + lambda_[2]*2.0*x[4]
-            evalResult.hess[2] = sigma*x[3]*x[4]
-            evalResult.hess[3] = sigma*x[2]*x[4]
-            evalResult.hess[4] = sigma*x[2]*x[3] + lambda_[2]*2.0*x[1]
-            evalResult.hess[5] = sigma*x[1]*x[4]
-            evalResult.hess[6] = sigma*x[1]*x[3]
-            evalResult.hess[7] = sigma*x[1]*x[2]
+            evalResult.hess[1] = lambda_[1] * 6.0 * x[1] + lambda_[2] * 2.0 * x[4]
+            evalResult.hess[2] = sigma * x[3] * x[4]
+            evalResult.hess[3] = sigma * x[2] * x[4]
+            evalResult.hess[4] = sigma * x[2] * x[3] + lambda_[2] * 2.0 * x[1]
+            evalResult.hess[5] = sigma * x[1] * x[4]
+            evalResult.hess[6] = sigma * x[1] * x[3]
+            evalResult.hess[7] = sigma * x[1] * x[2]
         else            # sigma=0, do not include objective component
-            evalResult.hess[1] = lambda_[1]*6.0*x[1] + lambda_[2]*2.0*x[4]
+            evalResult.hess[1] = lambda_[1] * 6.0 * x[1] + lambda_[2] * 2.0 * x[4]
             evalResult.hess[2] = 0.0
             evalResult.hess[3] = 0.0
-            evalResult.hess[4] = lambda_[2]*2.0*x[1]
+            evalResult.hess[4] = lambda_[2] * 2.0 * x[1]
             evalResult.hess[5] = 0.0
             evalResult.hess[6] = 0.0
             evalResult.hess[7] = 0.0
@@ -97,7 +94,6 @@ function example_fcga(; verbose=true)
 
         return 0
     end
-
 
     #*------------------------------------------------------------------*
     #*     main                                                         *
@@ -119,7 +115,7 @@ function example_fcga(; verbose=true)
 
     # Add the constraints and set the rhs and coefficients
     KNITRO.KN_add_cons(kc, 3)
-    KNITRO.KN_set_con_eqbnds_all(kc, [1.0, 0.0, 0.0]);
+    KNITRO.KN_set_con_eqbnds_all(kc, [1.0, 0.0, 0.0])
 
     # Coefficients for 2 linear terms
     lconIndexCons = Int32[1, 2]
@@ -134,8 +130,13 @@ function example_fcga(; verbose=true)
     qconIndexVars2 = Int32[1, 3]
     qconCoefs = [1.0, 1.0]
 
-
-    KNITRO.KN_add_con_quadratic_struct(kc, qconIndexCons, qconIndexVars1, qconIndexVars2, qconCoefs)
+    KNITRO.KN_add_con_quadratic_struct(
+        kc,
+        qconIndexCons,
+        qconIndexVars1,
+        qconIndexVars2,
+        qconCoefs,
+    )
 
     # Add callback to evaluate nonlinear(non-quadratic) terms in the model:
     #    x0*x1*x2*x3  in the objective
@@ -151,7 +152,13 @@ function example_fcga(; verbose=true)
     # function evaluations.
     cbjacIndexCons = Int32[0, 1, 1]
     cbjacIndexVars = Int32[0, 0, 3]
-    KNITRO.KN_set_cb_grad(kc, cb, nothing, jacIndexCons=cbjacIndexCons, jacIndexVars=cbjacIndexVars)
+    KNITRO.KN_set_cb_grad(
+        kc,
+        cb,
+        nothing,
+        jacIndexCons=cbjacIndexCons,
+        jacIndexVars=cbjacIndexVars,
+    )
 
     # Set nonlinear Hessian provided through callbacks. Since the
     # Hessian is symmetric, only the upper triangle is provided.
@@ -164,9 +171,14 @@ function example_fcga(; verbose=true)
     # (7 nonzero elements)
     cbhessIndexVars1 = Int32[0, 0, 0, 0, 1, 1, 2]
     cbhessIndexVars2 = Int32[0, 1, 2, 3, 2, 3, 3]
-    KNITRO.KN_set_cb_hess(kc, cb, length(cbhessIndexVars1), callbackEvalH,
-                        hessIndexVars1=cbhessIndexVars1,
-                        hessIndexVars2=cbhessIndexVars2)
+    KNITRO.KN_set_cb_hess(
+        kc,
+        cb,
+        length(cbhessIndexVars1),
+        callbackEvalH,
+        hessIndexVars1=cbhessIndexVars1,
+        hessIndexVars2=cbhessIndexVars2,
+    )
 
     # Set minimize or maximize(if not set, assumed minimize)
     KNITRO.KN_set_obj_goal(kc, KNITRO.KN_OBJGOAL_MAXIMIZE)
@@ -184,13 +196,13 @@ function example_fcga(; verbose=true)
     # Return status codes are defined in "knitro.h" and described
     # in the Knitro manual.
     nStatus = KNITRO.KN_solve(kc)
-    nStatus, objSol, x, lambda_ =  KNITRO.KN_get_solution(kc)
+    nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
 
     # An example of obtaining solution information.
     if verbose
         println("Knitro converged with final status = ", nStatus)
         println("  optimal objective value  = ", objSol)
-        println("  optimal primal values x  = ",   x)
+        println("  optimal primal values x  = ", x)
         println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
         println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
     end
@@ -201,10 +213,8 @@ function example_fcga(; verbose=true)
     @testset "Example HS40 FCGA" begin
         @test nStatus == 0
         @test objSol ≈ 0.25
-        @test x ≈ [0.793701, 0.707107, 0.529732, 0.840896] atol=1e-5
+        @test x ≈ [0.793701, 0.707107, 0.529732, 0.840896] atol = 1e-5
     end
 end
 
 example_fcga(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
-
-

@@ -5,8 +5,11 @@
 # x_aux = Mx + b
 # (x_aux complements x)
 #
-function MOI.add_constraint(model::Optimizer,
-                            func::MOI.VectorAffineFunction, set::MOI.Complements)
+function MOI.add_constraint(
+    model::Optimizer,
+    func::MOI.VectorAffineFunction,
+    set::MOI.Complements,
+)
     (model.number_solved >= 1) && throw(AddConstraintError())
 
     # Number of complementarity in Knitro is half the dimension of the MOI set
@@ -60,20 +63,18 @@ function MOI.add_constraint(model::Optimizer,
 
     # Number of complementarity constraint previously added
     n_comp_cons = model.complementarity_cache.n
-    _add_complementarity_constraint!(
-        model.complementarity_cache,
-        x_comp,
-        x_aux,
-        comp_type,
-    )
+    _add_complementarity_constraint!(model.complementarity_cache, x_comp, x_aux, comp_type)
 
-    return MOI.ConstraintIndex{typeof(func), typeof(set)}(n_comp_cons)
+    return MOI.ConstraintIndex{typeof(func),typeof(set)}(n_comp_cons)
 end
 
 # Complementarity constraints (x_1 complements x_2), with x_1 and x_2
 # being two variables of the problem.
-function MOI.add_constraint(model::Optimizer,
-                            func::MOI.VectorOfVariables, set::MOI.Complements)
+function MOI.add_constraint(
+    model::Optimizer,
+    func::MOI.VectorOfVariables,
+    set::MOI.Complements,
+)
     (model.number_solved >= 1) && throw(AddConstraintError())
     indv = Cint[v.value - 1 for v in func.variables]
 
@@ -90,8 +91,8 @@ function MOI.add_constraint(model::Optimizer,
         model.complementarity_cache,
         indv[1:n_comp],
         indv[n_comp+1:end],
-        comp_type
+        comp_type,
     )
 
-    return MOI.ConstraintIndex{typeof(func), typeof(set)}(n_comp_cons)
+    return MOI.ConstraintIndex{typeof(func),typeof(set)}(n_comp_cons)
 end

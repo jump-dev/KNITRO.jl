@@ -6,7 +6,7 @@ using KNITRO
 const MOI = KNITRO.MOI
 
 function runtests()
-    for name in names(@__MODULE__; all = true)
+    for name in names(@__MODULE__; all=true)
         if startswith("$(name)", "test_")
             @testset "$(name)" begin
                 getfield(@__MODULE__, name)()
@@ -17,17 +17,17 @@ function runtests()
 end
 
 const TEST_CONFIG = MOI.Test.Config(
-    atol = 1e-4,
-    rtol = 1e-4,
-    optimal_status = MOI.LOCALLY_SOLVED,
-    exclude = Any[
+    atol=1e-4,
+    rtol=1e-4,
+    optimal_status=MOI.LOCALLY_SOLVED,
+    exclude=Any[
         MOI.ConstraintBasisStatus,
         MOI.DualObjectiveValue,
         MOI.ObjectiveBound,
         MOI.ListOfConstraintTypesPresent,
         MOI.ConstraintFunction,
         MOI.ObjectiveFunction,
-    ]
+    ],
 )
 
 const MOI_BASE_EXCLUDED = String[
@@ -70,40 +70,31 @@ function test_MOI_Test_cached()
     append!(excluded, [
         "test_quadratic_nonhomogeneous", # Knitro diverges on second problem solved
     ])
-    MOI.Test.runtests(
-        model,
-        TEST_CONFIG;
-        exclude = excluded,
-    )
+    return MOI.Test.runtests(model, TEST_CONFIG; exclude=excluded)
 end
 
 function test_MOI_Test_bridged()
-    model = MOI.Bridges.full_bridge_optimizer(
-        KNITRO.Optimizer(),
-        Float64,
-    )
+    model = MOI.Bridges.full_bridge_optimizer(KNITRO.Optimizer(), Float64)
     MOI.set(model, MOI.Silent(), true)
     excluded = copy(MOI_BASE_EXCLUDED)
-    append!(excluded, [
-        "test_add_constrained_variables_vector", # Knitro does not support getting MOI.ConstraintSet
-        "test_basic", # TODO: Need better support for names
-        "test_model", # TODO: Need better support for names
-        "test_objective_set_via_modify", # KNITRO does not support getting MOI.ListOfModelAttributesSet
-        "test_objective_get_ObjectiveFunction_ScalarAffineFunction", # KNITRO does not support getting MOI.ObjectiveFunction
-        "test_objective_ObjectiveFunction_VariableIndex", # KNITRO does not support getting MOI.ObjectiveFunctionType
-        "test_quadratic_duplicate_terms", # Knitro does not support getting MOI.ObjectiveFunction / MOI.ConstraintFunction
-        "test_quadratic_integration", # Knitro does not support getting ObjectiveFunction / MOI.ConstraintFunction
-        "test_constraint_get_ConstraintIndex", # Knitro does not support get(::, ::MathOptInterface.VariableIndex, ::String)
-    ])
-    MOI.Test.runtests(
-        model,
-        TEST_CONFIG;
-        exclude = excluded,
+    append!(
+        excluded,
+        [
+            "test_add_constrained_variables_vector", # Knitro does not support getting MOI.ConstraintSet
+            "test_basic", # TODO: Need better support for names
+            "test_model", # TODO: Need better support for names
+            "test_objective_set_via_modify", # KNITRO does not support getting MOI.ListOfModelAttributesSet
+            "test_objective_get_ObjectiveFunction_ScalarAffineFunction", # KNITRO does not support getting MOI.ObjectiveFunction
+            "test_objective_ObjectiveFunction_VariableIndex", # KNITRO does not support getting MOI.ObjectiveFunctionType
+            "test_quadratic_duplicate_terms", # Knitro does not support getting MOI.ObjectiveFunction / MOI.ConstraintFunction
+            "test_quadratic_integration", # Knitro does not support getting ObjectiveFunction / MOI.ConstraintFunction
+            "test_constraint_get_ConstraintIndex", # Knitro does not support get(::, ::MathOptInterface.VariableIndex, ::String)
+        ],
     )
+    MOI.Test.runtests(model, TEST_CONFIG; exclude=excluded)
     return
 end
 
 end
 
 TestMOIWrapper.runtests()
-

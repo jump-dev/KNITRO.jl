@@ -9,7 +9,6 @@
 #  reader.
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-
 using KNITRO
 using Test
 
@@ -35,12 +34,12 @@ nStatus = KNITRO.KN_solve(kc)
 println("Knitro converged with final status = ", nStatus)
 
 # An example of obtaining solution information.
-nStatus, objSol, x, lambda_ =  KNITRO.KN_get_solution(kc)
+nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
 
 # Delete the Knitro solver instance.
 KNITRO.KN_free(kc)
 
 @testset "Example lp1" begin
     @test nStatus == 0
-    @test objSol ≈ 250 / 3 atol=1e-5
+    @test objSol ≈ 250 / 3 atol = 1e-5
 end

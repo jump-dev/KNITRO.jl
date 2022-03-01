@@ -19,10 +19,10 @@ model = JuMP.direct_model(KNITRO.Optimizer())
 
 initval = [1, 5, 5, 1]
 
-@variable(model, 1 <= x[i=1:4] <= 5, start=initval[i])
+@variable(model, 1 <= x[i=1:4] <= 5, start = initval[i])
 @NLobjective(model, Min, x[1] * x[4] * (x[1] + x[2] + x[3]) + x[3])
 c1 = @NLconstraint(model, x[1] * x[2] * x[3] * x[4] >= 25)
-c2 = @NLconstraint(model, sum(x[i]^2 for i=1:4) == 40)
+c2 = @NLconstraint(model, sum(x[i]^2 for i in 1:4) == 40)
 
 JuMP.optimize!(model)
 
@@ -30,4 +30,4 @@ JuMP.optimize!(model)
 @test JuMP.termination_status(model) == MOI.LOCALLY_SOLVED
 @test JuMP.primal_status(model) == MOI.FEASIBLE_POINT
 
-@test JuMP.value.(x) ≈ [1.000000, 4.742999, 3.821150, 1.379408] atol=1e-3
+@test JuMP.value.(x) ≈ [1.000000, 4.742999, 3.821150, 1.379408] atol = 1e-3

@@ -2,7 +2,12 @@
 
 MOI.supports(::Optimizer, ::MOI.ObjectiveFunction{MOI.VariableIndex}) = true
 MOI.supports(::Optimizer, ::MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}) = true
-MOI.supports(::Optimizer, ::MOI.ObjectiveFunction{MOI.ScalarQuadraticFunction{Float64}}) = true
+function MOI.supports(
+    ::Optimizer,
+    ::MOI.ObjectiveFunction{MOI.ScalarQuadraticFunction{Float64}},
+)
+    return true
+end
 MOI.supports(::Optimizer, ::MOI.ObjectiveSense) = true
 
 MOI.get(model::Optimizer, ::MOI.ObjectiveSense) = model.sense
@@ -40,14 +45,16 @@ end
 
 function add_objective!(model::Optimizer, var::MOI.VariableIndex)
     # We load the objective inside KNITRO.
-    KN_add_obj_linear_struct(model.inner, var.value - 1, 1.)
+    KN_add_obj_linear_struct(model.inner, var.value - 1, 1.0)
     reset_objective!(model)
     return
 end
 
-function MOI.set(model::Optimizer, ::MOI.ObjectiveFunction,
-                 func::Union{MOI.VariableIndex, MOI.ScalarAffineFunction,
-                             MOI.ScalarQuadraticFunction})
+function MOI.set(
+    model::Optimizer,
+    ::MOI.ObjectiveFunction,
+    func::Union{MOI.VariableIndex,MOI.ScalarAffineFunction,MOI.ScalarQuadraticFunction},
+)
     # 1/ if the model was already solved, we cannot change the objective.
     (model.number_solved >= 1) && throw(UpdateObjectiveError())
     # 2/ if the model has valid non-linear objective, discard adding func.
@@ -62,8 +69,7 @@ function MOI.set(model::Optimizer, ::MOI.ObjectiveFunction,
     return
 end
 
-function MOI.set(model::Optimizer, ::MOI.ObjectiveSense,
-                 sense::MOI.OptimizationSense)
+function MOI.set(model::Optimizer, ::MOI.ObjectiveSense, sense::MOI.OptimizationSense)
     # If the model was already solved, we cannot change the objective.
     (model.number_solved >= 1) && throw(UpdateObjectiveError())
 

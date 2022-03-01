@@ -24,7 +24,6 @@
 # perform some user-defined task after each multi-start solve.
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-
 using KNITRO
 using Test
 
@@ -85,14 +84,13 @@ function example_multistart(; verbose=true)
         return 0
     end
 
-
     #*------------------------------------------------------------------*
     #*     FUNCTION callbackMSProcess                                   *
     #*------------------------------------------------------------------*
     # The signature of this function matches KNITRO.KN_user_callback in knitro.h.
     # Argument "kcSub" is the context pointer for the last multi-start
     # subproblem solved inside Knitro.
-    function  callbackMSProcess(kcSub, x, lambda_, userParams)
+    function callbackMSProcess(kcSub, x, lambda_, userParams)
         # Print solution of the just completed multi-start solve.
 
         n = KNITRO.KN_get_number_vars(kc)
@@ -121,15 +119,15 @@ function example_multistart(; verbose=true)
     # assumed to be unbounded above.
     n = 2
     KNITRO.KN_add_vars(kc, n)
-    KNITRO.KN_set_var_lobnds_all(kc,  [-KNITRO.KN_INFINITY, -KNITRO.KN_INFINITY]) # not necessary since infinite
-    KNITRO.KN_set_var_upbnds_all(kc,  [0.5, KNITRO.KN_INFINITY])
+    KNITRO.KN_set_var_lobnds_all(kc, [-KNITRO.KN_INFINITY, -KNITRO.KN_INFINITY]) # not necessary since infinite
+    KNITRO.KN_set_var_upbnds_all(kc, [0.5, KNITRO.KN_INFINITY])
     # Define an initial point.  If not set, Knitro will generate one.
     KNITRO.KN_set_var_primal_init_values_all(kc, [-2.0, 1.0])
 
     # Add the constraints and set their lower bounds
     m = 2
     KNITRO.KN_add_cons(kc, m)
-    KNITRO.KN_set_con_lobnds_all(kc,  [1.0, 0.0])
+    KNITRO.KN_set_con_lobnds_all(kc, [1.0, 0.0])
 
     # Both constraints are quadratic so we can directly load all the
     # structure for these constraints.
@@ -202,7 +200,9 @@ function example_multistart(; verbose=true)
     # Perform multistart in parallel using max number of available threads
     nThreads = Sys.CPU_THREADS
     if nThreads > 1
-        println("Force Knitro multistart to run in parallel with 1 threads (instead of $nThreads).")
+        println(
+            "Force Knitro multistart to run in parallel with 1 threads (instead of $nThreads).",
+        )
         KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_MS_NUMTHREADS, 1)
     end
 
@@ -220,12 +220,12 @@ function example_multistart(; verbose=true)
         println("Optimal objective value  = ", objSol)
         println("Optimal x(with corresponding multiplier)")
         for i in 1:n
-            println("  x[$i] = ", x[i], "(lambda = ",  lambda_[m+i], ")")
+            println("  x[$i] = ", x[i], "(lambda = ", lambda_[m+i], ")")
         end
         println("Optimal constraint values(with corresponding multiplier)")
         c = KNITRO.KN_get_con_values(kc)
         for j in 1:m
-            println("  c[$j] = ", c[j], "(lambda = ",  lambda_[j], ")")
+            println("  c[$j] = ", c[j], "(lambda = ", lambda_[j], ")")
         end
         println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
         println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
@@ -236,10 +236,9 @@ function example_multistart(; verbose=true)
 
     @testset "Example HS15 multistart" begin
         @test nStatus == 0
-        @test objSol  ≈ 306.5
+        @test objSol ≈ 306.5
         @test x ≈ [0.5, 2]
     end
 end
 
 example_multistart(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
-
