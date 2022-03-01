@@ -103,7 +103,7 @@ function callback(name)
     return callbackFn
 end
 
-if false #KNITRO.KNITRO_VERSION >= v"12.0"
+if KNITRO.KNITRO_VERSION >= v"12.0"
     @testset "Names getters" begin
         kc = KNITRO.KN_new()
         KNITRO.KN_add_vars(kc, 3)
@@ -781,24 +781,11 @@ end
     # Return status codes are defined in "knitro.h" and described
     # in the Knitro manual.
     nStatus = KNITRO.KN_solve(kc)
-
-    println("Knitro converged with final status = ", nStatus)
-
     # An example of obtaining solution information.
     nStatus, objSol, x, lambda_ =  KNITRO.KN_get_solution(kc)
-    println("  optimal objective value  = ", objSol)
-    println("  optimal primal values x  = ", x)
-    println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
-    println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
-
     varbndInfeas, varintInfeas, varviols = KNITRO.KN_get_var_viols(kc, Cint[0,1,2,3])
-    println("Variables bound violations = ", varbndInfeas)
-    println("Variables integrality violations = ", varintInfeas)
-    println("Variables violation values = ", varviols)
 
     coninfeas, conviols = KNITRO.KN_get_con_viols(kc, Cint[0,1,2])
-    println("Constraints bound violations = ", coninfeas)
-    println("Constraints violation values = ", conviols)
 
     println(KNITRO.KN_get_presolve_error(kc))
     @testset "Example HS40 nlp1noderivs" begin

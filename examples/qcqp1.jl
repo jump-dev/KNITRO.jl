@@ -38,24 +38,24 @@ function example_qcqp1(; verbose=true)
     # Add the variables and set their bounds and initial values.
     # Note: unset bounds assumed to be infinite.
     KNITRO.KN_add_vars(kc, 3)
-    KNITRO.KN_set_var_lobnds(kc, [0., 0., 0.])
-    KNITRO.KN_set_var_primal_init_values(kc,  [2.0, 2.0, 2.0])
+    KNITRO.KN_set_var_lobnds_all(kc, [0., 0., 0.])
+    KNITRO.KN_set_var_primal_init_values_all(kc,  [2.0, 2.0, 2.0])
 
     # Add the constraints and set their bounds.
     KNITRO.KN_add_cons(kc, 2)
-    KNITRO.KN_set_con_eqbnds(kc, 0, 56.0)
-    KNITRO.KN_set_con_lobnds(kc, 1, 25.0)
+    KNITRO.KN_set_con_eqbnd(kc, 0, 56.0)
+    KNITRO.KN_set_con_lobnd(kc, 1, 25.0)
 
     # Add coefficients for linear constraint.
     lconIndexVars = Int32[0, 1, 2]
     lconCoefs     = [8.0, 14.0, 7.0]
-    KNITRO.KN_add_con_linear_struct(kc, 0, lconIndexVars, lconCoefs)
+    KNITRO.KN_add_con_linear_struct_one(kc, 3, 0, lconIndexVars, lconCoefs)
 
     # Add coefficients for quadratic constraint
     qconIndexVars1 = Int32[0, 1, 2]
     qconIndexVars2 = Int32[0, 1, 2]
     qconCoefs      = [1.0, 1.0, 1.0]
-    KNITRO.KN_add_con_quadratic_struct(kc, 1, qconIndexVars1, qconIndexVars2, qconCoefs)
+    KNITRO.KN_add_con_quadratic_struct_one(kc, 3, 1, qconIndexVars1, qconIndexVars2, qconCoefs)
 
     # Set minimize or maximize(if not set, assumed minimize)
     KNITRO.KN_set_obj_goal(kc, KNITRO.KN_OBJGOAL_MINIMIZE)
@@ -68,7 +68,7 @@ function example_qcqp1(; verbose=true)
     qobjIndexVars2 = Int32[0, 1, 2, 1, 2]
     qobjCoefs      = [-1.0, -2.0, -1.0, -1.0, -1.0]
 
-    KNITRO.KN_add_obj_quadratic_struct(kc, qobjIndexVars1, qobjIndexVars2, qobjCoefs)
+    KNITRO.KN_add_obj_quadratic_struct(kc, 5, qobjIndexVars1, qobjIndexVars2, qobjCoefs)
 
     # Solve the problem.
     #

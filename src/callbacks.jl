@@ -26,7 +26,6 @@ function KN_set_cb_user_params(m::Model, cb::CallbackContext, userParams=nothing
     ret = @kn_ccall(set_cb_user_params, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Any),
                     m.env, cb, cb)
-    _checkraise(ret)
     return nothing
 end
 
@@ -41,7 +40,6 @@ function KN_set_cb_gradopt(m::Model, cb::CallbackContext, gradopt::Integer)
     ret = @kn_ccall(set_cb_gradopt, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Cint),
                     m.env, cb, gradopt)
-    _checkraise(ret)
     return nothing
 end
 
@@ -56,7 +54,6 @@ macro callback_getter(function_name, return_type)
             ret = @kn_ccall($function_name, Cint,
                             (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
                             kc, cb, result)
-            _checkraise(ret)
             return result[1]
         end
     end
@@ -225,7 +222,6 @@ function KN_add_eval_callback_all(m::Model, funccallback::Function)
     ret = @kn_ccall(add_eval_callback_all, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}),
                     m.env, c_f, rfptr)
-    _checkraise(ret)
     cb = CallbackContext(rfptr[])
     register_callback(m, cb)
 
@@ -251,7 +247,6 @@ function KN_add_objective_callback(m::Model, objcallback::Function)
     ret = @kn_ccall(add_eval_callback_one, Cint,
                     (Ptr{Cvoid}, Cint, Ptr{Cvoid}, Ptr{Cvoid}),
                     m.env, Cint(-1), c_f, rfptr)
-    _checkraise(ret)
     cb = CallbackContext(rfptr[])
     register_callback(m, cb)
 
@@ -280,7 +275,6 @@ function KN_add_eval_callback(m::Model, evalObj::Bool,  # switch on obj eval
     ret = @kn_ccall(add_eval_callback, Cint,
                     (Ptr{Cvoid}, KNBOOL, Cint, Ptr{Cint}, Ptr{Cvoid}, Ptr{Cvoid}),
                     m.env, KNBOOL(evalObj), nC, indexCons, c_f, rfptr)
-    _checkraise(ret)
     cb = CallbackContext(rfptr[])
     register_callback(m, cb)
 
@@ -335,8 +329,6 @@ function KN_set_cb_grad(m::Model, cb::CallbackContext, gradcallback;
                     m.env, cb, nV,
                     objGradIndexVars, nnzJ, jacIndexCons, jacIndexVars,
                     c_grad_g)
-    _checkraise(ret)
-
     return nothing
 end
 
@@ -374,7 +366,6 @@ function KN_set_cb_hess(m::Model, cb::CallbackContext, nnzH::Integer, hesscallba
                     (Ptr{Cvoid}, Ptr{Cvoid}, KNLONG, Ptr{Cint}, Ptr{Cint}, Ptr{Cvoid}),
                     m.env, cb, nnzH,
                     hessIndexVars1, hessIndexVars2, c_hess)
-    _checkraise(ret)
 
     return nothing
 end
@@ -383,10 +374,10 @@ end
 ##################################################
 # Get callbacks info
 ##################################################
-@kn_get get_number_FC_evals Cint
-@kn_get get_number_GA_evals Cint
-@kn_get get_number_H_evals Cint
-@kn_get get_number_HV_evals Cint
+@kn_get_attribute get_number_FC_evals Cint
+@kn_get_attribute get_number_GA_evals Cint
+@kn_get_attribute get_number_H_evals Cint
+@kn_get_attribute get_number_HV_evals Cint
 
 ##################################################
 # Residual callbacks
@@ -428,7 +419,6 @@ function KN_add_lsq_eval_callback(m::Model, rsdCallBack::Function)
     ret = @kn_ccall(add_lsq_eval_callback_all, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}),
                     m.env, c_f, rfptr)
-    _checkraise(ret)
     cb = CallbackContext(rfptr[])
     register_callback(m, cb)
 
@@ -459,9 +449,6 @@ function KN_set_cb_rsd_jac(m::Model, cb::CallbackContext, nnzJ::Integer, evalRJ:
                     (Ptr{Cvoid}, Ptr{Cvoid}, KNLONG, Ptr{Cint}, Ptr{Cint}, Ptr{Cvoid}),
                     m.env, cb, nnzJ,
                     jacIndexRsds, jacIndexVars, c_eval_rj)
-
-    _checkraise(ret)
-
     return cb
 end
 
@@ -531,8 +518,6 @@ function KN_set_newpt_callback(m::Model, callback::Function, userparams=nothing)
     ret = @kn_ccall(set_newpt_callback, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Any),
                     m.env, c_func, m)
-    _checkraise(ret)
-
     return nothing
 end
 
@@ -595,7 +580,6 @@ function KN_set_ms_process_callback(m::Model, callback::Function, userparams=not
     ret = @kn_ccall(set_ms_process_callback, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Any),
                     m.env, c_func, m)
-    _checkraise(ret)
     return nothing
 end
 
@@ -657,7 +641,6 @@ function KN_set_mip_node_callback(m::Model, callback::Function, userparams=nothi
     ret = @kn_ccall(set_mip_node_callback, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Any),
                     m.env, c_func, m)
-    _checkraise(ret)
     return nothing
 end
 
@@ -712,7 +695,6 @@ function KN_set_ms_initpt_callback(m::Model, callback::Function, userparams=noth
     ret = @kn_ccall(set_ms_initpt_callback, Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Any),
                     m.env, c_func, m)
-    _checkraise(ret)
     return nothing
 end
 

@@ -53,12 +53,12 @@ function example_nlp2noderivs(; verbose=true)
     # assumed to be unbounded above.
     xIndices = KNITRO.KN_add_vars(kc, 4)
     for x in xIndices
-        KNITRO.KN_set_var_primal_init_values(kc, x, 0.8)
+        KNITRO.KN_set_var_primal_init_value(kc, x, 0.8)
     end
 
     # Add the constraints and set the rhs and coefficients
     KNITRO.KN_add_cons(kc, 3)
-    KNITRO.KN_set_con_eqbnds(kc, [1.0, 0.0, 0.0])
+    KNITRO.KN_set_con_eqbnds_all(kc, [1.0, 0.0, 0.0])
 
     # Coefficients for 2 linear terms
     lconIndexCons = Int32[1, 2]
@@ -96,27 +96,26 @@ function example_nlp2noderivs(; verbose=true)
     # Return status codes are defined in "knitro.h" and described
     # in the Knitro manual.
     nStatus = KNITRO.KN_solve(kc)
-
-    println()
-    println("Knitro converged with final status = ", nStatus)
-
-    # An example of obtaining solution information.
     nStatus, objSol, x, lambda_ =  KNITRO.KN_get_solution(kc)
-    println("  optimal objective value  = ", objSol)
-    println("  optimal primal values x  = ", x)
-    println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
-    println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
-
     varbndInfeas, varintInfeas, varviols = KNITRO.KN_get_var_viols(kc, Cint[0,1,2,3])
-    println("Variables bound violations = ", varbndInfeas)
-    println("Variables integrality violations = ", varintInfeas)
-    println("Variables violation values = ", varviols)
-
     coninfeas, conviols = KNITRO.KN_get_con_viols(kc, Cint[0,1,2])
-    println("Constraints bound violations = ", coninfeas)
-    println("Constraints violation values = ", conviols)
+    err = KNITRO.KN_get_presolve_error(kc)
 
-    println(KNITRO.KN_get_presolve_error(kc))
+    if verbose
+        println()
+        println("Knitro converged with final status = ", nStatus)
+        # An example of obtaining solution information.
+        println("  optimal objective value  = ", objSol)
+        println("  optimal primal values x  = ", x)
+        println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
+        println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
+        println("Variables bound violations = ", varbndInfeas)
+        println("Variables integrality violations = ", varintInfeas)
+        println("Variables violation values = ", varviols)
+        println("Constraints bound violations = ", coninfeas)
+        println("Constraints violation values = ", conviols)
+    end
+
     @testset "Example HS40 nlp1noderivs" begin
         @test varbndInfeas == [0,0,0,0]
         @test varintInfeas == [0,0,0,0]

@@ -39,12 +39,12 @@ function example_lp1(; verbose=true)
     # Note: unset bounds assumed to be infinite.
     xIndices = KNITRO.KN_add_vars(kc, 4)
     for x in xIndices
-        KNITRO.KN_set_var_lobnds(kc, x, 0.0)
+        KNITRO.KN_set_var_lobnd(kc, x, 0.0)
     end
 
     # Add the constraints and set the rhs and coefficients.
     cons = KNITRO.KN_add_cons(kc, 2)
-    KNITRO.KN_set_con_eqbnds(kc,  [5., 8.])
+    KNITRO.KN_set_con_eqbnds_all(kc,  [5., 8.])
     # Add Jacobian structure and coefficients.
     # First constraint
     jacIndexCons = Int32[0, 0, 0]
@@ -63,7 +63,7 @@ function example_lp1(; verbose=true)
     # Set the coefficients for the objective.
     objIndices = Int32[0, 1]
     objCoefs = [-4.0, -2.0]
-    KNITRO.KN_add_obj_linear_struct(kc, objIndices, objCoefs)
+    KNITRO.KN_add_obj_linear_struct(kc, 2, objIndices, objCoefs)
 
     kn_outlev = verbose ? KNITRO.KN_OUTLEV_ALL : KNITRO.KN_OUTLEV_NONE
     KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)

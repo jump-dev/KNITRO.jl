@@ -39,8 +39,8 @@ function example_conic(; verbose=true)
 
     xLoBnds = [-KNITRO.KN_INFINITY, 1.0, -KNITRO.KN_INFINITY, 2.0]
     xUpBnds = [KNITRO.KN_INFINITY, KNITRO.KN_INFINITY, 1.0, KNITRO.KN_INFINITY]
-    KNITRO.KN_set_var_lobnds(kc, xLoBnds)
-    KNITRO.KN_set_var_upbnds(kc, xUpBnds)
+    KNITRO.KN_set_var_lobnds_all(kc, xLoBnds)
+    KNITRO.KN_set_var_upbnds_all(kc, xUpBnds)
 
     #** Add the constraints and set the RHS and coefficients */
     m = 3

@@ -133,14 +133,14 @@ function example_multiple_cb(; verbose=true)
     # assumed to be unbounded above.
     xIndices = KNITRO.KN_add_vars(kc, 4)
     for x in xIndices
-        KNITRO.KN_set_var_primal_init_values(kc, x, 0.8)
+        KNITRO.KN_set_var_primal_init_value(kc, x, 0.8)
     end
 
     # Add the constraints and set the rhs and coefficients
     cIndices = KNITRO.KN_add_cons(kc, 3)
-    KNITRO.KN_set_con_eqbnds(kc, cIndices[1], 1.0)
-    KNITRO.KN_set_con_eqbnds(kc, cIndices[2], 0.0)
-    KNITRO.KN_set_con_eqbnds(kc, cIndices[3], 0.0)
+    KNITRO.KN_set_con_eqbnd(kc, cIndices[1], 1.0)
+    KNITRO.KN_set_con_eqbnd(kc, cIndices[2], 0.0)
+    KNITRO.KN_set_con_eqbnd(kc, cIndices[3], 0.0)
 
     # Coefficients for 2 linear terms
     lconIndexCons = Int32[1, 2]

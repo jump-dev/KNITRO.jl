@@ -4,6 +4,7 @@ authors = ["Artelys", "JuliaOpt"]
 version = "0.11.1"
 
 [deps]
+Clang = "40e3b903-d033-50b4-a0cc-940c62c95e31"
 Libdl = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
 MathOptInterface = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"

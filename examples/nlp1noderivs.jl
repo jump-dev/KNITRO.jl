@@ -67,15 +67,15 @@ function example_nlp1noderivs(; verbose=true)
     # assumed to be unbounded above.
     n = 2
     KNITRO.KN_add_vars(kc, n)
-    KNITRO.KN_set_var_lobnds(kc, [-KNITRO.KN_INFINITY, -KNITRO.KN_INFINITY]) # not necessary since infinite
-    KNITRO.KN_set_var_upbnds(kc, [0.5, KNITRO.KN_INFINITY])
+    KNITRO.KN_set_var_lobnds_all(kc, [-KNITRO.KN_INFINITY, -KNITRO.KN_INFINITY]) # not necessary since infinite
+    KNITRO.KN_set_var_upbnds_all(kc, [0.5, KNITRO.KN_INFINITY])
     # Define an initial point. If not set, Knitro will generate one.
-    KNITRO.KN_set_var_primal_init_values(kc, [-2.0, 1.0])
+    KNITRO.KN_set_var_primal_init_values_all(kc, [-2.0, 1.0])
 
     # Add the constraints and set their lower bounds
     m = 2
     KNITRO.KN_add_cons(kc, m)
-    KNITRO.KN_set_con_lobnds(kc, [1.0, 0.0])
+    KNITRO.KN_set_con_lobnds_all(kc, [1.0, 0.0])
 
     # Both constraints are quadratic so we can directly load all the
     # structure for these constraints.

@@ -51,7 +51,7 @@ function example_lsq1(; verbose=true)
     KNITRO.KN_add_rsds(kc, m)
 
     # Set the array of constants, y, in the residuals
-    KNITRO.KN_add_rsd_constants(kc, [1.0, 0.5, 0.0, 0.5, 2.0])
+    KNITRO.KN_add_rsd_constants_all(kc, [1.0, 0.5, 0.0, 0.5, 2.0])
 
     # Set the linear coefficients for all the residuals.
 

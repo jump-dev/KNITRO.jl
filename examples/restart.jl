@@ -106,12 +106,12 @@ function example_restart(; verbose=true)
     # unbounded below and any unset upper bounds are
     # assumed to be unbounded above.
     KNITRO.KN_add_vars(kc, 2)
-    KNITRO.KN_set_var_lobnds(kc, [-KNITRO.KN_INFINITY, -KNITRO.KN_INFINITY]) # not necessary since infinite
-    KNITRO.KN_set_var_upbnds(kc, [0.5, KNITRO.KN_INFINITY])
+    KNITRO.KN_set_var_lobnds_all(kc, [-KNITRO.KN_INFINITY, -KNITRO.KN_INFINITY]) # not necessary since infinite
+    KNITRO.KN_set_var_upbnds_all(kc, [0.5, KNITRO.KN_INFINITY])
 
     # Add the constraints and set their lower bounds
     KNITRO.KN_add_cons(kc, 2)
-    KNITRO.KN_set_con_lobnds(kc, [1.0, 0.0])
+    KNITRO.KN_set_con_lobnds_all(kc, [1.0, 0.0])
 
     # Both constraints are quadratic so we can directly load all the
     # structure for these constraints.
@@ -184,7 +184,7 @@ function example_restart(; verbose=true)
     for i in 1:6
         KNITRO.KN_set_param(kc, "bar_murule", i)
         # Reset original initial point
-        KNITRO.KN_set_var_primal_init_values(kc, [-2.0, 1.0])
+        KNITRO.KN_set_var_primal_init_values_all(kc, [-2.0, 1.0])
         nStatus = KNITRO.KN_solve(kc)
         if verbose
             if nStatus != 0
@@ -209,7 +209,7 @@ function example_restart(; verbose=true)
     for i = 1:20
         # Modify bound for next solve.
         tmpbound = 0.1*i
-        KNITRO.KN_set_var_upbnds(kc, 0, tmpbound)
+        KNITRO.KN_set_var_upbnd(kc, 0, tmpbound)
 
         nStatus = KNITRO.KN_solve(kc)
         nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
@@ -227,7 +227,7 @@ function example_restart(; verbose=true)
         end
     end
     # Restore original value
-    KNITRO.KN_set_var_upbnds(kc, 0, 0.5)
+    KNITRO.KN_set_var_upbnd(kc, 0, 0.5)
 
     # Now solve for different values of the c0 lower bound.
     # Continually relax the lower bound until it is no longer
@@ -237,7 +237,7 @@ function example_restart(; verbose=true)
     i = 0
     for i = 1:20
         tmpbound = 1. - 0.1*i
-        KNITRO.KN_set_con_lobnds(kc, 0, tmpbound)
+        KNITRO.KN_set_con_lobnd(kc, 0, tmpbound)
         nStatus = KNITRO.KN_solve(kc)
         c0 = KNITRO.KN_get_con_values(kc, 0)
         if verbose

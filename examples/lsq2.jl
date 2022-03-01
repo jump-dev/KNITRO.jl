@@ -100,15 +100,15 @@ function example_lsq2(; verbose=true)
     # reasonable upper bound on variable x[1] and set the
     # "honorbnds" option for this variable to enforce
     # that all trial x[1] values satisfy this bound.
-    KNITRO.KN_set_var_upbnds(kc, 1, 100.0)
-    KNITRO.KN_set_var_honorbnds(kc, 1, KNITRO.KN_HONORBNDS_ALWAYS)
+    KNITRO.KN_set_var_upbnd(kc, 1, 100.0)
+    KNITRO.KN_set_var_honorbnd(kc, 1, KNITRO.KN_HONORBNDS_ALWAYS)
 
     # Add the residuals.
     m = 6 # # of residuals
     KNITRO.KN_add_rsds(kc, m)
 
     # Set the array of constants in the residuals
-    KNITRO.KN_add_rsd_constants(kc, [-2.138, -3.421, -3.597, -4.34, -4.882, -5.66])
+    KNITRO.KN_add_rsd_constants_all(kc, [-2.138, -3.421, -3.597, -4.34, -4.882, -5.66])
 
     # Add a callback function "callbackEvalR" to evaluate the nonlinear
     # residual components.  Note that the constant terms are added

@@ -167,15 +167,19 @@ function example_minlp1(; verbose=true)
     # assumed to be unbounded above.
     n = 6
     KNITRO.KN_add_vars(kc, n)
-    KNITRO.KN_set_var_lobnds(kc, zeros(Float64, n))
-    KNITRO.KN_set_var_upbnds(kc, [2., 2., 1., 1., 1., 1.])
-    KNITRO.KN_set_var_types(kc, [KNITRO.KN_VARTYPE_CONTINUOUS,
-                                KNITRO.KN_VARTYPE_CONTINUOUS,
-                                KNITRO.KN_VARTYPE_CONTINUOUS,
-                                KNITRO.KN_VARTYPE_BINARY,
-                                KNITRO.KN_VARTYPE_BINARY,
-                                KNITRO.KN_VARTYPE_BINARY])
-
+    KNITRO.KN_set_var_lobnds_all(kc, zeros(Float64, n))
+    KNITRO.KN_set_var_upbnds_all(kc, [2., 2., 1., 1., 1., 1.])
+    ret = KNITRO.KN_set_var_types_all(
+        kc,
+        Cint[
+            KNITRO.KN_VARTYPE_CONTINUOUS,
+            KNITRO.KN_VARTYPE_CONTINUOUS,
+            KNITRO.KN_VARTYPE_CONTINUOUS,
+            KNITRO.KN_VARTYPE_BINARY,
+            KNITRO.KN_VARTYPE_BINARY,
+            KNITRO.KN_VARTYPE_BINARY,
+        ],
+    )
     # Note that variables x2..x5 only appear linearly in the
     # problem.  We mark them as linear variables, which may
     # help Knitro do more extensive presolving resulting in
@@ -186,12 +190,12 @@ function example_minlp1(; verbose=true)
 
     # Add the constraints and set their bounds
     KNITRO.KN_add_cons(kc, 6)
-    KNITRO.KN_set_con_lobnds(kc,  [0, -2,
+    KNITRO.KN_set_con_lobnds_all(kc,  [0, -2,
                                 -KNITRO.KN_INFINITY,
                                 -KNITRO.KN_INFINITY,
                                 -KNITRO.KN_INFINITY,
                                 -KNITRO.KN_INFINITY])
-    KNITRO.KN_set_con_upbnds(kc, [KNITRO.KN_INFINITY, KNITRO.KN_INFINITY, 0, 0, 0, 1])
+    KNITRO.KN_set_con_upbnds_all(kc, [KNITRO.KN_INFINITY, KNITRO.KN_INFINITY, 0, 0, 0, 1])
 
     # Add the linear structure in the objective function.
     objGradIndexVars = Int32[3, 4, 5, 0, 2]

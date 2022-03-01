@@ -4,7 +4,7 @@ using Test
 const KN_VERBOSE = false
 
 @testset "Test C API" begin
-    include("knitroapi.jl")
+    include("C_wrapper.jl")
 end
 
 @testset "Test examples" begin
@@ -12,9 +12,7 @@ end
         if occursin("mps_reader", file)
             continue
         end
-        @testset "Test example $file" begin
-            include(joinpath(dirname(@__FILE__), "..", "examples", file))
-        end
+        include(joinpath(dirname(@__FILE__), "..", "examples", file))
     end
 end
 

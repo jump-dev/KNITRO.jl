@@ -8,18 +8,43 @@ macro kn_ccall(func, args...)
     end
 end
 
-macro define_getters(function_name)
-    fname = Symbol("KN_" * string(function_name))
+macro kn_get_values(function_name, type)
+    name_singular = "KN_" * string(function_name)
+    name_plural = "KN_" * string(function_name) * "s"
+    fname = Symbol(name_plural)
+    fnameshort = Symbol(name_singular)
+    # Names of C function in knitro.h
+    c_fname      = Symbol(name_singular)
+    c_fnames     = Symbol(name_plural)
+    c_fnames_all = Symbol(name_plural * "_all")
+
+    n = if occursin("var", name_singular)
+        :(KN_get_number_vars(kc))
+    elseif occursin("con", name_singular)
+        :(KN_get_number_cons(kc))
+    end
+
     quote
-        function $(esc(fname))(kc::Model, index::Vector{Cint})
-            result = zeros(Cdouble, length(index))
-            $fname(kc, length(index), index, result)
+        function $(esc(fname))(kc::Model)
+            result = zeros($type, $n)
+            $c_fnames_all(kc, result)
             return result
         end
+        function $(esc(fname))(kc::Model, index::Vector{Cint})
+            result = zeros($type, length(index))
+            $c_fnames(kc, length(index), index, result)
+            return result
+        end
+        function $(esc(fname))(kc::Model, index::Integer)
+            result = zeros($type, 1)
+            $c_fname(kc, index, result)
+            return result[1]
+        end
+        $(esc(fnameshort))(kc::Model, index::Integer) = $(esc(fname))(kc, index)
     end
 end
 
-macro kn_get(function_name, type)
+macro kn_get_attribute(function_name, type)
     fname = Symbol("KN_" * string(function_name))
     quote
         function $(esc(fname))(m::Model)
@@ -30,15 +55,8 @@ macro kn_get(function_name, type)
     end
 end
 
-"Check if return value is valid."
-function _checkraise(ret::Cint)
-    if ret != 0
-        error("Fail to use specified function: $ret")
-    end
-end
-
 "Format output returned by KNITRO as proper Julia string."
-function format_output(output::AbstractString)
+function _format_output(output::AbstractString)
     # remove trailing whitespace
     res = strip(output)
     # remove special characters
@@ -59,7 +77,7 @@ mutable struct Env
 
     function Env()
         ptrptr_env = Ref{Ptr{Cvoid}}()
-        res = @kn_ccall(new, Cint, (Ptr{Cvoid},), ptrptr_env)
+        res = KN_new(ptrptr_env)
         if res != 0
             error("Fail to retrieve a valid KNITRO KN_context. Error $res")
         end
@@ -78,7 +96,7 @@ Free all memory and release any Knitro license acquired by calling KN_new.
 function free_env(env::Env)
     if env.ptr_env != C_NULL
         ptrptr_env = Ref{Ptr{Cvoid}}(env.ptr_env)
-        @kn_ccall(free, Cint, (Ptr{Cvoid},), ptrptr_env)
+        KN_free(ptrptr_env)
         env.ptr_env = C_NULL
     end
     return
@@ -203,7 +221,7 @@ mutable struct LMcontext
 
     function LMcontext()
         ptrref = Ref{Ptr{Cvoid}}()
-        res = @kn_ccall(checkout_license, Cint, (Ptr{Cvoid},), ptrref)
+        res = KN_checkout_license(ptrref)
         if res != 0
             error("KNITRO: Error checkout license")
         end
@@ -216,7 +234,7 @@ Base.unsafe_convert(ptr::Type{Ptr{Cvoid}}, lm::LMcontext) = lm.ptr_lmcontext::Pt
 
 function Env(lm::LMcontext)
     ptrptr_env = Ref{Ptr{Cvoid}}()
-    res = @kn_ccall(new_lm, Cint, (Ptr{Cvoid},Ptr{Cvoid}), lm, ptrptr_env)
+    res = KN_new_lm(lm, ptrptr_env)
     if res != 0
         error("Fail to retrieve a valid KNITRO KN_context. Error $res")
     end
@@ -243,7 +261,7 @@ function KN_release_license(lm::LMcontext)
 
     if lm.ptr_lmcontext != C_NULL
         refptr = Ref{Ptr{Cvoid}}(lm.ptr_lmcontext)
-        @kn_ccall(release_license, Cint, (Ptr{Cvoid},), refptr)
+        KN_release_license(refptr)
         lm.ptr_lmcontext = C_NULL
     end
 end
@@ -262,12 +280,13 @@ function KN_add_vars(m::Model, nvars::Int)
     return indexes
 end
 
-@define_getters get_var_lobnds
-@define_getters get_var_upbnds
-@define_getters get_var_eqbnds
-@define_getters get_var_fxbnds
-@define_getters get_var_primal_values
-@define_getters get_var_dual_values
+@kn_get_values get_var_lobnd Cdouble
+@kn_get_values get_var_upbnd Cdouble
+@kn_get_values get_var_eqbnd Cdouble
+@kn_get_values get_var_fxbnd Cdouble
+@kn_get_values get_var_primal_value Cdouble
+@kn_get_values get_var_dual_value Cdouble
+@kn_get_values get_var_type Cint
 
 #=
     OBJECTIVE
@@ -309,10 +328,11 @@ function KN_add_con(m::Model)
     return index[1]
 end
 
-@define_getters get_con_lobnds
-@define_getters get_con_upbnds
-@define_getters get_con_eqbnds
-@define_getters get_con_dual_values
+@kn_get_values get_con_lobnd Cdouble
+@kn_get_values get_con_upbnd Cdouble
+@kn_get_values get_con_eqbnd Cdouble
+@kn_get_values get_con_dual_value Cdouble
+@kn_get_values get_con_value Cdouble
 
 function KN_add_con_linear_struct(
     m::Model, index_cons::Vector{Cint}, index_vars::Vector{Cint}, coefs::Vector{Cdouble},
@@ -439,13 +459,6 @@ end
 #=
     GETTERS
 =#
-function KN_get_con_values(m::Model)
-    nc = KN_get_number_cons(m)
-    consvals = zeros(Cdouble, nc)
-    KN_get_con_values_all(m, consvals)
-    return consvals
-end
-
 function KN_get_solution(m::Model)
     # we first check that the model is well defined to avoid segfault
     @assert m.env != C_NULL
@@ -457,7 +470,7 @@ function KN_get_solution(m::Model)
     status = Cint[0]
     obj = Cdouble[0.]
 
-    ret = KN_get_solution(m, status, obj, x, lambda)
+    KN_get_solution(m, status, obj, x, lambda)
 
     # Keep solution in cache.
     m.status = status[1]
@@ -579,31 +592,39 @@ function KN_get_con_viols(kc::Model, index::Vector{Cint})
     return infeas, viols
 end
 
-@kn_get get_number_vars Cint
-@kn_get get_number_cons Cint
-@kn_get get_obj_value Cdouble
-@kn_get get_obj_type Cint
+function KN_get_presolve_error(m::Model)
+    @assert m.env != C_NULL
+    component, index, error = Cint[0], Cint[0], Cint[0]
+    viol = Cdouble[0.0]
+    KN_get_presolve_error(m, component, index, error, viol)
+    return convert(Bool, component[1]), convert(Int64, index[1]), convert(Int64, error[1]) , convert(Float64, viol[1])
+end
 
-@kn_get get_number_iters Cint
-@kn_get get_number_cg_iters Cint
-@kn_get get_abs_feas_error Cdouble
-@kn_get get_rel_feas_error Cdouble
-@kn_get get_abs_opt_error Cdouble
-@kn_get get_rel_opt_error Cdouble
-@kn_get get_objgrad_nnz Cint
-@kn_get get_jacobian_nnz KNLONG
-@kn_get get_rsd_jacobian_nnz KNLONG
-@kn_get get_hessian_nnz KNLONG
-@kn_get get_solve_time_cpu Cdouble
-@kn_get get_solve_time_real Cdouble
+@kn_get_attribute get_number_vars Cint
+@kn_get_attribute get_number_cons Cint
+@kn_get_attribute get_obj_value Cdouble
+@kn_get_attribute get_obj_type Cint
 
-@kn_get get_mip_number_nodes Cint
-@kn_get get_mip_number_solves Cint
-@kn_get get_mip_abs_gap Cdouble
-@kn_get get_mip_rel_gap Cdouble
-@kn_get get_mip_incumbent_obj Cdouble
-@kn_get get_mip_relaxation_bnd Cdouble
-@kn_get get_mip_lastnode_obj Cdouble
+@kn_get_attribute get_number_iters Cint
+@kn_get_attribute get_number_cg_iters Cint
+@kn_get_attribute get_abs_feas_error Cdouble
+@kn_get_attribute get_rel_feas_error Cdouble
+@kn_get_attribute get_abs_opt_error Cdouble
+@kn_get_attribute get_rel_opt_error Cdouble
+@kn_get_attribute get_objgrad_nnz Cint
+@kn_get_attribute get_jacobian_nnz KNLONG
+@kn_get_attribute get_rsd_jacobian_nnz KNLONG
+@kn_get_attribute get_hessian_nnz KNLONG
+@kn_get_attribute get_solve_time_cpu Cdouble
+@kn_get_attribute get_solve_time_real Cdouble
+
+@kn_get_attribute get_mip_number_nodes Cint
+@kn_get_attribute get_mip_number_solves Cint
+@kn_get_attribute get_mip_abs_gap Cdouble
+@kn_get_attribute get_mip_rel_gap Cdouble
+@kn_get_attribute get_mip_incumbent_obj Cdouble
+@kn_get_attribute get_mip_relaxation_bnd Cdouble
+@kn_get_attribute get_mip_lastnode_obj Cdouble
 
 #=
 PARAMS
@@ -653,14 +674,14 @@ function KN_get_param_name(m::Model, id::Integer)
     output_size = 128
     res = " "^output_size
     KN_get_param_name(m, id, res, output_size)
-    return format_output(res)
+    return _format_output(res)
 end
 
 function KN_get_param_doc(m::Model, id::Integer)
     output_size = 128
     res = " "^output_size
     KN_get_param_doc(m, id, res, output_size)
-    return format_output(res)
+    return _format_output(res)
 end
 
 function KN_get_param_type(m::Model, id::Integer)
@@ -679,12 +700,39 @@ function KN_get_param_value_doc(m::Model, id::Integer, value_id::Integer)
     output_size = 128
     res = " "^output_size
     KN_get_param_value_doc(m, id, value_id, res, output_size)
-    return format_output(res)
+    return _format_output(res)
 end
 
 function KN_get_param_id(m::Model, name::AbstractString)
     res = Cint[0]
     KN_get_param_id(m, name, res)
     return res[1]
+end
+
+#=
+    NAMES
+=#
+function KN_get_var_names(m::Model, max_length=1024)
+    return String[KN_get_var_names(m, Cint(id-1), max_length) for id in 1:KN_get_number_vars(m)]
+end
+function KN_get_var_names(m::Model, index::Vector{Cint}, max_length=1024)
+    return String[KN_get_var_names(m, id, max_length) for id in index]
+end
+function KN_get_var_names(m::Model, index::Cint, max_length=1024)
+    rawname = zeros(Cchar, max_length)
+    ret = KN_get_var_name(m, index, max_length, rawname)
+    return String(strip(String(convert(Vector{UInt8}, rawname)), '\0'))
+end
+
+function KN_get_con_names(m::Model, max_length=1024)
+    return String[KN_get_con_names(m, Cint(id-1), max_length) for id in 1:KN_get_number_cons(m)]
+end
+function KN_get_con_names(m::Model, index::Vector{Cint}, max_length=1024)
+    return String[KN_get_con_names(m, id, max_length) for id in index]
+end
+function KN_get_con_names(m::Model, index::Cint, max_length=1024)
+    rawname = zeros(Cchar, max_length)
+    ret = KN_get_con_name(m, index, max_length, rawname)
+    return String(strip(String(convert(Vector{UInt8}, rawname)), '\0'))
 end
 

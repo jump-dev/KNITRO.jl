@@ -280,12 +280,11 @@ end
 # MOI.RawOptimizerAttribute
 function MOI.supports(model::Optimizer, param::MOI.RawOptimizerAttribute)
     name = param.name
-    if name in KNITRO_OPTIONS || haskey(KN_paramName2Indx, name)
-        return true
-    elseif name == "free"
+    if name == "free"
         return true
     end
-    return false
+    code = KN_get_param_id(model.inner, name)
+    return code > 0
 end
 
 function MOI.set(model::Optimizer, p::MOI.RawOptimizerAttribute, value)
