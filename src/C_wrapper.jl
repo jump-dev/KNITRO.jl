@@ -131,9 +131,6 @@ end
 
 Base.unsafe_convert(ptr::Type{Ptr{Cvoid}}, cb::CallbackContext) = cb.context::Ptr{Cvoid}
 
-##################################################
-# Model definition.
-##################################################
 mutable struct Model
     # KNITRO context environment.
     env::Env
@@ -513,7 +510,7 @@ function KN_solve(m::Model)
         end
     end
     # For KN_solve, we do not return an error if ret is different of 0.
-    m.status = @kn_ccall(solve, Cint, (Ptr{Cvoid},), m.env)
+    m.status = KN_solve(m.env)
     return m.status
 end
 

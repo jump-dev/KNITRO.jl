@@ -31,8 +31,6 @@ end
 include("libknitro.jl")
 include("C_wrapper.jl")
 include("callbacks.jl")
-
-# the MathOptInterface wrapper works only with the new API
 include("MOI_wrapper.jl")
 
 end

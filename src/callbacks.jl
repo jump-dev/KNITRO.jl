@@ -13,9 +13,6 @@ function link!(cb::CallbackContext, model::Model)
     return cb.m = KN_get_number_cons(model)
 end
 
-##################################################
-# Utils
-##################################################
 function KN_set_cb_user_params(m::Model, cb::CallbackContext, userParams=nothing)
     if userParams != nothing
         cb.userparams = userParams
@@ -23,7 +20,7 @@ function KN_set_cb_user_params(m::Model, cb::CallbackContext, userParams=nothing
     # Link current callback context with Knitro model
     link!(cb, m)
     # Store callback context inside KNITRO user data.
-    ret = @kn_ccall(set_cb_user_params, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Any), m.env, cb, cb)
+    @kn_ccall(set_cb_user_params, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Any), m.env, cb, cb)
     return nothing
 end
 
@@ -35,20 +32,16 @@ then a gradient evaluation callback must be set by `KN_set_cb_grad()`
 
 """
 function KN_set_cb_gradopt(m::Model, cb::CallbackContext, gradopt::Integer)
-    ret =
-        @kn_ccall(set_cb_gradopt, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Cint), m.env, cb, gradopt)
+    @kn_ccall(set_cb_gradopt, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Cint), m.env, cb, gradopt)
     return nothing
 end
 
-#--------------------
-# callback context getters
-#--------------------
 macro callback_getter(function_name, return_type)
     fname = Symbol("KN_" * string(function_name))
     quote
         function $(esc(fname))(kc::Ptr{Cvoid}, cb::Ptr{Cvoid})
             result = zeros($return_type, 1)
-            ret = @kn_ccall(
+            @kn_ccall(
                 $function_name,
                 Cint,
                 (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
@@ -172,11 +165,6 @@ end
 @wrap_function eval_ga_wrapper eval_g
 @wrap_function eval_hess_wrapper eval_h
 
-################################################################################
-################################################################################
-################################################################################
-################################################################################
-
 # Eval callbacks should be of the form:
 # callback(kc, cb, evalrequest, evalresult, usrparams)::Int
 
@@ -234,7 +222,7 @@ function KN_add_eval_callback_all(m::Model, funccallback::Function)
     rfptr = Ref{Ptr{Cvoid}}()
 
     # Add callback to context.
-    ret = @kn_ccall(
+    @kn_ccall(
         add_eval_callback_all,
         Cint,
         (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}),
@@ -267,7 +255,7 @@ function KN_add_objective_callback(m::Model, objcallback::Function)
     rfptr = Ref{Ptr{Cvoid}}()
 
     # add callback to context
-    ret = @kn_ccall(
+    @kn_ccall(
         add_eval_callback_one,
         Cint,
         (Ptr{Cvoid}, Cint, Ptr{Cvoid}, Ptr{Cvoid}),
@@ -307,7 +295,7 @@ function KN_add_eval_callback(
     rfptr = Ref{Ptr{Cvoid}}()
 
     # Add callback to context.
-    ret = @kn_ccall(
+    @kn_ccall(
         add_eval_callback,
         Cint,
         (Ptr{Cvoid}, KNBOOL, Cint, Ptr{Cint}, Ptr{Cvoid}, Ptr{Cvoid}),
@@ -376,7 +364,7 @@ function KN_set_cb_grad(
         c_grad_g = C_NULL
     end
 
-    ret = @kn_ccall(
+    @kn_ccall(
         set_cb_grad,
         Cint,
         (Ptr{Cvoid}, Ptr{Cvoid}, Cint, Ptr{Cint}, KNLONG, Ptr{Cint}, Ptr{Cint}, Ptr{Cvoid}),
@@ -431,7 +419,7 @@ function KN_set_cb_hess(
         (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid})
     )
 
-    ret = @kn_ccall(
+    @kn_ccall(
         set_cb_hess,
         Cint,
         (Ptr{Cvoid}, Ptr{Cvoid}, KNLONG, Ptr{Cint}, Ptr{Cint}, Ptr{Cvoid}),
@@ -446,18 +434,14 @@ function KN_set_cb_hess(
     return nothing
 end
 
-##################################################
-# Get callbacks info
-##################################################
 @kn_get_attribute get_number_FC_evals Cint
 @kn_get_attribute get_number_GA_evals Cint
 @kn_get_attribute get_number_H_evals Cint
 @kn_get_attribute get_number_HV_evals Cint
 
-##################################################
-# Residual callbacks
-##################################################
-
+#=
+    RESIDUALS
+=#
 @wrap_function eval_rj_wrapper eval_jac_rsd
 @wrap_function eval_rsd_wrapper eval_rsd
 
@@ -494,7 +478,7 @@ function KN_add_lsq_eval_callback(m::Model, rsdCallBack::Function)
     rfptr = Ref{Ptr{Cvoid}}()
 
     # Add callback to context.
-    ret = @kn_ccall(
+    @kn_ccall(
         add_lsq_eval_callback_all,
         Cint,
         (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}),
@@ -537,7 +521,7 @@ function KN_set_cb_rsd_jac(
         Cint,
         (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid})
     )
-    ret = @kn_ccall(
+    @kn_ccall(
         set_cb_rsd_jac,
         Cint,
         (Ptr{Cvoid}, Ptr{Cvoid}, KNLONG, Ptr{Cint}, Ptr{Cint}, Ptr{Cvoid}),
@@ -551,12 +535,9 @@ function KN_set_cb_rsd_jac(
     return cb
 end
 
-##################################################
-# User callbacks wrapper
-##################################################
-#--------------------
-# New estimate callback.
-#--------------------
+#=
+    USER CALLBACKS
+=#
 function newpt_wrapper(
     ptr_model::Ptr{Cvoid},
     ptr_x::Ptr{Cdouble},
@@ -618,14 +599,10 @@ function KN_set_newpt_callback(m::Model, callback::Function, userparams=nothing)
         (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid})
     )
 
-    ret =
-        @kn_ccall(set_newpt_callback, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Any), m.env, c_func, m)
+    @kn_ccall(set_newpt_callback, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Any), m.env, c_func, m)
     return nothing
 end
 
-#--------------------
-# Multistart callback
-#--------------------
 function ms_process_wrapper(
     ptr_model::Ptr{Cvoid},
     ptr_x::Ptr{Cdouble},
@@ -684,7 +661,7 @@ function KN_set_ms_process_callback(m::Model, callback::Function, userparams=not
         (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid})
     )
 
-    ret = @kn_ccall(
+    @kn_ccall(
         set_ms_process_callback,
         Cint,
         (Ptr{Cvoid}, Ptr{Cvoid}, Any),
@@ -695,9 +672,6 @@ function KN_set_ms_process_callback(m::Model, callback::Function, userparams=not
     return nothing
 end
 
-#--------------------
-# MIP callback
-#--------------------
 function mip_node_callback_wrapper(
     ptr_model::Ptr{Cvoid},
     ptr_x::Ptr{Cdouble},
@@ -755,7 +729,7 @@ function KN_set_mip_node_callback(m::Model, callback::Function, userparams=nothi
         (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid})
     )
 
-    ret = @kn_ccall(
+    @kn_ccall(
         set_mip_node_callback,
         Cint,
         (Ptr{Cvoid}, Ptr{Cvoid}, Any),
@@ -766,9 +740,6 @@ function KN_set_mip_node_callback(m::Model, callback::Function, userparams=nothi
     return nothing
 end
 
-#--------------------
-# Multistart procedure callback
-#--------------------
 function ms_initpt_wrapper(
     ptr_model::Ptr{Cvoid},
     nSolveNumber::Cint,
@@ -819,7 +790,7 @@ function KN_set_ms_initpt_callback(m::Model, callback::Function, userparams=noth
         (Ptr{Cvoid}, Cint, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid})
     )
 
-    ret = @kn_ccall(
+    @kn_ccall(
         set_ms_initpt_callback,
         Cint,
         (Ptr{Cvoid}, Ptr{Cvoid}, Any),
@@ -830,9 +801,6 @@ function KN_set_ms_initpt_callback(m::Model, callback::Function, userparams=noth
     return nothing
 end
 
-#--------------------
-# Puts callback
-#--------------------
 function puts_callback_wrapper(str::Ptr{Cchar}, userdata_::Ptr{Cvoid})
 
     # Load KNITRO's Julia Model.
@@ -877,7 +845,6 @@ function KN_set_puts_callback(m::Model, callback::Function, userparams=nothing)
     # Wrap user callback wrapper as C function.
     c_func = @cfunction(puts_callback_wrapper, Cint, (Ptr{Cchar}, Ptr{Cvoid}))
 
-    ret =
-        @kn_ccall(set_puts_callback, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Any), m.env, c_func, m)
+    @kn_ccall(set_puts_callback, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Any), m.env, c_func, m)
     return nothing
 end
