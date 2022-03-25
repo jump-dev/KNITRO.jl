@@ -240,33 +240,33 @@ kc = KNITRO.KN_new_lm(lm)
 
 KNITRO.KN_add_vars(kc, n)
 
-!isempty(initial_guess) && KNITRO.KN_set_var_primal_init_values(kc, initial_guess)
+!isempty(initial_guess) && KNITRO.KN_set_var_primal_init_values_all(kc, initial_guess)
 
-KNITRO.KN_set_var_lobnds(kc, collect(Cint, ind_h .- 1), zeros(M))  # `h` bounds
-KNITRO.KN_set_var_lobnds(kc, collect(Cint, ind_v .- 1), fill(1 / 1e4, M))  # `v` bounds
+KNITRO.KN_set_var_lobnds(kc, M, collect(Cint, ind_h .- 1), zeros(M))  # `h` bounds
+KNITRO.KN_set_var_lobnds(kc, M, collect(Cint, ind_v .- 1), fill(1 / 1e4, M))  # `v` bounds
 
-KNITRO.KN_set_var_lobnds(kc, collect(Cint, ind_θ .- 1), fill(deg2rad(-89), M))  # `θ` lower bounds
-KNITRO.KN_set_var_upbnds(kc, collect(Cint, ind_θ .- 1), fill(deg2rad(89), M))  # `θ` upper bounds
+KNITRO.KN_set_var_lobnds(kc, M, collect(Cint, ind_θ .- 1), fill(deg2rad(-89), M))  # `θ` lower bounds
+KNITRO.KN_set_var_upbnds(kc, M, collect(Cint, ind_θ .- 1), fill(deg2rad(89), M))  # `θ` upper bounds
 
-KNITRO.KN_set_var_lobnds(kc, collect(Cint, ind_γ .- 1), fill(deg2rad(-89), M))  # `γ` lower bounds
-KNITRO.KN_set_var_upbnds(kc, collect(Cint, ind_γ .- 1), fill(deg2rad(89), M))  # `γ` upper bounds
+KNITRO.KN_set_var_lobnds(kc, M, collect(Cint, ind_γ .- 1), fill(deg2rad(-89), M))  # `γ` lower bounds
+KNITRO.KN_set_var_upbnds(kc, M, collect(Cint, ind_γ .- 1), fill(deg2rad(89), M))  # `γ` upper bounds
 
-KNITRO.KN_set_var_lobnds(kc, collect(Cint, ind_α .- 1), fill(deg2rad(-90), M))  # `α` lower bounds
-KNITRO.KN_set_var_upbnds(kc, collect(Cint, ind_α .- 1), fill(deg2rad(90), M))  # `α` upper bounds
+KNITRO.KN_set_var_lobnds(kc, M, collect(Cint, ind_α .- 1), fill(deg2rad(-90), M))  # `α` lower bounds
+KNITRO.KN_set_var_upbnds(kc, M, collect(Cint, ind_α .- 1), fill(deg2rad(90), M))  # `α` upper bounds
 
-KNITRO.KN_set_var_lobnds(kc, collect(Cint, ind_β .- 1), fill(deg2rad(-89), M))  # `β` lower bounds
-KNITRO.KN_set_var_upbnds(kc, collect(Cint, ind_β .- 1), fill(deg2rad(1), M))  # `β` upper bounds
+KNITRO.KN_set_var_lobnds(kc, M, collect(Cint, ind_β .- 1), fill(deg2rad(-89), M))  # `β` lower bounds
+KNITRO.KN_set_var_upbnds(kc, M, collect(Cint, ind_β .- 1), fill(deg2rad(1), M))  # `β` upper bounds
 
-KNITRO.KN_set_var_fxbnds(kc, collect(Cint, ind_t .- 1), fill(1.00, M))  # Fix time steps
+KNITRO.KN_set_var_fxbnds(kc, M, collect(Cint, ind_t .- 1), fill(1.00, M))  # Fix time steps
 
 # Fix initial and final conditions
 ind_fixed_vars = [ind_h[1]:ind_ψ[1]; [ind_h[end], ind_v[end], ind_γ[end]]]
 val_fixed_vars = [hₛ, ϕₛ, θₛ, vₛ, γₛ, ψₛ, hₜ, vₜ, γₜ]
-KNITRO.KN_set_var_fxbnds(kc, collect(Cint, ind_fixed_vars .- 1), val_fixed_vars)
+KNITRO.KN_set_var_fxbnds(kc, length(val_fixed_vars), collect(Cint, ind_fixed_vars .- 1), val_fixed_vars)
 
 KNITRO.KN_add_cons(kc, m_dyn)
 
-KNITRO.KN_set_con_eqbnds(kc, collect(Cint, ind_con_dyn .- 1), zeros(m_dyn))  # defects
+KNITRO.KN_set_con_eqbnds(kc, m_dyn, collect(Cint, ind_con_dyn .- 1), zeros(m_dyn))  # defects
 
 # This callback does not evaluate the objective function. As such,
 # we pass `false` as the second argument to `KN_add_eval_callback()`.
