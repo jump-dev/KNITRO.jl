@@ -23,7 +23,6 @@
 
 using KNITRO
 
-
 function example_conic(; verbose=true)
     #** Create a new Knitro solver instance. */
     kc = KNITRO.KN_new()
@@ -39,8 +38,8 @@ function example_conic(; verbose=true)
 
     xLoBnds = [-KNITRO.KN_INFINITY, 1.0, -KNITRO.KN_INFINITY, 2.0]
     xUpBnds = [KNITRO.KN_INFINITY, KNITRO.KN_INFINITY, 1.0, KNITRO.KN_INFINITY]
-    KNITRO.KN_set_var_lobnds(kc, xLoBnds)
-    KNITRO.KN_set_var_upbnds(kc, xUpBnds)
+    KNITRO.KN_set_var_lobnds_all(kc, xLoBnds)
+    KNITRO.KN_set_var_upbnds_all(kc, xUpBnds)
 
     #** Add the constraints and set the RHS and coefficients */
     m = 3
@@ -61,23 +60,23 @@ function example_conic(; verbose=true)
 
     #** coefficient for linear term in constraint c0 */
     indexVars3 = Cint[1]
-    coefs3 = [-10.]
+    coefs3 = [-10.0]
     KNITRO.KN_add_con_linear_struct(kc, 0, indexVars3, coefs3)
 
     #** coefficient for quadratic term in constraint c1 */
-    qconIndexVar1 = 3;
-    qconIndexVar2 = 3;
-    qconCoef = 1.0;
+    qconIndexVar1 = 3
+    qconIndexVar2 = 3
+    qconCoef = 1.0
     KNITRO.KN_add_con_quadratic_struct(kc, 1, qconIndexVar1, qconIndexVar2, qconCoef)
 
     #** Coefficients for L2-norm constraint components in c0.
     #*  Assume the form ||Ax+b|| (here with b = 0)
-    dimA = 2;   # A = [1, 0, 0, 0; 0, 0, 2, 0] has two rows */
-    nnzA = 2;
+    dimA = 2   # A = [1, 0, 0, 0; 0, 0, 2, 0] has two rows */
+    nnzA = 2
     indexRowsA = Cint[0, 1]
     indexVarsA = Cint[0, 2]
-    coefsA = [1., 2.]
-    b = [0., 0.]
+    coefsA = [1.0, 2.0]
+    b = [0.0, 0.0]
     KNITRO.KN_add_con_L2norm(kc, 0, dimA, nnzA, indexRowsA, indexVarsA, coefsA, b)
 
     #* Set minimize or maximize(if not set, assumed minimize) */
@@ -90,7 +89,7 @@ function example_conic(; verbose=true)
     #*  Note:(x2 + x3)^2 = x2^2 + 2*x2*x3 + x3^2 */
     qobjIndexVars1 = Cint[0, 2, 3, 2, 1]
     qobjIndexVars2 = Cint[0, 2, 3, 3, 1]
-    qobjCoefs = [1., 1., 1., 2., 1.]
+    qobjCoefs = [1.0, 1.0, 1.0, 2.0, 1.0]
     KNITRO.KN_add_obj_quadratic_struct(kc, qobjIndexVars1, qobjIndexVars2, qobjCoefs)
 
     #** Add linear objective term. */
@@ -102,7 +101,11 @@ function example_conic(; verbose=true)
     #*  L2 norm structure.
     KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_ALGORITHM, KNITRO.KN_ALG_BAR_DIRECT)
     #** Enable the special barrier tools for second order cone(SOC) constraints. */
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_BAR_CONIC_ENABLE, KNITRO.KN_BAR_CONIC_ENABLE_SOC)
+    KNITRO.KN_set_param(
+        kc,
+        KNITRO.KN_PARAM_BAR_CONIC_ENABLE,
+        KNITRO.KN_BAR_CONIC_ENABLE_SOC,
+    )
     #** Specify maximum output */
     outlev = verbose ? KNITRO.KN_OUTLEV_ALL : KNITRO.KN_OUTLEV_NONE
     KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, outlev)
@@ -128,9 +131,7 @@ function example_conic(; verbose=true)
     end
 
     #** Delete the Knitro solver instance. */
-    KNITRO.KN_free(kc)
+    return KNITRO.KN_free(kc)
 end
 
-
 example_conic(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
-

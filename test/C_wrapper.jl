@@ -2,38 +2,37 @@
 using KNITRO
 using Test
 
-const MPS_PROBLEM =
-"""
-NAME         lo1
-OBJSENSE     MAX
-ROWS
- N  obj
- E  c1
- G  c2
- L  c3
-COLUMNS
-    x1        obj       3
-    x1        c1        3
-    x1        c2        2
-    x2        obj       1
-    x2        c1        1
-    x2        c2        1
-    x2        c3        2
-    x3        obj       5
-    x3        c1        2
-    x3        c2        3
-    x4        obj       1
-    x4        c2        1
-    x4        c3        3
-RHS
-    rhs       c1        30
-    rhs       c2        15
-    rhs       c3        25
-RANGES
-BOUNDS
- UP bound     x2        10
-ENDATA
-"""
+const MPS_PROBLEM = """
+                    NAME         lo1
+                    OBJSENSE     MAX
+                    ROWS
+                     N  obj
+                     E  c1
+                     G  c2
+                     L  c3
+                    COLUMNS
+                        x1        obj       3
+                        x1        c1        3
+                        x1        c2        2
+                        x2        obj       1
+                        x2        c1        1
+                        x2        c2        1
+                        x2        c3        2
+                        x3        obj       5
+                        x3        c1        2
+                        x3        c2        3
+                        x4        obj       1
+                        x4        c2        1
+                        x4        c3        3
+                    RHS
+                        rhs       c1        30
+                        rhs       c2        15
+                        rhs       c3        25
+                    RANGES
+                    BOUNDS
+                     UP bound     x2        10
+                    ENDATA
+                    """
 
 @testset "Instantiation Knitro C interface" begin
     # get KNITRO.KNITRO release version
@@ -49,7 +48,6 @@ ENDATA
         @test m.env.ptr_env == C_NULL
     end
 end
-
 
 # add generic callbacks for future tests
 
@@ -74,7 +72,8 @@ function evalAll(kc, cb, evalRequest, evalResult, userParams)
         vec = evalRequest.vec
         evalResult.hessVec[1] = (2 * x[3]) * vec[1] + (2 * x[1]) * vec[3]
         evalResult.hessVec[2] = (6 * x[2] * x[3]^2) * vec[2] + (6 * x[2]^2 * x[3]) * vec[3]
-        evalResult.hessVec[3] = (2 * x[1]) * vec[1] + (6 * x[2]^2 * x[3]) * vec[2] + (2 * x[2]^3) * vec[3]
+        evalResult.hessVec[3] =
+            (2 * x[1]) * vec[1] + (6 * x[2]^2 * x[3]) * vec[2] + (2 * x[2]^3) * vec[3]
 
     elseif evalRequestCode == KNITRO.KN_RC_EVALH_NO_F
         evalResult.hess[1] = 0
@@ -111,8 +110,8 @@ if KNITRO.KNITRO_VERSION >= v"12.0"
         xnames = ["x1", "x2", "x3"]
         cnames = ["c1", "c2", "c3"]
 
-        KNITRO.KN_set_var_names(kc, xnames)
-        KNITRO.KN_set_con_names(kc, cnames)
+        KNITRO.KN_set_var_names_all(kc, xnames)
+        KNITRO.KN_set_con_names_all(kc, cnames)
         index = Cint(1)
 
         name = KNITRO.KN_get_var_names(kc, index)
@@ -137,7 +136,7 @@ if KNITRO.KNITRO_VERSION >= v"12.1"
         mps_name = joinpath(dirname(@__FILE__), "lp.mps")
         mps_name_out = joinpath(dirname(@__FILE__), "lp2.mps")
         open(mps_name, "w") do io
-            write(io, MPS_PROBLEM)
+            return write(io, MPS_PROBLEM)
         end
         kc = KNITRO.KN_new()
         KNITRO.KN_load_mps_file(kc, mps_name)
@@ -185,9 +184,10 @@ end
     @test KNITRO.KN_get_double_param(kc, "xtol") == 1e-15
     @test KNITRO.KN_get_int_param(kc, KNITRO.KN_PARAM_ALG) == KNITRO.KN_ALG_BAR_DIRECT
     @test KNITRO.KN_get_double_param(kc, KNITRO.KN_PARAM_XTOL) == 1e-15
-    @test KNITRO.KN_get_param_name(kc, KNITRO.KN_PARAM_XTOL)  == "xtol"
+    @test KNITRO.KN_get_param_name(kc, KNITRO.KN_PARAM_XTOL) == "xtol"
 
-    @test KNITRO.KN_get_param_doc(kc, KNITRO.KN_PARAM_XTOL) == "# Step size tolerance used for terminating the optimization.\n"
+    @test KNITRO.KN_get_param_doc(kc, KNITRO.KN_PARAM_XTOL) ==
+          "# Step size tolerance used for terminating the optimization.\n"
     @test KNITRO.KN_get_param_type(kc, KNITRO.KN_PARAM_XTOL) == KNITRO.KN_PARAMTYPE_FLOAT
     @test KNITRO.KN_get_num_param_values(kc, KNITRO.KN_PARAM_XTOL) == 0
 
@@ -217,23 +217,23 @@ end
     # Add the variables and set their bounds.
     nV = 3
     KNITRO.KN_add_vars(kc, nV)
-    KNITRO.KN_set_var_lobnds(kc, [0, 0.1, 0])
-    KNITRO.KN_set_var_upbnds(kc, [0., 2, 2])
+    KNITRO.KN_set_var_lobnds_all(kc, [0, 0.1, 0])
+    KNITRO.KN_set_var_upbnds_all(kc, [0.0, 2, 2])
     # Define an initial point.
-    KNITRO.KN_set_var_primal_init_values(kc, [1., 1, 1.5])
-    KNITRO.KN_set_var_dual_init_values(kc,  [1., 1, 1, 1])
+    KNITRO.KN_set_var_primal_init_values_all(kc, [1.0, 1, 1.5])
+    KNITRO.KN_set_var_dual_init_values_all(kc, [1.0, 1, 1, 1])
 
     # Add the constraints and set their bounds.
     nC = 1
     KNITRO.KN_add_cons(kc, nC)
-    KNITRO.KN_set_con_lobnds(kc, [0.1])
-    KNITRO.KN_set_con_upbnds(kc, [2 * 2 * 0.99])
+    KNITRO.KN_set_con_lobnds_all(kc, [0.1])
+    KNITRO.KN_set_con_upbnds_all(kc, [2 * 2 * 0.99])
 
     # Test getters.
     if KNITRO.KNITRO_VERSION >= v"12.0"
         xindex = Cint[0, 1, 2]
         @test KNITRO.KN_get_var_lobnds(kc, xindex) == [0, 0.1, 0]
-        @test KNITRO.KN_get_var_upbnds(kc, xindex) == [0., 2, 2]
+        @test KNITRO.KN_get_var_upbnds(kc, xindex) == [0.0, 2, 2]
 
         cindex = Cint[0]
         @test KNITRO.KN_get_con_lobnds(kc, cindex) == [0.1]
@@ -247,14 +247,19 @@ end
     cb = KNITRO.KN_add_objective_callback(kc, evalAll)
     @test KNITRO.has_callbacks(kc)
     KNITRO.KN_set_cb_grad(kc, cb, evalAll)
-    KNITRO.KN_set_cb_hess(kc, cb, 5, evalAll,
-                          hessIndexVars1=Int32[0, 0, 1, 1, 2],
-                          hessIndexVars2=Int32[0, 2, 1, 2, 2])
+    KNITRO.KN_set_cb_hess(
+        kc,
+        cb,
+        5,
+        evalAll,
+        hessIndexVars1=Int32[0, 0, 1, 1, 2],
+        hessIndexVars2=Int32[0, 2, 1, 2, 2],
+    )
 
     KNITRO.KN_set_newpt_callback(kc, newpt_callback)
 
     # Add complementarity constraints.
-    KNITRO.KN_set_compcons(kc, [KNITRO.KN_CCTYPE_VARVAR], Int32[0], Int32[1])
+    KNITRO.KN_set_compcons(kc, Int32[KNITRO.KN_CCTYPE_VARVAR], Int32[0], Int32[1])
 
     # Solve the problem.
     status = KNITRO.KN_solve(kc)
@@ -262,14 +267,14 @@ end
 
     # Restart using the previous solution.
     nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
-    KNITRO.KN_set_var_primal_init_values(kc, x)
-    KNITRO.KN_set_var_dual_init_values(kc, lambda_)
+    KNITRO.KN_set_var_primal_init_values_all(kc, x)
+    KNITRO.KN_set_var_dual_init_values_all(kc, lambda_)
     status = KNITRO.KN_solve(kc)
     @test status == 0
 
     # Restart with new variable bounds
-    KNITRO.KN_set_var_lobnds(kc, Float64[0., 0, 0])
-    KNITRO.KN_set_var_upbnds(kc, Float64[2., 2, 2])
+    KNITRO.KN_set_var_lobnds_all(kc, Float64[0.0, 0, 0])
+    KNITRO.KN_set_var_upbnds_all(kc, Float64[2.0, 2, 2])
     status = KNITRO.KN_solve(kc)
     @test status == 0
 
@@ -288,9 +293,9 @@ end
 
     nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
     @test nStatus == 0
-    @test x ≈ [0., 2.0, 1.98]
+    @test x ≈ [0.0, 2.0, 1.98]
 
-    @test objSol ≈ 31.363199 atol=1e-5
+    @test objSol ≈ 31.363199 atol = 1e-5
 
     # Test getters for primal and dual variables
     if KNITRO.KNITRO_VERSION >= v"12.0"
@@ -305,12 +310,11 @@ end
     KNITRO.KN_free(kc)
 end
 
-
 @testset "Second problem test" begin
     kc = KNITRO.KN_new()
 
     function prettyPrinting(str, userParams)
-        s = "KNITRO-Julia: " * str
+        s = "KNITRO-Julia: " * str * "\n"
         println(s)
         return length(s)
     end
@@ -333,18 +337,18 @@ end
     # Add the variables and set their bounds.
     nV = 3
     KNITRO.KN_add_vars(kc, nV)
-    KNITRO.KN_set_var_lobnds(kc, [0, 0.1, 0])
-    KNITRO.KN_set_var_upbnds(kc, [0., 2, 2])
+    KNITRO.KN_set_var_lobnds_all(kc, [0, 0.1, 0])
+    KNITRO.KN_set_var_upbnds_all(kc, [0.0, 2, 2])
 
     # Define an initial point.
-    KNITRO.KN_set_var_primal_init_values(kc, [1, 1, 1.5])
-    KNITRO.KN_set_var_dual_init_values(kc, [1, 1, 1, 1.])
+    KNITRO.KN_set_var_primal_init_values_all(kc, [1, 1, 1.5])
+    KNITRO.KN_set_var_dual_init_values_all(kc, [1, 1, 1, 1.0])
 
     # Add the constraints and set their lower bounds.
     nC = 1
     KNITRO.KN_add_cons(kc, nC)
-    KNITRO.KN_set_con_lobnds(kc, [0.1])
-    KNITRO.KN_set_con_upbnds(kc, [2 * 2 * 0.99])
+    KNITRO.KN_set_con_lobnds_all(kc, [0.1])
+    KNITRO.KN_set_con_upbnds_all(kc, [2 * 2 * 0.99])
 
     # Load quadratic structure x1*x2 for the constraint.
     KNITRO.KN_add_con_quadratic_struct(kc, 0, 1, 2, 1.0)
@@ -359,7 +363,7 @@ end
 
     function ms_initpt_callbackFn(kc, nSolveNumber, x, lambda_, userParams)
         x[:] = [1, 1, 1.1 + 0.1 * nSolveNumber]
-        lambda_[:] = [1., 1, 1, 1]
+        lambda_[:] = [1.0, 1, 1, 1]
         return 0
     end
 
@@ -367,8 +371,7 @@ end
     KNITRO.KN_set_ms_initpt_callback(kc, ms_initpt_callbackFn)
 
     # Add complementarity constraints.
-    KNITRO.KN_set_compcons(kc, [KNITRO.KN_CCTYPE_VARVAR], Int32[0], Int32[1])
-
+    KNITRO.KN_set_compcons(kc, Int32[KNITRO.KN_CCTYPE_VARVAR], Int32[0], Int32[1])
 
     # Solve the problem.
     status = KNITRO.KN_solve(kc)
@@ -376,13 +379,12 @@ end
     @test status == 0
     nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
     @test nStatus == 0
-    @test x ≈ [0., 2.0, 1.98] atol=1e-5
+    @test x ≈ [0.0, 2.0, 1.98] atol = 1e-5
 
-    @test objSol ≈ 31.363199 atol=1e-5
+    @test objSol ≈ 31.363199 atol = 1e-5
 
     KNITRO.KN_free(kc)
 end
-
 
 @testset "Third problem test" begin
     kc = KNITRO.KN_new()
@@ -397,18 +399,18 @@ end
     # Add the variables and set their bounds.
     nV = 3
     KNITRO.KN_add_vars(kc, nV)
-    KNITRO.KN_set_var_lobnds(kc, [0, 0.1, 0])
-    KNITRO.KN_set_var_upbnds(kc, [0., 2, 2])
+    KNITRO.KN_set_var_lobnds_all(kc, [0, 0.1, 0])
+    KNITRO.KN_set_var_upbnds_all(kc, [0.0, 2, 2])
 
     # Define an initial point.
-    KNITRO.KN_set_var_primal_init_values(kc, [1, 1, 1.5])
-    KNITRO.KN_set_var_dual_init_values(kc, [1., 1, 1, 1])
+    KNITRO.KN_set_var_primal_init_values_all(kc, [1, 1, 1.5])
+    KNITRO.KN_set_var_dual_init_values_all(kc, [1.0, 1, 1, 1])
 
     # Add the constraints and set their lower bounds.
     nC = 1
     KNITRO.KN_add_cons(kc, nC)
-    KNITRO.KN_set_con_lobnds(kc, [0.1])
-    KNITRO.KN_set_con_upbnds(kc, [2 * 2 * 0.99])
+    KNITRO.KN_set_con_lobnds_all(kc, [0.1])
+    KNITRO.KN_set_con_upbnds_all(kc, [2 * 2 * 0.99])
 
     # Load quadratic structure x1*x2 for the constraint.
     KNITRO.KN_add_con_quadratic_struct(kc, 0, 1, 2, 1.0)
@@ -418,34 +420,33 @@ end
     KNITRO.KN_set_cb_grad(kc, cb, evalAll)
     KNITRO.KN_set_cb_hess(kc, cb, KNITRO.KN_DENSE_ROWMAJOR, evalAll)
 
-    KNITRO.KN_set_compcons(kc, [KNITRO.KN_CCTYPE_VARVAR], Int32[0], Int32[1])
+    KNITRO.KN_set_compcons(kc, Int32[KNITRO.KN_CCTYPE_VARVAR], Int32[0], Int32[1])
 
-    KNITRO.KN_set_var_honorbnds(kc,
-                                [KNITRO.KN_HONORBNDS_ALWAYS,
-                                KNITRO.KN_HONORBNDS_INITPT,
-                                KNITRO.KN_HONORBNDS_NO])
+    KNITRO.KN_set_var_honorbnds_all(
+        kc,
+        [KNITRO.KN_HONORBNDS_ALWAYS, KNITRO.KN_HONORBNDS_INITPT, KNITRO.KN_HONORBNDS_NO],
+    )
 
-    KNITRO.KN_set_var_scalings(kc, Int32[1,2,3], [1.,1,1])
-    KNITRO.KN_set_con_scalings(kc, [0.5])
-    KNITRO.KN_set_compcon_scalings(kc, [2.])
-    KNITRO.KN_set_obj_scaling(kc, 10.)
+    KNITRO.KN_set_var_scalings(kc, 3, Int32[0, 1, 2], [1.0, 1.0, 1.0], zeros(3))
+    KNITRO.KN_set_con_scalings_all(kc, [0.5])
+    KNITRO.KN_set_compcon_scalings_all(kc, [2.0])
+    KNITRO.KN_set_obj_scaling(kc, 10.0)
 
     status = KNITRO.KN_solve(kc)
     @test status == 0
 
     # Retrieve derivatives values
     objGrad = KNITRO.KN_get_objgrad_values(kc)
-    jac     = KNITRO.KN_get_jacobian_values(kc)
-    hess    = KNITRO.KN_get_hessian_values(kc)
+    jac = KNITRO.KN_get_jacobian_values(kc)
+    hess = KNITRO.KN_get_hessian_values(kc)
 
     nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
     @test nStatus == 0
-    @test x ≈ [0., 2.0, 1.98]
-    @test objSol ≈ 31.363199 atol=1e-5
+    @test x ≈ [0.0, 2.0, 1.98]
+    @test objSol ≈ 31.363199 atol = 1e-5
 
     KNITRO.KN_free(kc)
 end
-
 
 #=
     Note: deactivate temporarily at the test yields
@@ -546,16 +547,13 @@ end
 #     KNITRO.KN_free(kc)
 # end
 
-
 @testset "Fifth problem test" begin
     # Test in this environment the setting of user params
     myParams = "stringUserParam"
     kc = KNITRO.KN_new()
 
-    # START: Some specific parameter settings
     KNITRO.KN_set_param(kc, "outlev", 0)
     KNITRO.KN_set_param(kc, "gradopt", 1)
-    # END:   Some specific parameter settings
 
     function evalR(kc, cb, evalRequest, evalResult, userParams)
         x = evalRequest.x
@@ -594,9 +592,9 @@ end
     # Add the variables and set their bounds.
     nV = 2
     KNITRO.KN_add_vars(kc, nV)
-    KNITRO.KN_set_var_lobnds(kc, [ -1.0, -1.0 ])
-    KNITRO.KN_set_var_upbnds(kc, [ 1.0, 1.0 ])
-    KNITRO.KN_set_var_primal_init_values(kc, [ 1.0, 5.0 ])
+    KNITRO.KN_set_var_lobnds_all(kc, [-1.0, -1.0])
+    KNITRO.KN_set_var_upbnds_all(kc, [1.0, 1.0])
+    KNITRO.KN_set_var_primal_init_values_all(kc, [1.0, 5.0])
 
     # Add the residuals
     KNITRO.KN_add_rsds(kc, 6)
@@ -604,9 +602,14 @@ end
     # Define callbacks
     cb = KNITRO.KN_add_lsq_eval_callback(kc, evalR)
     nnzJ = 12
-    KNITRO.KN_set_cb_rsd_jac(kc, cb, nnzJ, evalJ,
-                            jacIndexRsds=Int32[ 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5 ],
-                            jacIndexVars=Int32[ 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1 ])
+    KNITRO.KN_set_cb_rsd_jac(
+        kc,
+        cb,
+        nnzJ,
+        evalJ,
+        jacIndexRsds=Int32[0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5],
+        jacIndexVars=Int32[0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+    )
     KNITRO.KN_set_cb_user_params(kc, cb, myParams)
 
     # Solve the problem.
@@ -618,8 +621,8 @@ end
     nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
     @test nStatus == 0
 
-    @test objSol ≈ 21.5848 atol=1e-3
-    @test x ≈ [1., 1.] atol=1e-5
+    @test objSol ≈ 21.5848 atol = 1e-3
+    @test x ≈ [1.0, 1.0] atol = 1e-5
 
     KNITRO.KN_free(kc)
 end
@@ -635,18 +638,18 @@ end
     # Add the variables and set their bounds.
     nV = 3
     KNITRO.KN_add_vars(kc, nV)
-    KNITRO.KN_set_var_lobnds(kc, [0, 0.1, 0])
-    KNITRO.KN_set_var_upbnds(kc, [0., 2, 2])
+    KNITRO.KN_set_var_lobnds_all(kc, [0, 0.1, 0])
+    KNITRO.KN_set_var_upbnds_all(kc, [0.0, 2, 2])
 
     # Define an initial point.
-    KNITRO.KN_set_var_primal_init_values(kc, [1, 1, 1.5])
-    KNITRO.KN_set_var_dual_init_values(kc, [1., 1, 1, 1])
+    KNITRO.KN_set_var_primal_init_values_all(kc, [1, 1, 1.5])
+    KNITRO.KN_set_var_dual_init_values_all(kc, [1.0, 1, 1, 1])
 
     # Add the constraints and set their lower bounds.
     nC = 1
     KNITRO.KN_add_cons(kc, nC)
-    KNITRO.KN_set_con_lobnds(kc, [0.1])
-    KNITRO.KN_set_con_upbnds(kc, [2 * 2 * 0.99])
+    KNITRO.KN_set_con_lobnds_all(kc, [0.1])
+    KNITRO.KN_set_con_upbnds_all(kc, [2 * 2 * 0.99])
 
     # Load quadratic structure x1*x2 for the constraint.
     KNITRO.KN_add_con_quadratic_struct(kc, 0, 1, 2, 1.0)
@@ -656,7 +659,7 @@ end
     KNITRO.KN_set_cb_grad(kc, cb, evalAll)
     KNITRO.KN_set_cb_hess(kc, cb, KNITRO.KN_DENSE_ROWMAJOR, evalAll)
 
-    KNITRO.KN_set_compcons(kc, [KNITRO.KN_CCTYPE_VARVAR], Int32[0], Int32[1])
+    KNITRO.KN_set_compcons(kc, Int32[KNITRO.KN_CCTYPE_VARVAR], Int32[0], Int32[1])
 
     function newpt_callback(kc, x, lambda_, user_data)
         if KNITRO.KN_get_number_iters(kc) > 1
@@ -687,7 +690,7 @@ end
     kc = KNITRO.KN_new()
     KNITRO.KN_set_param(kc, "outlev", 0)
     KNITRO.KN_add_vars(kc, 1)
-    KNITRO.KN_set_var_primal_init_values(kc, [0.0])
+    KNITRO.KN_set_var_primal_init_values_all(kc, [0.0])
     cb = KNITRO.KN_add_objective_callback(kc, eval_kn)
     nstatus = KNITRO.KN_solve(kc)
     @test nstatus == KNITRO.KN_RC_CALLBACK_ERR
@@ -705,11 +708,11 @@ end
     KNITRO.KN_set_param(kc, "outlev", 0)
     KNITRO.KN_add_vars(kc, 1)
     # Start from a non-evaluable point
-    KNITRO.KN_set_var_primal_init_values(kc, [-1.0])
+    KNITRO.KN_set_var_primal_init_values_all(kc, [-1.0])
     cb = KNITRO.KN_add_objective_callback(kc, eval_kn)
     nstatus = KNITRO.KN_solve(kc)
     nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
-    @test x ≈ [0.] atol=1e-5
+    @test x ≈ [0.0] atol = 1e-5
     KNITRO.KN_free(kc)
 end
 
@@ -742,21 +745,14 @@ end
     # Create a new Knitro solver instance.
     kc = KNITRO.KN_new()
     KNITRO.KN_set_param(kc, "outlev", 0)
-
-    # Initialize Knitro with the problem definition.
-
-    # Add the variables and specify initial values for them.
-    # Note: any unset lower bounds are assumed to be
-    # unbounded below and any unset upper bounds are
-    # assumed to be unbounded above.
     xIndices = KNITRO.KN_add_vars(kc, 4)
     for x in xIndices
-        KNITRO.KN_set_var_primal_init_values(kc, x, 0.8)
+        KNITRO.KN_set_var_primal_init_value(kc, x, 0.8)
     end
 
     # Add the constraints and set the rhs and coefficients
     KNITRO.KN_add_cons(kc, 3)
-    KNITRO.KN_set_con_eqbnds(kc, [1.0, 0.0, 0.0])
+    KNITRO.KN_set_con_eqbnds_all(kc, [1.0, 0.0, 0.0])
 
     # Coefficients for 2 linear terms
     lconIndexCons = Int32[1, 2]
@@ -773,8 +769,13 @@ end
     qconIndexVars2 = Int32[1, 3]
     qconCoefs = [1.0, 1.0]
 
-
-    KNITRO.KN_add_con_quadratic_struct(kc, qconIndexCons, qconIndexVars1, qconIndexVars2, qconCoefs)
+    KNITRO.KN_add_con_quadratic_struct(
+        kc,
+        qconIndexCons,
+        qconIndexVars1,
+        qconIndexVars2,
+        qconCoefs,
+    )
 
     # Add callback to evaluate nonlinear(non-quadratic) terms in the model:
     #    x0*x1*x2*x3  in the objective
@@ -790,32 +791,19 @@ end
     # Return status codes are defined in "knitro.h" and described
     # in the Knitro manual.
     nStatus = KNITRO.KN_solve(kc)
-
-    println("Knitro converged with final status = ", nStatus)
-
     # An example of obtaining solution information.
-    nStatus, objSol, x, lambda_ =  KNITRO.KN_get_solution(kc)
-    println("  optimal objective value  = ", objSol)
-    println("  optimal primal values x  = ", x)
-    println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
-    println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
+    nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
+    varbndInfeas, varintInfeas, varviols = KNITRO.KN_get_var_viols(kc, Cint[0, 1, 2, 3])
 
-    varbndInfeas, varintInfeas, varviols = KNITRO.KN_get_var_viols(kc, Cint[0,1,2,3])
-    println("Variables bound violations = ", varbndInfeas)
-    println("Variables integrality violations = ", varintInfeas)
-    println("Variables violation values = ", varviols)
+    coninfeas, conviols = KNITRO.KN_get_con_viols(kc, Cint[0, 1, 2])
 
-    coninfeas, conviols = KNITRO.KN_get_con_viols(kc, Cint[0,1,2])
-    println("Constraints bound violations = ", coninfeas)
-    println("Constraints violation values = ", conviols)
-
-    println(KNITRO.KN_get_presolve_error(kc))
+    KNITRO.KN_get_presolve_error(kc)
     @testset "Example HS40 nlp1noderivs" begin
-        @test varbndInfeas == [0,0,0,0]
-        @test varintInfeas == [0,0,0,0]
-        @test varviols ≈ [0.,0.,0.,0.] atol=1e-6
-        @test coninfeas == [0,0,0]
-        @test conviols ≈ [0.,0.,0.] atol=1e-6
+        @test varbndInfeas == [0, 0, 0, 0]
+        @test varintInfeas == [0, 0, 0, 0]
+        @test varviols ≈ [0.0, 0.0, 0.0, 0.0] atol = 1e-6
+        @test coninfeas == [0, 0, 0]
+        @test conviols ≈ [0.0, 0.0, 0.0] atol = 1e-6
         @test KNITRO.KN_get_abs_feas_error(kc) == max(conviols...)
     end
 
@@ -917,12 +905,12 @@ end
     # assumed to be unbounded above.
     xIndices = KNITRO.KN_add_vars(kc, 4)
     for x in xIndices
-        KNITRO.KN_set_var_primal_init_values(kc, x, 0.8)
+        KNITRO.KN_set_var_primal_init_value(kc, x, 0.8)
     end
 
     # Add the constraints and set the rhs and coefficients
     KNITRO.KN_add_cons(kc, 3)
-    KNITRO.KN_set_con_eqbnds(kc, [1.0, 0.0, 0.0])
+    KNITRO.KN_set_con_eqbnds_all(kc, [1.0, 0.0, 0.0])
 
     # Coefficients for 2 linear terms
     lconIndexCons = Int32[1, 2]
@@ -939,8 +927,13 @@ end
     qconIndexVars2 = Int32[1, 3]
     qconCoefs = [1.0, 1.0]
 
-
-    KNITRO.KN_add_con_quadratic_struct(kc, qconIndexCons, qconIndexVars1, qconIndexVars2, qconCoefs)
+    KNITRO.KN_add_con_quadratic_struct(
+        kc,
+        qconIndexCons,
+        qconIndexVars1,
+        qconIndexVars2,
+        qconCoefs,
+    )
 
     # Add callback to evaluate nonlinear(non-quadratic) terms in the model:
     #    x0*x1*x2*x3  in the objective
@@ -953,7 +946,13 @@ end
     # structure for constraint Jacobian terms.
     cbjacIndexCons = Int32[0, 1, 1]
     cbjacIndexVars = Int32[0, 0, 3]
-    KNITRO.KN_set_cb_grad(kc, cb, callbackEvalGA, jacIndexCons=cbjacIndexCons, jacIndexVars=cbjacIndexVars)
+    KNITRO.KN_set_cb_grad(
+        kc,
+        cb,
+        callbackEvalGA,
+        jacIndexCons=cbjacIndexCons,
+        jacIndexVars=cbjacIndexVars,
+    )
 
     # Set nonlinear Hessian provided through callbacks. Since the
     # Hessian is symmetric, only the upper triangle is provided.
@@ -965,8 +964,14 @@ end
     #(7 nonzero elements)
     cbhessIndexVars1 = Int32[0, 0, 0, 0, 1, 1, 2]
     cbhessIndexVars2 = Int32[0, 1, 2, 3, 2, 3, 3]
-    KNITRO.KN_set_cb_hess(kc, cb, length(cbhessIndexVars1), callbackEvalH,
-                        hessIndexVars1=cbhessIndexVars1,  hessIndexVars2=cbhessIndexVars2)
+    KNITRO.KN_set_cb_hess(
+        kc,
+        cb,
+        length(cbhessIndexVars1),
+        callbackEvalH,
+        hessIndexVars1=cbhessIndexVars1,
+        hessIndexVars2=cbhessIndexVars2,
+    )
 
     # Set minimize or maximize(if not set, assumed minimize)
     KNITRO.KN_set_obj_goal(kc, KNITRO.KN_OBJGOAL_MAXIMIZE)
@@ -978,7 +983,7 @@ end
     nStatus = KNITRO.KN_solve(kc)
 
     # An example of obtaining solution information.
-    nStatus_origin, objSol_origin, x_origin, lambda_origin =  KNITRO.KN_get_solution(kc)
+    nStatus_origin, objSol_origin, x_origin, lambda_origin = KNITRO.KN_get_solution(kc)
 
     # =============== MODIFY PROBLEM AND RE-SOLVE ===========
     # Add 0.5x3 linear term to c2
@@ -988,18 +993,22 @@ end
     # Now add a new linear constraint x1 + 2x2 + x3 <= 2.5 (c3) and re-solve
     c3 = KNITRO.KN_add_con(kc)
     KNITRO.KN_set_con_upbnd(kc, c3, 2.5)
-    KNITRO.KN_add_con_linear_struct(kc, c3, Int32[1,2,3], [1.,2.,1.])
+    KNITRO.KN_add_con_linear_struct(kc, c3, Int32[1, 2, 3], [1.0, 2.0, 1.0])
 
     # Add a constant to the objective
-    KNITRO.KN_add_obj_constant(kc, 100.)
+    KNITRO.KN_add_obj_constant(kc, 100.0)
 
     # Tell Knitro to try a "warm-start" since it is starting from the solution
     # of the previous solve, which may be a good initial point for the solution
     # of the slightly modified problem.
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_STRAT_WARM_START, KNITRO.KN_STRAT_WARM_START_YES)
+    KNITRO.KN_set_param(
+        kc,
+        KNITRO.KN_PARAM_STRAT_WARM_START,
+        KNITRO.KN_STRAT_WARM_START_YES,
+    )
 
     nStatus = KNITRO.KN_solve(kc)
-    nStatus, objSol, x, lambda_ =  KNITRO.KN_get_solution(kc)
+    nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
 
     # =============== MODIFY PROBLEM BACK TO THE ORIGINAL ONE AND RE-SOLVE AGAIN ===========
     # Remove 0.5x3 from c2
@@ -1007,19 +1016,19 @@ end
     # Change 5x2 back to -x2 in c1
     KNITRO.KN_chg_con_linear_term(kc, 1, 2, -1.0)
     # Remove new constraint c3
-    KNITRO.KN_del_con_linear_struct(kc, c3, Int32[1,2,3])
+    KNITRO.KN_del_con_linear_struct_one(kc, 3, c3, Int32[1, 2, 3])
     # Remove the constant in the objective
     KNITRO.KN_del_obj_constant(kc)
 
     nStatus = KNITRO.KN_solve(kc)
-    nStatus, objSol, x, lambda_ =  KNITRO.KN_get_solution(kc)
+    nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
 
     # Test that the solution is the same than the original problem
     @testset begin
         @test nStatus == nStatus_origin
-        @test objSol ≈ objSol_origin atol=1e-6
-        @test x ≈ x_origin atol=1e-6
-        @test lambda_[1:length(lambda_origin)] ≈ lambda_origin atol=1e-1
+        @test objSol ≈ objSol_origin atol = 1e-6
+        @test x ≈ x_origin atol = 1e-6
+        @test lambda_[1:length(lambda_origin)] ≈ lambda_origin atol = 1e-1
     end
 
     # Delete the Knitro solver instance.

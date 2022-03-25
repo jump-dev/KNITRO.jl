@@ -1,18 +1,18 @@
 KNITRO.jl
 =========
 
+**KNITRO.jl underwent a major rewrite between versions 0.12.0 and 0.13.0,
+with the low-level wrapper now being generated automatically with Clang.jl. Users of
+JuMP should see no breaking changes, but if you used the lower-level C API
+you will need to update your code accordingly.**
+
+
 The KNITRO.jl package provides an interface for using the [Artelys Knitro
 solver](https://www.artelys.com/knitro) from
 [Julia](http://julialang.org/). You cannot use KNITRO.jl without having
 purchased and installed a copy of Knitro from [Artelys](https://www.artelys.com/knitro).
 This package is available free of charge and in no way replaces or alters any
 functionality of Artelys Knitro solver.
-
-Note that the current package provides a wrapper both for the new Knitro's API
-(whose functions start by `KN_`) and the deprecated Knitro's API (whose functions
-start by `KTR_`). We recommend using the latest version of Knitro available and
-the new API to get access to all of the new functionalities from the solver.
-Using the new `KN_` API requires Knitro >= `v11.0`.
 
 Refer to [Knitro documentation](https://www.artelys.com/tools/knitro_doc/3_referenceManual/callableLibraryAPI.html)
 for a full specification of the Knitro's API.
@@ -23,8 +23,8 @@ Artelys. Feel free to contact [Artelys support](mailto:support-knitro@artelys.co
 any problem with this interface or the solver.*
 
 
-MathOptInterface Interface
-==========================
+MathOptInterface (MOI)
+======================
 
 KNITRO.jl supports [MathOptInterface](https://github.com/jump-dev/MathOptInterface.jl)
 and [JuMP](https://github.com/jump-dev/JuMP.jl).

@@ -31,9 +31,7 @@
 # x = [x0, x1, x2].  The solution is x*=[0.086, 0.4, 1.4].
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-
 using KNITRO, Test
-
 
 function example_lsq1(; verbose=true)
     # Create a new Knitro solver instance.
@@ -51,7 +49,7 @@ function example_lsq1(; verbose=true)
     KNITRO.KN_add_rsds(kc, m)
 
     # Set the array of constants, y, in the residuals
-    KNITRO.KN_add_rsd_constants(kc, [1.0, 0.5, 0.0, 0.5, 2.0])
+    KNITRO.KN_add_rsd_constants_all(kc, [1.0, 0.5, 0.0, 0.5, 2.0])
 
     # Set the linear coefficients for all the residuals.
 
@@ -94,7 +92,7 @@ function example_lsq1(; verbose=true)
     nRC = KNITRO.KN_solve(kc)
 
     if nRC != 0
-        println("Knitro failed to solve the problem, status = ",  nRC)
+        println("Knitro failed to solve the problem, status = ", nRC)
     else
         # An example of obtaining solution information.
         # Return status codes are defined in "knitro.h" and described
@@ -114,9 +112,8 @@ function example_lsq1(; verbose=true)
     @testset "Example LSQ1" begin
         @test nStatus == 0
         # we found only a loose approximation
-        @test x ≈ [0.086, 0.4, 1.4] atol=1e-1
+        @test x ≈ [0.086, 0.4, 1.4] atol = 1e-1
     end
 end
 
 example_lsq1(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
-

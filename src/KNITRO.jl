@@ -14,32 +14,23 @@ const KNITRO_VERSION = if libknitro == "julia_registryci_automerge"
     VersionNumber(11, 0, 0) # Fake a valid version for AutoMerge
 else
     len = 15
-    out = zeros(Cchar,len)
+    out = zeros(Cchar, len)
     ccall((:KTR_get_release, libknitro), Any, (Cint, Ptr{Cchar}), len, out)
-    res = String(strip(String(convert(Vector{UInt8},out)), '\0'))
+    res = String(strip(String(convert(Vector{UInt8}, out)), '\0'))
     VersionNumber(split(res, " ")[2])
 end
 
 if KNITRO_VERSION < v"11.0"
-    error("You have installed version $KNITRO_VERSION of Artelys Knitro, which is not supported
-    by KNITRO.jl. We require a Knitro version greater than 11.0.
-    ")
+    error(
+        "You have installed version $KNITRO_VERSION of Artelys Knitro, which is not supported
+  by KNITRO.jl. We require a Knitro version greater than 11.0.
+  ",
+    )
 end
 
-include("kn_common.jl")
-include("kn_env.jl")
-
-include("kn_model.jl")
-include("kn_defines.jl")
-include("kn_params.jl")
-include("kn_variables.jl")
-include("kn_attributes.jl")
-include("kn_constraints.jl")
-include("kn_residuals.jl")
-include("kn_solve.jl")
-include("kn_callbacks.jl")
-
-# the MathOptInterface wrapper works only with the new API
+include("libknitro.jl")
+include("C_wrapper.jl")
+include("callbacks.jl")
 include("MOI_wrapper.jl")
 
 end

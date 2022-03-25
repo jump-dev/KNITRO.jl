@@ -26,27 +26,24 @@
 #--------------------------------------------------
 
 import MathOptInterface
-const MOI  = MathOptInterface
+const MOI = MathOptInterface
 const MOIU = MathOptInterface.Utilities
 
 # TODO
-const SF = Union{MOI.ScalarAffineFunction{Float64},
-                 MOI.ScalarQuadraticFunction{Float64}}
+const SF = Union{MOI.ScalarAffineFunction{Float64},MOI.ScalarQuadraticFunction{Float64}}
 const VAF = MOI.VectorAffineFunction{Float64}
 const VOV = MOI.VectorOfVariables
 
-const SS = Union{MOI.EqualTo{Float64},
-                 MOI.GreaterThan{Float64},
-                 MOI.LessThan{Float64},
-                 MOI.Interval{Float64}}
+const SS = Union{
+    MOI.EqualTo{Float64},
+    MOI.GreaterThan{Float64},
+    MOI.LessThan{Float64},
+    MOI.Interval{Float64},
+}
 # LinSets
-const LS = Union{MOI.EqualTo{Float64},
-                 MOI.GreaterThan{Float64},
-                 MOI.LessThan{Float64}}
+const LS = Union{MOI.EqualTo{Float64},MOI.GreaterThan{Float64},MOI.LessThan{Float64}}
 # VecLinSets
-const VLS = Union{MOI.Nonnegatives,
-                  MOI.Nonpositives,
-                  MOI.Zeros}
+const VLS = Union{MOI.Nonnegatives,MOI.Nonpositives,MOI.Zeros}
 
 ##################################################
 # Define custom error for MOI wrapper.
@@ -57,7 +54,6 @@ struct AddConstraintError <: MOI.NotAllowedError end
 # Import some utils.
 include(joinpath("MOI_wrapper", "utils.jl"))
 
-
 ##################################################
 mutable struct VariableInfo
     has_lower_bound::Bool # Implies lower_bound == Inf
@@ -66,7 +62,6 @@ mutable struct VariableInfo
     name::String
 end
 VariableInfo() = VariableInfo(false, false, false, "")
-
 
 ##################################################
 # EmptyNLPEvaluator for non-NLP problems.
@@ -89,7 +84,6 @@ end
 
 empty_nlp_data() = MOI.NLPBlockData([], EmptyNLPEvaluator(), false)
 
-
 ##################################################
 # Cache for complementarity constraints
 mutable struct ComplementarityCache
@@ -108,23 +102,25 @@ function _add_complementarity_constraint!(
     cache::ComplementarityCache,
     index_vars_1::Vector{Cint},
     index_vars_2::Vector{Cint},
-    cc_types::Vector{Cint},
+    cc_types::Vector{Int},
 )
     if !(length(index_vars_1) == length(index_vars_2) == length(cc_types))
-        error("Arrays `index_vars_1`, `index_vars_2` and `cc_types` should"*
-              " share the same length to specify a valid complementarity "*
-              "constraint.")
+        error(
+            "Arrays `index_vars_1`, `index_vars_2` and `cc_types` should" *
+            " share the same length to specify a valid complementarity " *
+            "constraint.",
+        )
     end
     cache.n += 1
     append!(cache.index_comps_1, index_vars_1)
     append!(cache.index_comps_2, index_vars_2)
-    append!(cache.cc_types, cc_types)
+    return append!(cache.cc_types, cc_types)
 end
 
 ##################################################
 # MOI Optimizer
 mutable struct Optimizer <: MOI.AbstractOptimizer
-    inner::Union{Model, Nothing}
+    inner::Union{Model,Nothing}
     # We only keep in memory some information about variables
     # as we cannot delete variables, we do not have to store an index.
     variable_info::Vector{VariableInfo}
@@ -138,16 +134,21 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     # Store optimization sense.
     sense::MOI.OptimizationSense
     # Store the structure of the objective.
-    objective::Union{MOI.VariableIndex,MOI.ScalarAffineFunction{Float64},MOI.ScalarQuadraticFunction{Float64},Nothing}
+    objective::Union{
+        MOI.VariableIndex,
+        MOI.ScalarAffineFunction{Float64},
+        MOI.ScalarQuadraticFunction{Float64},
+        Nothing,
+    }
     # Constraint counters.
     number_zeroone_constraints::Int
     number_integer_constraints::Int
     # Complementarity cache
     complementarity_cache::ComplementarityCache
     # Constraint mappings.
-    constraint_mapping::Dict{MOI.ConstraintIndex, Union{Cint, Vector{Cint}}}
-    license_manager::Union{LMcontext, Nothing}
-    options::Dict{String, Any}
+    constraint_mapping::Dict{MOI.ConstraintIndex,Union{Cint,Vector{Cint}}}
+    license_manager::Union{LMcontext,Nothing}
+    options::Dict{String,Any}
 end
 
 function set_options(model::Optimizer, options)
@@ -159,7 +160,7 @@ function set_options(model::Optimizer, options)
     return
 end
 
-function Optimizer(;license_manager=nothing, options...)
+function Optimizer(; license_manager=nothing, options...)
     # Create KNITRO context.
     if isa(license_manager, LMcontext)
         kc = Model(license_manager)
@@ -167,16 +168,26 @@ function Optimizer(;license_manager=nothing, options...)
         kc = Model()
     end
     # Convert Symbol to String in options dictionnary.
-    options_dict = Dict{String, Any}()
+    options_dict = Dict{String,Any}()
     for (name, value) in options
         options_dict[string(name)] = value
     end
-    model = Optimizer(kc, [], 0, false, empty_nlp_data(),
-                      Cint[], MOI.FEASIBILITY_SENSE, nothing, 0, 0,
-                      ComplementarityCache(),
-                      Dict{MOI.ConstraintIndex, Int}(),
-                      license_manager,
-                      Dict())
+    model = Optimizer(
+        kc,
+        [],
+        0,
+        false,
+        empty_nlp_data(),
+        Cint[],
+        MOI.FEASIBILITY_SENSE,
+        nothing,
+        0,
+        0,
+        ComplementarityCache(),
+        Dict{MOI.ConstraintIndex,Int}(),
+        license_manager,
+        Dict(),
+    )
 
     set_options(model, options)
     return model
@@ -280,12 +291,11 @@ end
 # MOI.RawOptimizerAttribute
 function MOI.supports(model::Optimizer, param::MOI.RawOptimizerAttribute)
     name = param.name
-    if name in KNITRO_OPTIONS || haskey(KN_paramName2Indx, name)
-        return true
-    elseif name == "free"
+    if name == "free"
         return true
     end
-    return false
+    code = KN_get_param_id(model.inner, name)
+    return code > 0
 end
 
 function MOI.set(model::Optimizer, p::MOI.RawOptimizerAttribute, value)
@@ -309,19 +319,16 @@ function MOI.get(model::Optimizer, p::MOI.RawOptimizerAttribute)
     if haskey(model.options, p.name)
         return model.options[p.name]
     end
-    error("RawOptimizerAttribute with name $(p.name) is not set.")
+    return error("RawOptimizerAttribute with name $(p.name) is not set.")
 end
 
 # Copy cache to Knitro's model
-function _load_complementarity_constraint(
-    model::Optimizer,
-    cache::ComplementarityCache,
-)
-    KN_set_compcons(
+function _load_complementarity_constraint(model::Optimizer, cache::ComplementarityCache)
+    return KN_set_compcons(
         model.inner,
         cache.cc_types,
         cache.index_comps_1,
-        cache.index_comps_2
+        cache.index_comps_2,
     )
 end
 
@@ -371,13 +378,12 @@ function MOI.optimize!(model::Optimizer)
         function eval_f_cb(kc, cb, evalRequest, evalResult, userParams)
             # Evaluate objective if specified in nlp_data.
             if has_nlp_objective
-                evalResult.obj[1] = MOI.eval_objective(model.nlp_data.evaluator,
-                                                       evalRequest.x)
+                evalResult.obj[1] =
+                    MOI.eval_objective(model.nlp_data.evaluator, evalRequest.x)
             end
             # Evaluate nonlinear term in constraint.
             if has_nlp_constraints
-                MOI.eval_constraint(model.nlp_data.evaluator,
-                                    evalResult.c, evalRequest.x)
+                MOI.eval_constraint(model.nlp_data.evaluator, evalResult.c, evalRequest.x)
             end
             return 0
         end
@@ -386,15 +392,19 @@ function MOI.optimize!(model::Optimizer)
         function eval_grad_cb(kc, cb, evalRequest, evalResult, userParams)
             # Evaluate non-linear term in objective gradient.
             if has_nlp_objective
-                MOI.eval_objective_gradient(model.nlp_data.evaluator,
-                                            evalResult.objGrad,
-                                            evalRequest.x)
+                MOI.eval_objective_gradient(
+                    model.nlp_data.evaluator,
+                    evalResult.objGrad,
+                    evalRequest.x,
+                )
             end
             # Evaluate non linear part of jacobian.
             if has_nlp_constraints
-                MOI.eval_constraint_jacobian(model.nlp_data.evaluator,
-                                             evalResult.jac,
-                                             evalRequest.x)
+                MOI.eval_constraint_jacobian(
+                    model.nlp_data.evaluator,
+                    evalResult.jac,
+                    evalRequest.x,
+                )
             end
             return 0
         end
@@ -428,7 +438,8 @@ function MOI.optimize!(model::Optimizer)
             KN_set_cb_grad(model.inner, cb, eval_grad_cb; nV=nV)
         else
             # Get jacobian structure.
-            jacob_structure = MOI.jacobian_structure(model.nlp_data.evaluator)::Vector{Tuple{Int, Int}}
+            jacob_structure =
+                MOI.jacobian_structure(model.nlp_data.evaluator)::Vector{Tuple{Int,Int}}
             # Take care to convert 1-indexing to 0-indexing!
             # KNITRO supports only Cint array for integer.
             jacIndexVars = Cint[j - 1 for (_, j) in jacob_structure]
@@ -455,21 +466,28 @@ function MOI.optimize!(model::Optimizer)
                     evalResult.hess,
                     evalRequest.x,
                     evalRequest.sigma,
-                    view(evalRequest.lambda, offset+1:num_cons)
+                    view(evalRequest.lambda, offset+1:num_cons),
                 )
                 return 0
             end
             # Get hessian structure.
-            hessian_structure = MOI.hessian_lagrangian_structure(model.nlp_data.evaluator)::Vector{Tuple{Int, Int}}
+            hessian_structure = MOI.hessian_lagrangian_structure(
+                model.nlp_data.evaluator,
+            )::Vector{Tuple{Int,Int}}
             nnzH = length(hessian_structure)
             # Take care to convert 1-indexing to 0-indexing!
             # Knitro supports only Cint array for integer.
             hessIndexVars1 = Cint[i - 1 for (i, _) in hessian_structure]
             hessIndexVars2 = Cint[j - 1 for (_, j) in hessian_structure]
 
-            KN_set_cb_hess(model.inner, cb, nnzH, eval_h_cb,
-                           hessIndexVars1=hessIndexVars1,
-                           hessIndexVars2=hessIndexVars2)
+            KN_set_cb_hess(
+                model.inner,
+                cb,
+                nnzH,
+                eval_h_cb,
+                hessIndexVars1=hessIndexVars1,
+                hessIndexVars2=hessIndexVars2,
+            )
         elseif has_hessvec
             function eval_hv_cb(kc, cb, evalRequest, evalResult, userParams)
                 MOI.eval_hessian_lagrangian_product(
@@ -478,7 +496,7 @@ function MOI.optimize!(model::Optimizer)
                     evalRequest.x,
                     evalRequest.vec,
                     evalRequest.sigma,
-                    view(evalRequest.lambda, offset+1:num_cons)
+                    view(evalRequest.lambda, offset+1:num_cons),
                 )
                 return 0
             end

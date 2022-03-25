@@ -32,16 +32,18 @@ using Test
 
 const MOI = MathOptInterface
 b = [-3.0, 4.0, 7.0]
-M = [3.0   -1.0   0.0   0.0   0.0;
-     -1.0   0.5   0.0   0.0   0.0;
-     -1.0  -1.0   0.0   0.0   0.0]
+M = [
+    3.0 -1.0 0.0 0.0 0.0
+    -1.0 0.5 0.0 0.0 0.0
+    -1.0 -1.0 0.0 0.0 0.0
+]
 
 model = JuMP.Model(KNITRO.Optimizer)
 
 @variable(model, x[1:5] >= 0)
 @constraint(model, -1.5 * x[1] + 2.0 * x[2] + x[3] - 0.5 * x[4] + x[5] == 2.0)
 
-@constraint(model, [M*x + b; x[3:5]] in MOI.Complements(6))
+@constraint(model, [M * x + b; x[3:5]] in MOI.Complements(6))
 @objective(model, Min, (x[1] - 5.0)^2 + (2.0 * x[2] + 1.0)^2)
 
 JuMP.optimize!(model)
@@ -49,4 +51,4 @@ JuMP.optimize!(model)
 @test JuMP.has_values(model)
 @test JuMP.termination_status(model) == MOI.LOCALLY_SOLVED
 @test JuMP.primal_status(model) == MOI.FEASIBLE_POINT
-@test JuMP.value.(x) ≈ [1.0, 0.0, 3.5, 0.0, 0.0] atol=1e-3
+@test JuMP.value.(x) ≈ [1.0, 0.0, 3.5, 0.0, 0.0] atol = 1e-3

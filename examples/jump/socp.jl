@@ -24,5 +24,5 @@ JuMP.optimize!(model)
 @test JuMP.has_values(model)
 @test JuMP.termination_status(model) == MOI.LOCALLY_SOLVED
 @test JuMP.primal_status(model) == MOI.FEASIBLE_POINT
-@test JuMP.objective_value(model) ≈ sqrt(1/2) atol=1e-6
-@test JuMP.value.([x,y,t]) ≈ [0.5, 0.5, sqrt(1/2)] atol=1e-3
+@test JuMP.objective_value(model) ≈ sqrt(1 / 2) atol = 1e-6
+@test JuMP.value.([x, y, t]) ≈ [0.5, 0.5, sqrt(1 / 2)] atol = 1e-3

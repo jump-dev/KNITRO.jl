@@ -63,18 +63,21 @@ end
 
 ##################################################
 ## PrimalStart
-function MOI.supports(::Optimizer, ::MOI.VariablePrimalStart,
-                      ::Type{MOI.VariableIndex})
+function MOI.supports(::Optimizer, ::MOI.VariablePrimalStart, ::Type{MOI.VariableIndex})
     return true
 end
-function MOI.set(model::Optimizer, ::MOI.VariablePrimalStart,
-                 vi::MOI.VariableIndex, value::Union{Real, Nothing})
+function MOI.set(
+    model::Optimizer,
+    ::MOI.VariablePrimalStart,
+    vi::MOI.VariableIndex,
+    value::Union{Real,Nothing},
+)
     check_inbounds(model, vi)
     if isa(value, Real)
-        KN_set_var_primal_init_values(model.inner, vi.value - 1, Cdouble(value))
+        KN_set_var_primal_init_value(model.inner, vi.value - 1, Cdouble(value))
     else
         # By default, initial value is set to 0.
-        KN_set_var_primal_init_values(model.inner, vi.value - 1, 0.)
+        KN_set_var_primal_init_value(model.inner, vi.value - 1, 0.0)
     end
     return
 end

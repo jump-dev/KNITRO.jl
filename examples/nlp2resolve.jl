@@ -34,7 +34,6 @@
 # and then re-solve again.
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-
 using KNITRO, Test
 
 function example_nlp2resolve(; verbose=true)
@@ -127,12 +126,12 @@ function example_nlp2resolve(; verbose=true)
     # assumed to be unbounded above.
     xIndices = KNITRO.KN_add_vars(kc, 4)
     for x in xIndices
-        KNITRO.KN_set_var_primal_init_values(kc, x, 0.8)
+        KNITRO.KN_set_var_primal_init_value(kc, x, 0.8)
     end
 
     # Add the constraints and set the rhs and coefficients
     KNITRO.KN_add_cons(kc, 3)
-    KNITRO.KN_set_con_eqbnds(kc, [1.0, 0.0, 0.0])
+    KNITRO.KN_set_con_eqbnds_all(kc, [1.0, 0.0, 0.0])
 
     # Coefficients for 2 linear terms
     lconIndexCons = Int32[1, 2]
@@ -149,8 +148,13 @@ function example_nlp2resolve(; verbose=true)
     qconIndexVars2 = Int32[1, 3]
     qconCoefs = [1.0, 1.0]
 
-
-    KNITRO.KN_add_con_quadratic_struct(kc, qconIndexCons, qconIndexVars1, qconIndexVars2, qconCoefs)
+    KNITRO.KN_add_con_quadratic_struct(
+        kc,
+        qconIndexCons,
+        qconIndexVars1,
+        qconIndexVars2,
+        qconCoefs,
+    )
 
     # Add callback to evaluate nonlinear(non-quadratic) terms in the model:
     #    x0*x1*x2*x3  in the objective
@@ -163,7 +167,13 @@ function example_nlp2resolve(; verbose=true)
     # structure for constraint Jacobian terms.
     cbjacIndexCons = Int32[0, 1, 1]
     cbjacIndexVars = Int32[0, 0, 3]
-    KNITRO.KN_set_cb_grad(kc, cb, callbackEvalGA, jacIndexCons=cbjacIndexCons, jacIndexVars=cbjacIndexVars)
+    KNITRO.KN_set_cb_grad(
+        kc,
+        cb,
+        callbackEvalGA,
+        jacIndexCons=cbjacIndexCons,
+        jacIndexVars=cbjacIndexVars,
+    )
 
     # Set nonlinear Hessian provided through callbacks. Since the
     # Hessian is symmetric, only the upper triangle is provided.
@@ -175,8 +185,14 @@ function example_nlp2resolve(; verbose=true)
     #(7 nonzero elements)
     cbhessIndexVars1 = Int32[0, 0, 0, 0, 1, 1, 2]
     cbhessIndexVars2 = Int32[0, 1, 2, 3, 2, 3, 3]
-    KNITRO.KN_set_cb_hess(kc, cb, length(cbhessIndexVars1), callbackEvalH,
-                        hessIndexVars1=cbhessIndexVars1,  hessIndexVars2=cbhessIndexVars2)
+    KNITRO.KN_set_cb_hess(
+        kc,
+        cb,
+        length(cbhessIndexVars1),
+        callbackEvalH,
+        hessIndexVars1=cbhessIndexVars1,
+        hessIndexVars2=cbhessIndexVars2,
+    )
 
     # Set minimize or maximize(if not set, assumed minimize)
     KNITRO.KN_set_obj_goal(kc, KNITRO.KN_OBJGOAL_MAXIMIZE)
@@ -191,15 +207,16 @@ function example_nlp2resolve(; verbose=true)
     # in the Knitro manual.
     nStatus = KNITRO.KN_solve(kc)
 
-    println()
-    println("Knitro converged with final status = ", nStatus)
-
-    # An example of obtaining solution information.
-    nStatus, objSol, x, lambda_ =  KNITRO.KN_get_solution(kc)
-    println("  optimal objective value  = ", objSol)
-    println("  optimal primal values x  = ", x)
-    println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
-    println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
+    if verbose
+        println()
+        println("Knitro converged with final status = ", nStatus)
+        # An example of obtaining solution information.
+        nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
+        println("  optimal objective value  = ", objSol)
+        println("  optimal primal values x  = ", x)
+        println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
+        println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
+    end
 
     # =============== MODIFY PROBLEM AND RE-SOLVE ===========
     # Add 0.5x3 linear term to c2
@@ -207,22 +224,36 @@ function example_nlp2resolve(; verbose=true)
     # Now add a new linear constraint x1 + 2x2 + x3 <= 2.5 (c3) and re-solve
     cIndNew = KNITRO.KN_add_con(kc)
     KNITRO.KN_set_con_upbnd(kc, cIndNew, 2.5)
-    KNITRO.KN_add_con_linear_struct(kc, cIndNew, Int32[1,2,3], [1.,2.,1.])
+    KNITRO.KN_add_con_linear_struct(kc, cIndNew, Int32[1, 2, 3], [1.0, 2.0, 1.0])
 
     # Tell Knitro to try a "warm-start" since it is starting from the solution
     # of the previous solve, which may be a good initial point for the solution
     # of the slightly modified problem.
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_STRAT_WARM_START, KNITRO.KN_STRAT_WARM_START_YES)
+    KNITRO.KN_set_param(
+        kc,
+        KNITRO.KN_PARAM_STRAT_WARM_START,
+        KNITRO.KN_STRAT_WARM_START_YES,
+    )
 
-    println("****Re-solve after adding new linear term to c[2] and adding new constraint c[",cIndNew,"]****")
+    if verbose
+        println(
+            "****Re-solve after adding new linear term to c[2] and adding new constraint c[",
+            cIndNew,
+            "]****",
+        )
+    end
+
     nStatus = KNITRO.KN_solve(kc)
-    println()
-    println("Knitro converged with final status = ", nStatus)
-    nStatus, objSol, x, lambda_ =  KNITRO.KN_get_solution(kc)
-    println("  optimal objective value  = ", objSol)
-    println("  optimal primal values x  = ", x)
-    println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
-    println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
+
+    if verbose
+        println()
+        println("Knitro converged with final status = ", nStatus)
+        nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
+        println("  optimal objective value  = ", objSol)
+        println("  optimal primal values x  = ", x)
+        println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
+        println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
+    end
 
     # =============== MODIFY PROBLEM AND RE-SOLVE AGAIN ===========
     # Delete 0.5x3 linear term from c2
@@ -230,24 +261,31 @@ function example_nlp2resolve(; verbose=true)
     # Change x1 linear term in c3 to 3.5*x1
     KNITRO.KN_chg_con_linear_term(kc, 3, 1, 3.5)
 
-    println("****Re-solve after adding new linear term to c[2] and adding new constraint c[",cIndNew,"]****")
+    verbose && println(
+        "****Re-solve after adding new linear term to c[2] and adding new constraint c[",
+        cIndNew,
+        "]****",
+    )
     nStatus = KNITRO.KN_solve(kc)
-    println()
-    println("Knitro converged with final status = ", nStatus)
-    nStatus, objSol, x, lambda_ =  KNITRO.KN_get_solution(kc)
-    println("  optimal objective value  = ", objSol)
-    println("  optimal primal values x  = ", x)
-    println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
-    println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
+
+    nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
+    if verbose
+        println()
+        println("Knitro converged with final status = ", nStatus)
+        println("  optimal objective value  = ", objSol)
+        println("  optimal primal values x  = ", x)
+        println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
+        println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
+    end
 
     @testset "Example HS40 nlp2resolve" begin
         @test nStatus == 0
-        @test objSol  ≈ 0.07133 atol=1e-4
-        @test x ≈ [0.973535, 0.278048, 0.499762, 0.527303] atol=1e-4
+        @test objSol ≈ 0.07133 atol = 1e-4
+        @test x ≈ [0.973535, 0.278048, 0.499762, 0.527303] atol = 1e-4
     end
 
     # Delete the Knitro solver instance.
-    KNITRO.KN_free(kc)
+    return KNITRO.KN_free(kc)
 end
 
 if KNITRO.KNITRO_VERSION >= v"12.4"
@@ -255,4 +293,3 @@ if KNITRO.KNITRO_VERSION >= v"12.4"
 else
     println("Example `nlp2resolve.jl` is only available with Knitro >= 12.4")
 end
-

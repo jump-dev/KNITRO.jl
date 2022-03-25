@@ -29,24 +29,24 @@ using SparseDiffTools
 using SparsityDetection
 
 # Global variables
-const w  = 203000  # weight (lb)
+const w = 203000  # weight (lb)
 const g₀ = 32.174  # acceleration (ft/sec^2)
-const m  = w / g₀  # mass (slug)
+const m = w / g₀  # mass (slug)
 
 # Aerodynamic and atmospheric forces on the vehicle
-const ρ₀ =  0.002378
-const hᵣ =  23800.0
-const Rₑ =  20902900.0
-const μ  =  0.14076539e17
-const S  =  2690.0
+const ρ₀ = 0.002378
+const hᵣ = 23800.0
+const Rₑ = 20902900.0
+const μ = 0.14076539e17
+const S = 2690.0
 const a₀ = -0.20704
-const a₁ =  0.029244
-const b₀ =  0.07854
+const a₁ = 0.029244
+const b₀ = 0.07854
 const b₁ = -0.61592e-2
-const b₂ =  0.621408e-3
-const c₀ =  1.0672181
+const b₂ = 0.621408e-3
+const c₀ = 1.0672181
 const c₁ = -0.19213774e-1
-const c₂ =  0.21286289e-3
+const c₂ = 0.21286289e-3
 const c₃ = -0.10117249e-5
 
 c_L(a) = a₀ + a₁ * rad2deg(a)
@@ -70,7 +70,10 @@ q(h, v, a) = qₐ(a) * qᵣ(h, v)
 δθ(h, v, γ, ψ) = (v / r(h)) * cos(γ) * cos(ψ)
 δv(h, v, γ, α) = -(D(h, v, α) / m) - g(h) * sin(γ)
 δγ(h, v, γ, α, β) = (L(h, v, α) / (m * v)) * cos(β) + cos(γ) * ((v / r(h)) - (g(h) / v))
-δψ(h, θ, v, γ, ψ, α, β) = (1 / (m * v * cos(γ))) * L(h, v, α) * sin(β) + (v / (r(h) * cos(θ))) * cos(γ) * sin(ψ) * sin(θ)
+function δψ(h, θ, v, γ, ψ, α, β)
+    return (1 / (m * v * cos(γ))) * L(h, v, α) * sin(β) +
+           (v / (r(h) * cos(θ))) * cos(γ) * sin(ψ) * sin(θ)
+end
 
 # Initial conditions
 hₛ = 2.6          # altitude (ft) / 1e5
@@ -98,7 +101,7 @@ M = N + 1  # number of mesh points
 
 # Linear initial guess between the boundary conditions
 interp_linear = LinearInterpolation([1, M], [xₛ, xₜ])
-initial_guess = [value for x = 1:M for value in interp_linear(x)]
+initial_guess = [value for x in 1:M for value in interp_linear(x)]
 
 nₓ = length(xₛ)  # mesh points dimension
 n = nₓ * M  # number of decision variables
@@ -119,19 +122,22 @@ m_dyn = 6 * N
 ind_con_dyn = 1:m_dyn  # indices of the dynamics' constraints (defects)
 @assert length(ind_con_dyn) == 6 * (M - 1)
 
-EulerStep(x, δx, h) = x + h*δx
+EulerStep(x, δx, h) = x + h * δx
 
 function dynamics_defects!(dx, x)
     hᵢ, ϕᵢ, θᵢ, vᵢ, γᵢ, ψᵢ, αᵢ, βᵢ, tᵢ, hⱼ, ϕⱼ, θⱼ, vⱼ, γⱼ, ψⱼ = x
 
     # Unit correction due to decision variable scaling
-    hᵢ *= 1e5; hⱼ *= 1e5; vᵢ *= 1e4; vⱼ *= 1e4
+    hᵢ *= 1e5
+    hⱼ *= 1e5
+    vᵢ *= 1e4
+    vⱼ *= 1e4
 
-    dx[1] = EulerStep(hᵢ, δh(        vᵢ, γᵢ            ), tᵢ) - hⱼ
-    dx[2] = EulerStep(ϕᵢ, δϕ(hᵢ, θᵢ, vᵢ, γᵢ, ψᵢ        ), tᵢ) - ϕⱼ
-    dx[3] = EulerStep(θᵢ, δθ(hᵢ,     vᵢ, γᵢ, ψᵢ        ), tᵢ) - θⱼ
-    dx[4] = EulerStep(vᵢ, δv(hᵢ,     vᵢ, γᵢ,     αᵢ    ), tᵢ) - vⱼ
-    dx[5] = EulerStep(γᵢ, δγ(hᵢ,     vᵢ, γᵢ,     αᵢ, βᵢ), tᵢ) - γⱼ
+    dx[1] = EulerStep(hᵢ, δh(vᵢ, γᵢ), tᵢ) - hⱼ
+    dx[2] = EulerStep(ϕᵢ, δϕ(hᵢ, θᵢ, vᵢ, γᵢ, ψᵢ), tᵢ) - ϕⱼ
+    dx[3] = EulerStep(θᵢ, δθ(hᵢ, vᵢ, γᵢ, ψᵢ), tᵢ) - θⱼ
+    dx[4] = EulerStep(vᵢ, δv(hᵢ, vᵢ, γᵢ, αᵢ), tᵢ) - vⱼ
+    dx[5] = EulerStep(γᵢ, δγ(hᵢ, vᵢ, γᵢ, αᵢ, βᵢ), tᵢ) - γⱼ
     dx[6] = EulerStep(ψᵢ, δψ(hᵢ, θᵢ, vᵢ, γᵢ, ψᵢ, αᵢ, βᵢ), tᵢ) - ψⱼ
 
     return nothing
@@ -140,7 +146,7 @@ end
 function cb_eval_fc_con_dyn(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
 
-    for i = 0:M - 2
+    for i in 0:M-2
         ind_xᵢ = (1:nₓ) .+ i * nₓ
         ind_xⱼ = ind_xᵢ .+ nₓ
         ind_con = (1:6) .+ i * 6
@@ -158,7 +164,7 @@ function cb_eval_ga_con_dyn(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
     jac_data = userParams
 
-    for i = 0:M - 2
+    for i in 0:M-2
         ind_xᵢ = (1:nₓ) .+ i * nₓ
         ind_xⱼ = ind_xᵢ .+ nₓ
         ind_con = (1:6) .+ i * 6
@@ -166,45 +172,64 @@ function cb_eval_ga_con_dyn(kc, cb, evalRequest, evalResult, userParams)
         xᵢ = x[ind_xᵢ][1:9]
         xⱼ = x[ind_xⱼ][1:6]
 
-        forwarddiff_color_jacobian!(jac_data.jac_dyn, dynamics_defects!, [xᵢ; xⱼ], jac_data.jac_cache)
+        forwarddiff_color_jacobian!(
+            jac_data.jac_dyn,
+            dynamics_defects!,
+            [xᵢ; xⱼ],
+            jac_data.jac_cache,
+        )
 
         aux_jac = i * jac_data.length_jac
-        ind_jac = aux_jac + 1 : aux_jac + jac_data.length_jac
+        ind_jac = aux_jac+1:aux_jac+jac_data.length_jac
         evalResult.jac[ind_jac] = nonzeros(jac_data.jac_dyn)
     end
 
     return 0
 end
 
-struct JacobianData{T1 <: SparseMatrixCSC,T2 <: ForwardColorJacCache}
+struct JacobianData{T1<:SparseMatrixCSC,T2<:ForwardColorJacCache}
     jac_dyn::T1
     jac_cache::T2
     length_jac::Int
 
-    function JacobianData(;
-                          input = rand(15), output = zeros(6))
+    function JacobianData(; input=rand(15), output=zeros(6))
         sparsity_pattern = jacobian_sparsity(dynamics_defects!, output, input)
         jac_dyn = convert.(Float64, sparse(sparsity_pattern))
 
-        jac_cache = ForwardColorJacCache(dynamics_defects!, input, dx = output,
-                                         colorvec = matrix_colors(jac_dyn),
-                                         sparsity = sparsity_pattern)
+        jac_cache = ForwardColorJacCache(
+            dynamics_defects!,
+            input,
+            dx=output,
+            colorvec=matrix_colors(jac_dyn),
+            sparsity=sparsity_pattern,
+        )
 
         length_jac = nnz(jac_dyn)
 
         T1 = typeof(jac_dyn)
         T2 = typeof(jac_cache)
 
-        new{T1,T2}(jac_dyn, jac_cache, length_jac)
+        return new{T1,T2}(jac_dyn, jac_cache, length_jac)
     end
 end
 
 input = rand(15)
-jac_data = JacobianData(input = input)
+jac_data = JacobianData(input=input)
 forwarddiff_color_jacobian!(jac_data.jac_dyn, dynamics_defects!, input, jac_data.jac_cache)
 
-jacIndexConsCB = Cint.(hcat([rowvals(jac_data.jac_dyn) .+ i*6 for i = 0:N-1]...) .- 1)
-jacIndexVarsCB = Cint.(hcat([vcat([fill(j + i*nₓ, length(nzrange(jac_data.jac_dyn, j))) for j = 1:15]...) for i = 0:N-1]...) .- 1)
+jacIndexConsCB = Cint.(hcat([rowvals(jac_data.jac_dyn) .+ i * 6 for i in 0:N-1]...) .- 1)
+jacIndexVarsCB =
+    Cint.(
+        hcat(
+            [
+                vcat(
+                    [
+                        fill(j + i * nₓ, length(nzrange(jac_data.jac_dyn, j))) for j in 1:15
+                    ]...,
+                ) for i in 0:N-1
+            ]...,
+        ) .- 1,
+    )
 
 # Note: the code above this point formulates the problem, and implements
 # callbacks in a format compatible with Knitro's interface, but the
@@ -221,21 +246,21 @@ KNITRO.KN_set_var_lobnds(kc, collect(Cint, ind_h .- 1), zeros(M))  # `h` bounds
 KNITRO.KN_set_var_lobnds(kc, collect(Cint, ind_v .- 1), fill(1 / 1e4, M))  # `v` bounds
 
 KNITRO.KN_set_var_lobnds(kc, collect(Cint, ind_θ .- 1), fill(deg2rad(-89), M))  # `θ` lower bounds
-KNITRO.KN_set_var_upbnds(kc, collect(Cint, ind_θ .- 1), fill(deg2rad( 89), M))  # `θ` upper bounds
+KNITRO.KN_set_var_upbnds(kc, collect(Cint, ind_θ .- 1), fill(deg2rad(89), M))  # `θ` upper bounds
 
 KNITRO.KN_set_var_lobnds(kc, collect(Cint, ind_γ .- 1), fill(deg2rad(-89), M))  # `γ` lower bounds
-KNITRO.KN_set_var_upbnds(kc, collect(Cint, ind_γ .- 1), fill(deg2rad( 89), M))  # `γ` upper bounds
+KNITRO.KN_set_var_upbnds(kc, collect(Cint, ind_γ .- 1), fill(deg2rad(89), M))  # `γ` upper bounds
 
 KNITRO.KN_set_var_lobnds(kc, collect(Cint, ind_α .- 1), fill(deg2rad(-90), M))  # `α` lower bounds
-KNITRO.KN_set_var_upbnds(kc, collect(Cint, ind_α .- 1), fill(deg2rad( 90), M))  # `α` upper bounds
+KNITRO.KN_set_var_upbnds(kc, collect(Cint, ind_α .- 1), fill(deg2rad(90), M))  # `α` upper bounds
 
 KNITRO.KN_set_var_lobnds(kc, collect(Cint, ind_β .- 1), fill(deg2rad(-89), M))  # `β` lower bounds
-KNITRO.KN_set_var_upbnds(kc, collect(Cint, ind_β .- 1), fill(deg2rad(  1), M))  # `β` upper bounds
+KNITRO.KN_set_var_upbnds(kc, collect(Cint, ind_β .- 1), fill(deg2rad(1), M))  # `β` upper bounds
 
 KNITRO.KN_set_var_fxbnds(kc, collect(Cint, ind_t .- 1), fill(1.00, M))  # Fix time steps
 
 # Fix initial and final conditions
-ind_fixed_vars = [ind_h[1]:ind_ψ[1] ; [ind_h[end], ind_v[end], ind_γ[end]]]
+ind_fixed_vars = [ind_h[1]:ind_ψ[1]; [ind_h[end], ind_v[end], ind_γ[end]]]
 val_fixed_vars = [hₛ, ϕₛ, θₛ, vₛ, γₛ, ψₛ, hₜ, vₜ, γₜ]
 KNITRO.KN_set_var_fxbnds(kc, collect(Cint, ind_fixed_vars .- 1), val_fixed_vars)
 
@@ -245,14 +270,24 @@ KNITRO.KN_set_con_eqbnds(kc, collect(Cint, ind_con_dyn .- 1), zeros(m_dyn))  # d
 
 # This callback does not evaluate the objective function. As such,
 # we pass `false` as the second argument to `KN_add_eval_callback()`.
-cb_dyn = KNITRO.KN_add_eval_callback(kc, false, collect(Cint, ind_con_dyn .- 1), cb_eval_fc_con_dyn)
+cb_dyn = KNITRO.KN_add_eval_callback(
+    kc,
+    false,
+    collect(Cint, ind_con_dyn .- 1),
+    cb_eval_fc_con_dyn,
+)
 
 # Similarly to above, this callback does not evaluate the gradient of the objective.
 # As such, we pass `nV = 0`, and `objGradIndexVars = C_NULL` in the `KN_set_cb_grad()` call.
-KNITRO.KN_set_cb_grad(kc, cb_dyn, cb_eval_ga_con_dyn,
-                      nV = 0, objGradIndexVars = C_NULL,
-                      jacIndexCons = jacIndexConsCB,
-                      jacIndexVars = jacIndexVarsCB)
+KNITRO.KN_set_cb_grad(
+    kc,
+    cb_dyn,
+    cb_eval_ga_con_dyn,
+    nV=0,
+    objGradIndexVars=C_NULL,
+    jacIndexCons=jacIndexConsCB,
+    jacIndexVars=jacIndexVarsCB,
+)
 
 KNITRO.KN_set_cb_user_params(kc, cb_dyn, jac_data)
 
@@ -261,9 +296,9 @@ objIndex, objCoef = ind_θ[end], 1.0
 KNITRO.KN_add_obj_linear_struct(kc, objIndex - 1, objCoef)
 KNITRO.KN_set_obj_goal(kc, KNITRO.KN_OBJGOAL_MAXIMIZE)
 
-KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_ALG,        KNITRO.KN_ALG_BAR_DIRECT)
+KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_ALG, KNITRO.KN_ALG_BAR_DIRECT)
 KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_BAR_MURULE, KNITRO.KN_BAR_MURULE_QUALITY)
-KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_LINSOLVER,  KNITRO.KN_LINSOLVER_MA27)
+KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_LINSOLVER, KNITRO.KN_LINSOLVER_MA27)
 
 KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_HESSOPT, KNITRO.KN_HESSOPT_LBFGS)
 KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_LMSIZE, 5)  # limited-memory pairs stored

@@ -30,7 +30,6 @@
 # The solution is(1.30098, 0, 1, 0, 1, 0).
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-
 using KNITRO
 using Test
 
@@ -95,13 +94,18 @@ function example_minlp1(; verbose=true)
         #       nonzero elements in the upper triangle(plus diagonal).
         dTmp1 = x[1] - x[2] + 1.0
         dTmp2 = x[2] + 1.0
-        evalResult.hess[1] = sigma * (19.2 /(dTmp1 * dTmp1)) +
-                                lambda_[1] * (-0.96 / (dTmp1 * dTmp1)) + lambda_[2] * (-1.2 / (dTmp1 * dTmp1))
-        evalResult.hess[2] = sigma * (-19.2 /(dTmp1 * dTmp1)) +
-                                lambda_[1] * (0.96 / (dTmp1 * dTmp1)) + lambda_[2] * (1.2 / (dTmp1 * dTmp1))
-        evalResult.hess[3] = sigma * ((19.2 / (dTmp1 * dTmp1)) +(18.0 / (dTmp2 * dTmp2))) +
-                                lambda_[1] * ((-0.96 / (dTmp1 * dTmp1)) -(0.8 / (dTmp2 * dTmp2))) +
-                                lambda_[2] * ((-1.2 / (dTmp1 * dTmp1)) -(1.0 / (dTmp2 * dTmp2)))
+        evalResult.hess[1] =
+            sigma * (19.2 / (dTmp1 * dTmp1)) +
+            lambda_[1] * (-0.96 / (dTmp1 * dTmp1)) +
+            lambda_[2] * (-1.2 / (dTmp1 * dTmp1))
+        evalResult.hess[2] =
+            sigma * (-19.2 / (dTmp1 * dTmp1)) +
+            lambda_[1] * (0.96 / (dTmp1 * dTmp1)) +
+            lambda_[2] * (1.2 / (dTmp1 * dTmp1))
+        evalResult.hess[3] =
+            sigma * ((19.2 / (dTmp1 * dTmp1)) + (18.0 / (dTmp2 * dTmp2))) +
+            lambda_[1] * ((-0.96 / (dTmp1 * dTmp1)) - (0.8 / (dTmp2 * dTmp2))) +
+            lambda_[2] * ((-1.2 / (dTmp1 * dTmp1)) - (1.0 / (dTmp2 * dTmp2)))
 
         return 0
     end
@@ -167,15 +171,19 @@ function example_minlp1(; verbose=true)
     # assumed to be unbounded above.
     n = 6
     KNITRO.KN_add_vars(kc, n)
-    KNITRO.KN_set_var_lobnds(kc, zeros(Float64, n))
-    KNITRO.KN_set_var_upbnds(kc, [2., 2., 1., 1., 1., 1.])
-    KNITRO.KN_set_var_types(kc, [KNITRO.KN_VARTYPE_CONTINUOUS,
-                                KNITRO.KN_VARTYPE_CONTINUOUS,
-                                KNITRO.KN_VARTYPE_CONTINUOUS,
-                                KNITRO.KN_VARTYPE_BINARY,
-                                KNITRO.KN_VARTYPE_BINARY,
-                                KNITRO.KN_VARTYPE_BINARY])
-
+    KNITRO.KN_set_var_lobnds_all(kc, zeros(Float64, n))
+    KNITRO.KN_set_var_upbnds_all(kc, [2.0, 2.0, 1.0, 1.0, 1.0, 1.0])
+    ret = KNITRO.KN_set_var_types_all(
+        kc,
+        Cint[
+            KNITRO.KN_VARTYPE_CONTINUOUS,
+            KNITRO.KN_VARTYPE_CONTINUOUS,
+            KNITRO.KN_VARTYPE_CONTINUOUS,
+            KNITRO.KN_VARTYPE_BINARY,
+            KNITRO.KN_VARTYPE_BINARY,
+            KNITRO.KN_VARTYPE_BINARY,
+        ],
+    )
     # Note that variables x2..x5 only appear linearly in the
     # problem.  We mark them as linear variables, which may
     # help Knitro do more extensive presolving resulting in
@@ -186,12 +194,18 @@ function example_minlp1(; verbose=true)
 
     # Add the constraints and set their bounds
     KNITRO.KN_add_cons(kc, 6)
-    KNITRO.KN_set_con_lobnds(kc,  [0, -2,
-                                -KNITRO.KN_INFINITY,
-                                -KNITRO.KN_INFINITY,
-                                -KNITRO.KN_INFINITY,
-                                -KNITRO.KN_INFINITY])
-    KNITRO.KN_set_con_upbnds(kc, [KNITRO.KN_INFINITY, KNITRO.KN_INFINITY, 0, 0, 0, 1])
+    KNITRO.KN_set_con_lobnds_all(
+        kc,
+        [
+            0,
+            -2,
+            -KNITRO.KN_INFINITY,
+            -KNITRO.KN_INFINITY,
+            -KNITRO.KN_INFINITY,
+            -KNITRO.KN_INFINITY,
+        ],
+    )
+    KNITRO.KN_set_con_upbnds_all(kc, [KNITRO.KN_INFINITY, KNITRO.KN_INFINITY, 0, 0, 0, 1])
 
     # Add the linear structure in the objective function.
     objGradIndexVars = Int32[3, 4, 5, 0, 2]
@@ -227,11 +241,15 @@ function example_minlp1(; verbose=true)
     # Constraint Jacobian non-zero structure for callback
     jacIndexConsCB = Int32[0, 0, 1, 1]
     jacIndexVarsCB = Int32[0, 1, 0, 1]
-    KNITRO.KN_set_cb_grad(kc, cb, callbackEvalGA,
-                        nV=length(objGradIndexVarsCB),
-                        objGradIndexVars=objGradIndexVarsCB,
-                        jacIndexCons=jacIndexConsCB,
-                        jacIndexVars=jacIndexVarsCB)
+    KNITRO.KN_set_cb_grad(
+        kc,
+        cb,
+        callbackEvalGA,
+        nV=length(objGradIndexVarsCB),
+        objGradIndexVars=objGradIndexVarsCB,
+        jacIndexCons=jacIndexConsCB,
+        jacIndexVars=jacIndexVarsCB,
+    )
 
     hessIndexVars1CB = Int32[0, 0, 1]
     hessIndexVars2CB = Int32[0, 1, 1]
@@ -241,9 +259,14 @@ function example_minlp1(; verbose=true)
     # for the exact Hessian(as well as the non-zero sparsity structure)
     # can greatly improve Knitro performance and is recommended if possible.
     # Since the Hessian is symmetric, only the upper triangle is provided.
-    KNITRO.KN_set_cb_hess(kc, cb, length(hessIndexVars1CB), callbackEvalH,
-                        hessIndexVars1=hessIndexVars1CB,
-                        hessIndexVars2=hessIndexVars2CB)
+    KNITRO.KN_set_cb_hess(
+        kc,
+        cb,
+        length(hessIndexVars1CB),
+        callbackEvalH,
+        hessIndexVars1=hessIndexVars1CB,
+        hessIndexVars2=hessIndexVars2CB,
+    )
 
     # Specify that the user is able to provide evaluations
     #  of the Hessian matrix without the objective component.
@@ -283,9 +306,8 @@ function example_minlp1(; verbose=true)
     @testset "Example minlp1" begin
         @test nStatus == 0
         @test objSol ≈ 6.0097589
-        @test x ≈ [1.30097589, 0., 1., 0., 1., 0.] atol=1e-5
+        @test x ≈ [1.30097589, 0.0, 1.0, 0.0, 1.0, 0.0] atol = 1e-5
     end
 end
 
 example_minlp1(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
-

@@ -20,9 +20,7 @@
 # in callback routines.
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-
 using KNITRO, Test
-
 
 function example_multiple_cb(; verbose=true)
     # The signature of this function matches KNITRO.KN_eval_callback in knitro.h.
@@ -31,7 +29,10 @@ function example_multiple_cb(; verbose=true)
         xind = userParams
 
         if evalRequest.evalRequestCode != KNITRO.KN_RC_EVALFC
-            println("*** callbackEvalObj incorrectly called with eval type ", evalRequest.evalRequestCode)
+            println(
+                "*** callbackEvalObj incorrectly called with eval type ",
+                evalRequest.evalRequestCode,
+            )
             return -1
         end
         x = evalRequest.x
@@ -48,7 +49,10 @@ function example_multiple_cb(; verbose=true)
         xind = userParams
 
         if evalRequest.evalRequestCode != KNITRO.KN_RC_EVALFC
-            println("*** callbackEvalC0 incorrectly called with eval type ", evalRequest.evalRequestCode)
+            println(
+                "*** callbackEvalC0 incorrectly called with eval type ",
+                evalRequest.evalRequestCode,
+            )
             return -1
         end
         x = evalRequest.x
@@ -65,7 +69,10 @@ function example_multiple_cb(; verbose=true)
         xind = userParams
 
         if evalRequest.evalRequestCode != KNITRO.KN_RC_EVALFC
-            println("*** callbackEvalC1 incorrectly called with eval type %d" % evalRequest.evalRequestCode)
+            println(
+                "*** callbackEvalC1 incorrectly called with eval type %d" %
+                evalRequest.evalRequestCode,
+            )
             return -1
         end
         x = evalRequest.x
@@ -86,7 +93,10 @@ function example_multiple_cb(; verbose=true)
         xind = userParams
 
         if evalRequest.evalRequestCode != KNITRO.KN_RC_EVALGA
-            println("*** callbackEvalObjGrad incorrectly called with eval type %d" % evalRequest.evalRequestCode)
+            println(
+                "*** callbackEvalObjGrad incorrectly called with eval type %d" %
+                evalRequest.evalRequestCode,
+            )
             return -1
         end
         x = evalRequest.x
@@ -106,7 +116,10 @@ function example_multiple_cb(; verbose=true)
         xind = userParams
 
         if evalRequest.evalRequestCode != KNITRO.KN_RC_EVALGA
-            println("*** callbackEvalC0Grad incorrectly called with eval type ", evalRequest.evalRequestCode)
+            println(
+                "*** callbackEvalC0Grad incorrectly called with eval type ",
+                evalRequest.evalRequestCode,
+            )
             return -1
         end
         x = evalRequest.x
@@ -116,7 +129,6 @@ function example_multiple_cb(; verbose=true)
 
         return 0
     end
-
 
     #*------------------------------------------------------------------*
     #*     main                                                         *
@@ -133,14 +145,14 @@ function example_multiple_cb(; verbose=true)
     # assumed to be unbounded above.
     xIndices = KNITRO.KN_add_vars(kc, 4)
     for x in xIndices
-        KNITRO.KN_set_var_primal_init_values(kc, x, 0.8)
+        KNITRO.KN_set_var_primal_init_value(kc, x, 0.8)
     end
 
     # Add the constraints and set the rhs and coefficients
     cIndices = KNITRO.KN_add_cons(kc, 3)
-    KNITRO.KN_set_con_eqbnds(kc, cIndices[1], 1.0)
-    KNITRO.KN_set_con_eqbnds(kc, cIndices[2], 0.0)
-    KNITRO.KN_set_con_eqbnds(kc, cIndices[3], 0.0)
+    KNITRO.KN_set_con_eqbnd(kc, cIndices[1], 1.0)
+    KNITRO.KN_set_con_eqbnd(kc, cIndices[2], 0.0)
+    KNITRO.KN_set_con_eqbnd(kc, cIndices[3], 0.0)
 
     # Coefficients for 2 linear terms
     lconIndexCons = Int32[1, 2]
@@ -157,22 +169,37 @@ function example_multiple_cb(; verbose=true)
     qconIndexVars2 = Int32[1, 3]
     qconCoefs = [1.0, 1.0]
 
-
-    KNITRO.KN_add_con_quadratic_struct(kc, qconIndexCons, qconIndexVars1, qconIndexVars2, qconCoefs)
+    KNITRO.KN_add_con_quadratic_struct(
+        kc,
+        qconIndexCons,
+        qconIndexVars1,
+        qconIndexVars2,
+        qconCoefs,
+    )
 
     # Add separate callbacks.
 
     # Set callback data for nonlinear objective term.
     cbObj = KNITRO.KN_add_objective_callback(kc, callbackEvalObj)
-    KNITRO.KN_set_cb_grad(kc, cbObj, callbackEvalObjGrad,
-                        objGradIndexVars=xIndices, nV=length(xIndices))
+    KNITRO.KN_set_cb_grad(
+        kc,
+        cbObj,
+        callbackEvalObjGrad,
+        objGradIndexVars=xIndices,
+        nV=length(xIndices),
+    )
 
     # Set callback data for nonlinear constraint 0 term.
     cbC0 = KNITRO.KN_add_eval_callback(kc, false, [cIndices[1]], callbackEvalC0)
     indexCons = cIndices[1]  # constraint c0
     indexVars = xIndices[1]  # variable x0
-    KNITRO.KN_set_cb_grad(kc, cbC0, callbackEvalC0Grad, jacIndexCons=[indexCons],
-                        jacIndexVars=[indexVars])
+    KNITRO.KN_set_cb_grad(
+        kc,
+        cbC0,
+        callbackEvalC0Grad,
+        jacIndexCons=[indexCons],
+        jacIndexVars=[indexVars],
+    )
 
     # Set callback data for nonlinear constraint 1 term
     cbC1 = KNITRO.KN_add_eval_callback(kc, false, [cIndices[2]], callbackEvalC1)
@@ -209,7 +236,7 @@ function example_multiple_cb(; verbose=true)
     # Return status codes are defined in "knitro.h" and described
     # in the Knitro manual.
     nStatus = KNITRO.KN_solve(kc)
-    nStatus, objSol, x, lambda_ =  KNITRO.KN_get_solution(kc)
+    nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
 
     # An example of obtaining solution information.
     if verbose
@@ -226,9 +253,8 @@ function example_multiple_cb(; verbose=true)
     @testset "Example multipleCB" begin
         @test nStatus == 0
         @test objSol ≈ 0.25
-        @test x ≈ [0.793701, 0.707107, 0.529732, 0.840896] atol=1e-5
+        @test x ≈ [0.793701, 0.707107, 0.529732, 0.840896] atol = 1e-5
     end
 end
 
 example_multiple_cb(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
-

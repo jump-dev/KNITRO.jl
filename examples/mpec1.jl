@@ -32,7 +32,6 @@
 # The solution is(1, 0, 3.5, 0, 0, 0, 3, 6), with objective value 17.
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-
 using KNITRO, Test
 
 function example_mpec1(; verbose=true)
@@ -49,12 +48,12 @@ function example_mpec1(; verbose=true)
     # Add the variables and set their bounds and initial values.
     # Note: unset bounds assumed to be infinite.
     KNITRO.KN_add_vars(kc, 8)
-    KNITRO.KN_set_var_lobnds(kc, zeros(Float64, 8))
-    KNITRO.KN_set_var_primal_init_values(kc, zeros(Float64, 8))
+    KNITRO.KN_set_var_lobnds_all(kc, zeros(Float64, 8))
+    KNITRO.KN_set_var_primal_init_values_all(kc, zeros(Float64, 8))
 
     # Add the constraints and set their bounds.
     KNITRO.KN_add_cons(kc, 4)
-    KNITRO.KN_set_con_eqbnds(kc, Float64[2, 3, -4, -7])
+    KNITRO.KN_set_con_eqbnds_all(kc, Float64[2, 3, -4, -7])
 
     # Add coefficients for all linear constraints at once.
 
@@ -105,7 +104,7 @@ function example_mpec1(; verbose=true)
     ccTypes = [KNITRO.KN_CCTYPE_VARVAR, KNITRO.KN_CCTYPE_VARVAR, KNITRO.KN_CCTYPE_VARVAR]
     indexComps1 = Int32[2, 3, 4]
     indexComps2 = Int32[5, 6, 7]
-    KNITRO.KN_set_compcons(kc, ccTypes, indexComps1, indexComps2)
+    KNITRO.KN_set_compcons(kc, 3, ccTypes, indexComps1, indexComps2)
 
     kn_outlev = verbose ? KNITRO.KN_OUTLEV_ALL : KNITRO.KN_OUTLEV_NONE
     KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
@@ -136,10 +135,9 @@ function example_mpec1(; verbose=true)
 
     @testset "Example MPEC 1" begin
         @test nStatus == 0
-        @test objSol ≈ 17.
-        @test x ≈ [1., 0., 3.5, 0., 0., 0., 3., 6.]
+        @test objSol ≈ 17.0
+        @test x ≈ [1.0, 0.0, 3.5, 0.0, 0.0, 0.0, 3.0, 6.0]
     end
 end
 
 example_mpec1(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
-
