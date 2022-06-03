@@ -42,9 +42,7 @@ for path in reverse(paths_to_try)
     end
 end
 
-if get(ENV, "JULIA_REGISTRYCI_AUTOMERGE", "false") == "true"
-    write_depsfile("", "julia_registryci_automerge")
-elseif !found_knitro
-    error("Unable to locate KNITRO installation, " *
-          "please check your environment variable KNITRODIR.")
+if !found_knitro
+    write_depsfile("", "")
 end
+
