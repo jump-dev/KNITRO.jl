@@ -492,14 +492,18 @@ function MOI.add_constraint(model::Optimizer, vi::MOI.VariableIndex, ::MOI.ZeroO
     indv = vi.value - 1
     check_inbounds(model, vi)
     model.number_zeroone_constraints += 1
-    # Made the bounds explicit for KNITRO and take care of
-    # preexisting MOI's bounds.
-    lobnd = 0.0
-    upbnd = 1.0
-    KN_set_var_lobnd(model.inner, indv, lobnd)
-    KN_set_var_upbnd(model.inner, indv, upbnd)
+    # Load preexisting MOI's bounds.
+    lb = KN_get_var_lobnd(model.inner, indv)
+    ub = KN_get_var_upbnd(model.inner, indv)
+    # Warning: Setting a variable as binary overwrites the bounds on vi
     KN_set_var_type(model.inner, vi.value - 1, KN_VARTYPE_BINARY)
-
+    # Reset the bounds previously set
+    if 0 <= lb <= 1
+        KN_set_var_lobnd(model.inner, indv, lb)
+    end
+    if 0 <= ub <= 1
+        KN_set_var_upbnd(model.inner, indv, ub)
+    end
     return MOI.ConstraintIndex{MOI.VariableIndex,MOI.ZeroOne}(vi.value)
 end
 
