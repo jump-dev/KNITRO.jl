@@ -85,3 +85,19 @@ model = Model(() -> AmplNLWriter.Optimizer(KNITRO.amplexe, ["outlev=3"]))
 
 ```
 
+Installation Troubleshooting
+============
+If you are having issues installing, here are several things to try:
+
+- Make sure that you have defined your global variables correctly, for example
+  with `export KNITRODIR="/path/to/knitro-vXXX-$OS-64"` and `export
+  LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$KNITRODIR/lib"`. You can check that
+  `KNITRO.jl` sees your library with `using KNITRO; KNITRO.has_knitro()`.
+
+- If `KNITRO.has_knitro()` returns `false` but you are confident that your
+  paths are correct, try running `build KNITRO` and restarting Julia. In at
+  least one user's experience, installing and using KNITRO in a temporary Julia
+  environment (activated with `] activate --temp`) does not work and the need to
+  manually build is likely the reason why.
+
+
