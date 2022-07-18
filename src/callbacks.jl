@@ -332,6 +332,7 @@ function KN_set_cb_grad(
     cb::CallbackContext,
     gradcallback;
     nV::Integer=KN_DENSE,
+    nnzJ::Integer=KNLONG(0),
     objGradIndexVars=C_NULL,
     jacIndexCons=C_NULL,
     jacIndexVars=C_NULL,
@@ -344,7 +345,6 @@ function KN_set_cb_grad(
         @assert (objGradIndexVars != C_NULL) && (length(objGradIndexVars) == nV)
     end
 
-    nnzJ = KNLONG(0)
     if jacIndexCons != C_NULL && jacIndexVars != C_NULL
         @assert length(jacIndexCons) == length(jacIndexVars)
         nnzJ = KNLONG(length(jacIndexCons))
@@ -372,7 +372,7 @@ function KN_set_cb_grad(
         cb,
         nV,
         objGradIndexVars,
-        nnzJ,
+        KNLONG(nnzJ),
         jacIndexCons,
         jacIndexVars,
         c_grad_g
