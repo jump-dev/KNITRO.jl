@@ -332,7 +332,7 @@ function KN_set_cb_grad(
     cb::CallbackContext,
     gradcallback;
     nV::Integer=KN_DENSE,
-    nnzJ::Integer=KNLONG(0),
+    nnzJ::Integer=(iszero(KNITRO.KN_get_number_cons(m)) ? KNLONG(0) : KNITRO.KN_DENSE_COLMAJOR),
     objGradIndexVars=C_NULL,
     jacIndexCons=C_NULL,
     jacIndexVars=C_NULL,
