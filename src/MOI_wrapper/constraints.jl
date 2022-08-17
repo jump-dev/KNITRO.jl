@@ -432,14 +432,15 @@ end
 function MOI.add_constraint(model::Optimizer, func::VOV, set::T) where {T<:VLS}
     (model.number_solved >= 1) && throw(AddConstraintError())
     indv = convert.(Cint, [v.value for v in func.variables] .- 1)
-    bnd = zeros(Float64, length(indv))
+    nv = length(indv)
+    bnd = zeros(Float64, nv)
 
     if isa(set, MOI.Zeros)
-        KN_set_var_fxbnds(model.inner, indv, bnd)
+        KN_set_var_fxbnds(model.inner, nv, indv, bnd)
     elseif isa(set, MOI.Nonnegatives)
-        KN_set_var_lobnds(model.inner, indv, bnd)
+        KN_set_var_lobnds(model.inner, nv, indv, bnd)
     elseif isa(set, MOI.Nonpositives)
-        KN_set_var_upbnds(model.inner, indv, bnd)
+        KN_set_var_upbnds(model.inner, nv, indv, bnd)
     end
 
     ncons = MOI.get(model, MOI.NumberOfConstraints{VOV,T}())
