@@ -1,92 +1,34 @@
-KNITRO.jl
-=========
+**KNITRO.jl underwent a major rewrite between versions 0.12.0 and 0.13.0, with
+the low-level wrapper now being generated automatically with Clang.jl. Users of
+JuMP should see no breaking changes, but if you used the lower-level C API you
+will need to update your code accordingly.**
 
-**KNITRO.jl underwent a major rewrite between versions 0.12.0 and 0.13.0,
-with the low-level wrapper now being generated automatically with Clang.jl. Users of
-JuMP should see no breaking changes, but if you used the lower-level C API
-you will need to update your code accordingly.**
+# KNITRO.jl
 
+**KNITRO.jl** is a [Julia](http://julialang.org/) interface to the [Artelys Knitro solver](https://www.artelys.com/knitro).
 
-The KNITRO.jl package provides an interface for using the [Artelys Knitro
-solver](https://www.artelys.com/knitro) from
-[Julia](http://julialang.org/). You cannot use KNITRO.jl without having
-purchased and installed a copy of Knitro from [Artelys](https://www.artelys.com/knitro).
-This package is available free of charge and in no way replaces or alters any
+It has two components:
+ - a thin wrapper around the [C API](https://www.artelys.com/tools/knitro_doc/3_referenceManual/callableLibraryAPI.html)
+ - an interface to [MathOptInterface](https://github.com/jump-dev/MathOptInterface.jl).
+
+*Note: This wrapper is maintained by the JuMP community and is not an official
+product of Artelys. Please contact [Artelys support](mailto:support-knitro@artelys.com)
+if you encounter any problem with this interface or the solver.*
+
+## Installation
+
+First, purchase and install a copy of Knitro from [Artelys](https://www.artelys.com/knitro).
+
+Then, install `KNITRO.jl` using the Julia package manager:
+```julia
+import Pkg; Pkg.add("KNITRO")
+```
+
+`KNITRO.jl` is available free of charge and in no way replaces or alters any
 functionality of Artelys Knitro solver.
 
-Refer to [Knitro documentation](https://www.artelys.com/tools/knitro_doc/3_referenceManual/callableLibraryAPI.html)
-for a full specification of the Knitro's API.
+### Troubleshooting
 
-*The Artelys Knitro wrapper for Julia is supported by the JuMP
-community (which originates the development of this package) and
-Artelys. Feel free to contact [Artelys support](mailto:support-knitro@artelys.com) if you encounter
-any problem with this interface or the solver.*
-
-
-MathOptInterface (MOI)
-======================
-
-KNITRO.jl supports [MathOptInterface](https://github.com/jump-dev/MathOptInterface.jl)
-and [JuMP](https://github.com/jump-dev/JuMP.jl).
-
-
-Here's an example showcasing various features.
-
-```julia
-using JuMP, KNITRO
-m = Model(optimizer_with_attributes(KNITRO.Optimizer,
-                                    "honorbnds" => 1, "outlev" => 1, "algorithm" => 4)) # (1)
-@variable(m, x, start = 1.2) # (2)
-@variable(m, y)
-@variable(m, z)
-@variable(m, 4.0 <= u <= 4.0) # (3)
-
-mysquare(x) = x^2
-register(m, :mysquare, 1, mysquare, autodiff = true) # (4)
-
-@NLobjective(m, Min, mysquare(1 - x) + 100 * (y - x^2)^2 + u)
-@constraint(m, z == x + y)
-
-optimize!(m)
-(value(x), value(y), value(z), value(u), objective_value(m), termination_status(m)) # (5)
-```
-
-1. Setting `KNITRO` options.
-2. Setting initial conditions on variables.
-3. Setting box constraints on variables.
-4. Registering a user-defined function for use in the problem.
-5. Querying various results from the solver.
-
-Low-level wrapper
-=================
-
-KNITRO.jl implements most of Knitro's functionalities.
-If you aim at using part of Knitro's API that are not implemented
-in the MathOptInterface/JuMP ecosystem, you can refer to the low
-level API which wraps directly Knitro's C API (whose templates
-are specified in the file `knitro.h`).
-
-Extensive examples using the C wrapper can be found in `examples/`.
-
-
-Ampl wrapper
-============
-
-The package [AmplNLWriter.jl](https://github.com/JuliaOpt/AmplNLWriter.jl)
-allows to to call `knitroampl` through Julia to solve JuMP's optimization
-models.
-
-The usage is as follow:
-
-```julia
-using JuMP, KNITRO, AmplNLWriter
-
-model = Model(() -> AmplNLWriter.Optimizer(KNITRO.amplexe, ["outlev=3"]))
-
-```
-
-Installation Troubleshooting
-============
 If you are having issues installing, here are several things to try:
 
 - Make sure that you have defined your global variables correctly, for example
@@ -100,4 +42,43 @@ If you are having issues installing, here are several things to try:
   environment (activated with `] activate --temp`) does not work and the need to
   manually build is likely the reason why.
 
+## Use with JuMP
+
+Use the `KNITRO.Optimizer` to use KNITRO with JuMP or MathOptInterface:
+```julia
+using JuMP
+import KNITRO
+model = Model(KNITRO.Optimizer)
+set_optimizer_attribute(model, "honorbnds", 1)
+set_optimizer_attribute(model, "outlev", 1)
+set_optimizer_attribute(model, "algorithm", 4)
+```
+
+## Use with AMPL
+
+Pass `KNITRO.amplexe` to use KNITRO with the package
+[AmplNLWriter.jl](https://github.com/jump-dev/AmplNLWriter.jl) package:
+```julia
+using JuMP
+import AmplNLWriter
+import KNITRO
+model = Model(() -> AmplNLWriter.Optimizer(KNITRO.amplexe, ["outlev=3"]))
+```
+
+## Use with other packages
+
+A variety of packages extend KNITRO.jl to support other optimization modeling
+systems. These include:
+
+ * [NLPModelsKnitro](https://github.com/JuliaSmoothOptimizers/NLPModelsKnitro.jl)
+ * [Optimization.jl](http://optimization.sciml.ai/stable/)
+
+## Low-level wrapper
+
+KNITRO.jl implements most of Knitro's functionalities. If you aim at using part
+of Knitro's API that are not implemented in the MathOptInterface/JuMP ecosystem,
+you can refer to the low-level API, which wraps Knitro's C API (whose templates
+are specified in the file `knitro.h`).
+
+Extensive examples using the C wrapper can be found in `examples/`.
 
