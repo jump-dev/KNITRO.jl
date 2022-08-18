@@ -11,8 +11,8 @@ It has two components:
  - a thin wrapper around the [C API](https://www.artelys.com/tools/knitro_doc/3_referenceManual/callableLibraryAPI.html)
  - an interface to [MathOptInterface](https://github.com/jump-dev/MathOptInterface.jl).
 
-*Note: This wrapper is maintained by the JuMP community and is not an official
-product of Artelys. Please contact [Artelys support](mailto:support-knitro@artelys.com)
+*Note: This wrapper is maintained by the JuMP community with help from Artelys.
+Please contact [Artelys support](mailto:support-knitro@artelys.com)
 if you encounter any problem with this interface or the solver.*
 
 ## Installation
