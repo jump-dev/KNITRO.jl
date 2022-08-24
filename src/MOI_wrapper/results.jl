@@ -1,7 +1,11 @@
-# MathOptInterface results
+# Copyright (c) 2016: Ng Yee Sian, Miles Lubin, other contributors
+#
+# Use of this source code is governed by an MIT-style license that can be found
+# in the LICENSE.md file or at https://opensource.org/licenses/MIT.
+
 MOI.get(model::Optimizer, ::MOI.RawStatusString) = string(get_status(model.inner))
 
-KN_TO_MOI_RETURN_STATUS = Dict{Int,MOI.TerminationStatusCode}(
+const KN_TO_MOI_RETURN_STATUS = Dict{Int,MOI.TerminationStatusCode}(
     0 => MOI.LOCALLY_SOLVED,
     -100 => MOI.ALMOST_OPTIMAL,
     -101 => MOI.SLOW_PROGRESS,
@@ -75,21 +79,16 @@ function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
     status = get_status(model.inner)
     if haskey(KN_TO_MOI_RETURN_STATUS, status)
         return KN_TO_MOI_RETURN_STATUS[status]
-    else
-        error("Unrecognized KNITRO status $status")
     end
+    return MOI.OTHER_ERROR
 end
 
-# TODO
 function MOI.get(model::Optimizer, ::MOI.ResultCount)
-    return (model.number_solved >= 1) ? 1 : 0
+    return model.number_solved >= 1 ? 1 : 0
 end
 
 function MOI.get(model::Optimizer, status::MOI.PrimalStatus)
-    if (
-        (model.number_solved == 0) ||   # no solution available if the model is unsolved
-        (status.result_index > 1)       # KNITRO stores only a single solution
-    )
+    if model.number_solved == 0 || status.result_index != 1
         return MOI.NO_SOLUTION
     end
     status = get_status(model.inner)
@@ -113,10 +112,7 @@ function MOI.get(model::Optimizer, status::MOI.PrimalStatus)
 end
 
 function MOI.get(model::Optimizer, status::MOI.DualStatus)
-    if (
-        (model.number_solved == 0) ||   # no solution available if the model is unsolved
-        (status.result_index > 1)       # KNITRO stores only a single solution
-    )
+    if model.number_solved == 0 || status.result_index != 1
         return MOI.NO_SOLUTION
     end
     status = get_status(model.inner)
@@ -142,7 +138,7 @@ end
 function MOI.get(model::Optimizer, obj::MOI.ObjectiveValue)
     if model.number_solved == 0
         error("ObjectiveValue not available.")
-    elseif obj.result_index > 1
+    elseif obj.result_index != 1
         throw(MOI.ResultIndexBoundsError{MOI.ObjectiveValue}(obj, 1))
     end
     return get_objective(model.inner)
@@ -157,6 +153,7 @@ function MOI.get(model::Optimizer, v::MOI.VariablePrimal, vi::MOI.VariableIndex)
     check_inbounds(model, vi)
     return get_solution(model.inner, vi.value)
 end
+
 function MOI.get(model::Optimizer, v::MOI.VariablePrimal, vi::Vector{MOI.VariableIndex})
     if model.number_solved == 0
         error("VariablePrimal not available.")
@@ -167,27 +164,23 @@ function MOI.get(model::Optimizer, v::MOI.VariablePrimal, vi::Vector{MOI.Variabl
     return [x[v.value] for v in vi]
 end
 
-macro checkcons(model, ci, cp)
-    quote
-        if $(esc(model)).number_solved == 0
-            error("Solve problem before accessing solution.")
-        elseif $(esc(cp)).result_index > 1
-            throw(MOI.ResultIndexBoundsError{typeof($(esc(cp)))}($(esc(cp)), 1))
-        end
-        if !(0 <= $(esc(ci)).value <= number_constraints($(esc(model))) - 1)
-            error("Invalid constraint index ", $(esc(ci)).value)
-        end
+function checkcons(model, ci, cp)
+    if model.number_solved == 0
+        error("Solve problem before accessing solution.")
+    elseif cp.result_index > 1
+        throw(MOI.ResultIndexBoundsError{typeof(cp)}(cp, 1))
+    elseif !(0 <= ci.value <= number_constraints(model) - 1)
+        error("Invalid constraint index ", ci.value)
     end
+    return
 end
 
-##################################################
-## ConstraintPrimal
 function MOI.get(
     model::Optimizer,
     cp::MOI.ConstraintPrimal,
     ci::MOI.ConstraintIndex{S,T},
 ) where {S<:SF,T<:SS}
-    @checkcons(model, ci, cp)
+    checkcons(model, ci, cp)
     g = KN_get_con_values(model.inner)
     index = model.constraint_mapping[ci] .+ 1
     return g[index]
@@ -198,7 +191,7 @@ function MOI.get(
     cp::MOI.ConstraintPrimal,
     ci::MOI.ConstraintIndex{S,T},
 ) where {S<:VAF,T<:Union{MOI.Nonnegatives,MOI.Nonpositives}}
-    @checkcons(model, ci, cp)
+    checkcons(model, ci, cp)
     g = KN_get_con_values(model.inner)
     index = model.constraint_mapping[ci] .+ 1
     return g[index]
@@ -209,7 +202,7 @@ function MOI.get(
     cp::MOI.ConstraintPrimal,
     ci::MOI.ConstraintIndex{S,T},
 ) where {S<:VOV,T<:Union{MOI.Nonnegatives,MOI.Nonpositives}}
-    @checkcons(model, ci, cp)
+    checkcons(model, ci, cp)
     x = get_solution(model.inner)
     index = model.constraint_mapping[ci] .+ 1
     return x[index]
@@ -220,7 +213,7 @@ function MOI.get(
     cp::MOI.ConstraintPrimal,
     ci::MOI.ConstraintIndex{S,T},
 ) where {S<:Union{VAF,VOV},T<:MOI.Zeros}
-    @checkcons(model, ci, cp)
+    checkcons(model, ci, cp)
     ncons = length(model.constraint_mapping[ci])
     return zeros(ncons)
 end
@@ -230,7 +223,7 @@ function MOI.get(
     cp::MOI.ConstraintPrimal,
     ci::MOI.ConstraintIndex{S,T},
 ) where {S<:Union{VAF,VOV},T<:MOI.SecondOrderCone}
-    @checkcons(model, ci, cp)
+    checkcons(model, ci, cp)
     x = get_solution(model.inner)
     index = model.constraint_mapping[ci] .+ 1
     return x[index]
@@ -265,19 +258,15 @@ function MOI.get(
     return [x[c.value] for c in ci]
 end
 
-##################################################
-## ConstraintDual
-#
 # KNITRO's dual sign depends on optimization sense.
-sense_dual(model::Optimizer) = (model.sense == MOI.MAX_SENSE) ? 1.0 : -1.0
+sense_dual(model::Optimizer) = model.sense == MOI.MAX_SENSE ? 1.0 : -1.0
 
 function MOI.get(
     model::Optimizer,
     cd::MOI.ConstraintDual,
     ci::MOI.ConstraintIndex{S,T},
 ) where {S<:SF,T<:SS}
-    @checkcons(model, ci, cd)
-
+    checkcons(model, ci, cd)
     index = model.constraint_mapping[ci] + 1
     lambda = get_dual(model.inner)
     return sense_dual(model) * lambda[index]
@@ -288,7 +277,7 @@ function MOI.get(
     cd::MOI.ConstraintDual,
     ci::MOI.ConstraintIndex{S,T},
 ) where {S<:VAF,T<:VLS}
-    @checkcons(model, ci, cd)
+    checkcons(model, ci, cd)
     index = model.constraint_mapping[ci] .+ 1
     lambda = get_dual(model.inner)
     return sense_dual(model) * lambda[index]
@@ -305,7 +294,6 @@ function MOI.get(
     return sense_dual(model) * lambda[index]
 end
 
-###
 # Get constraint of a SOC constraint.
 #
 # Use the following mathematical property.  Let
@@ -315,29 +303,20 @@ end
 # At optimality, we have
 #
 #   w_i * u_i  = - t_i z_i
-#
-###
 function MOI.get(
     model::Optimizer,
     cd::MOI.ConstraintDual,
     ci::MOI.ConstraintIndex{S,T},
 ) where {S<:Union{VAF,VOV},T<:MOI.SecondOrderCone}
-    @checkcons(model, ci, cd)
+    checkcons(model, ci, cd)
     index_var = model.constraint_mapping[ci] .+ 1
-    index = model.constraint_mapping[ci] .+ 1
     index_con = ci.value + 1
     x = get_solution(model.inner)[index_var]
-    # By construction.
-    t_i = x[1]
-    u_i = x[2:end]
+    t_i, u_i = x[1], x[2:end]
     w_i = get_dual(model.inner)[index_con]
-
-    dual = [-w_i; 1 / t_i * w_i * u_i]
-
-    return dual
+    return [-w_i; 1 / t_i * w_i * u_i]
 end
 
-## Reduced costs.
 function MOI.get(
     model::Optimizer,
     cd::MOI.ConstraintDual,
@@ -350,15 +329,9 @@ function MOI.get(
     end
     vi = MOI.VariableIndex(ci.value)
     check_inbounds(model, vi)
-
-    # Constraints' duals are before reduced costs in KNITRO.
     offset = number_constraints(model)
     lambda = sense_dual(model) * get_dual(model.inner, vi.value + offset)
-    if lambda < 0
-        return lambda
-    else
-        return 0
-    end
+    return min(0.0, lambda)
 end
 
 function MOI.get(
@@ -373,15 +346,9 @@ function MOI.get(
     end
     vi = MOI.VariableIndex(ci.value)
     check_inbounds(model, vi)
-
-    # Constraints' duals are before reduced costs in KNITRO.
     offset = number_constraints(model)
     lambda = sense_dual(model) * get_dual(model.inner, vi.value + offset)
-    if lambda > 0
-        return lambda
-    else
-        return 0
-    end
+    return max(0.0, lambda)
 end
 
 function MOI.get(
@@ -396,8 +363,6 @@ function MOI.get(
     end
     vi = MOI.VariableIndex(ci.value)
     check_inbounds(model, vi)
-
-    # Constraints' duals are before reduced costs in KNITRO.
     offset = number_constraints(model)
     lambda = get_dual(model.inner, vi.value + offset)
     return sense_dual(model) * lambda
@@ -414,12 +379,14 @@ function MOI.get(model::Optimizer, ::MOI.NLPBlockDual)
     return sense_dual(model) .* [lambda[i+1] for i in model.nlp_index_cons]
 end
 
-###
 if KNITRO_VERSION >= v"12.0"
     MOI.get(model::Optimizer, ::MOI.SolveTimeSec) = KN_get_solve_time_cpu(model.inner)
 end
-# Additional getters
+
 MOI.get(model::Optimizer, ::MOI.NodeCount) = KN_get_mip_number_nodes(model.inner)
+
 MOI.get(model::Optimizer, ::MOI.BarrierIterations) = KN_get_number_iters(model.inner)
+
 MOI.get(model::Optimizer, ::MOI.RelativeGap) = KN_get_mip_rel_gap(model.inner)
+
 MOI.get(model::Optimizer, ::MOI.ObjectiveBound) = KN_get_mip_relaxation_bnd(model.inner)

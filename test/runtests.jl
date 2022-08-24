@@ -8,14 +8,11 @@ const KN_VERBOSE = false
 end
 
 @testset "Test examples" begin
-    for file in filter(
-        f -> endswith(f, ".jl"),
-        readdir(joinpath(dirname(@__FILE__), "..", "examples")),
-    )
-        if occursin("mps_reader", file)
-            continue
+    examples_dir = joinpath(dirname(@__FILE__), "..", "examples")
+    for file in filter(f -> endswith(f, ".jl"), readdir(examples_dir))
+        if !occursin("mps_reader", file)
+            include(joinpath(examples_dir, file))
         end
-        include(joinpath(dirname(@__FILE__), "..", "examples", file))
     end
 end
 

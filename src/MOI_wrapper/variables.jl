@@ -1,26 +1,23 @@
-# MathOptInterface Variables
+# Copyright (c) 2016: Ng Yee Sian, Miles Lubin, other contributors
+#
+# Use of this source code is governed by an MIT-style license that can be found
+# in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
-##################################################
-## Getters
 MOI.get(model::Optimizer, ::MOI.NumberOfVariables) = length(model.variable_info)
 
 function MOI.get(model::Optimizer, ::MOI.ListOfVariableIndices)
     return [MOI.VariableIndex(i) for i in 1:length(model.variable_info)]
 end
 
-##################################################
-## Bridges with KNITRO.
 function MOI.add_variable(model::Optimizer)
     # If model has been optimized, KNITRO does not support adding
     # another variable.
-    (model.number_solved >= 1) && throw(AddVariableError())
+    if model.number_solved >= 1
+        throw(AddVariableError())
+    end
     push!(model.variable_info, VariableInfo())
     KN_add_var(model.inner)
-    nvars = length(model.variable_info)
-    return MOI.VariableIndex(nvars)
-end
-function MOI.add_variables(model::Optimizer, n::Int)
-    return [MOI.add_variable(model) for i in 1:n]
+    return MOI.VariableIndex(length(model.variable_info))
 end
 
 function check_inbounds(model::Optimizer, vi::MOI.VariableIndex)
@@ -61,11 +58,10 @@ function is_fixed(model::Optimizer, vi::MOI.VariableIndex)
     return model.variable_info[vi.value].is_fixed
 end
 
-##################################################
-## PrimalStart
 function MOI.supports(::Optimizer, ::MOI.VariablePrimalStart, ::Type{MOI.VariableIndex})
     return true
 end
+
 function MOI.set(
     model::Optimizer,
     ::MOI.VariablePrimalStart,
@@ -73,23 +69,18 @@ function MOI.set(
     value::Union{Real,Nothing},
 )
     check_inbounds(model, vi)
-    if isa(value, Real)
-        KN_set_var_primal_init_value(model.inner, vi.value - 1, Cdouble(value))
-    else
-        # By default, initial value is set to 0.
-        KN_set_var_primal_init_value(model.inner, vi.value - 1, 0.0)
-    end
+    start = something(value, 0.0)
+    KN_set_var_primal_init_value(model.inner, vi.value - 1, Cdouble(start))
     return
 end
 
-##################################################
-## Naming
-# WIP: this part aims at supporting JuMP directly, without caching optimizer.
 MOI.supports(::Optimizer, ::MOI.VariableName, ::Type{MOI.VariableIndex}) = true
+
 function MOI.set(model::Optimizer, ::MOI.VariableName, vi::MOI.VariableIndex, name::String)
     model.variable_info[vi.value].name = name
     return
 end
+
 function MOI.get(model::Optimizer, ::MOI.VariableName, vi::MOI.VariableIndex)
     return model.variable_info[vi.value].name
 end

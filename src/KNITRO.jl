@@ -1,4 +1,12 @@
+# Copyright (c) 2016: Ng Yee Sian, Miles Lubin, other contributors
+#
+# Use of this source code is governed by an MIT-style license that can be found
+# in the LICENSE.md file or at https://opensource.org/licenses/MIT.
+
 module KNITRO
+
+import Libdl
+import SparseArrays
 
 const _DEPS_FILE = joinpath(dirname(@__FILE__), "..", "deps", "deps.jl")
 if isfile(_DEPS_FILE)
@@ -6,9 +14,6 @@ if isfile(_DEPS_FILE)
 else
     error("KNITRO.jl not properly installed. Please run `] build KNITRO`")
 end
-
-using Libdl, SparseArrays
-import Base: show
 
 const IS_KNITRO_LOADED = endswith(libknitro, Libdl.dlext)
 
@@ -24,9 +29,9 @@ end
 
 if KNITRO_VERSION != v"0.0.0" && KNITRO_VERSION < v"11.0"
     error(
-        "You have installed version $KNITRO_VERSION of Artelys Knitro, which is not supported
-  by KNITRO.jl. We require a Knitro version greater than 11.0.
-  ",
+        "You have installed version $KNITRO_VERSION of Artelys Knitro, which " *
+        "is not supported by KNITRO.jl. We require a Knitro version greater " *
+        "than 11.0.",
     )
 end
 
