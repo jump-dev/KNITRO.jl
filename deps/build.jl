@@ -8,9 +8,9 @@ end
 
 function write_depsfile(knpath, libpath)
     open(DEPS_FILE, "w") do io
-        println(io, "const libknitro = ", libpath)
+        println(io, "const libknitro = \"$(escape_string(libpath))\"")
         knitroampl = joinpath(knpath, "..", "knitroampl", "knitroampl")
-        println(io, "const amplexe = ", knitroampl)
+        println(io, "const amplexe = \"$(escape_string(knitroampl))\"")
     end
     return
 end
