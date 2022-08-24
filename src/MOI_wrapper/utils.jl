@@ -29,7 +29,7 @@ function reduce_duplicates!(
             cols[i] = tmp
         end
     end
-    return findnz(SparseArrays.sparse(rows, cols, vals))
+    return SparseArrays.findnz(SparseArrays.sparse(rows, cols, vals))
 end
 
 """
