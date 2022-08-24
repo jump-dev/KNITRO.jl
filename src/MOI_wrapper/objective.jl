@@ -1,16 +1,37 @@
-# MathOptInterface objective
+# Copyright (c) 2016: Ng Yee Sian, Miles Lubin, other contributors
+#
+# Use of this source code is governed by an MIT-style license that can be found
+# in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
-MOI.supports(::Optimizer, ::MOI.ObjectiveFunction{MOI.VariableIndex}) = true
-MOI.supports(::Optimizer, ::MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}) = true
 function MOI.supports(
     ::Optimizer,
-    ::MOI.ObjectiveFunction{MOI.ScalarQuadraticFunction{Float64}},
+    ::MOI.ObjectiveFunction{
+        <:Union{
+            MOI.VariableIndex,
+            MOI.ScalarAffineFunction{Float64},
+            MOI.ScalarQuadraticFunction{Float64},
+        },
+    },
 )
     return true
 end
+
 MOI.supports(::Optimizer, ::MOI.ObjectiveSense) = true
 
 MOI.get(model::Optimizer, ::MOI.ObjectiveSense) = model.sense
+
+function MOI.set(model::Optimizer, ::MOI.ObjectiveSense, sense::MOI.OptimizationSense)
+    if model.number_solved >= 1
+        throw(UpdateObjectiveError())
+    end
+    model.sense = sense
+    if model.sense == MOI.MAX_SENSE
+        KN_set_obj_goal(model.inner, KN_OBJGOAL_MAXIMIZE)
+    elseif model.sense == MOI.MIN_SENSE
+        KN_set_obj_goal(model.inner, KN_OBJGOAL_MINIMIZE)
+    end
+    return
+end
 
 ##################################################
 # Delete model.objective to avoid duplicate in memory
@@ -55,29 +76,14 @@ function MOI.set(
     ::MOI.ObjectiveFunction,
     func::Union{MOI.VariableIndex,MOI.ScalarAffineFunction,MOI.ScalarQuadraticFunction},
 )
-    # 1/ if the model was already solved, we cannot change the objective.
-    (model.number_solved >= 1) && throw(UpdateObjectiveError())
-    # 2/ if the model has valid non-linear objective, discard adding func.
+    if model.number_solved >= 1
+        throw(UpdateObjectiveError())
+    end
     if !isa(model.nlp_data.evaluator, EmptyNLPEvaluator) && model.nlp_data.has_objective
         @warn("Objective is already specified in NLPBlockData.")
         return
     end
     check_inbounds(model, func)
-    # Store objective inside model and load it inside Knitro
-    # when calling optimize! function.
     model.objective = func
-    return
-end
-
-function MOI.set(model::Optimizer, ::MOI.ObjectiveSense, sense::MOI.OptimizationSense)
-    # If the model was already solved, we cannot change the objective.
-    (model.number_solved >= 1) && throw(UpdateObjectiveError())
-
-    model.sense = sense
-    if model.sense == MOI.MAX_SENSE
-        KN_set_obj_goal(model.inner, KN_OBJGOAL_MAXIMIZE)
-    elseif model.sense == MOI.MIN_SENSE
-        KN_set_obj_goal(model.inner, KN_OBJGOAL_MINIMIZE)
-    end
     return
 end

@@ -1,3 +1,7 @@
+# Copyright (c) 2016: Ng Yee Sian, Miles Lubin, other contributors
+#
+# Use of this source code is governed by an MIT-style license that can be found
+# in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
 "A macro to make calling KNITRO's KN_* C API a little cleaner"
 macro kn_ccall(func, args...)

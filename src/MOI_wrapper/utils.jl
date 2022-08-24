@@ -1,3 +1,8 @@
+# Copyright (c) 2016: Ng Yee Sian, Miles Lubin, other contributors
+#
+# Use of this source code is governed by an MIT-style license that can be found
+# in the LICENSE.md file or at https://opensource.org/licenses/MIT.
+
 # Utils for MathOptInterface
 #
 ##################################################
@@ -24,7 +29,7 @@ function reduce_duplicates!(
             cols[i] = tmp
         end
     end
-    return findnz(sparse(rows, cols, vals))
+    return SparseArrays.findnz(SparseArrays.sparse(rows, cols, vals))
 end
 
 """
@@ -70,6 +75,7 @@ function canonical_linear_reduction(func::MOI.ScalarQuadraticFunction)
     affine_coefficients = Cdouble[term.coefficient for term in func.affine_terms]
     return affine_columns, affine_coefficients
 end
+
 function canonical_linear_reduction(func::MOI.ScalarAffineFunction)
     affine_columns = Cint[term.variable.value - 1 for term in func.terms]
     affine_coefficients = Cdouble[term.coefficient for term in func.terms]
@@ -80,7 +86,6 @@ function canonical_vector_affine_reduction(func::MOI.VectorAffineFunction)
     index_cols = Cint[]
     index_vars = Cint[]
     coefs = Cdouble[]
-
     for t in func.terms
         push!(index_cols, t.output_index - 1)
         push!(index_vars, t.scalar_term.variable.value - 1)
