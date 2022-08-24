@@ -1,3 +1,5 @@
+#!format:off
+
 const DBL_MAX = Float64(0x1.fffffffffffffp+1023)
 
 
@@ -2516,4 +2518,3 @@ const KN_PARAM_PAR_MSNUMTHREADS = 3005
 const KN_PAR_MSNUMTHREADS_AUTO = 0
 
 const KN_PARAM_PAR_CONICNUMTHREADS = 3006
-

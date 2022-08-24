@@ -332,7 +332,9 @@ function KN_set_cb_grad(
     cb::CallbackContext,
     gradcallback;
     nV::Integer=KN_DENSE,
-    nnzJ::Integer=(iszero(KNITRO.KN_get_number_cons(m)) ? KNLONG(0) : KNITRO.KN_DENSE_COLMAJOR),
+    nnzJ::Integer=(
+        iszero(KNITRO.KN_get_number_cons(m)) ? KNLONG(0) : KNITRO.KN_DENSE_COLMAJOR
+    ),
     objGradIndexVars=C_NULL,
     jacIndexCons=C_NULL,
     jacIndexVars=C_NULL,
@@ -729,14 +731,7 @@ function KN_set_mip_node_callback(m::Model, callback::Function, userparams=nothi
         (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid})
     )
 
-    @kn_ccall(
-        set_mip_node_callback,
-        Cint,
-        (Ptr{Cvoid}, Ptr{Cvoid}, Any),
-        m.env,
-        c_func,
-        m
-    )
+    @kn_ccall(set_mip_node_callback, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Any), m.env, c_func, m)
     return nothing
 end
 
@@ -790,14 +785,7 @@ function KN_set_ms_initpt_callback(m::Model, callback::Function, userparams=noth
         (Ptr{Cvoid}, Cint, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid})
     )
 
-    @kn_ccall(
-        set_ms_initpt_callback,
-        Cint,
-        (Ptr{Cvoid}, Ptr{Cvoid}, Any),
-        m.env,
-        c_func,
-        m
-    )
+    @kn_ccall(set_ms_initpt_callback, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Any), m.env, c_func, m)
     return nothing
 end
 

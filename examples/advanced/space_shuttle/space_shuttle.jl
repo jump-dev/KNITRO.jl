@@ -262,7 +262,12 @@ KNITRO.KN_set_var_fxbnds(kc, M, collect(Cint, ind_t .- 1), fill(1.00, M))  # Fix
 # Fix initial and final conditions
 ind_fixed_vars = [ind_h[1]:ind_ψ[1]; [ind_h[end], ind_v[end], ind_γ[end]]]
 val_fixed_vars = [hₛ, ϕₛ, θₛ, vₛ, γₛ, ψₛ, hₜ, vₜ, γₜ]
-KNITRO.KN_set_var_fxbnds(kc, length(val_fixed_vars), collect(Cint, ind_fixed_vars .- 1), val_fixed_vars)
+KNITRO.KN_set_var_fxbnds(
+    kc,
+    length(val_fixed_vars),
+    collect(Cint, ind_fixed_vars .- 1),
+    val_fixed_vars,
+)
 
 KNITRO.KN_add_cons(kc, m_dyn)
 

@@ -11,6 +11,7 @@ function write_depsfile(knpath, libpath)
         println(io, "const libknitro = \"$(escape_string(libpath))\"")
         knitroampl = joinpath(knpath, "..", "knitroampl", "knitroampl")
         println(io, "const amplexe = \"$(escape_string(knitroampl))\"")
+        return
     end
     return
 end
