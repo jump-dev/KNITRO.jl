@@ -7,42 +7,48 @@ if isfile(DEPS_FILE)
 end
 
 function write_depsfile(knpath, libpath)
-    open(DEPS_FILE, "w") do f
-        print(f,"const libknitro = ")
-        show(f, libpath)
-        println(f)
-        print(f,"const amplexe = ")
-        show(f, joinpath(knpath, "..", "knitroampl", "knitroampl"))
-        println(f)
+    open(DEPS_FILE, "w") do io
+        println(io, "const libknitro = \"$(escape_string(libpath))\"")
+        knitroampl = joinpath(knpath, "..", "knitroampl", "knitroampl")
+        println(io, "const amplexe = \"$(escape_string(knitroampl))\"")
     end
+    return
 end
 
-libname = string(Sys.iswindows() ? "" : "lib", "knitro", ".", Libdl.dlext)
-
-if haskey(ENV, "LD_LIBRARY_PATH")
-    paths_to_try = split(ENV["LD_LIBRARY_PATH"], ':')
-else
+function try_local_installation()
+    libname = string(Sys.iswindows() ? "" : "lib", "knitro", ".", Libdl.dlext)
     paths_to_try = String[]
-end
-
-if haskey(ENV, "KNITRODIR")
-    push!(paths_to_try, joinpath(ENV["KNITRODIR"], "lib"))
-end
-
-global found_knitro = false
-
-# test KNITRODIR first
-for path in reverse(paths_to_try)
-    l = joinpath(path, libname)
-    d = Libdl.dlopen_e(l)
-    if d != C_NULL
-        global found_knitro = true
-        write_depsfile(path, l)
-        break
+    if haskey(ENV, "LD_LIBRARY_PATH")
+        append!(paths_to_try, split(ENV["LD_LIBRARY_PATH"], ':'))
     end
+    if haskey(ENV, "KNITRODIR")
+        push!(paths_to_try, joinpath(ENV["KNITRODIR"], "lib"))
+    end
+    found_knitro = false
+    for path in reverse(paths_to_try)
+        l = joinpath(path, libname)
+        d = Libdl.dlopen_e(l)
+        if d != C_NULL
+            found_knitro = true
+            write_depsfile(path, l)
+            break
+        end
+    end
+    if !found_knitro
+        write_depsfile("", "")
+    end
+    return
 end
 
-if !found_knitro
-    write_depsfile("", "")
+function try_ci_installation()
+    local_filename = joinpath(@__DIR__, "libknitro.so")
+    download(ENV["SECRET_KNITRO_URL"], local_filename)
+    write_depsfile("", local_filename)
+    return
 end
 
+if get(ENV, "SECRET_KNITRO_URL", "") != ""
+    try_ci_installation()
+else
+    try_local_installation()
+end
