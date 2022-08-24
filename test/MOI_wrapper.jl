@@ -31,6 +31,15 @@ const TEST_CONFIG = MOI.Test.Config(
 )
 
 const MOI_BASE_EXCLUDED = String[
+    "test_cpsat_AllDifferent",
+    "test_cpsat_BinPacking",
+    "test_cpsat_CountAtLeast",
+    "test_cpsat_CountBelongs",
+    "test_cpsat_CountDistinct",
+    "test_cpsat_CountGreaterThan",
+    "test_variable_solve_ZeroOne_with_0_upper_bound",
+    "test_variable_solve_ZeroOne_with_1_lower_bound",
+    "test_variable_solve_ZeroOne_with_bounds_then_delete",
     # KNITRO does not support problem's modification
     "test_modification",
     # KNITRO does not support delete
