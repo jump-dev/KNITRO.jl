@@ -20,9 +20,14 @@ MOI.supports(::Optimizer, ::MOI.ObjectiveSense) = true
 
 MOI.get(model::Optimizer, ::MOI.ObjectiveSense) = model.sense
 
-function MOI.set(model::Optimizer, ::MOI.ObjectiveSense, sense::MOI.OptimizationSense)
+function MOI.set(model::Optimizer, attr::MOI.ObjectiveSense, sense::MOI.OptimizationSense)
     if model.number_solved >= 1
-        throw(UpdateObjectiveError())
+        throw(
+            MOI.SetAttributeNotAllowed(
+                attr,
+                "Problem cannot be modified after a call to optimize!",
+            ),
+        )
     end
     model.sense = sense
     if model.sense == MOI.MAX_SENSE
@@ -73,11 +78,16 @@ end
 
 function MOI.set(
     model::Optimizer,
-    ::MOI.ObjectiveFunction,
-    func::Union{MOI.VariableIndex,MOI.ScalarAffineFunction,MOI.ScalarQuadraticFunction},
-)
+    attr::MOI.ObjectiveFunction{F},
+    func::F,
+) where {F<:Union{MOI.VariableIndex,MOI.ScalarAffineFunction,MOI.ScalarQuadraticFunction}}
     if model.number_solved >= 1
-        throw(UpdateObjectiveError())
+        throw(
+            MOI.SetAttributeNotAllowed(
+                attr,
+                "Problem cannot be modified after a call to optimize!",
+            ),
+        )
     end
     if !isa(model.nlp_data.evaluator, EmptyNLPEvaluator) && model.nlp_data.has_objective
         @warn("Objective is already specified in NLPBlockData.")
@@ -86,4 +96,11 @@ function MOI.set(
     check_inbounds(model, func)
     model.objective = func
     return
+end
+
+function MOI.get(
+    model::Optimizer,
+    ::MOI.ObjectiveFunction{F},
+) where {F<:Union{MOI.VariableIndex,MOI.ScalarAffineFunction,MOI.ScalarQuadraticFunction}}
+    return convert(F, model.objective)
 end

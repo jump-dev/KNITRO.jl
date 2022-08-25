@@ -1,4 +1,6 @@
-deps/usr/
-docs/build/
-docs/site/
-docs/.documenter
+Manifest.toml
+deps/deps.jl
+deps/lib*
+deps/artelys*
+deps/build.log
+test/*.mps

@@ -98,8 +98,9 @@ function MOI.get(model::Optimizer, status::MOI.PrimalStatus)
         return MOI.FEASIBLE_POINT
     elseif -209 <= status <= -200
         return MOI.INFEASIBLE_POINT
-    elseif status == -300
-        return MOI.INFEASIBILITY_CERTIFICATE
+        # TODO(odow): we don't support returning certificates yet
+        # elseif status == -300
+        #     return MOI.INFEASIBILITY_CERTIFICATE
     elseif -409 <= status <= -400
         return MOI.FEASIBLE_POINT
     elseif -419 <= status <= -410
@@ -120,8 +121,8 @@ function MOI.get(model::Optimizer, status::MOI.DualStatus)
         return MOI.FEASIBLE_POINT
     elseif -109 <= status <= -100
         return MOI.FEASIBLE_POINT
-    elseif -209 <= status <= -200
-        return MOI.INFEASIBILITY_CERTIFICATE
+        # elseif -209 <= status <= -200
+        #     return MOI.INFEASIBILITY_CERTIFICATE
     elseif status == -300
         return MOI.NO_SOLUTION
     elseif -409 <= status <= -400
@@ -154,16 +155,6 @@ function MOI.get(model::Optimizer, v::MOI.VariablePrimal, vi::MOI.VariableIndex)
     return get_solution(model.inner, vi.value)
 end
 
-function MOI.get(model::Optimizer, v::MOI.VariablePrimal, vi::Vector{MOI.VariableIndex})
-    if model.number_solved == 0
-        error("VariablePrimal not available.")
-    elseif v.result_index > 1
-        throw(MOI.ResultIndexBoundsError{MOI.VariablePrimal}(v, 1))
-    end
-    x = get_solution(model.inner)
-    return [x[v.value] for v in vi]
-end
-
 function checkcons(model, ci, cp)
     if model.number_solved == 0
         error("Solve problem before accessing solution.")
@@ -179,64 +170,41 @@ function MOI.get(
     model::Optimizer,
     cp::MOI.ConstraintPrimal,
     ci::MOI.ConstraintIndex{S,T},
-) where {S<:SF,T<:SS}
+) where {
+    S<:Union{MOI.ScalarAffineFunction{Float64},MOI.ScalarQuadraticFunction{Float64}},
+    T<:Union{
+        MOI.EqualTo{Float64},
+        MOI.GreaterThan{Float64},
+        MOI.LessThan{Float64},
+        MOI.Interval{Float64},
+    },
+}
     checkcons(model, ci, cp)
     g = KN_get_con_values(model.inner)
-    index = model.constraint_mapping[ci] .+ 1
-    return g[index]
+    return g[model.constraint_mapping[ci].+1]
 end
 
 function MOI.get(
     model::Optimizer,
     cp::MOI.ConstraintPrimal,
-    ci::MOI.ConstraintIndex{S,T},
-) where {S<:VAF,T<:Union{MOI.Nonnegatives,MOI.Nonpositives}}
-    checkcons(model, ci, cp)
-    g = KN_get_con_values(model.inner)
-    index = model.constraint_mapping[ci] .+ 1
-    return g[index]
-end
-
-function MOI.get(
-    model::Optimizer,
-    cp::MOI.ConstraintPrimal,
-    ci::MOI.ConstraintIndex{S,T},
-) where {S<:VOV,T<:Union{MOI.Nonnegatives,MOI.Nonpositives}}
+    ci::MOI.ConstraintIndex{S,MOI.SecondOrderCone},
+) where {S<:Union{MOI.VectorAffineFunction{Float64},MOI.VectorOfVariables}}
     checkcons(model, ci, cp)
     x = get_solution(model.inner)
-    index = model.constraint_mapping[ci] .+ 1
-    return x[index]
+    return x[model.constraint_mapping[ci].+1]
 end
 
 function MOI.get(
     model::Optimizer,
     cp::MOI.ConstraintPrimal,
-    ci::MOI.ConstraintIndex{S,T},
-) where {S<:Union{VAF,VOV},T<:MOI.Zeros}
-    checkcons(model, ci, cp)
-    ncons = length(model.constraint_mapping[ci])
-    return zeros(ncons)
-end
-
-function MOI.get(
-    model::Optimizer,
-    cp::MOI.ConstraintPrimal,
-    ci::MOI.ConstraintIndex{S,T},
-) where {S<:Union{VAF,VOV},T<:MOI.SecondOrderCone}
-    checkcons(model, ci, cp)
-    x = get_solution(model.inner)
-    index = model.constraint_mapping[ci] .+ 1
-    return x[index]
-end
-
-function MOI.get(
-    model::Optimizer,
-    cp::MOI.ConstraintPrimal,
-    ci::MOI.ConstraintIndex{MOI.VariableIndex,<:LS},
+    ci::MOI.ConstraintIndex{
+        MOI.VariableIndex,
+        <:Union{MOI.EqualTo{Float64},MOI.GreaterThan{Float64},MOI.LessThan{Float64}},
+    },
 )
     if model.number_solved == 0
         error("ConstraintPrimal not available.")
-    elseif cp.result_index > 1
+    elseif cp.result_index != 1
         throw(MOI.ResultIndexBoundsError{MOI.ConstraintPrimal}(cp, 1))
     end
     vi = MOI.VariableIndex(ci.value)
@@ -247,7 +215,12 @@ end
 function MOI.get(
     model::Optimizer,
     cp::MOI.ConstraintPrimal,
-    ci::Vector{MOI.ConstraintIndex{MOI.VariableIndex,<:LS}},
+    ci::Vector{
+        MOI.ConstraintIndex{
+            MOI.VariableIndex,
+            <:Union{MOI.EqualTo{Float64},MOI.GreaterThan{Float64},MOI.LessThan{Float64}},
+        },
+    },
 )
     if model.number_solved == 0
         error("ConstraintPrimal not available.")
@@ -265,31 +238,17 @@ function MOI.get(
     model::Optimizer,
     cd::MOI.ConstraintDual,
     ci::MOI.ConstraintIndex{S,T},
-) where {S<:SF,T<:SS}
+) where {
+    S<:Union{MOI.ScalarAffineFunction{Float64},MOI.ScalarQuadraticFunction{Float64}},
+    T<:Union{
+        MOI.EqualTo{Float64},
+        MOI.GreaterThan{Float64},
+        MOI.LessThan{Float64},
+        MOI.Interval{Float64},
+    },
+}
     checkcons(model, ci, cd)
     index = model.constraint_mapping[ci] + 1
-    lambda = get_dual(model.inner)
-    return sense_dual(model) * lambda[index]
-end
-
-function MOI.get(
-    model::Optimizer,
-    cd::MOI.ConstraintDual,
-    ci::MOI.ConstraintIndex{S,T},
-) where {S<:VAF,T<:VLS}
-    checkcons(model, ci, cd)
-    index = model.constraint_mapping[ci] .+ 1
-    lambda = get_dual(model.inner)
-    return sense_dual(model) * lambda[index]
-end
-
-function MOI.get(
-    model::Optimizer,
-    ::MOI.ConstraintDual,
-    ci::MOI.ConstraintIndex{S,T},
-) where {S<:VOV,T<:VLS}
-    offset = number_constraints(model)
-    index = model.constraint_mapping[ci] .+ 1 .+ offset
     lambda = get_dual(model.inner)
     return sense_dual(model) * lambda[index]
 end
@@ -307,7 +266,10 @@ function MOI.get(
     model::Optimizer,
     cd::MOI.ConstraintDual,
     ci::MOI.ConstraintIndex{S,T},
-) where {S<:Union{VAF,VOV},T<:MOI.SecondOrderCone}
+) where {
+    S<:Union{MOI.VectorAffineFunction{Float64},MOI.VectorOfVariables},
+    T<:MOI.SecondOrderCone,
+}
     checkcons(model, ci, cd)
     index_var = model.constraint_mapping[ci] .+ 1
     index_con = ci.value + 1
@@ -317,55 +279,44 @@ function MOI.get(
     return [-w_i; 1 / t_i * w_i * u_i]
 end
 
+function _reduced_cost(
+    model,
+    attr::MOI.ConstraintDual,
+    ci::MOI.ConstraintIndex{MOI.VariableIndex,S},
+) where {S}
+    if model.number_solved == 0
+        error("ConstraintDual not available.")
+    elseif attr.result_index != 1
+        throw(MOI.ResultIndexBoundsError{MOI.ConstraintDual}(attr, 1))
+    end
+    vi = MOI.VariableIndex(ci.value)
+    check_inbounds(model, vi)
+    offset = number_constraints(model)
+    return sense_dual(model) * get_dual(model.inner, vi.value + offset)
+end
+
 function MOI.get(
     model::Optimizer,
-    cd::MOI.ConstraintDual,
+    attr::MOI.ConstraintDual,
     ci::MOI.ConstraintIndex{MOI.VariableIndex,MOI.LessThan{Float64}},
 )
-    if model.number_solved == 0
-        error("ConstraintDual not available.")
-    elseif cd.result_index > 1
-        throw(MOI.ResultIndexBoundsError{MOI.ConstraintDual}(cd, 1))
-    end
-    vi = MOI.VariableIndex(ci.value)
-    check_inbounds(model, vi)
-    offset = number_constraints(model)
-    lambda = sense_dual(model) * get_dual(model.inner, vi.value + offset)
-    return min(0.0, lambda)
+    return min(0.0, _reduced_cost(model, attr, ci))
 end
 
 function MOI.get(
     model::Optimizer,
-    cd::MOI.ConstraintDual,
+    attr::MOI.ConstraintDual,
     ci::MOI.ConstraintIndex{MOI.VariableIndex,MOI.GreaterThan{Float64}},
 )
-    if model.number_solved == 0
-        error("ConstraintDual not available.")
-    elseif cd.result_index > 1
-        throw(MOI.ResultIndexBoundsError{MOI.ConstraintDual}(cd, 1))
-    end
-    vi = MOI.VariableIndex(ci.value)
-    check_inbounds(model, vi)
-    offset = number_constraints(model)
-    lambda = sense_dual(model) * get_dual(model.inner, vi.value + offset)
-    return max(0.0, lambda)
+    return max(0.0, _reduced_cost(model, attr, ci))
 end
 
 function MOI.get(
     model::Optimizer,
-    cd::MOI.ConstraintDual,
-    ci::MOI.ConstraintIndex{MOI.VariableIndex,MOI.EqualTo{Float64}},
-)
-    if model.number_solved == 0
-        error("ConstraintDual not available.")
-    elseif cd.result_index > 1
-        throw(MOI.ResultIndexBoundsError{MOI.ConstraintDual}(cd, 1))
-    end
-    vi = MOI.VariableIndex(ci.value)
-    check_inbounds(model, vi)
-    offset = number_constraints(model)
-    lambda = get_dual(model.inner, vi.value + offset)
-    return sense_dual(model) * lambda
+    attr::MOI.ConstraintDual,
+    ci::MOI.ConstraintIndex{MOI.VariableIndex,S},
+) where {S<:Union{MOI.EqualTo{Float64},MOI.Interval{Float64}}}
+    return _reduced_cost(model, attr, ci)
 end
 
 function MOI.get(model::Optimizer, ::MOI.NLPBlockDual)

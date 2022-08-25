@@ -21,91 +21,54 @@ function runtests()
     return
 end
 
-const TEST_CONFIG = MOI.Test.Config(
-    atol=1e-4,
-    rtol=1e-4,
-    optimal_status=MOI.LOCALLY_SOLVED,
-    exclude=Any[
-        MOI.ConstraintBasisStatus,
-        MOI.DualObjectiveValue,
-        MOI.ObjectiveBound,
-        MOI.ListOfConstraintTypesPresent,
-        MOI.ConstraintFunction,
-        MOI.ObjectiveFunction,
-    ],
-)
-
-const MOI_BASE_EXCLUDED = String[
-    "test_cpsat_AllDifferent",
-    "test_cpsat_BinPacking",
-    "test_cpsat_CountAtLeast",
-    "test_cpsat_CountBelongs",
-    "test_cpsat_CountDistinct",
-    "test_cpsat_CountGreaterThan",
-    "test_variable_solve_ZeroOne_with_0_upper_bound",
-    "test_variable_solve_ZeroOne_with_1_lower_bound",
-    "test_variable_solve_ZeroOne_with_bounds_then_delete",
-    # KNITRO does not support problem's modification
-    "test_modification",
-    # KNITRO does not support delete
-    "_delete_",
-    # KNITRO returns LOCALLY_INFEASIBLE, not INFEASIBLE
-    "INFEASIBLE",
-    # MODEL
-    "test_model_copy_to_", # TODO: No Exception thrown when we copy BadConstraintModel
-    "test_model_ScalarFunctionConstantNotZero",  # RequirementUnmet: _supports(config, MOI.ConstraintFunction)
-    # VARIABLE
-    "test_variable_get_VariableIndex", # Knitro does not support get(::, ::MathOptInterface.VariableIndex, ::String)
-    # SOLVE
-    "test_solve_DualStatus_INFEASIBILITY_CERTIFICATE_",
-    # CONSTRAINTS
-    "test_constraint_ZeroOne", # Wrong solution returned
-    "test_constraint_VectorAffineFunction_duplicate", # Knitro does not support get(::, ::MathOptInterface.VariableIndex, ::String)
-    "test_constraint_PrimalStart_DualStart_SecondOrderCone", #TODO : bug in conic interface
-    # LINEAR
-    "test_linear_transform", # Knitro does not support model transform
-    "test_linear_Semicontinuous_integration", # Wrong return status
-    "test_linear_Semiinteger_integration", # Wrong return status
-    "test_linear_integration_Interval", # TODO ? Knitro 13.0 converges to 9.99999* instead of 10.0
-    # QUADRATIC
-    "test_quadratic_Integer_SecondOrderCone", # MOI.get(model, MOI.TerminationStatus()) == MOI.OTHER_LIMIT
-    # CONIC
-    "test_conic", # TODO: solve issues with conic interface
-]
-
 function test_MOI_Test_cached()
-    bridged = MOI.Bridges.full_bridge_optimizer(KNITRO.Optimizer(), Float64)
     model = MOI.Utilities.CachingOptimizer(
         MOI.Utilities.UniversalFallback(MOI.Utilities.Model{Float64}()),
-        bridged,
+        MOI.instantiate(KNITRO.Optimizer; with_bridge_type=Float64),
     )
     MOI.set(model, MOI.Silent(), true)
-    excluded = copy(MOI_BASE_EXCLUDED)
-    append!(excluded, [
-        "test_quadratic_nonhomogeneous", # Knitro diverges on second problem solved
-    ])
-    return MOI.Test.runtests(model, TEST_CONFIG; exclude=excluded)
-end
-
-function test_MOI_Test_bridged()
-    model = MOI.Bridges.full_bridge_optimizer(KNITRO.Optimizer(), Float64)
-    MOI.set(model, MOI.Silent(), true)
-    excluded = copy(MOI_BASE_EXCLUDED)
-    append!(
-        excluded,
-        [
-            "test_add_constrained_variables_vector", # Knitro does not support getting MOI.ConstraintSet
-            "test_basic", # TODO: Need better support for names
-            "test_model", # TODO: Need better support for names
-            "test_objective_set_via_modify", # KNITRO does not support getting MOI.ListOfModelAttributesSet
-            "test_objective_get_ObjectiveFunction_ScalarAffineFunction", # KNITRO does not support getting MOI.ObjectiveFunction
-            "test_objective_ObjectiveFunction_VariableIndex", # KNITRO does not support getting MOI.ObjectiveFunctionType
-            "test_quadratic_duplicate_terms", # Knitro does not support getting MOI.ObjectiveFunction / MOI.ConstraintFunction
-            "test_quadratic_integration", # Knitro does not support getting ObjectiveFunction / MOI.ConstraintFunction
-            "test_constraint_get_ConstraintIndex", # Knitro does not support get(::, ::MathOptInterface.VariableIndex, ::String)
+    MOI.Test.runtests(
+        model,
+        MOI.Test.Config(
+            atol=1e-4,
+            rtol=1e-4,
+            optimal_status=MOI.LOCALLY_SOLVED,
+            infeasible_status=MOI.LOCALLY_INFEASIBLE,
+            exclude=Any[
+                MOI.ConstraintBasisStatus,
+                MOI.VariableBasisStatus,
+                MOI.DualObjectiveValue,
+            ],
+        );
+        exclude=String[
+            # TODO(odow): investigate SecondOrderCone-related failures
+            # x-ref: https://github.com/jump-dev/KNITRO.jl/issues/201
+            "test_conic_GeometricMeanCone_VectorAffineFunction",
+            "test_conic_GeometricMeanCone_VectorAffineFunction_2",
+            "test_conic_GeometricMeanCone_VectorOfVariables",
+            "test_conic_GeometricMeanCone_VectorOfVariables_2",
+            "test_conic_RotatedSecondOrderCone_INFEASIBLE_2",
+            "test_conic_RotatedSecondOrderCone_VectorAffineFunction",
+            "test_conic_RotatedSecondOrderCone_VectorOfVariables",
+            "test_conic_RotatedSecondOrderCone_out_of_order",
+            "test_conic_SecondOrderCone_Nonpositives",
+            "test_conic_SecondOrderCone_Nonnegatives",
+            "test_conic_SecondOrderCone_VectorAffineFunction",
+            "test_conic_SecondOrderCone_VectorOfVariables",
+            "test_conic_SecondOrderCone_out_of_order",
+            "test_constraint_PrimalStart_DualStart_SecondOrderCone",
+            # Returns OTHER_ERROR, which is also reasonable.
+            "test_conic_empty_matrix",
+            # Uses the ZerosBridge and ConstraintDual
+            "test_conic_linear_VectorOfVariables_2",
+            # Returns ITERATION_LIMIT instead of DUAL_INFEASIBLE, which is okay.
+            "test_linear_DUAL_INFEASIBLE",
+            # Incorrect ObjectiveBound with an LP, but that's understandable.
+            "test_solve_ObjectiveBound_MAX_SENSE_LP",
+            # KNITRO doesn't support INFEASIBILITY_CERTIFICATE results.
+            "test_solve_DualStatus_INFEASIBILITY_CERTIFICATE_",
         ],
     )
-    MOI.Test.runtests(model, TEST_CONFIG; exclude=excluded)
     return
 end
 
