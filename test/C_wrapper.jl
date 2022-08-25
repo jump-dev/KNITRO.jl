@@ -480,7 +480,7 @@ end
     KNITRO.KN_add_vars(kc, nV)
     KNITRO.KN_set_var_lobnds_all(kc, [0.0, 0.1, 0.0])
     KNITRO.KN_set_var_upbnds_all(kc, [0.0, 2.0, 2.0])
-    KNITRO.KN_set_var_types(
+    KNITRO.KN_set_var_types_all(
         kc,
         [
             KNITRO.KN_VARTYPE_CONTINUOUS,
@@ -489,13 +489,13 @@ end
         ],
     )
     # Define an initial point.
-    KNITRO.KN_set_var_primal_init_values(kc, [1.0, 1.0, 1.5])
-    KNITRO.KN_set_var_dual_init_values(kc, [1..0, 1.0, 1.0, 1.0])
+    KNITRO.KN_set_var_primal_init_values_all(kc, [1.0, 1.0, 1.5])
+    KNITRO.KN_set_var_dual_init_values_all(kc, [1.0, 1.0, 1.0, 1.0])
     # Add the constraints and set their lower bounds.
     nC = 1
     KNITRO.KN_add_cons(kc, nC)
-    KNITRO.KN_set_con_lobnds(kc, [0.1])
-    KNITRO.KN_set_con_upbnds(kc, [2 * 2 * 0.99])
+    KNITRO.KN_set_con_lobnds_all(kc, [0.1])
+    KNITRO.KN_set_con_upbnds_all(kc, [2 * 2 * 0.99])
     # Load quadratic structure x1*x2 for the constraint.
     KNITRO.KN_add_con_quadratic_struct(kc, 0, 1, 2, 1.0)
     # Define callback functions.
@@ -504,21 +504,21 @@ end
     # Define complementarity constraints
     KNITRO.KN_set_compcons(kc, [KNITRO.KN_CCTYPE_VARVAR], Int32[0], Int32[1])
     # Set MIP parameters
-    KNITRO.KN_set_mip_branching_priorities(kc, Int32[0, 1, 2])
+    KNITRO.KN_set_mip_branching_priorities_all(kc, Int32[0, 1, 2])
     # not compatible with MPEC constraint as a variable cannot be involved in
     # two different complementarity constraints.
     # KNITRO.KN_set_mip_intvar_strategies(kc, 2, KNITRO.KN_MIP_INTVAR_STRATEGY_MPEC)
     KNITRO.KN_set_mip_node_callback(kc, callback("mip_node"))
     # Set var, con and obj names
-    KNITRO.KN_set_var_names(kc, ["myvar1", "myvar2", "myvar3"])
-    KNITRO.KN_set_con_names(kc, ["mycon1"])
+    KNITRO.KN_set_var_names_all(kc, ["myvar1", "myvar2", "myvar3"])
+    KNITRO.KN_set_con_names_all(kc, ["mycon1"])
     KNITRO.KN_set_obj_name(kc, "myobj")
     # Set feasibility tolerances
-    KNITRO.KN_set_var_feastols(kc, [0.1, 0.001, 0.1])
-    KNITRO.KN_set_con_feastols(kc, [0.1])
-    KNITRO.KN_set_compcon_feastols(kc, [0.1])
+    KNITRO.KN_set_var_feastols_all(kc, [0.1, 0.001, 0.1])
+    KNITRO.KN_set_con_feastols_all(kc, [0.1])
+    KNITRO.KN_set_compcon_feastols_all(kc, [0.1])
     # Set finite differences step size
-    KNITRO.KN_set_cb_relstepsizes(kc, cb, [0.1, 0.001, 0.1])
+    KNITRO.KN_set_cb_relstepsizes_all(kc, cb, [0.1, 0.001, 0.1])
     # Solve the problem.
     status = KNITRO.KN_solve(kc)
     # Test for return codes 0 for optimality, and KN_RC_MIP_EXH_FEAS for all
