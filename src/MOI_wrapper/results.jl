@@ -98,8 +98,9 @@ function MOI.get(model::Optimizer, status::MOI.PrimalStatus)
         return MOI.FEASIBLE_POINT
     elseif -209 <= status <= -200
         return MOI.INFEASIBLE_POINT
-    elseif status == -300
-        return MOI.INFEASIBILITY_CERTIFICATE
+    # TODO(odow): we don't support returning certificates yet
+    # elseif status == -300
+    #     return MOI.INFEASIBILITY_CERTIFICATE
     elseif -409 <= status <= -400
         return MOI.FEASIBLE_POINT
     elseif -419 <= status <= -410
@@ -120,8 +121,8 @@ function MOI.get(model::Optimizer, status::MOI.DualStatus)
         return MOI.FEASIBLE_POINT
     elseif -109 <= status <= -100
         return MOI.FEASIBLE_POINT
-    elseif -209 <= status <= -200
-        return MOI.INFEASIBILITY_CERTIFICATE
+    # elseif -209 <= status <= -200
+    #     return MOI.INFEASIBILITY_CERTIFICATE
     elseif status == -300
         return MOI.NO_SOLUTION
     elseif -409 <= status <= -400
@@ -229,10 +230,9 @@ end
 function MOI.get(
     model::Optimizer,
     cp::MOI.ConstraintPrimal,
-    ci::MOI.ConstraintIndex{S,T},
+    ci::MOI.ConstraintIndex{S,MOI.SecondOrderCone},
 ) where {
     S<:Union{MOI.VectorAffineFunction{Float64},MOI.VectorOfVariables},
-    T<:MOI.SecondOrderCone,
 }
     checkcons(model, ci, cp)
     x = get_solution(model.inner)

@@ -25,7 +25,7 @@ function MOI.add_constraint(
 )
     if model.number_solved >= 1
         throw(
-            MOI.AddConstraintNotAllowed(
+            MOI.AddConstraintNotAllowed{typeof(func),typeof(set)}(
                 "Constraints cannot be added after a call to optimize!.",
             ),
         )
@@ -95,7 +95,7 @@ function MOI.add_constraint(
 )
     if model.number_solved >= 1
         throw(
-            MOI.AddConstraintNotAllowed(
+            MOI.AddConstraintNotAllowed{typeof(func),typeof(set)}(
                 "Constraints cannot be added after a call to optimize!.",
             ),
         )

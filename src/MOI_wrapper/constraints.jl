@@ -187,7 +187,7 @@ function MOI.add_constraint(
 )
     if model.number_solved >= 1
         throw(
-            MOI.AddConstraintNotAllowed(
+            MOI.AddConstraintNotAllowed{typeof(vi),typeof(lt)}(
                 "Constraints cannot be added after a call to optimize!.",
             ),
         )
@@ -218,7 +218,7 @@ function MOI.add_constraint(
 )
     if model.number_solved >= 1
         throw(
-            MOI.AddConstraintNotAllowed(
+            MOI.AddConstraintNotAllowed{typeof(vi),typeof(gt)}(
                 "Constraints cannot be added after a call to optimize!.",
             ),
         )
@@ -249,7 +249,7 @@ function MOI.add_constraint(
 )
     if model.number_solved >= 1
         throw(
-            MOI.AddConstraintNotAllowed(
+            MOI.AddConstraintNotAllowed{typeof(vi),typeof(set)}(
                 "Constraints cannot be added after a call to optimize!.",
             ),
         )
@@ -283,7 +283,7 @@ function MOI.add_constraint(
 )
     if model.number_solved >= 1
         throw(
-            MOI.AddConstraintNotAllowed(
+            MOI.AddConstraintNotAllowed{typeof(vi),typeof(eq)}(
                 "Constraints cannot be added after a call to optimize!.",
             ),
         )
@@ -317,7 +317,7 @@ function MOI.add_constraint(
 )
     if model.number_solved >= 1
         throw(
-            MOI.AddConstraintNotAllowed(
+            MOI.AddConstraintNotAllowed{typeof(func),typeof(set)}(
                 "Constraints cannot be added after a call to optimize!.",
             ),
         )
@@ -352,7 +352,7 @@ function MOI.add_constraint(
 )
     if model.number_solved >= 1
         throw(
-            MOI.AddConstraintNotAllowed(
+            MOI.AddConstraintNotAllowed{typeof(func),typeof(set)}(
                 "Constraints cannot be added after a call to optimize!.",
             ),
         )
@@ -386,7 +386,7 @@ function MOI.add_constraint(
 )
     if model.number_solved >= 1
         throw(
-            MOI.AddConstraintNotAllowed(
+            MOI.AddConstraintNotAllowed{typeof(func),typeof(set)}(
                 "Constraints cannot be added after a call to optimize!.",
             ),
         )
@@ -433,7 +433,7 @@ function MOI.add_constraint(
 )
     if model.number_solved >= 1
         throw(
-            MOI.AddConstraintNotAllowed(
+            MOI.AddConstraintNotAllowed{typeof(func),typeof(set)}(
                 "Constraints cannot be added after a call to optimize!.",
             ),
         )
@@ -474,7 +474,7 @@ function MOI.add_constraint(
 )
     if model.number_solved >= 1
         throw(
-            MOI.AddConstraintNotAllowed(
+            MOI.AddConstraintNotAllowed{typeof(func),typeof(set)}(
                 "Constraints cannot be added after a call to optimize!.",
             ),
         )
@@ -533,7 +533,7 @@ function MOI.add_constraint(
 ) where {T<:Union{MOI.Nonnegatives,MOI.Nonpositives,MOI.Zeros}}
     if model.number_solved >= 1
         throw(
-            MOI.AddConstraintNotAllowed(
+            MOI.AddConstraintNotAllowed{typeof(func),typeof(set)}(
                 "Constraints cannot be added after a call to optimize!.",
             ),
         )
@@ -563,7 +563,7 @@ function MOI.add_constraint(
 )
     if model.number_solved >= 1
         throw(
-            MOI.AddConstraintNotAllowed(
+            MOI.AddConstraintNotAllowed{typeof(func),typeof(set)}(
                 "Constraints cannot be added after a call to optimize!.",
             ),
         )
@@ -614,10 +614,10 @@ function MOI.add_constraint(model::Optimizer, vi::MOI.VariableIndex, ::MOI.ZeroO
     return MOI.ConstraintIndex{MOI.VariableIndex,MOI.ZeroOne}(vi.value)
 end
 
-function MOI.add_constraint(model::Optimizer, vi::MOI.VariableIndex, ::MOI.Integer)
+function MOI.add_constraint(model::Optimizer, vi::MOI.VariableIndex, set::MOI.Integer)
     if model.number_solved >= 1
         throw(
-            MOI.AddConstraintNotAllowed(
+            MOI.AddConstraintNotAllowed{typeof(vi),typeof(set)}(
                 "Constraints cannot be added after a call to optimize!.",
             ),
         )

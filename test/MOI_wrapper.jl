@@ -33,13 +33,18 @@ function test_MOI_Test_cached()
             atol = 1e-4,
             rtol = 1e-4,
             optimal_status = MOI.LOCALLY_SOLVED,
+            infeasible_status = MOI.LOCALLY_INFEASIBLE,
             exclude = Any[
                 MOI.ConstraintBasisStatus,
                 MOI.VariableBasisStatus,
                 MOI.DualObjectiveValue,
             ],
         );
-        exclude = String[],
+        exclude = String[
+            # TODO(odow): investigate these failures
+            # KNITRO doesn't support INFEASIBILITY_CERTIFICATE results.
+            "test_solve_DualStatus_INFEASIBILITY_CERTIFICATE_"
+        ],
     )
     return
 end
