@@ -5,7 +5,10 @@
 
 MOI.supports(::Optimizer, ::MOI.NLPBlock) = true
 
-function MOI.set(model::Optimizer, ::MOI.NLPBlock, nlp_data::MOI.NLPBlockData)
+function MOI.set(model::Optimizer, attr::MOI.NLPBlock, nlp_data::MOI.NLPBlockData)
+    if model.number_solved >= 1
+        throw(MOI.SetAttributeNotAllowed(attr))
+    end
     model.nlp_data = nlp_data
     return
 end
