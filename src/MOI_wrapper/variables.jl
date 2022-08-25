@@ -13,7 +13,11 @@ function MOI.add_variable(model::Optimizer)
     # If model has been optimized, KNITRO does not support adding
     # another variable.
     if model.number_solved >= 1
-        throw(AddVariableError())
+        throw(
+            MOI.AddVariableNotAllowed(
+                "Variables cannot be added after a call to optimize!",
+            ),
+        )
     end
     push!(model.variable_info, VariableInfo())
     KN_add_var(model.inner)

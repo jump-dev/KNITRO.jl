@@ -7,7 +7,20 @@ MOI.supports_constraint(::Optimizer, ::Type{MOI.VariableIndex}, ::Type{MOI.ZeroO
 
 MOI.supports_constraint(::Optimizer, ::Type{MOI.VariableIndex}, ::Type{MOI.Integer}) = true
 
-MOI.supports_constraint(::Optimizer, ::Type{MOI.VariableIndex}, ::Type{<:SS}) = true
+function MOI.supports_constraint(
+    ::Optimizer,
+    ::Type{MOI.VariableIndex},
+    ::Type{
+        <:Union{
+            MOI.EqualTo{Float64},
+            MOI.GreaterThan{Float64},
+            MOI.LessThan{Float64},
+            MOI.Interval{Float64},
+        },
+    },
+)
+    return true
+end
 
 function MOI.supports_constraint(
     ::Optimizer,
@@ -24,20 +37,58 @@ function MOI.supports_constraint(
     return true
 end
 
-MOI.supports_constraint(::Optimizer, ::Type{<:SF}, ::Type{<:SS}) = true
+function MOI.supports_constraint(
+    ::Optimizer,
+    ::Type{<:Union{MOI.ScalarAffineFunction{Float64},MOI.ScalarQuadraticFunction{Float64}}},
+    ::Type{
+        <:Union{
+            MOI.EqualTo{Float64},
+            MOI.GreaterThan{Float64},
+            MOI.LessThan{Float64},
+            MOI.Interval{Float64},
+        },
+    },
+)
+    return true
+end
 
-MOI.supports_constraint(::Optimizer, ::Type{VAF}, ::Type{<:VLS}) = true
+function MOI.supports_constraint(
+    ::Optimizer,
+    ::Type{MOI.VectorAffineFunction{Float64}},
+    ::Type{<:Union{MOI.Nonnegatives,MOI.Nonpositives,MOI.Zeros}},
+)
+    return true
+end
 
-MOI.supports_constraint(::Optimizer, ::Type{VOV}, ::Type{<:VLS}) = true
+function MOI.supports_constraint(
+    ::Optimizer,
+    ::Type{MOI.VectorOfVariables},
+    ::Type{<:Union{MOI.Nonnegatives,MOI.Nonpositives,MOI.Zeros}},
+)
+    return true
+end
 
-MOI.supports_constraint(::Optimizer, ::Type{VAF}, ::Type{MOI.SecondOrderCone}) = true
+function MOI.supports_constraint(
+    ::Optimizer,
+    ::Type{MOI.VectorAffineFunction{Float64}},
+    ::Type{MOI.SecondOrderCone},
+)
+    return true
+end
 
-MOI.supports_constraint(::Optimizer, ::Type{VOV}, ::Type{MOI.SecondOrderCone}) = true
+function MOI.supports_constraint(
+    ::Optimizer,
+    ::Type{MOI.VectorOfVariables},
+    ::Type{MOI.SecondOrderCone},
+)
+    return true
+end
 
 ##################################################
 # TODO: clean getters
 ## Getters
 MOI.get(model::Optimizer, ::MOI.NumberOfConstraints) = KN_get_number_cons(model.inner)
+
 function MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.VariableIndex,MOI.ZeroOne})
     return model.number_zeroone_constraints
 end
@@ -47,46 +98,69 @@ end
 function MOI.get(
     model::Optimizer,
     ::MOI.NumberOfConstraints{MOI.VariableIndex,S},
-) where {S<:SS}
+) where {
+    S<:Union{
+        MOI.EqualTo{Float64},
+        MOI.GreaterThan{Float64},
+        MOI.LessThan{Float64},
+        MOI.Interval{Float64},
+    },
+}
     return sum(
         typeof.(collect(keys(model.constraint_mapping))) .==
         MOI.ConstraintIndex{MOI.VariableIndex,S},
     )
 end
 # TODO: a bit hacky, but that should work for MOI Test.
-function MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{VAF,MOI.Nonnegatives})
+function MOI.get(
+    model::Optimizer,
+    ::MOI.NumberOfConstraints{MOI.VectorAffineFunction{Float64},MOI.Nonnegatives},
+)
     return sum(
         typeof.(collect(keys(model.constraint_mapping))) .==
-        MOI.ConstraintIndex{VAF,MOI.Nonnegatives},
+        MOI.ConstraintIndex{MOI.VectorAffineFunction{Float64},MOI.Nonnegatives},
     )
 end
-function MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{VAF,MOI.Nonpositives})
+function MOI.get(
+    model::Optimizer,
+    ::MOI.NumberOfConstraints{MOI.VectorAffineFunction{Float64},MOI.Nonpositives},
+)
     return sum(
         typeof.(collect(keys(model.constraint_mapping))) .==
-        MOI.ConstraintIndex{VAF,MOI.Nonpositives},
+        MOI.ConstraintIndex{MOI.VectorAffineFunction{Float64},MOI.Nonpositives},
     )
 end
-function MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{VAF,MOI.Zeros})
+function MOI.get(
+    model::Optimizer,
+    ::MOI.NumberOfConstraints{MOI.VectorAffineFunction{Float64},MOI.Zeros},
+)
     return sum(
         typeof.(collect(keys(model.constraint_mapping))) .==
-        MOI.ConstraintIndex{VAF,MOI.Zeros},
+        MOI.ConstraintIndex{MOI.VectorAffineFunction{Float64},MOI.Zeros},
     )
 end
-function MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{VAF,MOI.SecondOrderCone})
+function MOI.get(
+    model::Optimizer,
+    ::MOI.NumberOfConstraints{MOI.VectorAffineFunction{Float64},MOI.SecondOrderCone},
+)
     return sum(
         typeof.(collect(keys(model.constraint_mapping))) .==
-        MOI.ConstraintIndex{VAF,MOI.SecondOrderCone},
+        MOI.ConstraintIndex{MOI.VectorAffineFunction{Float64},MOI.SecondOrderCone},
     )
 end
-function MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{VOV,T}) where {T<:VLS}
+function MOI.get(
+    model::Optimizer,
+    ::MOI.NumberOfConstraints{MOI.VectorOfVariables,T},
+) where {T<:Union{MOI.Nonnegatives,MOI.Nonpositives,MOI.Zeros}}
     return sum(
-        typeof.(collect(keys(model.constraint_mapping))) .== MOI.ConstraintIndex{VOV,T},
+        typeof.(collect(keys(model.constraint_mapping))) .==
+        MOI.ConstraintIndex{MOI.VectorOfVariables,T},
     )
 end
 function MOI.get(
     model::Optimizer,
     ::MOI.NumberOfConstraints{MOI.ScalarAffineFunction{Float64},S},
-) where {S<:LS}
+) where {S<:Union{MOI.EqualTo{Float64},MOI.GreaterThan{Float64},MOI.LessThan{Float64}}}
     return sum(
         typeof.(collect(keys(model.constraint_mapping))) .==
         MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64},S},
@@ -95,7 +169,7 @@ end
 function MOI.get(
     model::Optimizer,
     ::MOI.NumberOfConstraints{MOI.ScalarQuadraticFunction{Float64},S},
-) where {S<:LS}
+) where {S<:Union{MOI.EqualTo{Float64},MOI.GreaterThan{Float64},MOI.LessThan{Float64}}}
     return sum(
         typeof.(collect(keys(model.constraint_mapping))) .==
         MOI.ConstraintIndex{MOI.ScalarQuadraticFunction{Float64},S},
@@ -112,7 +186,11 @@ function MOI.add_constraint(
     lt::MOI.LessThan{Float64},
 )
     if model.number_solved >= 1
-        throw(AddConstraintError())
+        throw(
+            MOI.AddConstraintNotAllowed(
+                "Constraints cannot be added after a call to optimize!.",
+            ),
+        )
     end
     check_inbounds(model, vi)
     if isnan(lt.upper)
@@ -139,7 +217,11 @@ function MOI.add_constraint(
     gt::MOI.GreaterThan{Float64},
 )
     if model.number_solved >= 1
-        throw(AddConstraintError())
+        throw(
+            MOI.AddConstraintNotAllowed(
+                "Constraints cannot be added after a call to optimize!.",
+            ),
+        )
     end
     check_inbounds(model, vi)
     if isnan(gt.lower)
@@ -166,7 +248,11 @@ function MOI.add_constraint(
     set::MOI.Interval{Float64},
 )
     if model.number_solved >= 1
-        throw(AddConstraintError())
+        throw(
+            MOI.AddConstraintNotAllowed(
+                "Constraints cannot be added after a call to optimize!.",
+            ),
+        )
     end
     check_inbounds(model, vi)
     if isnan(set.lower) || isnan(set.upper)
@@ -196,7 +282,11 @@ function MOI.add_constraint(
     eq::MOI.EqualTo{Float64},
 )
     if model.number_solved >= 1
-        throw(AddConstraintError())
+        throw(
+            MOI.AddConstraintNotAllowed(
+                "Constraints cannot be added after a call to optimize!.",
+            ),
+        )
     end
     check_inbounds(model, vi)
     if isnan(eq.value)
@@ -223,10 +313,14 @@ end
 function MOI.add_constraint(
     model::Optimizer,
     func::MOI.ScalarAffineFunction{Float64},
-    set::LS,
+    set::Union{MOI.EqualTo{Float64},MOI.GreaterThan{Float64},MOI.LessThan{Float64}},
 )
     if model.number_solved >= 1
-        throw(AddConstraintError())
+        throw(
+            MOI.AddConstraintNotAllowed(
+                "Constraints cannot be added after a call to optimize!.",
+            ),
+        )
     end
     check_inbounds(model, func)
     # Add a single constraint in KNITRO.
@@ -257,7 +351,11 @@ function MOI.add_constraint(
     set::MOI.Interval{Float64},
 )
     if model.number_solved >= 1
-        throw(AddConstraintError())
+        throw(
+            MOI.AddConstraintNotAllowed(
+                "Constraints cannot be added after a call to optimize!.",
+            ),
+        )
     end
     check_inbounds(model, func)
     # Add a single constraint in KNITRO.
@@ -279,10 +377,19 @@ end
 function MOI.add_constraint(
     model::Optimizer,
     func::MOI.ScalarQuadraticFunction{Float64},
-    set::SS,
+    set::Union{
+        MOI.EqualTo{Float64},
+        MOI.GreaterThan{Float64},
+        MOI.LessThan{Float64},
+        MOI.Interval{Float64},
+    },
 )
     if model.number_solved >= 1
-        throw(AddConstraintError())
+        throw(
+            MOI.AddConstraintNotAllowed(
+                "Constraints cannot be added after a call to optimize!.",
+            ),
+        )
     end
     check_inbounds(model, func)
     # We add a constraint in KNITRO.
@@ -325,7 +432,11 @@ function MOI.add_constraint(
     set::MOI.AbstractVectorSet,
 )
     if model.number_solved >= 1
-        throw(AddConstraintError())
+        throw(
+            MOI.AddConstraintNotAllowed(
+                "Constraints cannot be added after a call to optimize!.",
+            ),
+        )
     end
     # TODO: add check inbounds for VectorAffineFunction.
     previous_col_number = number_constraints(model)
@@ -362,7 +473,11 @@ function MOI.add_constraint(
     set::MOI.SecondOrderCone,
 )
     if model.number_solved >= 1
-        throw(AddConstraintError())
+        throw(
+            MOI.AddConstraintNotAllowed(
+                "Constraints cannot be added after a call to optimize!.",
+            ),
+        )
     end
     # Add constraints inside KNITRO.
     index_con = KN_add_con(model.inner)
@@ -411,9 +526,17 @@ function MOI.add_constraint(
     return ci
 end
 
-function MOI.add_constraint(model::Optimizer, func::VOV, set::T) where {T<:VLS}
+function MOI.add_constraint(
+    model::Optimizer,
+    func::MOI.VectorOfVariables,
+    set::T,
+) where {T<:Union{MOI.Nonnegatives,MOI.Nonpositives,MOI.Zeros}}
     if model.number_solved >= 1
-        throw(AddConstraintError())
+        throw(
+            MOI.AddConstraintNotAllowed(
+                "Constraints cannot be added after a call to optimize!.",
+            ),
+        )
     end
     indv = convert.(Cint, [v.value for v in func.variables] .- 1)
     nv = length(indv)
@@ -427,8 +550,8 @@ function MOI.add_constraint(model::Optimizer, func::VOV, set::T) where {T<:VLS}
         KN_set_var_upbnds(model.inner, nv, indv, bnd)
     end
 
-    ncons = MOI.get(model, MOI.NumberOfConstraints{VOV,T}())
-    ci = MOI.ConstraintIndex{VOV,T}(ncons)
+    ncons = MOI.get(model, MOI.NumberOfConstraints{MOI.VectorOfVariables,T}())
+    ci = MOI.ConstraintIndex{MOI.VectorOfVariables,T}(ncons)
     model.constraint_mapping[ci] = indv
     return ci
 end
@@ -439,7 +562,11 @@ function MOI.add_constraint(
     set::MOI.SecondOrderCone,
 )
     if model.number_solved >= 1
-        throw(AddConstraintError())
+        throw(
+            MOI.AddConstraintNotAllowed(
+                "Constraints cannot be added after a call to optimize!.",
+            ),
+        )
     end
     # Add constraints inside KNITRO.
     index_con = KN_add_con(model.inner)
@@ -479,20 +606,21 @@ function MOI.add_constraint(model::Optimizer, vi::MOI.VariableIndex, ::MOI.ZeroO
     indv = vi.value - 1
     check_inbounds(model, vi)
     model.number_zeroone_constraints += 1
-    # Made the bounds explicit for KNITRO and take care of
-    # preexisting MOI's bounds.
-    lobnd = 0.0
-    upbnd = 1.0
-    KN_set_var_lobnd(model.inner, indv, lobnd)
-    KN_set_var_upbnd(model.inner, indv, upbnd)
+    lb = KN_get_var_lobnd(model.inner, indv)
+    ub = KN_get_var_upbnd(model.inner, indv)
     KN_set_var_type(model.inner, vi.value - 1, KN_VARTYPE_BINARY)
-
+    KN_set_var_lobnd(model.inner, indv, max(lb, 0.0))
+    KN_set_var_upbnd(model.inner, indv, min(ub, 1.0))
     return MOI.ConstraintIndex{MOI.VariableIndex,MOI.ZeroOne}(vi.value)
 end
 
 function MOI.add_constraint(model::Optimizer, vi::MOI.VariableIndex, ::MOI.Integer)
     if model.number_solved >= 1
-        throw(AddConstraintError())
+        throw(
+            MOI.AddConstraintNotAllowed(
+                "Constraints cannot be added after a call to optimize!.",
+            ),
+        )
     end
     check_inbounds(model, vi)
     model.number_integer_constraints += 1
@@ -506,7 +634,15 @@ end
 function MOI.supports(
     ::Optimizer,
     ::MOI.ConstraintDualStart,
-    ::MOI.ConstraintIndex{<:SF,<:SS},
+    ::MOI.ConstraintIndex{
+        <:Union{MOI.ScalarAffineFunction{Float64},MOI.ScalarQuadraticFunction{Float64}},
+        <:Union{
+            MOI.EqualTo{Float64},
+            MOI.GreaterThan{Float64},
+            MOI.LessThan{Float64},
+            MOI.Interval{Float64},
+        },
+    },
 )
     return true
 end
@@ -514,7 +650,15 @@ end
 function MOI.set(
     model::Optimizer,
     ::MOI.ConstraintDualStart,
-    ci::MOI.ConstraintIndex{<:SF,<:SS},
+    ci::MOI.ConstraintIndex{
+        <:Union{MOI.ScalarAffineFunction{Float64},MOI.ScalarQuadraticFunction{Float64}},
+        <:Union{
+            MOI.EqualTo{Float64},
+            MOI.GreaterThan{Float64},
+            MOI.LessThan{Float64},
+            MOI.Interval{Float64},
+        },
+    },
     value::Union{Real,Nothing},
 )
     start = something(value, 0.0)
@@ -525,7 +669,10 @@ end
 function MOI.supports(
     ::Optimizer,
     ::MOI.ConstraintDualStart,
-    ::MOI.ConstraintIndex{MOI.VariableIndex,<:LS},
+    ::MOI.ConstraintIndex{
+        MOI.VariableIndex,
+        <:Union{MOI.EqualTo{Float64},MOI.GreaterThan{Float64},MOI.LessThan{Float64}},
+    },
 )
     return true
 end
@@ -533,7 +680,10 @@ end
 function MOI.set(
     model::Optimizer,
     ::MOI.ConstraintDualStart,
-    ci::MOI.ConstraintIndex{MOI.VariableIndex,<:LS},
+    ci::MOI.ConstraintIndex{
+        MOI.VariableIndex,
+        <:Union{MOI.EqualTo{Float64},MOI.GreaterThan{Float64},MOI.LessThan{Float64}},
+    },
     value::Union{Real,Nothing},
 )
     start = something(value, 0.0)

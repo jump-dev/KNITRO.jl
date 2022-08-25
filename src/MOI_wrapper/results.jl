@@ -179,7 +179,15 @@ function MOI.get(
     model::Optimizer,
     cp::MOI.ConstraintPrimal,
     ci::MOI.ConstraintIndex{S,T},
-) where {S<:SF,T<:SS}
+) where {
+    S<:Union{MOI.ScalarAffineFunction{Float64},MOI.ScalarQuadraticFunction{Float64}},
+    T<:Union{
+        MOI.EqualTo{Float64},
+        MOI.GreaterThan{Float64},
+        MOI.LessThan{Float64},
+        MOI.Interval{Float64},
+    },
+}
     checkcons(model, ci, cp)
     g = KN_get_con_values(model.inner)
     index = model.constraint_mapping[ci] .+ 1
@@ -190,7 +198,7 @@ function MOI.get(
     model::Optimizer,
     cp::MOI.ConstraintPrimal,
     ci::MOI.ConstraintIndex{S,T},
-) where {S<:VAF,T<:Union{MOI.Nonnegatives,MOI.Nonpositives}}
+) where {S<:MOI.VectorAffineFunction{Float64},T<:Union{MOI.Nonnegatives,MOI.Nonpositives}}
     checkcons(model, ci, cp)
     g = KN_get_con_values(model.inner)
     index = model.constraint_mapping[ci] .+ 1
@@ -201,7 +209,7 @@ function MOI.get(
     model::Optimizer,
     cp::MOI.ConstraintPrimal,
     ci::MOI.ConstraintIndex{S,T},
-) where {S<:VOV,T<:Union{MOI.Nonnegatives,MOI.Nonpositives}}
+) where {S<:MOI.VectorOfVariables,T<:Union{MOI.Nonnegatives,MOI.Nonpositives}}
     checkcons(model, ci, cp)
     x = get_solution(model.inner)
     index = model.constraint_mapping[ci] .+ 1
@@ -212,7 +220,7 @@ function MOI.get(
     model::Optimizer,
     cp::MOI.ConstraintPrimal,
     ci::MOI.ConstraintIndex{S,T},
-) where {S<:Union{VAF,VOV},T<:MOI.Zeros}
+) where {S<:Union{MOI.VectorAffineFunction{Float64},MOI.VectorOfVariables},T<:MOI.Zeros}
     checkcons(model, ci, cp)
     ncons = length(model.constraint_mapping[ci])
     return zeros(ncons)
@@ -222,7 +230,10 @@ function MOI.get(
     model::Optimizer,
     cp::MOI.ConstraintPrimal,
     ci::MOI.ConstraintIndex{S,T},
-) where {S<:Union{VAF,VOV},T<:MOI.SecondOrderCone}
+) where {
+    S<:Union{MOI.VectorAffineFunction{Float64},MOI.VectorOfVariables},
+    T<:MOI.SecondOrderCone,
+}
     checkcons(model, ci, cp)
     x = get_solution(model.inner)
     index = model.constraint_mapping[ci] .+ 1
@@ -232,7 +243,10 @@ end
 function MOI.get(
     model::Optimizer,
     cp::MOI.ConstraintPrimal,
-    ci::MOI.ConstraintIndex{MOI.VariableIndex,<:LS},
+    ci::MOI.ConstraintIndex{
+        MOI.VariableIndex,
+        <:Union{MOI.EqualTo{Float64},MOI.GreaterThan{Float64},MOI.LessThan{Float64}},
+    },
 )
     if model.number_solved == 0
         error("ConstraintPrimal not available.")
@@ -247,7 +261,12 @@ end
 function MOI.get(
     model::Optimizer,
     cp::MOI.ConstraintPrimal,
-    ci::Vector{MOI.ConstraintIndex{MOI.VariableIndex,<:LS}},
+    ci::Vector{
+        MOI.ConstraintIndex{
+            MOI.VariableIndex,
+            <:Union{MOI.EqualTo{Float64},MOI.GreaterThan{Float64},MOI.LessThan{Float64}},
+        },
+    },
 )
     if model.number_solved == 0
         error("ConstraintPrimal not available.")
@@ -265,7 +284,15 @@ function MOI.get(
     model::Optimizer,
     cd::MOI.ConstraintDual,
     ci::MOI.ConstraintIndex{S,T},
-) where {S<:SF,T<:SS}
+) where {
+    S<:Union{MOI.ScalarAffineFunction{Float64},MOI.ScalarQuadraticFunction{Float64}},
+    T<:Union{
+        MOI.EqualTo{Float64},
+        MOI.GreaterThan{Float64},
+        MOI.LessThan{Float64},
+        MOI.Interval{Float64},
+    },
+}
     checkcons(model, ci, cd)
     index = model.constraint_mapping[ci] + 1
     lambda = get_dual(model.inner)
@@ -276,7 +303,10 @@ function MOI.get(
     model::Optimizer,
     cd::MOI.ConstraintDual,
     ci::MOI.ConstraintIndex{S,T},
-) where {S<:VAF,T<:VLS}
+) where {
+    S<:MOI.VectorAffineFunction{Float64},
+    T<:Union{MOI.Nonnegatives,MOI.Nonpositives,MOI.Zeros},
+}
     checkcons(model, ci, cd)
     index = model.constraint_mapping[ci] .+ 1
     lambda = get_dual(model.inner)
@@ -287,7 +317,7 @@ function MOI.get(
     model::Optimizer,
     ::MOI.ConstraintDual,
     ci::MOI.ConstraintIndex{S,T},
-) where {S<:VOV,T<:VLS}
+) where {S<:MOI.VectorOfVariables,T<:Union{MOI.Nonnegatives,MOI.Nonpositives,MOI.Zeros}}
     offset = number_constraints(model)
     index = model.constraint_mapping[ci] .+ 1 .+ offset
     lambda = get_dual(model.inner)
@@ -307,7 +337,10 @@ function MOI.get(
     model::Optimizer,
     cd::MOI.ConstraintDual,
     ci::MOI.ConstraintIndex{S,T},
-) where {S<:Union{VAF,VOV},T<:MOI.SecondOrderCone}
+) where {
+    S<:Union{MOI.VectorAffineFunction{Float64},MOI.VectorOfVariables},
+    T<:MOI.SecondOrderCone,
+}
     checkcons(model, ci, cd)
     index_var = model.constraint_mapping[ci] .+ 1
     index_con = ci.value + 1

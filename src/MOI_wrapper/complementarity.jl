@@ -10,7 +10,13 @@
 # x_aux = Mx + b
 # (x_aux complements x)
 
-MOI.supports_constraint(::Optimizer, ::Type{VAF}, ::Type{MOI.Complements}) = true
+function MOI.supports_constraint(
+    ::Optimizer,
+    ::Type{MOI.VectorAffineFunction{Float64}},
+    ::Type{MOI.Complements},
+)
+    return true
+end
 
 function MOI.add_constraint(
     model::Optimizer,
@@ -18,7 +24,11 @@ function MOI.add_constraint(
     set::MOI.Complements,
 )
     if model.number_solved >= 1
-        throw(AddConstraintError())
+        throw(
+            MOI.AddConstraintNotAllowed(
+                "Constraints cannot be added after a call to optimize!.",
+            ),
+        )
     end
     # Number of complementarity in Knitro is half the dimension of the MOI set
     n_comp = div(set.dimension, 2)
@@ -68,7 +78,13 @@ function MOI.add_constraint(
     return MOI.ConstraintIndex{typeof(func),typeof(set)}(n_comp_cons)
 end
 
-MOI.supports_constraint(::Optimizer, ::Type{VOV}, ::Type{MOI.Complements}) = true
+function MOI.supports_constraint(
+    ::Optimizer,
+    ::Type{MOI.VectorOfVariables},
+    ::Type{MOI.Complements},
+)
+    return true
+end
 
 # Complementarity constraints (x_1 complements x_2), with x_1 and x_2
 # being two variables of the problem.
@@ -78,7 +94,11 @@ function MOI.add_constraint(
     set::MOI.Complements,
 )
     if model.number_solved >= 1
-        throw(AddConstraintError())
+        throw(
+            MOI.AddConstraintNotAllowed(
+                "Constraints cannot be added after a call to optimize!.",
+            ),
+        )
     end
     indv = Cint[v.value - 1 for v in func.variables]
     # Number of complementarity in Knitro is half the dimension of the MOI set
