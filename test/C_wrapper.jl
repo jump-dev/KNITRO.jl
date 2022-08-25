@@ -530,7 +530,7 @@ end
     @test KNITRO.KN_get_mip_lastnode_obj(kc) isa Float64
     @test 0.1 - 1e-4 <= KNITRO.KN_get_con_values(kc)[1] <= 2 * 2 * 0.99 + 1e-4
     x_val = zeros(3)
-    KNITRO.KN_get_mip_incumbent_x(kc, x)
+    KNITRO.KN_get_mip_incumbent_x(kc, x_val)
     obj_val = x_val[1]^2 * x_val[3] + x_val[2]^3 * x_val[3]^2
     @test KNITRO.KN_get_mip_incumbent_obj(kc) ≈ obj_val
     KNITRO.KN_free(kc)
