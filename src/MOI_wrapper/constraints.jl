@@ -3,10 +3,6 @@
 # Use of this source code is governed by an MIT-style license that can be found
 # in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
-MOI.supports_constraint(::Optimizer, ::Type{MOI.VariableIndex}, ::Type{MOI.ZeroOne}) = true
-
-MOI.supports_constraint(::Optimizer, ::Type{MOI.VariableIndex}, ::Type{MOI.Integer}) = true
-
 function MOI.supports_constraint(
     ::Optimizer,
     ::Type{MOI.VariableIndex},
@@ -16,6 +12,8 @@ function MOI.supports_constraint(
             MOI.GreaterThan{Float64},
             MOI.LessThan{Float64},
             MOI.Interval{Float64},
+            MOI.ZeroOne,
+            MOI.Integer,
         },
     },
 )
@@ -33,37 +31,6 @@ function MOI.supports_constraint(
             MOI.Interval{Float64},
         },
     },
-)
-    return true
-end
-
-function MOI.supports_constraint(
-    ::Optimizer,
-    ::Type{<:Union{MOI.ScalarAffineFunction{Float64},MOI.ScalarQuadraticFunction{Float64}}},
-    ::Type{
-        <:Union{
-            MOI.EqualTo{Float64},
-            MOI.GreaterThan{Float64},
-            MOI.LessThan{Float64},
-            MOI.Interval{Float64},
-        },
-    },
-)
-    return true
-end
-
-function MOI.supports_constraint(
-    ::Optimizer,
-    ::Type{MOI.VectorAffineFunction{Float64}},
-    ::Type{<:Union{MOI.Nonnegatives,MOI.Nonpositives,MOI.Zeros}},
-)
-    return true
-end
-
-function MOI.supports_constraint(
-    ::Optimizer,
-    ::Type{MOI.VectorOfVariables},
-    ::Type{<:Union{MOI.Nonnegatives,MOI.Nonpositives,MOI.Zeros}},
 )
     return true
 end
@@ -111,34 +78,7 @@ function MOI.get(
         MOI.ConstraintIndex{MOI.VariableIndex,S},
     )
 end
-# TODO: a bit hacky, but that should work for MOI Test.
-function MOI.get(
-    model::Optimizer,
-    ::MOI.NumberOfConstraints{MOI.VectorAffineFunction{Float64},MOI.Nonnegatives},
-)
-    return sum(
-        typeof.(collect(keys(model.constraint_mapping))) .==
-        MOI.ConstraintIndex{MOI.VectorAffineFunction{Float64},MOI.Nonnegatives},
-    )
-end
-function MOI.get(
-    model::Optimizer,
-    ::MOI.NumberOfConstraints{MOI.VectorAffineFunction{Float64},MOI.Nonpositives},
-)
-    return sum(
-        typeof.(collect(keys(model.constraint_mapping))) .==
-        MOI.ConstraintIndex{MOI.VectorAffineFunction{Float64},MOI.Nonpositives},
-    )
-end
-function MOI.get(
-    model::Optimizer,
-    ::MOI.NumberOfConstraints{MOI.VectorAffineFunction{Float64},MOI.Zeros},
-)
-    return sum(
-        typeof.(collect(keys(model.constraint_mapping))) .==
-        MOI.ConstraintIndex{MOI.VectorAffineFunction{Float64},MOI.Zeros},
-    )
-end
+
 function MOI.get(
     model::Optimizer,
     ::MOI.NumberOfConstraints{MOI.VectorAffineFunction{Float64},MOI.SecondOrderCone},
@@ -148,15 +88,7 @@ function MOI.get(
         MOI.ConstraintIndex{MOI.VectorAffineFunction{Float64},MOI.SecondOrderCone},
     )
 end
-function MOI.get(
-    model::Optimizer,
-    ::MOI.NumberOfConstraints{MOI.VectorOfVariables,T},
-) where {T<:Union{MOI.Nonnegatives,MOI.Nonpositives,MOI.Zeros}}
-    return sum(
-        typeof.(collect(keys(model.constraint_mapping))) .==
-        MOI.ConstraintIndex{MOI.VectorOfVariables,T},
-    )
-end
+
 function MOI.get(
     model::Optimizer,
     ::MOI.NumberOfConstraints{MOI.ScalarAffineFunction{Float64},S},
@@ -426,46 +358,6 @@ function MOI.add_constraint(
     return ci
 end
 
-function MOI.add_constraint(
-    model::Optimizer,
-    func::MOI.VectorAffineFunction,
-    set::MOI.AbstractVectorSet,
-)
-    if model.number_solved >= 1
-        throw(
-            MOI.AddConstraintNotAllowed{typeof(func),typeof(set)}(
-                "Constraints cannot be added after a call to optimize!.",
-            ),
-        )
-    end
-    # TODO: add check inbounds for VectorAffineFunction.
-    previous_col_number = number_constraints(model)
-    num_cols = length(func.constants)
-    # Add constraints inside KNITRO.
-    index_cons = KN_add_cons(model.inner, num_cols)
-
-    # Parse vector affine expression.
-    indexcols, indexvars, coefs = canonical_vector_affine_reduction(func)
-    # Reformate indexcols with current numbering.
-    indexcols .+= previous_col_number
-
-    # Load inside KNITRO.
-    KN_add_con_linear_struct(model.inner, indexcols, indexvars, coefs)
-    if isa(set, MOI.Nonnegatives)
-        KN_set_con_lobnds(model.inner, num_cols, index_cons, -func.constants)
-    elseif isa(set, MOI.Nonpositives)
-        KN_set_con_upbnds(model.inner, num_cols, index_cons, -func.constants)
-    elseif isa(set, MOI.Zeros)
-        KN_set_con_eqbnds(model.inner, num_cols, index_cons, -func.constants)
-    else
-        error("Invalid set $set for VectorAffineFunction constraint")
-    end
-    # Add constraints to index.
-    ci = MOI.ConstraintIndex{typeof(func),typeof(set)}(index_cons[1])
-    model.constraint_mapping[ci] = index_cons
-    return ci
-end
-
 # Add second order cone constraint.
 function MOI.add_constraint(
     model::Optimizer,
@@ -523,36 +415,6 @@ function MOI.add_constraint(
     # Add constraints to index.
     ci = MOI.ConstraintIndex{typeof(func),typeof(set)}(index_con)
     model.constraint_mapping[ci] = indexvars
-    return ci
-end
-
-function MOI.add_constraint(
-    model::Optimizer,
-    func::MOI.VectorOfVariables,
-    set::T,
-) where {T<:Union{MOI.Nonnegatives,MOI.Nonpositives,MOI.Zeros}}
-    if model.number_solved >= 1
-        throw(
-            MOI.AddConstraintNotAllowed{typeof(func),typeof(set)}(
-                "Constraints cannot be added after a call to optimize!.",
-            ),
-        )
-    end
-    indv = convert.(Cint, [v.value for v in func.variables] .- 1)
-    nv = length(indv)
-    bnd = zeros(Float64, nv)
-
-    if isa(set, MOI.Zeros)
-        KN_set_var_fxbnds(model.inner, nv, indv, bnd)
-    elseif isa(set, MOI.Nonnegatives)
-        KN_set_var_lobnds(model.inner, nv, indv, bnd)
-    elseif isa(set, MOI.Nonpositives)
-        KN_set_var_upbnds(model.inner, nv, indv, bnd)
-    end
-
-    ncons = MOI.get(model, MOI.NumberOfConstraints{MOI.VectorOfVariables,T}())
-    ci = MOI.ConstraintIndex{MOI.VectorOfVariables,T}(ncons)
-    model.constraint_mapping[ci] = indv
     return ci
 end
 
@@ -627,9 +489,6 @@ function MOI.add_constraint(model::Optimizer, vi::MOI.VariableIndex, set::MOI.In
     KN_set_var_type(model.inner, vi.value - 1, KN_VARTYPE_INTEGER)
     return MOI.ConstraintIndex{MOI.VariableIndex,MOI.Integer}(vi.value)
 end
-
-##################################################
-## Constraint DualStart
 
 function MOI.supports(
     ::Optimizer,
