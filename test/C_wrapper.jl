@@ -448,104 +448,82 @@ end
     KNITRO.KN_free(kc)
 end
 
-#=
-    Note: deactivate temporarily at the test yields
-    a segfault on Julia 1.7.
-=#
-
-# @testset "Fourth problem test" begin
-#     kc = KNITRO.KN_new()
-
-#     # START: Some specific parameter settings
-#     KNITRO.KN_set_param(kc, "presolve", 0)
-#     KNITRO.KN_set_param(kc, "outlev", 0)
-#     KNITRO.KN_set_param(kc, "gradopt", 2)
-#     KNITRO.KN_set_param(kc, "hessopt", 2)
-#     KNITRO.KN_set_param(kc, "mip_numthreads", 1)
-#     # END:   Some specific parameter settings
-
-#     function evalF_evalGA(kc, cb, evalRequest, evalResult, userParams)
-#         x = evalRequest.x
-#         evalRequestCode = evalRequest.evalRequestCode
-
-#         if evalRequestCode == KNITRO.KN_RC_EVALFC
-#             # Evaluate nonlinear objective
-#             evalResult.obj[1] = x[1]^2 * x[3] + x[2]^3 * x[3]^2
-#         elseif evalRequestCode == KNITRO.KN_RC_EVALGA
-#             evalResult.objGrad[1] = 2 * x[1] * x[3]
-#             evalResult.objGrad[2] = 3 * x[2]^2 * x[3]^2
-#             evalResult.objGrad[3] = x[1]^2 + 2 * x[2]^3 * x[3]
-#         else
-#             return KNITRO.KN_RC_CALLBACK_ERR
-#         end
-#         return 0
-#     end
-
-#     # Define objective goal
-#     objGoal = KNITRO.KN_OBJGOAL_MAXIMIZE
-#     KNITRO.KN_set_obj_goal(kc, objGoal)
-
-#     # Add the variables and set their bounds.
-#     nV = 3
-#     KNITRO.KN_add_vars(kc, nV)
-#     KNITRO.KN_set_var_lobnds(kc, [0, 0.1, 0])
-#     KNITRO.KN_set_var_upbnds(kc, [0., 2, 2])
-#     KNITRO.KN_set_var_types(kc, [KNITRO.KN_VARTYPE_CONTINUOUS, KNITRO.KN_VARTYPE_INTEGER, KNITRO.KN_VARTYPE_INTEGER])
-
-#     # Define an initial point.
-#     KNITRO.KN_set_var_primal_init_values(kc, [1, 1, 1.5])
-#     KNITRO.KN_set_var_dual_init_values(kc, [1., 1, 1, 1])
-
-#     # Add the constraints and set their lower bounds.
-#     nC = 1
-#     KNITRO.KN_add_cons(kc, nC)
-#     KNITRO.KN_set_con_lobnds(kc, [0.1])
-#     KNITRO.KN_set_con_upbnds(kc, [2 * 2 * 0.99])
-
-#     # Load quadratic structure x1*x2 for the constraint.
-#     KNITRO.KN_add_con_quadratic_struct(kc, 0, 1, 2, 1.0)
-
-#     # Define callback functions.
-#     cb = KNITRO.KN_add_objective_callback(kc, evalF_evalGA)
-#     KNITRO.KN_set_cb_grad(kc, cb, evalF_evalGA)
-
-#     # Define complementarity constraints
-#     KNITRO.KN_set_compcons(kc, [KNITRO.KN_CCTYPE_VARVAR], Int32[0], Int32[1])
-
-#     # Set MIP parameters
-#     KNITRO.KN_set_mip_branching_priorities(kc, Int32[0, 1, 2])
-#     # not compatible with MPEC constraint as a variable cannot be involved in two different complementarity constraints.
-#     # KNITRO.KN_set_mip_intvar_strategies(kc, 2, KNITRO.KN_MIP_INTVAR_STRATEGY_MPEC)
-#     KNITRO.KN_set_mip_node_callback(kc, callback("mip_node"))
-
-#     # Set var, con and obj names
-#     KNITRO.KN_set_var_names(kc, ["myvar1", "myvar2", "myvar3"])
-#     KNITRO.KN_set_con_names(kc, ["mycon1"])
-#     KNITRO.KN_set_obj_name(kc, "myobj")
-
-#     # Set feasibility tolerances
-#     KNITRO.KN_set_var_feastols(kc, [0.1, 0.001, 0.1])
-#     KNITRO.KN_set_con_feastols(kc, [0.1])
-#     KNITRO.KN_set_compcon_feastols(kc, [0.1])
-
-#     # Set finite differences step size
-#     KNITRO.KN_set_cb_relstepsizes(kc, cb, [0.1, 0.001, 0.1])
-
-#     # Solve the problem.
-#     status = KNITRO.KN_solve(kc)
-#     # Test for return codes 0 for optimality, and KN_RC_MIP_EXH_FEAS for all nodes explored, assumed optimal
-#     @test status == 0 || status == KNITRO.KN_RC_MIP_EXH_FEAS
-
-#     @test KNITRO.KN_get_mip_number_nodes(kc) >= 1
-#     @test KNITRO.KN_get_mip_number_solves(kc) >= 1
-#     @test KNITRO.KN_get_mip_relaxation_bnd(kc) ≈ 31.3632000015
-#     @test KNITRO.KN_get_mip_lastnode_obj(kc) ≈ 31.3632000015
-#     @test KNITRO.KN_get_con_values(kc)[1] == 4.0
-#     @test KNITRO.KN_get_mip_incumbent_obj(kc) ≈ 32.0
-#     @test KNITRO.KN_get_mip_incumbent_x(kc) == 0.0
-
-#     KNITRO.KN_free(kc)
-# end
+@testset "Fourth problem test" begin
+    kc = KNITRO.KN_new()
+    # START: Some specific parameter settings
+    KNITRO.KN_set_param(kc, "presolve", 0)
+    KNITRO.KN_set_param(kc, "outlev", 0)
+    KNITRO.KN_set_param(kc, "gradopt", 2)
+    KNITRO.KN_set_param(kc, "hessopt", 2)
+    KNITRO.KN_set_param(kc, "mip_numthreads", 1)
+    # END:   Some specific parameter settings
+    function evalF_evalGA(kc, cb, evalRequest, evalResult, userParams)
+        x = evalRequest.x
+        evalRequestCode = evalRequest.evalRequestCode
+        if evalRequestCode == KNITRO.KN_RC_EVALFC
+            # Evaluate nonlinear objective
+            evalResult.obj[1] = x[1]^2 * x[3] + x[2]^3 * x[3]^2
+        elseif evalRequestCode == KNITRO.KN_RC_EVALGA
+            evalResult.objGrad[1] = 2 * x[1] * x[3]
+            evalResult.objGrad[2] = 3 * x[2]^2 * x[3]^2
+            evalResult.objGrad[3] = x[1]^2 + 2 * x[2]^3 * x[3]
+        else
+            return KNITRO.KN_RC_CALLBACK_ERR
+        end
+        return 0
+    end
+    # Define objective goal
+    objGoal = KNITRO.KN_OBJGOAL_MAXIMIZE
+    KNITRO.KN_set_obj_goal(kc, objGoal)
+    # Add the variables and set their bounds.
+    nV = 3
+    KNITRO.KN_add_vars(kc, nV)
+    KNITRO.KN_set_var_lobnds(kc, [0, 0.1, 0])
+    KNITRO.KN_set_var_upbnds(kc, [0., 2, 2])
+    KNITRO.KN_set_var_types(kc, [KNITRO.KN_VARTYPE_CONTINUOUS, KNITRO.KN_VARTYPE_INTEGER, KNITRO.KN_VARTYPE_INTEGER])
+    # Define an initial point.
+    KNITRO.KN_set_var_primal_init_values(kc, [1, 1, 1.5])
+    KNITRO.KN_set_var_dual_init_values(kc, [1., 1, 1, 1])
+    # Add the constraints and set their lower bounds.
+    nC = 1
+    KNITRO.KN_add_cons(kc, nC)
+    KNITRO.KN_set_con_lobnds(kc, [0.1])
+    KNITRO.KN_set_con_upbnds(kc, [2 * 2 * 0.99])
+    # Load quadratic structure x1*x2 for the constraint.
+    KNITRO.KN_add_con_quadratic_struct(kc, 0, 1, 2, 1.0)
+    # Define callback functions.
+    cb = KNITRO.KN_add_objective_callback(kc, evalF_evalGA)
+    KNITRO.KN_set_cb_grad(kc, cb, evalF_evalGA)
+    # Define complementarity constraints
+    KNITRO.KN_set_compcons(kc, [KNITRO.KN_CCTYPE_VARVAR], Int32[0], Int32[1])
+    # Set MIP parameters
+    KNITRO.KN_set_mip_branching_priorities(kc, Int32[0, 1, 2])
+    # not compatible with MPEC constraint as a variable cannot be involved in two different complementarity constraints.
+    # KNITRO.KN_set_mip_intvar_strategies(kc, 2, KNITRO.KN_MIP_INTVAR_STRATEGY_MPEC)
+    KNITRO.KN_set_mip_node_callback(kc, callback("mip_node"))
+    # Set var, con and obj names
+    KNITRO.KN_set_var_names(kc, ["myvar1", "myvar2", "myvar3"])
+    KNITRO.KN_set_con_names(kc, ["mycon1"])
+    KNITRO.KN_set_obj_name(kc, "myobj")
+    # Set feasibility tolerances
+    KNITRO.KN_set_var_feastols(kc, [0.1, 0.001, 0.1])
+    KNITRO.KN_set_con_feastols(kc, [0.1])
+    KNITRO.KN_set_compcon_feastols(kc, [0.1])
+    # Set finite differences step size
+    KNITRO.KN_set_cb_relstepsizes(kc, cb, [0.1, 0.001, 0.1])
+    # Solve the problem.
+    status = KNITRO.KN_solve(kc)
+    # Test for return codes 0 for optimality, and KN_RC_MIP_EXH_FEAS for all nodes explored, assumed optimal
+    @test status == 0 || status == KNITRO.KN_RC_MIP_EXH_FEAS
+    @test KNITRO.KN_get_mip_number_nodes(kc) >= 1
+    @test KNITRO.KN_get_mip_number_solves(kc) >= 1
+    @test KNITRO.KN_get_mip_relaxation_bnd(kc) ≈ 31.3632000015
+    @test KNITRO.KN_get_mip_lastnode_obj(kc) ≈ 31.3632000015
+    @test KNITRO.KN_get_con_values(kc)[1] == 4.0
+    @test KNITRO.KN_get_mip_incumbent_obj(kc) ≈ 32.0
+    @test KNITRO.KN_get_mip_incumbent_x(kc) == 0.0
+    KNITRO.KN_free(kc)
+end
 
 @testset "Fifth problem test" begin
     # Test in this environment the setting of user params
