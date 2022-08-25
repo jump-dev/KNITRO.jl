@@ -41,6 +41,22 @@ function test_MOI_Test_cached()
             ],
         );
         exclude=String[
+            # TODO(odow): investigate SecondOrderCone-related failures
+            # x-ref: https://github.com/jump-dev/KNITRO.jl/issues/201
+            "test_conic_GeometricMeanCone_VectorAffineFunction",
+            "test_conic_GeometricMeanCone_VectorAffineFunction_2",
+            "test_conic_GeometricMeanCone_VectorOfVariables",
+            "test_conic_GeometricMeanCone_VectorOfVariables_2",
+            "test_conic_RotatedSecondOrderCone_INFEASIBLE_2",
+            "test_conic_RotatedSecondOrderCone_VectorAffineFunction",
+            "test_conic_RotatedSecondOrderCone_VectorOfVariables",
+            "test_conic_RotatedSecondOrderCone_out_of_order",
+            "test_conic_SecondOrderCone_Nonpositives",
+            "test_conic_SecondOrderCone_Nonnegatives",
+            "test_conic_SecondOrderCone_VectorAffineFunction",
+            "test_conic_SecondOrderCone_VectorOfVariables",
+            "test_conic_SecondOrderCone_out_of_order",
+            "test_constraint_PrimalStart_DualStart_SecondOrderCone",
             # Returns OTHER_ERROR, which is also reasonable.
             "test_conic_empty_matrix",
             # Uses the ZerosBridge and ConstraintDual

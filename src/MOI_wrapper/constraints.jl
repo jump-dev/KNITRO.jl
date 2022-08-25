@@ -431,7 +431,6 @@ function MOI.set(
     return
 end
 
-
 ###
 ### MOI.ScalarQuadraticFunction -in- {LessThan,GreaterThan,EqualTo,Interval}
 ###
