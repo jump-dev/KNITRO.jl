@@ -97,3 +97,10 @@ function MOI.set(
     model.objective = func
     return
 end
+
+function MOI.get(
+    model::Optimizer,
+    ::MOI.ObjectiveFunction{F},
+) where {F<:Union{MOI.VariableIndex,MOI.ScalarAffineFunction,MOI.ScalarQuadraticFunction}}
+    return convert(F, model.objective)
+end

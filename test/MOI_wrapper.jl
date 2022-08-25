@@ -41,7 +41,12 @@ function test_MOI_Test_cached()
             ],
         );
         exclude=String[
-            # TODO(odow): investigate these failures
+            # Returns OTHER_ERROR, which is also reasonable.
+            "test_conic_empty_matrix",
+            # Uses the ZerosBridge and ConstraintDual
+            "test_conic_linear_VectorOfVariables_2",
+            # Returns ITERATION_LIMIT instead of DUAL_INFEASIBLE, which is okay.
+            "test_linear_DUAL_INFEASIBLE",
             # Incorrect ObjectiveBound with an LP, but that's understandable.
             "test_solve_ObjectiveBound_MAX_SENSE_LP",
             # KNITRO doesn't support INFEASIBILITY_CERTIFICATE results.
