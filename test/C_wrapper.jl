@@ -502,7 +502,7 @@ end
     cb = KNITRO.KN_add_objective_callback(kc, evalF_evalGA)
     KNITRO.KN_set_cb_grad(kc, cb, evalF_evalGA)
     # Define complementarity constraints
-    KNITRO.KN_set_compcons(kc, [KNITRO.KN_CCTYPE_VARVAR], Int32[0], Int32[1])
+    KNITRO.KN_set_compcons(kc, Int32[KNITRO.KN_CCTYPE_VARVAR], Int32[0], Int32[1])
     # Set MIP parameters
     KNITRO.KN_set_mip_branching_priorities_all(kc, Int32[0, 1, 2])
     # not compatible with MPEC constraint as a variable cannot be involved in
