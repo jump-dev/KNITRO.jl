@@ -478,12 +478,19 @@ end
     # Add the variables and set their bounds.
     nV = 3
     KNITRO.KN_add_vars(kc, nV)
-    KNITRO.KN_set_var_lobnds(kc, [0, 0.1, 0])
-    KNITRO.KN_set_var_upbnds(kc, [0., 2, 2])
-    KNITRO.KN_set_var_types(kc, [KNITRO.KN_VARTYPE_CONTINUOUS, KNITRO.KN_VARTYPE_INTEGER, KNITRO.KN_VARTYPE_INTEGER])
+    KNITRO.KN_set_var_lobnds_all(kc, [0.0, 0.1, 0.0])
+    KNITRO.KN_set_var_upbnds_all(kc, [0.0, 2.0, 2.0])
+    KNITRO.KN_set_var_types(
+        kc,
+        [
+            KNITRO.KN_VARTYPE_CONTINUOUS,
+            KNITRO.KN_VARTYPE_INTEGER,
+            KNITRO.KN_VARTYPE_INTEGER,
+        ],
+    )
     # Define an initial point.
-    KNITRO.KN_set_var_primal_init_values(kc, [1, 1, 1.5])
-    KNITRO.KN_set_var_dual_init_values(kc, [1., 1, 1, 1])
+    KNITRO.KN_set_var_primal_init_values(kc, [1.0, 1.0, 1.5])
+    KNITRO.KN_set_var_dual_init_values(kc, [1..0, 1.0, 1.0, 1.0])
     # Add the constraints and set their lower bounds.
     nC = 1
     KNITRO.KN_add_cons(kc, nC)
@@ -498,7 +505,8 @@ end
     KNITRO.KN_set_compcons(kc, [KNITRO.KN_CCTYPE_VARVAR], Int32[0], Int32[1])
     # Set MIP parameters
     KNITRO.KN_set_mip_branching_priorities(kc, Int32[0, 1, 2])
-    # not compatible with MPEC constraint as a variable cannot be involved in two different complementarity constraints.
+    # not compatible with MPEC constraint as a variable cannot be involved in
+    # two different complementarity constraints.
     # KNITRO.KN_set_mip_intvar_strategies(kc, 2, KNITRO.KN_MIP_INTVAR_STRATEGY_MPEC)
     KNITRO.KN_set_mip_node_callback(kc, callback("mip_node"))
     # Set var, con and obj names
@@ -513,7 +521,8 @@ end
     KNITRO.KN_set_cb_relstepsizes(kc, cb, [0.1, 0.001, 0.1])
     # Solve the problem.
     status = KNITRO.KN_solve(kc)
-    # Test for return codes 0 for optimality, and KN_RC_MIP_EXH_FEAS for all nodes explored, assumed optimal
+    # Test for return codes 0 for optimality, and KN_RC_MIP_EXH_FEAS for all
+    # nodes explored, assumed optimal
     @test status == 0 || status == KNITRO.KN_RC_MIP_EXH_FEAS
     @test KNITRO.KN_get_mip_number_nodes(kc) >= 1
     @test KNITRO.KN_get_mip_number_solves(kc) >= 1
