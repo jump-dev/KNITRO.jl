@@ -283,13 +283,14 @@ end
 # MOI.TimeLimitSec.
 MOI.supports(model::Optimizer, ::MOI.TimeLimitSec) = true
 function MOI.get(model::Optimizer, ::MOI.TimeLimitSec)
-    return KN_get_double_param(model.inner, "maxtime_cpu")
+    attr = KNITRO_VERSION >= v"13" ? "maxtimecpu" : "maxtime_cpu"
+    return KN_get_double_param(model.inner, attr)
 end
 
 function MOI.set(model::Optimizer, ::MOI.TimeLimitSec, value)
     # By default, maxtime is set to 1e8 in Knitro.
-    maxtime = isnothing(value) ? 1e8 : value
-    KN_set_param(model.inner, "maxtime_cpu", value)
+    attr = KNITRO_VERSION >= v"13" ? "maxtimecpu" : "maxtime_cpu"
+    KN_set_param(model.inner, attr, something(value, 1e8))
     return
 end
 
