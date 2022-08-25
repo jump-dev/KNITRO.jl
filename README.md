@@ -82,3 +82,9 @@ are specified in the file `knitro.h`).
 
 Extensive examples using the C wrapper can be found in `examples/`.
 
+## Multithreading
+
+Due to limitations in the interaction between Julia and C, KNITRO.jl disables
+multithreading if the problem is nonlinear. This will override any options such
+as `par_numthreads` that you may have set. Read [GitHub issue #93](https://github.com/jump-dev/KNITRO.jl/issues/93)
+for more details.
