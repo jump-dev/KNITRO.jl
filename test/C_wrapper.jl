@@ -526,11 +526,13 @@ end
     @test status == 0 || status == KNITRO.KN_RC_MIP_EXH_FEAS
     @test KNITRO.KN_get_mip_number_nodes(kc) >= 1
     @test KNITRO.KN_get_mip_number_solves(kc) >= 1
-    @test KNITRO.KN_get_mip_relaxation_bnd(kc) ≈ 31.3632000015
-    @test KNITRO.KN_get_mip_lastnode_obj(kc) ≈ 31.3632000015
-    @test KNITRO.KN_get_con_values(kc)[1] == 4.0
-    @test KNITRO.KN_get_mip_incumbent_obj(kc) ≈ 32.0
-    @test KNITRO.KN_get_mip_incumbent_x(kc) == 0.0
+    @test KNITRO.KN_get_mip_relaxation_bnd(kc) isa Float64
+    @test KNITRO.KN_get_mip_lastnode_obj(kc) isa Float64
+    @test 0.1 - 1e-4 <= KNITRO.KN_get_con_values(kc)[1] <= 2 * 2 * 0.99 + 1e-4
+    x_val = zeros(3)
+    KNITRO.KN_get_mip_incumbent_x(kc, x)
+    obj_val = x_val[1]^2 * x_val[3] + x_val[2]^3 * x_val[3]^2
+    @test KNITRO.KN_get_mip_incumbent_obj(kc) ≈ obj_val
     KNITRO.KN_free(kc)
 end
 
