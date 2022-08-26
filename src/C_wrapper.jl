@@ -657,8 +657,8 @@ end
 
 function KN_get_presolve_error(m::Model)
     @assert m.env != C_NULL
-    component, index, error = Cint{Cint}(0), Cint{Cint}(0), Cint{Cint}(0)
-    viol = Cdouble{Cdouble}(0.0)
+    component, index, error = Ref{Cint}(0), Ref{Cint}(0), Ref{Cint}(0)
+    viol = Ref{Cdouble}(0.0)
     KN_get_presolve_error(m, component, index, error, viol)
     return Bool(component[]), Int64(index[]), Int64(error[]), viol[]
 end
