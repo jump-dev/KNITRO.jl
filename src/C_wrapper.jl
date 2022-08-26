@@ -412,7 +412,14 @@ function KN_add_con_quadratic_struct(
             length(index_vars1) ==
             length(index_vars2) ==
             length(coefs)
-    return KN_add_con_quadratic_struct(m, length(index_cons), index_cons, index_vars1, index_vars2, coefs)
+    return KN_add_con_quadratic_struct(
+        m,
+        length(index_cons),
+        index_cons,
+        index_vars1,
+        index_vars2,
+        coefs,
+    )
 end
 
 function KN_add_con_quadratic_struct(
