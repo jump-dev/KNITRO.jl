@@ -184,15 +184,13 @@ function MOI.get(
     return g[model.constraint_mapping[ci].+1]
 end
 
-function MOI.get(
-    model::Optimizer,
-    cp::MOI.ConstraintPrimal,
-    ci::MOI.ConstraintIndex{S,MOI.SecondOrderCone},
-) where {S<:Union{MOI.VectorAffineFunction{Float64},MOI.VectorOfVariables}}
-    checkcons(model, ci, cp)
-    x = get_solution(model.inner)
-    return x[model.constraint_mapping[ci].+1]
-end
+# function MOI.get(
+#     model::Optimizer,
+#     cp::MOI.ConstraintPrimal,
+#     ci::MOI.ConstraintIndex{S,MOI.SecondOrderCone},
+# ) where {S<:Union{MOI.VectorAffineFunction{Float64},MOI.VectorOfVariables}}
+#     return # Not supported
+# end
 
 function MOI.get(
     model::Optimizer,
@@ -253,31 +251,13 @@ function MOI.get(
     return sense_dual(model) * lambda[index]
 end
 
-# Get constraint of a SOC constraint.
-#
-# Use the following mathematical property.  Let
-#
-#   ||u_i || <= t_i      with dual constraint    || z_i || <= w_i
-#
-# At optimality, we have
-#
-#   w_i * u_i  = - t_i z_i
-function MOI.get(
-    model::Optimizer,
-    cd::MOI.ConstraintDual,
-    ci::MOI.ConstraintIndex{S,T},
-) where {
-    S<:Union{MOI.VectorAffineFunction{Float64},MOI.VectorOfVariables},
-    T<:MOI.SecondOrderCone,
-}
-    checkcons(model, ci, cd)
-    index_var = model.constraint_mapping[ci] .+ 1
-    index_con = ci.value + 1
-    x = get_solution(model.inner)[index_var]
-    t_i, u_i = x[1], x[2:end]
-    w_i = get_dual(model.inner)[index_con]
-    return [-w_i; 1 / t_i * w_i * u_i]
-end
+# function MOI.get(
+#     model::Optimizer,
+#     cd::MOI.ConstraintDual,
+#     ci::MOI.ConstraintIndex{S,MOI.SecondOrderCone},
+# ) where {S<:Union{MOI.VectorAffineFunction{Float64},MOI.VectorOfVariables}}
+#     return  # Not supported.
+# end
 
 function _reduced_cost(
     model,
