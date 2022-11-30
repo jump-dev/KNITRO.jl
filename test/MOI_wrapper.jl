@@ -97,7 +97,7 @@ function test_zero_one_with_no_bounds()
     MOI.set(model, MOI.ObjectiveSense(), MOI.MAX_SENSE)
     MOI.set(model, MOI.ObjectiveFunction{typeof(x)}(), x)
     MOI.optimize!(model)
-    @test isapprox(MOI.get(model, MOI.VariablePrimal(), x), 1.0; atol = 1e-6)
+    @test isapprox(MOI.get(model, MOI.VariablePrimal(), x), 1.0; atol=1e-6)
     return
 end
 
