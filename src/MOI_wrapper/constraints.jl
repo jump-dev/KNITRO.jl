@@ -320,11 +320,19 @@ function MOI.add_constraint(model::Optimizer, vi::MOI.VariableIndex, ::MOI.ZeroO
     indv = vi.value - 1
     check_inbounds(model, vi)
     model.number_zeroone_constraints += 1
-    lb = KN_get_var_lobnd(model.inner, indv)
-    ub = KN_get_var_upbnd(model.inner, indv)
+    if model.variable_info[vi.value].has_lower_bound
+        lb = KN_get_var_lobnd(model.inner, indv)
+        KN_set_var_lobnd(model.inner, indv, max(lb, 0.0))
+    else
+        KN_set_var_lobnd(model.inner, indv, 0.0)
+    end
+    if model.variable_info[vi.value].has_upper_bound
+        ub = KN_get_var_upbnd(model.inner, indv)
+        KN_set_var_upbnd(model.inner, indv, min(ub, 1.0))
+    else
+        KN_set_var_upbnd(model.inner, indv, 1.0)
+    end
     KN_set_var_type(model.inner, vi.value - 1, KN_VARTYPE_BINARY)
-    KN_set_var_lobnd(model.inner, indv, max(lb, 0.0))
-    KN_set_var_upbnd(model.inner, indv, min(ub, 1.0))
     return MOI.ConstraintIndex{MOI.VariableIndex,MOI.ZeroOne}(vi.value)
 end
 
