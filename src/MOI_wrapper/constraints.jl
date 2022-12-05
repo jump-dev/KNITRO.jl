@@ -320,19 +320,22 @@ function MOI.add_constraint(model::Optimizer, vi::MOI.VariableIndex, ::MOI.ZeroO
     indv = vi.value - 1
     check_inbounds(model, vi)
     model.number_zeroone_constraints += 1
+    lb, ub = nothing, nothing
     if model.variable_info[vi.value].has_lower_bound
-        lb = KN_get_var_lobnd(model.inner, indv)
-        KN_set_var_lobnd(model.inner, indv, max(lb, 0.0))
-    else
-        KN_set_var_lobnd(model.inner, indv, 0.0)
+        lb = max(0.0, KN_get_var_lobnd(model.inner, indv))
     end
     if model.variable_info[vi.value].has_upper_bound
-        ub = KN_get_var_upbnd(model.inner, indv)
-        KN_set_var_upbnd(model.inner, indv, min(ub, 1.0))
-    else
-        KN_set_var_upbnd(model.inner, indv, 1.0)
+        ub = min(1.0, KN_get_var_upbnd(model.inner, indv))
     end
     KN_set_var_type(model.inner, vi.value - 1, KN_VARTYPE_BINARY)
+    # Calling `set_var_type` resets variable bounds in KNITRO. To fix, we need
+    # to restore them after calling `set_var_type`.
+    if lb !== nothing
+        KN_set_var_lobnd(model.inner, indv, lb)
+    end
+    if ub !== nothing
+        KN_set_var_upbnd(model.inner, indv, ub)
+    end
     return MOI.ConstraintIndex{MOI.VariableIndex,MOI.ZeroOne}(vi.value)
 end
 
