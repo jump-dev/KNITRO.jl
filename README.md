@@ -1,19 +1,24 @@
-**KNITRO.jl underwent a major rewrite between versions 0.12.0 and 0.13.0, with
-the low-level wrapper now being generated automatically with Clang.jl. Users of
-JuMP should see no breaking changes, but if you used the lower-level C API you
-will need to update your code accordingly.**
-
 # KNITRO.jl
 
-**KNITRO.jl** is a [Julia](http://julialang.org/) interface to the [Artelys Knitro solver](https://www.artelys.com/knitro).
+[KNITRO.jl](https://github.com/jump-dev/KNITRO.jl) is a wrapper for the
+[Artelys Knitro solver](https://www.artelys.com/knitro).
 
 It has two components:
  - a thin wrapper around the [C API](https://www.artelys.com/tools/knitro_doc/3_referenceManual/callableLibraryAPI.html)
  - an interface to [MathOptInterface](https://github.com/jump-dev/MathOptInterface.jl).
 
-*Note: This wrapper is maintained by the JuMP community with help from Artelys.
-Please contact [Artelys support](mailto:support-knitro@artelys.com)
-if you encounter any problem with this interface or the solver.*
+## Affiliation
+
+This wrapper is maintained by the JuMP community with help from Artelys. Please
+contact [Artelys support](mailto:support-knitro@artelys.com) if you encounter
+any problem with this interface or the solver.
+
+## License
+
+`KNITRO.jl` is licensed under the [MIT License](https://github.com/jump-dev/KNITRO.jl/blob/master/LICENSE.md).
+
+The underlying solver is a closed-source commercial product for which you must
+[purchase a license](https://www.artelys.com/knitro).
 
 ## Installation
 
@@ -21,11 +26,9 @@ First, purchase and install a copy of Knitro from [Artelys](https://www.artelys.
 
 Then, install `KNITRO.jl` using the Julia package manager:
 ```julia
-import Pkg; Pkg.add("KNITRO")
+import Pkg
+Pkg.add("KNITRO")
 ```
-
-`KNITRO.jl` is available free of charge and in no way replaces or alters any
-functionality of Artelys Knitro solver.
 
 ### Troubleshooting
 
@@ -46,12 +49,11 @@ If you are having issues installing, here are several things to try:
 
 Use the `KNITRO.Optimizer` to use KNITRO with JuMP or MathOptInterface:
 ```julia
-using JuMP
-import KNITRO
+using JuMP, KNITRO
 model = Model(KNITRO.Optimizer)
-set_optimizer_attribute(model, "honorbnds", 1)
-set_optimizer_attribute(model, "outlev", 1)
-set_optimizer_attribute(model, "algorithm", 4)
+set_attribute(model, "honorbnds", 1)
+set_attribute(model, "outlev", 1)
+set_attribute(model, "algorithm", 4)
 ```
 
 ## Use with AMPL
@@ -72,6 +74,46 @@ systems. These include:
 
  * [NLPModelsKnitro](https://github.com/JuliaSmoothOptimizers/NLPModelsKnitro.jl)
  * [Optimization.jl](http://optimization.sciml.ai/stable/)
+
+## MathOptInterface API
+
+The Knitro optimizer supports the following constraints and attributes.
+
+List of supported objective functions:
+
+ * [`MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}`](@ref)
+ * [`MOI.ObjectiveFunction{MOI.ScalarQuadraticFunction{Float64}}`](@ref)
+ * [`MOI.ObjectiveFunction{MOI.VariableIndex}`](@ref)
+
+List of supported variable types:
+
+ * [`MOI.Reals`](@ref)
+
+List of supported constraint types:
+
+ * [`MOI.ScalarAffineFunction{Float64}`](@ref) in [`MOI.EqualTo{Float64}`](@ref)
+ * [`MOI.ScalarAffineFunction{Float64}`](@ref) in [`MOI.GreaterThan{Float64}`](@ref)
+ * [`MOI.ScalarAffineFunction{Float64}`](@ref) in [`MOI.Interval{Float64}`](@ref)
+ * [`MOI.ScalarAffineFunction{Float64}`](@ref) in [`MOI.LessThan{Float64}`](@ref)
+ * [`MOI.ScalarQuadraticFunction{Float64}`](@ref) in [`MOI.EqualTo{Float64}`](@ref)
+ * [`MOI.ScalarQuadraticFunction{Float64}`](@ref) in [`MOI.GreaterThan{Float64}`](@ref)
+ * [`MOI.ScalarQuadraticFunction{Float64}`](@ref) in [`MOI.Interval{Float64}`](@ref)
+ * [`MOI.ScalarQuadraticFunction{Float64}`](@ref) in [`MOI.LessThan{Float64}`](@ref)
+ * [`MOI.VariableIndex`](@ref) in [`MOI.EqualTo{Float64}`](@ref)
+ * [`MOI.VariableIndex`](@ref) in [`MOI.GreaterThan{Float64}`](@ref)
+ * [`MOI.VariableIndex`](@ref) in [`MOI.Integer`](@ref)
+ * [`MOI.VariableIndex`](@ref) in [`MOI.Interval{Float64}`](@ref)
+ * [`MOI.VariableIndex`](@ref) in [`MOI.LessThan{Float64}`](@ref)
+ * [`MOI.VariableIndex`](@ref) in [`MOI.ZeroOne`](@ref)
+ * [`MOI.VectorAffineFunction{Float64}`](@ref) in [`MOI.SecondOrderCone`](@ref)
+ * [`MOI.VectorOfVariables`](@ref) in [`MOI.Complements`](@ref)
+ * [`MOI.VectorOfVariables`](@ref) in [`MOI.SecondOrderCone`](@ref)
+
+List of supported model attributes:
+
+ * [`MOI.NLPBlock()`](@ref)
+ * [`MOI.NLPBlockDualStart()`](@ref)
+ * [`MOI.ObjectiveSense()`](@ref)
 
 ## Low-level wrapper
 
