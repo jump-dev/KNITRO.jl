@@ -9,8 +9,9 @@ It has two components:
 
 ## Affiliation
 
-This wrapper is maintained by the JuMP community with help from Artelys. Please
-contact [Artelys support](mailto:support-knitro@artelys.com) if you encounter
+This wrapper is maintained by the JuMP community with help from Artelys.
+
+Contact [Artelys support](mailto:support-knitro@artelys.com) if you encounter
 any problem with this interface or the solver.
 
 ## License
@@ -22,7 +23,8 @@ The underlying solver is a closed-source commercial product for which you must
 
 ## Installation
 
-First, purchase and install a copy of Knitro from [Artelys](https://www.artelys.com/knitro).
+First, obtain a license and install a copy of KNITRO from
+[Artelys](https://www.artelys.com/knitro).
 
 Then, install `KNITRO.jl` using the Julia package manager:
 ```julia
@@ -30,36 +32,34 @@ import Pkg
 Pkg.add("KNITRO")
 ```
 
-### Troubleshooting
-
-If you are having issues installing, here are several things to try:
+If you are having trouble installing KNITRO.jl, here are several things to try:
 
 - Make sure that you have defined your global variables correctly, for example
   with `export KNITRODIR="/path/to/knitro-vXXX-$OS-64"` and `export
   LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$KNITRODIR/lib"`. You can check that
   `KNITRO.jl` sees your library with `using KNITRO; KNITRO.has_knitro()`.
-
-- If `KNITRO.has_knitro()` returns `false` but you are confident that your
-  paths are correct, try running `build KNITRO` and restarting Julia. In at
+- If `KNITRO.has_knitro()` returns `false` but you are confident that your paths
+  are correct, try running `Pkg.build("KNITRO")` and restarting Julia. In at
   least one user's experience, installing and using KNITRO in a temporary Julia
   environment (activated with `] activate --temp`) does not work and the need to
   manually build is likely the reason why.
 
 ## Use with JuMP
 
-Use the `KNITRO.Optimizer` to use KNITRO with JuMP or MathOptInterface:
+To use KNITRO with JuMP, use `KNITRO.Optimizer`:
+
 ```julia
 using JuMP, KNITRO
 model = Model(KNITRO.Optimizer)
-set_attribute(model, "honorbnds", 1)
 set_attribute(model, "outlev", 1)
 set_attribute(model, "algorithm", 4)
 ```
 
 ## Use with AMPL
 
-Pass `KNITRO.amplexe` to use KNITRO with the package
-[AmplNLWriter.jl](https://github.com/jump-dev/AmplNLWriter.jl) package:
+To use KNITRO with [AmplNLWriter.jl](https://github.com/jump-dev/AmplNLWriter.jl),
+use `KNITRO.amplexe`:
+
 ```julia
 using JuMP
 import AmplNLWriter
@@ -115,6 +115,11 @@ List of supported model attributes:
  * [`MOI.NLPBlockDualStart()`](@ref)
  * [`MOI.ObjectiveSense()`](@ref)
 
+## Options
+
+A list of available options is provided in the
+[KNITRO reference manual](https://www.artelys.com/docs/knitro/3_referenceManual/userOptions.html).
+
 ## Low-level wrapper
 
 KNITRO.jl implements most of Knitro's functionalities. If you aim at using part
@@ -124,9 +129,9 @@ are specified in the file `knitro.h`).
 
 Extensive examples using the C wrapper can be found in `examples/`.
 
-## Multithreading
+## Multi-threading
 
 Due to limitations in the interaction between Julia and C, KNITRO.jl disables
-multithreading if the problem is nonlinear. This will override any options such
+multi-threading if the problem is nonlinear. This will override any options such
 as `par_numthreads` that you may have set. Read [GitHub issue #93](https://github.com/jump-dev/KNITRO.jl/issues/93)
 for more details.
