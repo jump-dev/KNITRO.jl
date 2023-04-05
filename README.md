@@ -1,63 +1,65 @@
-**KNITRO.jl underwent a major rewrite between versions 0.12.0 and 0.13.0, with
-the low-level wrapper now being generated automatically with Clang.jl. Users of
-JuMP should see no breaking changes, but if you used the lower-level C API you
-will need to update your code accordingly.**
-
 # KNITRO.jl
 
-**KNITRO.jl** is a [Julia](http://julialang.org/) interface to the [Artelys Knitro solver](https://www.artelys.com/knitro).
+[KNITRO.jl](https://github.com/jump-dev/KNITRO.jl) is a wrapper for the
+[Artelys Knitro solver](https://www.artelys.com/knitro).
 
 It has two components:
  - a thin wrapper around the [C API](https://www.artelys.com/tools/knitro_doc/3_referenceManual/callableLibraryAPI.html)
  - an interface to [MathOptInterface](https://github.com/jump-dev/MathOptInterface.jl).
 
-*Note: This wrapper is maintained by the JuMP community with help from Artelys.
-Please contact [Artelys support](mailto:support-knitro@artelys.com)
-if you encounter any problem with this interface or the solver.*
+## Affiliation
+
+This wrapper is maintained by the JuMP community with help from Artelys.
+
+Contact [Artelys support](mailto:support-knitro@artelys.com) if you encounter
+any problem with this interface or the solver.
+
+## License
+
+`KNITRO.jl` is licensed under the [MIT License](https://github.com/jump-dev/KNITRO.jl/blob/master/LICENSE.md).
+
+The underlying solver is a closed-source commercial product for which you must
+[purchase a license](https://www.artelys.com/knitro).
 
 ## Installation
 
-First, purchase and install a copy of Knitro from [Artelys](https://www.artelys.com/knitro).
+First, obtain a license and install a copy of KNITRO from
+[Artelys](https://www.artelys.com/knitro).
 
 Then, install `KNITRO.jl` using the Julia package manager:
 ```julia
-import Pkg; Pkg.add("KNITRO")
+import Pkg
+Pkg.add("KNITRO")
 ```
 
-`KNITRO.jl` is available free of charge and in no way replaces or alters any
-functionality of Artelys Knitro solver.
-
-### Troubleshooting
-
-If you are having issues installing, here are several things to try:
+If you are having trouble installing KNITRO.jl, here are several things to try:
 
 - Make sure that you have defined your global variables correctly, for example
   with `export KNITRODIR="/path/to/knitro-vXXX-$OS-64"` and `export
   LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$KNITRODIR/lib"`. You can check that
   `KNITRO.jl` sees your library with `using KNITRO; KNITRO.has_knitro()`.
-
-- If `KNITRO.has_knitro()` returns `false` but you are confident that your
-  paths are correct, try running `build KNITRO` and restarting Julia. In at
+- If `KNITRO.has_knitro()` returns `false` but you are confident that your paths
+  are correct, try running `Pkg.build("KNITRO")` and restarting Julia. In at
   least one user's experience, installing and using KNITRO in a temporary Julia
   environment (activated with `] activate --temp`) does not work and the need to
   manually build is likely the reason why.
 
 ## Use with JuMP
 
-Use the `KNITRO.Optimizer` to use KNITRO with JuMP or MathOptInterface:
+To use KNITRO with JuMP, use `KNITRO.Optimizer`:
+
 ```julia
-using JuMP
-import KNITRO
+using JuMP, KNITRO
 model = Model(KNITRO.Optimizer)
-set_optimizer_attribute(model, "honorbnds", 1)
-set_optimizer_attribute(model, "outlev", 1)
-set_optimizer_attribute(model, "algorithm", 4)
+set_attribute(model, "outlev", 1)
+set_attribute(model, "algorithm", 4)
 ```
 
 ## Use with AMPL
 
-Pass `KNITRO.amplexe` to use KNITRO with the package
-[AmplNLWriter.jl](https://github.com/jump-dev/AmplNLWriter.jl) package:
+To use KNITRO with [AmplNLWriter.jl](https://github.com/jump-dev/AmplNLWriter.jl),
+use `KNITRO.amplexe`:
+
 ```julia
 using JuMP
 import AmplNLWriter
@@ -73,6 +75,51 @@ systems. These include:
  * [NLPModelsKnitro](https://github.com/JuliaSmoothOptimizers/NLPModelsKnitro.jl)
  * [Optimization.jl](http://optimization.sciml.ai/stable/)
 
+## MathOptInterface API
+
+The Knitro optimizer supports the following constraints and attributes.
+
+List of supported objective functions:
+
+ * [`MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}`](@ref)
+ * [`MOI.ObjectiveFunction{MOI.ScalarQuadraticFunction{Float64}}`](@ref)
+ * [`MOI.ObjectiveFunction{MOI.VariableIndex}`](@ref)
+
+List of supported variable types:
+
+ * [`MOI.Reals`](@ref)
+
+List of supported constraint types:
+
+ * [`MOI.ScalarAffineFunction{Float64}`](@ref) in [`MOI.EqualTo{Float64}`](@ref)
+ * [`MOI.ScalarAffineFunction{Float64}`](@ref) in [`MOI.GreaterThan{Float64}`](@ref)
+ * [`MOI.ScalarAffineFunction{Float64}`](@ref) in [`MOI.Interval{Float64}`](@ref)
+ * [`MOI.ScalarAffineFunction{Float64}`](@ref) in [`MOI.LessThan{Float64}`](@ref)
+ * [`MOI.ScalarQuadraticFunction{Float64}`](@ref) in [`MOI.EqualTo{Float64}`](@ref)
+ * [`MOI.ScalarQuadraticFunction{Float64}`](@ref) in [`MOI.GreaterThan{Float64}`](@ref)
+ * [`MOI.ScalarQuadraticFunction{Float64}`](@ref) in [`MOI.Interval{Float64}`](@ref)
+ * [`MOI.ScalarQuadraticFunction{Float64}`](@ref) in [`MOI.LessThan{Float64}`](@ref)
+ * [`MOI.VariableIndex`](@ref) in [`MOI.EqualTo{Float64}`](@ref)
+ * [`MOI.VariableIndex`](@ref) in [`MOI.GreaterThan{Float64}`](@ref)
+ * [`MOI.VariableIndex`](@ref) in [`MOI.Integer`](@ref)
+ * [`MOI.VariableIndex`](@ref) in [`MOI.Interval{Float64}`](@ref)
+ * [`MOI.VariableIndex`](@ref) in [`MOI.LessThan{Float64}`](@ref)
+ * [`MOI.VariableIndex`](@ref) in [`MOI.ZeroOne`](@ref)
+ * [`MOI.VectorAffineFunction{Float64}`](@ref) in [`MOI.SecondOrderCone`](@ref)
+ * [`MOI.VectorOfVariables`](@ref) in [`MOI.Complements`](@ref)
+ * [`MOI.VectorOfVariables`](@ref) in [`MOI.SecondOrderCone`](@ref)
+
+List of supported model attributes:
+
+ * [`MOI.NLPBlock()`](@ref)
+ * [`MOI.NLPBlockDualStart()`](@ref)
+ * [`MOI.ObjectiveSense()`](@ref)
+
+## Options
+
+A list of available options is provided in the
+[KNITRO reference manual](https://www.artelys.com/docs/knitro/3_referenceManual/userOptions.html).
+
 ## Low-level wrapper
 
 KNITRO.jl implements most of Knitro's functionalities. If you aim at using part
@@ -82,9 +129,9 @@ are specified in the file `knitro.h`).
 
 Extensive examples using the C wrapper can be found in `examples/`.
 
-## Multithreading
+## Multi-threading
 
 Due to limitations in the interaction between Julia and C, KNITRO.jl disables
-multithreading if the problem is nonlinear. This will override any options such
+multi-threading if the problem is nonlinear. This will override any options such
 as `par_numthreads` that you may have set. Read [GitHub issue #93](https://github.com/jump-dev/KNITRO.jl/issues/93)
 for more details.
