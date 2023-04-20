@@ -16,8 +16,8 @@ else
     error("KNITRO.jl not properly installed. Please run `] build KNITRO`")
 end
 
-const IS_KNITRO_LOADED[] = false
-const KNITRO_VERSION[] = VersionNumber(0, 0, 0) # Fake a version for AutoMerge
+const IS_KNITRO_LOADED = Ref(false)
+const KNITRO_VERSION = Ref(VersionNumber(0, 0, 0)) # Fake a version for AutoMerge
 
 has_knitro() = IS_KNITRO_LOADED[]
 knitro_version() = KNITRO_VERSION[]
