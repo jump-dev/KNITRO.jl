@@ -15,6 +15,13 @@ else
     error("KNITRO.jl not properly installed. Please run `] build KNITRO`")
 end
 
+function __init__()
+    @show libknitro
+    @show readdir(dirname(_DEPS_FILE))
+    @show read(_DEPS_FILE, String)
+    return
+end
+
 const IS_KNITRO_LOADED = endswith(libknitro, Libdl.dlext)
 
 const KNITRO_VERSION = if IS_KNITRO_LOADED
