@@ -10,7 +10,7 @@ import SparseArrays
 
 const _DEPS_FILE = joinpath(dirname(@__FILE__), "..", "deps", "deps.jl")
 
-if !isfile(_DEPS_FILE)
+if isfile(_DEPS_FILE)
     include(_DEPS_FILE)
 else
     error("KNITRO.jl not properly installed. Please run `] build KNITRO`")
