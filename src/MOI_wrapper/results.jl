@@ -310,8 +310,11 @@ function MOI.get(model::Optimizer, ::MOI.NLPBlockDual)
     return sense_dual(model) .* [lambda[i+1] for i in model.nlp_index_cons]
 end
 
-if KNITRO_VERSION >= v"12.0"
-    MOI.get(model::Optimizer, ::MOI.SolveTimeSec) = KN_get_solve_time_cpu(model.inner)
+function MOI.get(model::Optimizer, ::MOI.SolveTimeSec)
+    if knitro_version() >= v"12.0"
+        return KN_get_solve_time_cpu(model.inner)
+    end
+    return NaN
 end
 
 MOI.get(model::Optimizer, ::MOI.NodeCount) = KN_get_mip_number_nodes(model.inner)

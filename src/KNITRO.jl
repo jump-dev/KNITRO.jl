@@ -17,10 +17,10 @@ else
 end
 
 const IS_KNITRO_LOADED = Ref(false)
-const KNITRO_VERSION = Ref(VersionNumber(0, 0, 0)) # Fake a version for AutoMerge
+KNITRO_VERSION = VersionNumber(0, 0, 0) # Fake a version for AutoMerge
 
 has_knitro() = IS_KNITRO_LOADED[]
-knitro_version() = KNITRO_VERSION[]
+knitro_version() = KNITRO_VERSION
 
 function __init__()
     @show libknitro
@@ -32,11 +32,11 @@ function __init__()
         out = zeros(Cchar, len)
         ccall((:KTR_get_release, libknitro), Any, (Cint, Ptr{Cchar}), len, out)
         res = String(strip(String(convert(Vector{UInt8}, out)), '\0'))
-        KNITRO_VERSION[] = VersionNumber(split(res, " ")[2])
+        global KNITRO_VERSION = VersionNumber(split(res, " ")[2])
     end
-    if KNITRO_VERSION[] != v"0.0.0" && KNITRO_VERSION[] < v"11.0"
+    if KNITRO_VERSION != v"0.0.0" && KNITRO_VERSION < v"11.0"
         error(
-            "You have installed version $(KNITRO_VERSION[]) of Artelys " *
+            "You have installed version $KNITRO_VERSION of Artelys " *
             "Knitro, which is not supported by KNITRO.jl. We require a " *
             "Knitro version greater than 11.0.",
         )
