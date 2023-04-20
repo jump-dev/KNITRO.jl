@@ -32,6 +32,7 @@ jobs:
         env:
           ARTELYS_LIC_5006_JUMP_DEV_2022_08_24: ${{ secrets.ARTELYS_LIC_5006_JUMP_DEV_2022_08_24 }}
         run: |
+          sudo apt-get install libiomp5
           echo "$ARTELYS_LIC_5006_JUMP_DEV_2022_08_24" > ~/artelys_lic.txt
       - uses: julia-actions/julia-buildpkg@v1
         env:
