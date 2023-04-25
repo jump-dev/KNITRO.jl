@@ -26,6 +26,7 @@ function __init__()
     @show libknitro
     @show readdir(dirname(_DEPS_FILE))
     @show read(_DEPS_FILE, String)
+    @show Libdl.dlopen(replace(libknitro, "libknitro" => "libiomp5"))
     IS_KNITRO_LOADED[] = endswith(libknitro, Libdl.dlext)
     if IS_KNITRO_LOADED[]
         len = 15
