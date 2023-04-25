@@ -44,6 +44,7 @@ end
 function try_ci_installation()
     local_filename = joinpath(@__DIR__, "libknitro.so")
     download(ENV["SECRET_KNITRO_URL"], local_filename)
+    download(ENV["SECRET_KNITRO_LIBIOMP5"], joinpath(@__DIR__, "libiomp5.so"))
     write_depsfile("", local_filename)
     return
 end

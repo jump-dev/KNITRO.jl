@@ -16,23 +16,28 @@ else
 end
 
 const IS_KNITRO_LOADED = endswith(libknitro, Libdl.dlext)
+KNITRO_VERSION = VersionNumber(0, 0, 0) # Fake a version for AutoMerge
 
-const KNITRO_VERSION = if IS_KNITRO_LOADED
-    len = 15
-    out = zeros(Cchar, len)
-    ccall((:KTR_get_release, libknitro), Any, (Cint, Ptr{Cchar}), len, out)
-    res = String(strip(String(convert(Vector{UInt8}, out)), '\0'))
-    VersionNumber(split(res, " ")[2])
-else
-    VersionNumber(0, 0, 0) # Fake a version for AutoMerge
-end
-
-if KNITRO_VERSION != v"0.0.0" && KNITRO_VERSION < v"11.0"
-    error(
-        "You have installed version $KNITRO_VERSION of Artelys Knitro, which " *
-        "is not supported by KNITRO.jl. We require a Knitro version greater " *
-        "than 11.0.",
-    )
+function __init__()
+    libiomp5 = replace(libknitro, "libknitro" => "libiomp5")
+    if isfile(libiomp5)
+        Libdl.dlopen(libiomp5)
+    end
+    if IS_KNITRO_LOADED
+        len = 15
+        out = zeros(Cchar, len)
+        ccall((:KTR_get_release, libknitro), Any, (Cint, Ptr{Cchar}), len, out)
+        res = String(strip(String(convert(Vector{UInt8}, out)), '\0'))
+        global KNITRO_VERSION = VersionNumber(split(res, " ")[2])
+    end
+    if KNITRO_VERSION != v"0.0.0" && KNITRO_VERSION < v"11.0"
+        error(
+            "You have installed version $KNITRO_VERSION of Artelys " *
+            "Knitro, which is not supported by KNITRO.jl. We require a " *
+            "Knitro version greater than 11.0.",
+        )
+    end
+    return
 end
 
 has_knitro() = IS_KNITRO_LOADED
