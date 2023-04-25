@@ -19,8 +19,9 @@ const IS_KNITRO_LOADED = endswith(libknitro, Libdl.dlext)
 KNITRO_VERSION = VersionNumber(0, 0, 0) # Fake a version for AutoMerge
 
 function __init__()
-    if haskey(ENV, "SECRET_KNITRO_LIBIOMP5")
-        Libdl.dlopen(replace(libknitro, "libknitro" => "libiomp5"))
+    libiomp5 = replace(libknitro, "libknitro" => "libiomp5")
+    if isfile(libiomp5)
+        Libdl.dlopen(libiomp5)
     end
     if IS_KNITRO_LOADED
         len = 15
