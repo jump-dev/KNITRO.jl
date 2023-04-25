@@ -202,7 +202,7 @@ number_constraints(model::Optimizer) = KN_get_number_cons(model.inner)
 
 MOI.get(model::Optimizer, ::MOI.SolverName) = "Knitro"
 
-MOI.get(::Optimizer, ::MOI.SolverVersion) = string(knitro_version())
+MOI.get(::Optimizer, ::MOI.SolverVersion) = string(KNITRO_VERSION)
 
 MOI.supports(model::Optimizer, ::MOI.Silent) = true
 

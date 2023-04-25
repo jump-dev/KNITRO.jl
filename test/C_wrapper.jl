@@ -102,7 +102,7 @@ function callback(name)
     return callbackFn
 end
 
-if KNITRO.knitro_version() >= v"12.0"
+if KNITRO.KNITRO_VERSION >= v"12.0"
     @testset "Names getters" begin
         kc = KNITRO.KN_new()
         KNITRO.KN_add_vars(kc, 3)
@@ -131,7 +131,7 @@ if KNITRO.knitro_version() >= v"12.0"
         KNITRO.KN_free(kc)
     end
 end
-if KNITRO.knitro_version() >= v"12.1"
+if KNITRO.KNITRO_VERSION >= v"12.1"
     @testset "MPS reader/writer" begin
         mps_name = joinpath(dirname(@__FILE__), "lp.mps")
         mps_name_out = joinpath(dirname(@__FILE__), "lp2.mps")
@@ -230,7 +230,7 @@ end
     KNITRO.KN_set_con_upbnds_all(kc, [2 * 2 * 0.99])
 
     # Test getters.
-    if KNITRO.knitro_version() >= v"12.0"
+    if KNITRO.KNITRO_VERSION >= v"12.0"
         xindex = Cint[0, 1, 2]
         @test KNITRO.KN_get_var_lobnds(kc, xindex) == [0, 0.1, 0]
         @test KNITRO.KN_get_var_upbnds(kc, xindex) == [0.0, 2, 2]
@@ -298,7 +298,7 @@ end
     @test objSol ≈ 31.363199 atol = 1e-5
 
     # Test getters for primal and dual variables
-    if KNITRO.knitro_version() >= v"12.0"
+    if KNITRO.KNITRO_VERSION >= v"12.0"
         xopt = KNITRO.KN_get_var_primal_values(kc, Cint[0, 1, 2])
         @test xopt == x
         rc = KNITRO.KN_get_var_dual_values(kc, Cint[0, 1, 2])
@@ -706,7 +706,7 @@ end
 end
 
 @testset "Knitro violation information" begin
-    if KNITRO.knitro_version() < v"12.4"
+    if KNITRO.KNITRO_VERSION < v"12.4"
         return 0
     end
     #*------------------------------------------------------------------*
@@ -801,7 +801,7 @@ end
 end
 
 @testset "Knitro structural manipulation" begin
-    if KNITRO.knitro_version() < v"12.4"
+    if KNITRO.KNITRO_VERSION < v"12.4"
         return 0
     end
     #*------------------------------------------------------------------*

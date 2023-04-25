@@ -9,25 +9,20 @@ import Libdl
 import SparseArrays
 
 const _DEPS_FILE = joinpath(dirname(@__FILE__), "..", "deps", "deps.jl")
-
 if isfile(_DEPS_FILE)
     include(_DEPS_FILE)
 else
     error("KNITRO.jl not properly installed. Please run `] build KNITRO`")
 end
 
-const IS_KNITRO_LOADED = Ref(false)
+const IS_KNITRO_LOADED = endswith(libknitro, Libdl.dlext)
 KNITRO_VERSION = VersionNumber(0, 0, 0) # Fake a version for AutoMerge
-
-has_knitro() = IS_KNITRO_LOADED[]
-knitro_version() = KNITRO_VERSION
 
 function __init__()
     if haskey(ENV, "SECRET_KNITRO_LIBIOMP5")
         Libdl.dlopen(replace(libknitro, "libknitro" => "libiomp5"))
     end
-    IS_KNITRO_LOADED[] = endswith(libknitro, Libdl.dlext)
-    if IS_KNITRO_LOADED[]
+    if IS_KNITRO_LOADED
         len = 15
         out = zeros(Cchar, len)
         ccall((:KTR_get_release, libknitro), Any, (Cint, Ptr{Cchar}), len, out)
@@ -43,6 +38,9 @@ function __init__()
     end
     return
 end
+
+has_knitro() = IS_KNITRO_LOADED
+knitro_version() = KNITRO_VERSION
 
 include("libknitro.jl")
 include("C_wrapper.jl")

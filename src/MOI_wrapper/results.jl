@@ -311,7 +311,7 @@ function MOI.get(model::Optimizer, ::MOI.NLPBlockDual)
 end
 
 function MOI.get(model::Optimizer, ::MOI.SolveTimeSec)
-    if knitro_version() >= v"12.0"
+    if KNITRO_VERSION >= v"12.0"
         return KN_get_solve_time_cpu(model.inner)
     end
     return NaN
