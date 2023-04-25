@@ -23,10 +23,9 @@ has_knitro() = IS_KNITRO_LOADED[]
 knitro_version() = KNITRO_VERSION
 
 function __init__()
-    @show libknitro
-    @show readdir(dirname(_DEPS_FILE))
-    @show read(_DEPS_FILE, String)
-    @show Libdl.dlopen(replace(libknitro, "libknitro" => "libiomp5"))
+    if haskey(ENV, "SECRET_KNITRO_LIBIOMP5")
+        Libdl.dlopen(replace(libknitro, "libknitro" => "libiomp5"))
+    end
     IS_KNITRO_LOADED[] = endswith(libknitro, Libdl.dlext)
     if IS_KNITRO_LOADED[]
         len = 15
