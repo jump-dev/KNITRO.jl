@@ -30,9 +30,9 @@ jobs:
             ${{ runner.os }}-
       - shell: bash
         env:
-          ARTELYS_LIC_5006_JUMP_DEV_2022_08_24: ${{ secrets.ARTELYS_LIC_5006_JUMP_DEV_2022_08_24 }}
+          ARTELYS_LIC_JUMP_DEV: ${{ secrets.ARTELYS_LIC_8326_JUMP_DEV_2023_11_02 }}
         run: |
-          echo "$ARTELYS_LIC_5006_JUMP_DEV_2022_08_24" > ~/artelys_lic.txt
+          echo "$ARTELYS_LIC_JUMP_DEV" > ~/artelys_lic.txt
       - uses: julia-actions/julia-buildpkg@v1
         env:
           SECRET_KNITRO_URL: ${{ secrets.SECRET_KNITRO_URL }}

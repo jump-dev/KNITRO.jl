@@ -224,7 +224,8 @@ end
 MOI.supports(model::Optimizer, ::MOI.TimeLimitSec) = true
 
 function MOI.get(model::Optimizer, ::MOI.TimeLimitSec)
-    return KN_get_double_param(model.inner, KN_PARAM_MAXTIMECPU)
+    ret = KN_get_double_param(model.inner, KN_PARAM_MAXTIMECPU)
+    return ret == 1e8 ? nothing : ret
 end
 
 function MOI.set(model::Optimizer, ::MOI.TimeLimitSec, value)
