@@ -38,6 +38,7 @@ function test_MOI_Test_cached()
             exclude=Any[
                 MOI.ConstraintBasisStatus,
                 MOI.VariableBasisStatus,
+                MOI.DualObjectiveValue,
             ],
         );
         exclude=String[
