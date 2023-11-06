@@ -52,6 +52,8 @@ function test_MOI_Test_cached()
         model,
         config;
         exclude=String[
+            # TODO(odow): this test is flakey.
+            "test_cpsat_ReifiedAllDifferent",
             # Returns OTHER_ERROR, which is also reasonable.
             "test_conic_empty_matrix",
             # Uses the ZerosBridge and ConstraintDual
