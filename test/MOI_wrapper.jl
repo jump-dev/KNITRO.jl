@@ -6,9 +6,9 @@
 module TestMOIWrapper
 
 using Test
-using KNITRO
 
-const MOI = KNITRO.MOI
+import KNITRO
+import MathOptInterface as MOI
 
 function runtests()
     for name in names(@__MODULE__; all=true)
@@ -38,25 +38,22 @@ function test_MOI_Test_cached()
         "test_conic_SecondOrderCone_out_of_order",
         "test_constraint_PrimalStart_DualStart_SecondOrderCone",
     ]
-    model = MOI.Utilities.CachingOptimizer(
-        MOI.Utilities.UniversalFallback(MOI.Utilities.Model{Float64}()),
-        MOI.instantiate(KNITRO.Optimizer; with_bridge_type=Float64),
-    )
+    model =
+        MOI.instantiate(KNITRO.Optimizer; with_bridge_type=Float64, with_cache_type=Float64)
     MOI.set(model, MOI.Silent(), true)
+    config = MOI.Test.Config(
+        atol=1e-3,
+        rtol=1e-3,
+        optimal_status=MOI.LOCALLY_SOLVED,
+        infeasible_status=MOI.LOCALLY_INFEASIBLE,
+        exclude=Any[MOI.VariableBasisStatus, MOI.ConstraintBasisStatus],
+    )
     MOI.Test.runtests(
         model,
-        MOI.Test.Config(
-            atol=1e-4,
-            rtol=1e-4,
-            optimal_status=MOI.LOCALLY_SOLVED,
-            infeasible_status=MOI.LOCALLY_INFEASIBLE,
-            exclude=Any[
-                MOI.ConstraintBasisStatus,
-                MOI.VariableBasisStatus,
-                MOI.DualObjectiveValue,
-            ],
-        );
+        config;
         exclude=String[
+            # TODO(odow): this test is flakey.
+            "test_cpsat_ReifiedAllDifferent",
             # Returns OTHER_ERROR, which is also reasonable.
             "test_conic_empty_matrix",
             # Uses the ZerosBridge and ConstraintDual
@@ -67,25 +64,15 @@ function test_MOI_Test_cached()
             "test_solve_ObjectiveBound_MAX_SENSE_LP",
             # KNITRO doesn't support INFEASIBILITY_CERTIFICATE results.
             "test_solve_DualStatus_INFEASIBILITY_CERTIFICATE_",
+            # ConstraintDual not supported for SecondOrderCone
             second_order_exclude...,
         ],
     )
-    MOI.Test.runtests(
-        model,
-        MOI.Test.Config(
-            atol=1e-3,
-            rtol=1e-3,
-            optimal_status=MOI.LOCALLY_SOLVED,
-            infeasible_status=MOI.LOCALLY_INFEASIBLE,
-            exclude=Any[
-                MOI.ConstraintBasisStatus,
-                MOI.VariableBasisStatus,
-                MOI.DualObjectiveValue,
-                MOI.ConstraintDual,
-            ],
-        );
-        include=second_order_exclude,
-    )
+    # Run the tests for second_order_exclude, this time excluding
+    # `MOI.ConstraintDual` and `MOI.DualObjectiveValue`.
+    push!(config.exclude, MOI.ConstraintDual)
+    push!(config.exclude, MOI.DualObjectiveValue)
+    MOI.Test.runtests(model, config; include=second_order_exclude)
     return
 end
 

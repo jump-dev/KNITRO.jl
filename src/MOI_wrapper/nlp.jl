@@ -35,9 +35,12 @@ end
 
 MOI.supports(::Optimizer, ::MOI.NLPBlockDualStart) = true
 
-# TODO: FIXME
 function MOI.set(model::Optimizer, ::MOI.NLPBlockDualStart, values)
-    # @assert length(values) == length(model.nlp_index_cons)
-    KN_set_con_dual_init_values(model.inner, Cint[0], values)
+    KN_set_con_dual_init_values(
+        model.inner,
+        length(model.nlp_index_cons),
+        model.nlp_index_cons,
+        values,
+    )
     return
 end
