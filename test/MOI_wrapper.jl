@@ -46,7 +46,7 @@ function test_MOI_Test_cached()
         rtol=1e-3,
         optimal_status=MOI.LOCALLY_SOLVED,
         infeasible_status=MOI.LOCALLY_INFEASIBLE,
-        exclude=[MOI.VariableBasisStatus, MOI.ConstraintBasisStatus],
+        exclude=Any[MOI.VariableBasisStatus, MOI.ConstraintBasisStatus],
     )
     MOI.Test.runtests(
         model,
