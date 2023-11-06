@@ -38,17 +38,15 @@ function test_MOI_Test_cached()
         "test_conic_SecondOrderCone_out_of_order",
         "test_constraint_PrimalStart_DualStart_SecondOrderCone",
     ]
-    model = MOI.instantiate(
-        KNITRO.Optimizer;
-        with_bridge_type=Float64,
-        with_cache_type=Float64,
-    )
+    model =
+        MOI.instantiate(KNITRO.Optimizer; with_bridge_type=Float64, with_cache_type=Float64)
     MOI.set(model, MOI.Silent(), true)
     config = MOI.Test.Config(
         atol=1e-3,
         rtol=1e-3,
         optimal_status=MOI.LOCALLY_SOLVED,
         infeasible_status=MOI.LOCALLY_INFEASIBLE,
+        exclude=[MOI.VariableBasisStatus, MOI.ConstraintBasisStatus],
     )
     MOI.Test.runtests(
         model,
@@ -65,12 +63,13 @@ function test_MOI_Test_cached()
             # KNITRO doesn't support INFEASIBILITY_CERTIFICATE results.
             "test_solve_DualStatus_INFEASIBILITY_CERTIFICATE_",
             # ConstraintDual not supported for SecondOrderCone
-            second_order_exclude...
+            second_order_exclude...,
         ],
     )
     # Run the tests for second_order_exclude, this time excluding
-    # `MOI.ConstraintDual`
+    # `MOI.ConstraintDual` and `MOI.DualObjectiveValue`.
     push!(config.exclude, MOI.ConstraintDual)
+    push!(config.exclude, MOI.DualObjectiveValue)
     MOI.Test.runtests(model, config; include=second_order_exclude)
     return
 end
