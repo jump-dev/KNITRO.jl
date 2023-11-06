@@ -22,25 +22,37 @@ function runtests()
 end
 
 function test_MOI_Test_cached()
+    second_order_exclude = String[
+        "test_conic_GeometricMeanCone_VectorAffineFunction",
+        "test_conic_GeometricMeanCone_VectorAffineFunction_2",
+        "test_conic_GeometricMeanCone_VectorOfVariables",
+        "test_conic_GeometricMeanCone_VectorOfVariables_2",
+        "test_conic_RotatedSecondOrderCone_INFEASIBLE_2",
+        "test_conic_RotatedSecondOrderCone_VectorAffineFunction",
+        "test_conic_RotatedSecondOrderCone_VectorOfVariables",
+        "test_conic_RotatedSecondOrderCone_out_of_order",
+        "test_conic_SecondOrderCone_Nonpositives",
+        "test_conic_SecondOrderCone_Nonnegatives",
+        "test_conic_SecondOrderCone_VectorAffineFunction",
+        "test_conic_SecondOrderCone_VectorOfVariables",
+        "test_conic_SecondOrderCone_out_of_order",
+        "test_constraint_PrimalStart_DualStart_SecondOrderCone",
+    ]
     model = MOI.instantiate(
         KNITRO.Optimizer;
         with_bridge_type=Float64,
         with_cache_type=Float64,
     )
     MOI.set(model, MOI.Silent(), true)
+    config = MOI.Test.Config(
+        atol=1e-3,
+        rtol=1e-3,
+        optimal_status=MOI.LOCALLY_SOLVED,
+        infeasible_status=MOI.LOCALLY_INFEASIBLE,
+    )
     MOI.Test.runtests(
         model,
-        MOI.Test.Config(
-            atol=1e-3,
-            rtol=1e-3,
-            optimal_status=MOI.LOCALLY_SOLVED,
-            infeasible_status=MOI.LOCALLY_INFEASIBLE,
-            exclude=Any[
-                MOI.ConstraintBasisStatus,
-                MOI.VariableBasisStatus,
-                MOI.DualObjectiveValue,
-            ],
-        );
+        config;
         exclude=String[
             # Returns OTHER_ERROR, which is also reasonable.
             "test_conic_empty_matrix",
@@ -52,8 +64,14 @@ function test_MOI_Test_cached()
             "test_solve_ObjectiveBound_MAX_SENSE_LP",
             # KNITRO doesn't support INFEASIBILITY_CERTIFICATE results.
             "test_solve_DualStatus_INFEASIBILITY_CERTIFICATE_",
+            # ConstraintDual not supported for SecondOrderCone
+            second_order_exclude...
         ],
     )
+    # Run the tests for second_order_exclude, this time excluding
+    # `MOI.ConstraintDual`
+    push!(config.exclude, MOI.ConstraintDual)
+    MOI.Test.runtests(model, config; include=second_order_exclude)
     return
 end
 
