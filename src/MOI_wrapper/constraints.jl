@@ -639,11 +639,7 @@ function MOI.is_valid(
     return MOI.is_valid(model.nlp_model, index)
 end
 
-function MOI.add_constraint(
-    model::Optimizer,
-    f::MOI.ScalarNonlinearFunction,
-    s::_SETS,
-)
+function MOI.add_constraint(model::Optimizer, f::MOI.ScalarNonlinearFunction, s::_SETS)
     index = MOI.Nonlinear.add_constraint(model.nlp_model, f, s)
     return MOI.ConstraintIndex{typeof(f),typeof(s)}(index.value)
 end

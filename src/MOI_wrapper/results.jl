@@ -251,6 +251,15 @@ function MOI.get(
     return sense_dual(model) * lambda[index]
 end
 
+function MOI.get(
+    model::Optimizer,
+    ::MOI.ConstraintDual,
+    ci::MOI.ConstraintIndex{MOI.ScalarNonlinearFunction},
+)
+    lambda = get_dual(model.inner)
+    return sense_dual(model) * lambda[ci.value]
+end
+
 # function MOI.get(
 #     model::Optimizer,
 #     cd::MOI.ConstraintDual,

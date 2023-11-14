@@ -448,7 +448,8 @@ function MOI.optimize!(model::Optimizer)
             KN_set_param(model.inner, KN_PARAM_HESSOPT, KN_HESSOPT_PRODUCT)
         end
         model.nlp_loaded = true
-    elseif !isa(model.objective, Nothing) && !isa(model.objective, MOI.ScalarNonlinearFunction)
+    elseif !isa(model.objective, Nothing) &&
+           !isa(model.objective, MOI.ScalarNonlinearFunction)
         add_objective!(model, model.objective)
     end
     KN_solve(model.inner)
