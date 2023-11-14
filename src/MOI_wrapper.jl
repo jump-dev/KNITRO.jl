@@ -80,6 +80,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     # Specify if NLP is loaded inside KNITRO to avoid double definition.
     nlp_loaded::Bool
     nlp_data::MOI.NLPBlockData
+    nlp_model::MOI.Nonlinear.Model
     # Store index of nlp constraints.
     nlp_index_cons::Vector{Cint}
     # Store optimization sense.
@@ -89,6 +90,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
         MOI.VariableIndex,
         MOI.ScalarAffineFunction{Float64},
         MOI.ScalarQuadraticFunction{Float64},
+        MOI.ScalarNonlinearFunction,
         Nothing,
     }
     # Constraint counters.
@@ -127,6 +129,7 @@ function Optimizer(; license_manager=nothing, options...)
         0,
         false,
         empty_nlp_data(),
+        MOI.Nonlinear.Model(),
         Cint[],
         MOI.FEASIBILITY_SENSE,
         nothing,
@@ -173,6 +176,7 @@ function MOI.empty!(model::Optimizer)
     model.nlp_data = empty_nlp_data()
     model.nlp_loaded = false
     model.nlp_index_cons = Cint[]
+    MOI.empty!(model.nlp_model)
     model.sense = MOI.FEASIBILITY_SENSE
     model.objective = nothing
     model.number_zeroone_constraints = 0
@@ -187,6 +191,7 @@ end
 function MOI.is_empty(model::Optimizer)
     return isempty(model.variable_info) &&
            model.nlp_data.evaluator isa EmptyNLPEvaluator &&
+           MOI.is_empty(model.nlp_model) &&
            model.sense == MOI.FEASIBILITY_SENSE &&
            model.number_solved == 0 &&
            isa(model.objective, Nothing) &&
@@ -280,6 +285,12 @@ function MOI.optimize!(model::Optimizer)
     # Add complementarity structure if specified.
     if has_complementarity(model.complementarity_cache)
         _load_complementarity_constraint(model, model.complementarity_cache)
+    end
+    if !MOI.is_empty(model.nlp_model) && !model.nlp_loaded
+        vars = MOI.get(model, MOI.ListOfVariableIndices())
+        backend = MOI.Nonlinear.SparseReverseMode()
+        evaluator = MOI.Nonlinear.Evaluator(model.nlp_model, backend, vars)
+        model.nlp_data = MOI.NLPBlockData(evaluator)
     end
     # Add NLP structure if specified.
     if !isa(model.nlp_data.evaluator, EmptyNLPEvaluator) && !model.nlp_loaded
@@ -437,7 +448,7 @@ function MOI.optimize!(model::Optimizer)
             KN_set_param(model.inner, KN_PARAM_HESSOPT, KN_HESSOPT_PRODUCT)
         end
         model.nlp_loaded = true
-    elseif !isa(model.objective, Nothing)
+    elseif !isa(model.objective, Nothing) && !isa(model.objective, MOI.ScalarNonlinearFunction)
         add_objective!(model, model.objective)
     end
     KN_solve(model.inner)

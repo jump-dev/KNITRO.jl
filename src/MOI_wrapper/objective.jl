@@ -10,6 +10,7 @@ function MOI.supports(
             MOI.VariableIndex,
             MOI.ScalarAffineFunction{Float64},
             MOI.ScalarQuadraticFunction{Float64},
+            MOI.ScalarNonlinearFunction,
         },
     },
 )
@@ -98,9 +99,34 @@ function MOI.set(
     return
 end
 
+function MOI.set(
+    model::Optimizer,
+    attr::MOI.ObjectiveFunction{MOI.ScalarNonlinearFunction},
+    f::MOI.ScalarNonlinearFunction,
+)
+    if model.number_solved >= 1
+        throw(
+            MOI.SetAttributeNotAllowed(
+                attr,
+                "Problem cannot be modified after a call to optimize!",
+            ),
+        )
+    end
+    MOI.Nonlinear.set_objective(model.nlp_model, f)
+    model.objective = f
+    return
+end
+
 function MOI.get(
     model::Optimizer,
     ::MOI.ObjectiveFunction{F},
-) where {F<:Union{MOI.VariableIndex,MOI.ScalarAffineFunction,MOI.ScalarQuadraticFunction}}
+) where {
+    F<:Union{
+        MOI.VariableIndex,
+        MOI.ScalarAffineFunction,
+        MOI.ScalarQuadraticFunction,
+        MOI.ScalarNonlinearFunction,
+    },
+}
     return convert(F, model.objective)
 end

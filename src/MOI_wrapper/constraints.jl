@@ -3,19 +3,17 @@
 # Use of this source code is governed by an MIT-style license that can be found
 # in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
+const _SETS = Union{
+    MOI.LessThan{Float64},
+    MOI.GreaterThan{Float64},
+    MOI.EqualTo{Float64},
+    MOI.Interval{Float64},
+}
+
 function MOI.supports_constraint(
     ::Optimizer,
     ::Type{MOI.VariableIndex},
-    ::Type{
-        <:Union{
-            MOI.EqualTo{Float64},
-            MOI.GreaterThan{Float64},
-            MOI.LessThan{Float64},
-            MOI.Interval{Float64},
-            MOI.ZeroOne,
-            MOI.Integer,
-        },
-    },
+    ::Type{<:Union{_SETS,MOI.ZeroOne,MOI.Integer}},
 )
     return true
 end
@@ -23,14 +21,7 @@ end
 function MOI.supports_constraint(
     ::Optimizer,
     ::Type{<:Union{MOI.ScalarAffineFunction{Float64},MOI.ScalarQuadraticFunction{Float64}}},
-    ::Type{
-        <:Union{
-            MOI.LessThan{Float64},
-            MOI.GreaterThan{Float64},
-            MOI.EqualTo{Float64},
-            MOI.Interval{Float64},
-        },
-    },
+    ::Type{<:_SETS},
 )
     return true
 end
@@ -65,14 +56,7 @@ end
 function MOI.get(
     model::Optimizer,
     ::MOI.NumberOfConstraints{MOI.VariableIndex,S},
-) where {
-    S<:Union{
-        MOI.EqualTo{Float64},
-        MOI.GreaterThan{Float64},
-        MOI.LessThan{Float64},
-        MOI.Interval{Float64},
-    },
-}
+) where {S<:_SETS}
     return sum(
         typeof.(collect(keys(model.constraint_mapping))) .==
         MOI.ConstraintIndex{MOI.VariableIndex,S},
@@ -635,4 +619,31 @@ function MOI.add_constraint(
     ci = MOI.ConstraintIndex{typeof(func),typeof(set)}(index_con)
     model.constraint_mapping[ci] = convert.(Cint, indv)
     return ci
+end
+
+# MOI.ScalarNonlinearFunction
+
+function MOI.supports_constraint(
+    ::Optimizer,
+    ::Type{MOI.ScalarNonlinearFunction},
+    ::Type{<:_SETS},
+)
+    return true
+end
+
+function MOI.is_valid(
+    model::Optimizer,
+    ci::MOI.ConstraintIndex{MOI.ScalarNonlinearFunction,<:_SETS},
+)
+    index = MOI.Nonlinear.ConstraintIndex(ci.value)
+    return MOI.is_valid(model.nlp_model, index)
+end
+
+function MOI.add_constraint(
+    model::Optimizer,
+    f::MOI.ScalarNonlinearFunction,
+    s::_SETS,
+)
+    index = MOI.Nonlinear.add_constraint(model.nlp_model, f, s)
+    return MOI.ConstraintIndex{typeof(f),typeof(s)}(index.value)
 end
