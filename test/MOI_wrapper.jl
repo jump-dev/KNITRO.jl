@@ -81,6 +81,8 @@ function test_MOI_Test_cached()
             "test_basic_VectorNonlinearFunction_NormOneCone",
             "test_basic_VectorNonlinearFunction_RotatedSecondOrderCone",
             "test_basic_VectorNonlinearFunction_SecondOrderCone",
+            "test_basic_VectorNonlinearFunction_SOS1",
+            "test_basic_VectorNonlinearFunction_SOS2",
             "test_basic_VectorNonlinearFunction_Table",
             "test_basic_VectorNonlinearFunction_Zeros",
             # ConstraintDual not supported for SecondOrderCone
