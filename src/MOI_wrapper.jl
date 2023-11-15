@@ -10,25 +10,10 @@ const _SETS = Union{
     MOI.Interval{Float64},
 }
 
-"""
-    _canonical_quadratic_reduction(func::ScalarQuadraticFunction)
-
-Reduce a ScalarQuadraticFunction into three arrays, returned in the following
-order:
- 1. a vector of quadratic row indices
- 2. a vector of quadratic column indices
- 3. a vector of quadratic coefficients
-
-Warning: we assume in this function that all variables are correctly
-ordered, that is no deletion or swap has occured.
-"""
-function _canonical_quadratic_reduction(func::MOI.ScalarQuadraticFunction)
-    I, J, V = (
-        Cint[term.variable_1.value for term in func.quadratic_terms],
-        Cint[term.variable_2.value for term in func.quadratic_terms],
-        Cdouble[term.coefficient for term in func.quadratic_terms],
-    )
-    # Take care of difference between MOI standards and KNITRO ones.
+function _canonical_quadratic_reduction(f::MOI.ScalarQuadraticFunction)
+    I = Cint[term.variable_1.value for term in f.quadratic_terms]
+    J = Cint[term.variable_2.value for term in f.quadratic_terms]
+    V = Cdouble[term.coefficient for term in f.quadratic_terms]
     for i in 1:length(V)
         if I[i] == J[i]
             V[i] /= 2
@@ -36,40 +21,34 @@ function _canonical_quadratic_reduction(func::MOI.ScalarQuadraticFunction)
             I[i], J[i] = J[i], I[i]
         end
     end
-    return SparseArrays.findnz(SparseArrays.sparse(I, J, V))
+    I, J, V = SparseArrays.findnz(SparseArrays.sparse(I, J, V))
+    I .-= Cint(1)
+    J .-= Cint(1)
+    return I, J, V
 end
 
-"""
-    _canonical_linear_reduction(func::Quad)
-
-Reduce a ScalarQuadraticFunction into two arrays, returned in the following
-order:
- 1. a vector of linear column indices
- 2. a vector of linear coefficients
-
-Warning: we assume in this function that all variables are correctly
-ordered, that is no deletion or swap has occured.
-"""
-function _canonical_linear_reduction(func::MOI.ScalarQuadraticFunction)
-    I = Cint[term.variable.value - 1 for term in func.affine_terms]
-    V = Cdouble[term.coefficient for term in func.affine_terms]
-    return I, V
+function _canonical_linear_reduction(terms::Vector{<:MOI.ScalarAffineTerm})
+    columns = Cint[term.variable.value - 1 for term in terms]
+    coefficients = Cdouble[term.coefficient for term in terms]
+    return columns, coefficients
 end
 
-function _canonical_linear_reduction(func::MOI.ScalarAffineFunction)
-    I = Cint[term.variable.value - 1 for term in func.terms]
-    V = Cdouble[term.coefficient for term in func.terms]
-    return I, V
+function _canonical_linear_reduction(f::MOI.ScalarQuadraticFunction)
+    return _canonical_linear_reduction(f.affine_terms)
 end
 
-function _canonical_vector_affine_reduction(func::MOI.VectorAffineFunction)
-    index_cols, index_vars, coefs = Cint[], Cint[], Cdouble[]
-    for t in func.terms
-        push!(index_cols, t.output_index - 1)
-        push!(index_vars, t.scalar_term.variable.value - 1)
-        push!(coefs, t.scalar_term.coefficient)
+function _canonical_linear_reduction(f::MOI.ScalarAffineFunction)
+    return _canonical_linear_reduction(f.terms)
+end
+
+function _canonical_vector_affine_reduction(f::MOI.VectorAffineFunction)
+    I, J, V = Cint[], Cint[], Cdouble[]
+    for t in f.terms
+        push!(I, t.output_index - 1)
+        push!(J, t.scalar_term.variable.value - 1)
+        push!(V, t.scalar_term.coefficient)
     end
-    return index_cols, index_vars, coefs
+    return I, J, V
 end
 
 # Convert Julia'Inf to KNITRO's Inf.
@@ -759,10 +738,8 @@ function MOI.add_constraint(
         KN_set_con_lobnd(model.inner, num_cons, lb - func.constant)
         KN_set_con_upbnd(model.inner, num_cons, ub - func.constant)
     end
-    # Parse structure of constraint.
-    indexvars, coefs = _canonical_linear_reduction(func)
-    KN_add_con_linear_struct(model.inner, num_cons, indexvars, coefs)
-    # Add constraint to index.
+    columns, coefficients = _canonical_linear_reduction(func)
+    KN_add_con_linear_struct(model.inner, num_cons, columns, coefficients)
     ci = MOI.ConstraintIndex{typeof(func),typeof(set)}(num_cons)
     model.constraint_mapping[ci] = num_cons
     return ci
@@ -843,16 +820,10 @@ function MOI.add_constraint(
         KN_set_con_lobnd(model.inner, num_cons, lb - func.constant)
         KN_set_con_upbnd(model.inner, num_cons, ub - func.constant)
     end
-    # Parse linear structure of constraint.
-    indexvars, coefs = _canonical_linear_reduction(func)
-    KN_add_con_linear_struct(model.inner, num_cons, indexvars, coefs)
-    # Parse quadratic term.
-    qvar1, qvar2, qcoefs = _canonical_quadratic_reduction(func)
-    # Take care that Knitro is 0-indexed!
-    qvar1 .= qvar1 .- 1
-    qvar2 .= qvar2 .- 1
-    KN_add_con_quadratic_struct(model.inner, num_cons, qvar1, qvar2, qcoefs)
-    # Add constraints to index.
+    columns, coefficients = _canonical_linear_reduction(func)
+    KN_add_con_linear_struct(model.inner, num_cons, columns, coefficients)
+    I, J, V = _canonical_quadratic_reduction(func)
+    KN_add_con_quadratic_struct(model.inner, num_cons,  J, V)
     ci = MOI.ConstraintIndex{typeof(func),typeof(set)}(num_cons)
     model.constraint_mapping[ci] = num_cons
     return ci
@@ -917,50 +888,37 @@ function MOI.add_constraint(
             ),
         )
     end
-    # Add constraints inside KNITRO.
     index_con = KN_add_con(model.inner)
-
-    # Parse vector affine expression.
-    indexcoords, indexvars, coefs = _canonical_vector_affine_reduction(func)
-    constants = func.constants
+    rows, columns, coefficients = _canonical_vector_affine_reduction(func)
     # Distinct two parts of secondordercone.
     # First row corresponds to linear part of SOC.
-    indlinear = indexcoords .== 0
-    indcone = indexcoords .!= 0
-    ncoords = length(constants) - 1
-    @assert ncoords == set.dimension - 1
-
-    # Load Second Order Conic constraint.
+    linear_row_indices = rows .== 0
+    cone_indices = .!(linear_row_indices)
     ## i) linear part
-    KN_set_con_upbnd(model.inner, index_con, constants[1])
+    KN_set_con_upbnd(model.inner, index_con, func.constants[1])
     KN_add_con_linear_struct(
         model.inner,
         index_con,
-        indexvars[indlinear],
-        -coefs[indlinear],
+        columns[linear_row_indices],
+        -coefficients[linear_row_indices],
     )
-
     ## ii) soc part
-    index_var_cone = indexvars[indcone]
+    index_var_cone = columns[cone_indices]
     nnz = length(index_var_cone)
-    index_coord_cone = convert.(Cint, indexcoords[indcone] .- 1)
-    coefs_cone = coefs[indcone]
-    const_cone = constants[2:end]
-
     KN_add_con_L2norm(
         model.inner,
         index_con,
-        ncoords,
+        set.dimension - 1,
         nnz,
-        index_coord_cone,
+        # The rows are 0-indexed. But we additionally need to drop the first
+        # (linear) row from the matrix.
+        rows[cone_indices] .- Cint(1),
         index_var_cone,
-        coefs_cone,
-        const_cone,
+        coefficients[cone_indices],
+        func.constants[2:end],
     )
-
-    # Add constraints to index.
     ci = MOI.ConstraintIndex{typeof(func),typeof(set)}(index_con)
-    model.constraint_mapping[ci] = indexvars
+    model.constraint_mapping[ci] = columns
     return ci
 end
 
@@ -1144,29 +1102,26 @@ function MOI.supports(
     return true
 end
 
-function _add_objective(model::Optimizer, objective::MOI.ScalarQuadraticFunction)
-    qobjindex1, qobjindex2, qcoefs = _canonical_quadratic_reduction(objective)
-    # Take care that Knitro is 0-indexed!
-    qobjindex1 .-= 1
-    qobjindex2 .-= 1
-    lobjindex, lcoefs = _canonical_linear_reduction(objective)
-    KN_add_obj_quadratic_struct(model.inner, qobjindex1, qobjindex2, qcoefs)
-    KN_add_obj_linear_struct(model.inner, lobjindex, lcoefs)
-    KN_add_obj_constant(model.inner, objective.constant)
+function _add_objective(model::Optimizer, f::MOI.ScalarQuadraticFunction)
+    I, J, V = _canonical_quadratic_reduction(f)
+    KN_add_obj_quadratic_struct(model.inner, I, J, V)
+    columns, coefficients = _canonical_linear_reduction(f)
+    KN_add_obj_linear_struct(model.inner, columns, coefficients)
+    KN_add_obj_constant(model.inner, f.constant)
     model.objective = nothing
     return
 end
 
-function _add_objective(model::Optimizer, objective::MOI.ScalarAffineFunction)
-    lobjindex, lcoefs = _canonical_linear_reduction(objective)
-    KN_add_obj_linear_struct(model.inner, lobjindex, lcoefs)
-    KN_add_obj_constant(model.inner, objective.constant)
+function _add_objective(model::Optimizer, f::MOI.ScalarAffineFunction)
+    columns, coefficients = _canonical_linear_reduction(f)
+    KN_add_obj_linear_struct(model.inner, columns, coefficients)
+    KN_add_obj_constant(model.inner, f.constant)
     model.objective = nothing
     return
 end
 
-function _add_objective(model::Optimizer, var::MOI.VariableIndex)
-    KN_add_obj_linear_struct(model.inner, var.value - 1, 1.0)
+function _add_objective(model::Optimizer, f::MOI.VariableIndex)
+    KN_add_obj_linear_struct(model.inner, f.value - 1, 1.0)
     model.objective = nothing
     return
 end
