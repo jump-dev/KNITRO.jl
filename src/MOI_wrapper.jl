@@ -433,7 +433,7 @@ end
 
 function MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{F,S}) where {F,S}
     f = Base.Fix2(isa, MOI.ConstraintIndex{F,S})
-    return count(f, keys(model.constraint_mapping); init = 0)
+    return count(f, keys(model.constraint_mapping); init=0)
 end
 
 ###
@@ -1002,7 +1002,7 @@ end
 function MOI.add_constraint(model::Optimizer, f::MOI.ScalarNonlinearFunction, s::_SETS)
     index = MOI.Nonlinear.add_constraint(model.nlp_model, f, s)
     ci = MOI.ConstraintIndex{typeof(f),typeof(s)}(index.value)
-    model.constraint_mapping[ci] = index.value
+    model.constraint_mapping[ci] = convert(Cint, index.value)
     return ci
 end
 
