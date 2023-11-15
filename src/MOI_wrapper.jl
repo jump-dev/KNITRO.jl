@@ -229,6 +229,30 @@ function MOI.is_empty(model::Optimizer)
            !model.nlp_loaded
 end
 
+function _throw_if_solved(model::Optimizer, attr::MOI.AbstractModelAttribute)
+    if model.number_solved >= 1
+        msg = "Problem cannot be modified after a call to optimize!"
+        throw(MOI.SetAttributeNotAllowed(attr, msg))
+    end
+    return
+end
+
+function _throw_if_solved(model::Optimizer, f::MOI.AbstractFunction, s::MOI.AbstractSet)
+    if model.number_solved >= 1
+        msg = "Constraints cannot be added after a call to optimize!"
+        throw(MOI.AddConstraintNotAllowed{typeof(f),typeof(s)}(msg))
+    end
+    return
+end
+
+function _throw_if_solved(model::Optimizer, ::Type{MOI.VariableIndex})
+    if model.number_solved >= 1
+        msg = "Variables cannot be added after a call to optimize!"
+        throw(MOI.AddVariableNotAllowed(msg))
+    end
+    return
+end
+
 _number_constraints(model::Optimizer) = KN_get_number_cons(model.inner)
 
 # MOI.SolverName
@@ -311,12 +335,7 @@ function MOI.get(model::Optimizer, ::MOI.ListOfVariableIndices)
 end
 
 function MOI.add_variable(model::Optimizer)
-    # If model has been optimized, KNITRO does not support adding
-    # another variable.
-    if model.number_solved >= 1
-        msg = "Variables cannot be added after a call to optimize!"
-        throw(MOI.AddVariableNotAllowed(msg))
-    end
+    _throw_if_solved(model, MOI.VariableIndex)
     push!(model.variable_info, _VariableInfo())
     KN_add_var(model.inner)
     return MOI.VariableIndex(length(model.variable_info))
@@ -471,13 +490,7 @@ function MOI.add_constraint(
     x::MOI.VariableIndex,
     lt::MOI.LessThan{Float64},
 )
-    if model.number_solved >= 1
-        throw(
-            MOI.AddConstraintNotAllowed{typeof(x),typeof(lt)}(
-                "Constraints cannot be added after a call to optimize!.",
-            ),
-        )
-    end
+    _throw_if_solved(model, x, lt)
     MOI.throw_if_not_valid(model, x)
     if isnan(lt.upper)
         error("Invalid upper bound value $(lt.upper).")
@@ -512,13 +525,7 @@ function MOI.add_constraint(
     x::MOI.VariableIndex,
     gt::MOI.GreaterThan{Float64},
 )
-    if model.number_solved >= 1
-        throw(
-            MOI.AddConstraintNotAllowed{typeof(x),typeof(gt)}(
-                "Constraints cannot be added after a call to optimize!.",
-            ),
-        )
-    end
+    _throw_if_solved(model, x, gt)
     MOI.throw_if_not_valid(model, x)
     if isnan(gt.lower)
         error("Invalid lower bound value $(gt.lower).")
@@ -554,13 +561,7 @@ function MOI.add_constraint(
     x::MOI.VariableIndex,
     set::MOI.Interval{Float64},
 )
-    if model.number_solved >= 1
-        throw(
-            MOI.AddConstraintNotAllowed{typeof(x),typeof(set)}(
-                "Constraints cannot be added after a call to optimize!.",
-            ),
-        )
-    end
+    _throw_if_solved(model, x, set)
     MOI.throw_if_not_valid(model, x)
     if isnan(set.lower) || isnan(set.upper)
         error("Invalid lower bound value $(set.lower).")
@@ -598,13 +599,7 @@ function MOI.add_constraint(
     x::MOI.VariableIndex,
     eq::MOI.EqualTo{Float64},
 )
-    if model.number_solved >= 1
-        throw(
-            MOI.AddConstraintNotAllowed{typeof(x),typeof(eq)}(
-                "Constraints cannot be added after a call to optimize!.",
-            ),
-        )
-    end
+    _throw_if_solved(model, x, eq)
     MOI.throw_if_not_valid(model, x)
     if isnan(eq.value)
         error("Invalid fixed value $(eq.value).")
@@ -686,13 +681,7 @@ end
 ###
 
 function MOI.add_constraint(model::Optimizer, x::MOI.VariableIndex, set::MOI.Integer)
-    if model.number_solved >= 1
-        throw(
-            MOI.AddConstraintNotAllowed{typeof(x),typeof(set)}(
-                "Constraints cannot be added after a call to optimize!.",
-            ),
-        )
-    end
+    _throw_if_solved(model, x, set)
     MOI.throw_if_not_valid(model, x)
     model.number_integer_constraints += 1
     KN_set_var_type(model.inner, _c_column(x), KN_VARTYPE_INTEGER)
@@ -713,13 +702,7 @@ function MOI.add_constraint(
         MOI.Interval{Float64},
     },
 )
-    if model.number_solved >= 1
-        throw(
-            MOI.AddConstraintNotAllowed{typeof(func),typeof(set)}(
-                "Constraints cannot be added after a call to optimize!.",
-            ),
-        )
-    end
+    _throw_if_solved(model, func, set)
     _throw_if_not_valid(model, func)
     # Add a single constraint in KNITRO.
     num_cons = KN_add_con(model.inner)
@@ -796,13 +779,7 @@ function MOI.add_constraint(
         MOI.Interval{Float64},
     },
 )
-    if model.number_solved >= 1
-        throw(
-            MOI.AddConstraintNotAllowed{typeof(func),typeof(set)}(
-                "Constraints cannot be added after a call to optimize!.",
-            ),
-        )
-    end
+    _throw_if_solved(model, func, set)
     _throw_if_not_valid(model, func)
     # We add a constraint in KNITRO.
     num_cons = KN_add_con(model.inner)
@@ -883,13 +860,7 @@ function MOI.add_constraint(
     func::MOI.VectorAffineFunction,
     set::MOI.SecondOrderCone,
 )
-    if model.number_solved >= 1
-        throw(
-            MOI.AddConstraintNotAllowed{typeof(func),typeof(set)}(
-                "Constraints cannot be added after a call to optimize!.",
-            ),
-        )
-    end
+    _throw_if_solved(model, func, set)
     index_con = KN_add_con(model.inner)
     rows, columns, coefficients = _canonical_vector_affine_reduction(func)
     # Distinct two parts of secondordercone.
@@ -941,13 +912,7 @@ function MOI.add_constraint(
     func::MOI.VectorOfVariables,
     set::MOI.SecondOrderCone,
 )
-    if model.number_solved >= 1
-        throw(
-            MOI.AddConstraintNotAllowed{typeof(func),typeof(set)}(
-                "Constraints cannot be added after a call to optimize!.",
-            ),
-        )
-    end
+    _throw_if_solved(model, func, set)
     # Add constraints inside KNITRO.
     index_con = KN_add_con(model.inner)
     indv = _c_column.(func.variables)
@@ -1013,13 +978,7 @@ function MOI.add_constraint(
     func::MOI.VectorOfVariables,
     set::MOI.Complements,
 )
-    if model.number_solved >= 1
-        throw(
-            MOI.AddConstraintNotAllowed{typeof(func),typeof(set)}(
-                "Constraints cannot be added after a call to optimize!.",
-            ),
-        )
-    end
+    _throw_if_solved(model, func, set)
     indv = _c_column.(func.variables)
     # Number of complementarity in Knitro is half the dimension of the MOI set
     n_comp = div(set.dimension, 2)
@@ -1042,9 +1001,7 @@ end
 MOI.supports(::Optimizer, ::MOI.NLPBlock) = true
 
 function MOI.set(model::Optimizer, attr::MOI.NLPBlock, nlp_data::MOI.NLPBlockData)
-    if model.number_solved >= 1
-        throw(MOI.SetAttributeNotAllowed(attr))
-    end
+    _throw_if_solved(model, attr)
     model.nlp_data = nlp_data
     return
 end
@@ -1070,14 +1027,7 @@ MOI.supports(::Optimizer, ::MOI.ObjectiveSense) = true
 MOI.get(model::Optimizer, ::MOI.ObjectiveSense) = model.sense
 
 function MOI.set(model::Optimizer, attr::MOI.ObjectiveSense, sense::MOI.OptimizationSense)
-    if model.number_solved >= 1
-        throw(
-            MOI.SetAttributeNotAllowed(
-                attr,
-                "Problem cannot be modified after a call to optimize!",
-            ),
-        )
-    end
+    _throw_if_solved(model, attr)
     model.sense = sense
     if model.sense == MOI.MAX_SENSE
         KN_set_obj_goal(model.inner, KN_OBJGOAL_MAXIMIZE)
@@ -1132,14 +1082,7 @@ function MOI.set(
     attr::MOI.ObjectiveFunction{F},
     func::F,
 ) where {F<:Union{MOI.VariableIndex,MOI.ScalarAffineFunction,MOI.ScalarQuadraticFunction}}
-    if model.number_solved >= 1
-        throw(
-            MOI.SetAttributeNotAllowed(
-                attr,
-                "Problem cannot be modified after a call to optimize!",
-            ),
-        )
-    end
+    _throw_if_solved(model, attr)
     if model.nlp_data !== nothing && model.nlp_data.has_objective
         @warn("Objective is already specified in NLPBlockData.")
         return
@@ -1154,14 +1097,7 @@ function MOI.set(
     attr::MOI.ObjectiveFunction{MOI.ScalarNonlinearFunction},
     f::MOI.ScalarNonlinearFunction,
 )
-    if model.number_solved >= 1
-        throw(
-            MOI.SetAttributeNotAllowed(
-                attr,
-                "Problem cannot be modified after a call to optimize!",
-            ),
-        )
-    end
+    _throw_if_solved(model, attr)
     MOI.Nonlinear.set_objective(model.nlp_model, f)
     model.objective = f
     return
