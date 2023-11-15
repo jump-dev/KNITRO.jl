@@ -88,6 +88,20 @@ function test_zero_one_with_no_bounds()
     return
 end
 
+function test_RawOptimizerAttribute()
+    model = MOI.instantiate(KNITRO.Optimizer)
+    attr = MOI.RawOptimizerAttribute("bad_attr")
+    @test !MOI.supports(model, attr)
+    @test_throws MOI.UnsupportedAttribute{typeof(attr)} MOI.get(model, attr)
+    @test_throws MOI.UnsupportedAttribute{typeof(attr)} MOI.set(model, attr, 0)
+    attr = MOI.RawOptimizerAttribute("MAXTIMECPU")
+    @test MOI.supports(model, attr)
+    @test_throws MOI.GetAttributeNotAllowed{typeof(attr)} MOI.get(model, attr)
+    MOI.set(model, attr, 10.0)
+    @test MOI.get(model, attr) == 10.0
+    return
+end
+
 end
 
 TestMOIWrapper.runtests()
