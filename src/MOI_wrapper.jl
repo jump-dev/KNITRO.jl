@@ -1057,7 +1057,8 @@ function _add_objective(model::Optimizer, f::MOI.ScalarQuadraticFunction)
     I, J, V = _canonical_quadratic_reduction(f)
     KN_add_obj_quadratic_struct(model.inner, I, J, V)
     columns, coefficients = _canonical_linear_reduction(f)
-    KN_add_obj_linear_struct(model.inner, columns, coefficients)
+    nnz = length(columns)
+    KN_add_obj_linear_struct(model.inner, nnz, columns, coefficients)
     KN_add_obj_constant(model.inner, f.constant)
     model.objective = nothing
     return
@@ -1065,14 +1066,15 @@ end
 
 function _add_objective(model::Optimizer, f::MOI.ScalarAffineFunction)
     columns, coefficients = _canonical_linear_reduction(f)
-    KN_add_obj_linear_struct(model.inner, columns, coefficients)
+    nnz = length(columns)
+    KN_add_obj_linear_struct(model.inner, nnz, columns, coefficients)
     KN_add_obj_constant(model.inner, f.constant)
     model.objective = nothing
     return
 end
 
 function _add_objective(model::Optimizer, f::MOI.VariableIndex)
-    KN_add_obj_linear_struct(model.inner, _c_column(f), 1.0)
+    KN_add_obj_linear_struct(model.inner, 1, [_c_column(f)], [1.0])
     model.objective = nothing
     return
 end
