@@ -419,6 +419,8 @@ function MOI.supports_constraint(
     return true
 end
 
+# MOI.NumberOfConstraints
+
 function MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.VariableIndex,MOI.ZeroOne})
     return model.number_zeroone_constraints
 end
@@ -427,44 +429,9 @@ function MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.VariableIndex,M
     return model.number_integer_constraints
 end
 
-function MOI.get(
-    model::Optimizer,
-    ::MOI.NumberOfConstraints{MOI.VariableIndex,S},
-) where {S<:_SETS}
-    return sum(
-        typeof.(collect(keys(model.constraint_mapping))) .==
-        MOI.ConstraintIndex{MOI.VariableIndex,S},
-    )
-end
-
-function MOI.get(
-    model::Optimizer,
-    ::MOI.NumberOfConstraints{MOI.VectorAffineFunction{Float64},MOI.SecondOrderCone},
-)
-    return sum(
-        typeof.(collect(keys(model.constraint_mapping))) .==
-        MOI.ConstraintIndex{MOI.VectorAffineFunction{Float64},MOI.SecondOrderCone},
-    )
-end
-
-function MOI.get(
-    model::Optimizer,
-    ::MOI.NumberOfConstraints{MOI.ScalarAffineFunction{Float64},S},
-) where {S<:Union{MOI.EqualTo{Float64},MOI.GreaterThan{Float64},MOI.LessThan{Float64}}}
-    return sum(
-        typeof.(collect(keys(model.constraint_mapping))) .==
-        MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64},S},
-    )
-end
-
-function MOI.get(
-    model::Optimizer,
-    ::MOI.NumberOfConstraints{MOI.ScalarQuadraticFunction{Float64},S},
-) where {S<:Union{MOI.EqualTo{Float64},MOI.GreaterThan{Float64},MOI.LessThan{Float64}}}
-    return sum(
-        typeof.(collect(keys(model.constraint_mapping))) .==
-        MOI.ConstraintIndex{MOI.ScalarQuadraticFunction{Float64},S},
-    )
+function MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{F,S}) where {F,S}
+    f = Base.Fix2(isa, MOI.ConstraintIndex{F,S})
+    return count(f, keys(model.constraint_mapping); init=0)
 end
 
 ###
@@ -957,7 +924,9 @@ end
 
 function MOI.add_constraint(model::Optimizer, f::MOI.ScalarNonlinearFunction, s::_SETS)
     index = MOI.Nonlinear.add_constraint(model.nlp_model, f, s)
-    return MOI.ConstraintIndex{typeof(f),typeof(s)}(index.value)
+    ci = MOI.ConstraintIndex{typeof(f),typeof(s)}(index.value)
+    model.constraint_mapping[ci] = convert(Cint, index.value)
+    return ci
 end
 
 # MOI.VectorOfVariables-in-MOI.Complements
