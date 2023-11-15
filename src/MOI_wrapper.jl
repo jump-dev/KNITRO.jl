@@ -3,6 +3,13 @@
 # Use of this source code is governed by an MIT-style license that can be found
 # in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
+"""
+    _c_column(x::MOI.VariableIndex) --> Cint
+
+Return the 0-indexed `Cint` corressponding to the column of `x`.
+"""
+_c_column(x::MOI.VariableIndex) = Cint(x.value - 1)
+
 const _SETS = Union{
     MOI.LessThan{Float64},
     MOI.GreaterThan{Float64},
@@ -28,7 +35,7 @@ function _canonical_quadratic_reduction(f::MOI.ScalarQuadraticFunction)
 end
 
 function _canonical_linear_reduction(terms::Vector{<:MOI.ScalarAffineTerm})
-    columns = Cint[term.variable.value - 1 for term in terms]
+    columns = Cint[_c_column(term.variable) for term in terms]
     coefficients = Cdouble[term.coefficient for term in terms]
     return columns, coefficients
 end
@@ -45,7 +52,7 @@ function _canonical_vector_affine_reduction(f::MOI.VectorAffineFunction)
     I, J, V = Cint[], Cint[], Cdouble[]
     for t in f.terms
         push!(I, t.output_index - 1)
-        push!(J, t.scalar_term.variable.value - 1)
+        push!(J, _c_column(t.scalar_term.variable))
         push!(V, t.scalar_term.coefficient)
     end
     return I, J, V
@@ -384,7 +391,7 @@ function MOI.set(
 )
     MOI.throw_if_not_valid(model, x)
     start = something(value, 0.0)
-    KN_set_var_primal_init_value(model.inner, x.value - 1, Cdouble(start))
+    KN_set_var_primal_init_value(model.inner, _c_column(x), Cdouble(start))
     return
 end
 
@@ -463,8 +470,7 @@ function MOI.add_constraint(
     end
     ub = _check_value(lt.upper)
     model.variable_info[x.value].has_upper_bound = true
-    # By construction, MOI's indexing is the same as KNITRO's indexing.
-    KN_set_var_upbnd(model.inner, x.value - 1, ub)
+    KN_set_var_upbnd(model.inner, _c_column(x), ub)
     ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.LessThan{Float64}}(x.value)
     model.constraint_mapping[ci] = convert(Cint, x.value)
     return ci
@@ -499,8 +505,7 @@ function MOI.add_constraint(
     end
     lb = _check_value(gt.lower)
     model.variable_info[x.value].has_lower_bound = true
-    # We assume that MOI's indexing is the same as KNITRO's indexing.
-    KN_set_var_lobnd(model.inner, x.value - 1, lb)
+    KN_set_var_lobnd(model.inner, _c_column(x), lb)
     ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.GreaterThan{Float64}}(x.value)
     model.constraint_mapping[ci] = convert(Cint, x.value)
     return ci
@@ -538,9 +543,8 @@ function MOI.add_constraint(
     ub = _check_value(set.upper)
     model.variable_info[x.value].has_lower_bound = true
     model.variable_info[x.value].has_upper_bound = true
-    # We assume that MOI's indexing is the same as KNITRO's indexing.
-    KN_set_var_lobnd(model.inner, x.value - 1, lb)
-    KN_set_var_upbnd(model.inner, x.value - 1, ub)
+    KN_set_var_lobnd(model.inner, _c_column(x), lb)
+    KN_set_var_upbnd(model.inner, _c_column(x), ub)
     ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.Interval{Float64}}(x.value)
     model.constraint_mapping[ci] = convert(Cint, x.value)
     return ci
@@ -578,8 +582,7 @@ function MOI.add_constraint(
     end
     eqv = _check_value(eq.value)
     model.variable_info[x.value].is_fixed = true
-    # We assume that MOI's indexing is the same as KNITRO's indexing.
-    KN_set_var_fxbnd(model.inner, x.value - 1, eqv)
+    KN_set_var_fxbnd(model.inner, _c_column(x), eqv)
     ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.EqualTo{Float64}}(x.value)
     model.constraint_mapping[ci] = convert(Cint, x.value)
     return ci
@@ -619,24 +622,23 @@ end
 ###
 
 function MOI.add_constraint(model::Optimizer, x::MOI.VariableIndex, ::MOI.ZeroOne)
-    indv = x.value - 1
     MOI.throw_if_not_valid(model, x)
     model.number_zeroone_constraints += 1
     lb, ub = nothing, nothing
     if model.variable_info[x.value].has_lower_bound
-        lb = max(0.0, KN_get_var_lobnd(model.inner, indv))
+        lb = max(0.0, KN_get_var_lobnd(model.inner, _c_column(x)))
     end
     if model.variable_info[x.value].has_upper_bound
-        ub = min(1.0, KN_get_var_upbnd(model.inner, indv))
+        ub = min(1.0, KN_get_var_upbnd(model.inner, _c_column(x)))
     end
-    KN_set_var_type(model.inner, x.value - 1, KN_VARTYPE_BINARY)
+    KN_set_var_type(model.inner, _c_column(x), KN_VARTYPE_BINARY)
     # Calling `set_var_type` resets variable bounds in KNITRO. To fix, we need
     # to restore them after calling `set_var_type`.
     if lb !== nothing
-        KN_set_var_lobnd(model.inner, indv, lb)
+        KN_set_var_lobnd(model.inner, _c_column(x), lb)
     end
     if ub !== nothing
-        KN_set_var_upbnd(model.inner, indv, ub)
+        KN_set_var_upbnd(model.inner, _c_column(x), ub)
     end
     return MOI.ConstraintIndex{MOI.VariableIndex,MOI.ZeroOne}(x.value)
 end
@@ -649,7 +651,7 @@ function MOI.add_constraint(model::Optimizer, x::MOI.VariableIndex, set::MOI.Int
     _throw_if_solved(model, x, set)
     MOI.throw_if_not_valid(model, x)
     model.number_integer_constraints += 1
-    KN_set_var_type(model.inner, x.value - 1, KN_VARTYPE_INTEGER)
+    KN_set_var_type(model.inner, _c_column(x), KN_VARTYPE_INTEGER)
     return MOI.ConstraintIndex{MOI.VariableIndex,MOI.Integer}(x.value)
 end
 
@@ -880,10 +882,10 @@ function MOI.add_constraint(
     _throw_if_solved(model, func, set)
     # Add constraints inside KNITRO.
     index_con = KN_add_con(model.inner)
-    indv = [v.value - 1 for v in func.variables]
+    indv = _c_column.(func.variables)
     KN_set_con_upbnd(model.inner, index_con, 0.0)
     KN_add_con_linear_struct(model.inner, index_con, indv[1], -1.0)
-    indexVars = convert.(Cint, indv[2:end])
+    indexVars = indv[2:end]
     nnz = length(indexVars)
     indexCoords = Cint[i for i in 0:(nnz-1)]
     coefs = ones(Float64, nnz)
@@ -898,9 +900,8 @@ function MOI.add_constraint(
         coefs,
         constants,
     )
-    # Add constraints to index.
     ci = MOI.ConstraintIndex{typeof(func),typeof(set)}(index_con)
-    model.constraint_mapping[ci] = convert.(Cint, indv)
+    model.constraint_mapping[ci] = indv
     return ci
 end
 
@@ -947,7 +948,7 @@ function MOI.add_constraint(
     set::MOI.Complements,
 )
     _throw_if_solved(model, func, set)
-    indv = Cint[v.value - 1 for v in func.variables]
+    indv = _c_column.(func.variables)
     # Number of complementarity in Knitro is half the dimension of the MOI set
     n_comp = div(set.dimension, 2)
     # Currently, only complementarity constraints between two variables
@@ -1025,7 +1026,8 @@ function _add_objective(model::Optimizer, f::MOI.ScalarQuadraticFunction)
     I, J, V = _canonical_quadratic_reduction(f)
     KN_add_obj_quadratic_struct(model.inner, I, J, V)
     columns, coefficients = _canonical_linear_reduction(f)
-    KN_add_obj_linear_struct(model.inner, columns, coefficients)
+    nnz = length(columns)
+    KN_add_obj_linear_struct(model.inner, nnz, columns, coefficients)
     KN_add_obj_constant(model.inner, f.constant)
     model.objective = nothing
     return
@@ -1033,14 +1035,15 @@ end
 
 function _add_objective(model::Optimizer, f::MOI.ScalarAffineFunction)
     columns, coefficients = _canonical_linear_reduction(f)
-    KN_add_obj_linear_struct(model.inner, columns, coefficients)
+    nnz = length(columns)
+    KN_add_obj_linear_struct(model.inner, nnz, columns, coefficients)
     KN_add_obj_constant(model.inner, f.constant)
     model.objective = nothing
     return
 end
 
 function _add_objective(model::Optimizer, f::MOI.VariableIndex)
-    KN_add_obj_linear_struct(model.inner, f.value - 1, 1.0)
+    KN_add_obj_linear_struct(model.inner, 1, [_c_column(f)], [1.0])
     model.objective = nothing
     return
 end
