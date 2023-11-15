@@ -89,7 +89,7 @@ function MOI.set(
             ),
         )
     end
-    if !isa(model.nlp_data.evaluator, EmptyNLPEvaluator) && model.nlp_data.has_objective
+    if model.nlp_data !== nothing && model.nlp_data.has_objective
         @warn("Objective is already specified in NLPBlockData.")
         return
     end

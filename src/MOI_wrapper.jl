@@ -18,28 +18,6 @@ end
 
 VariableInfo() = VariableInfo(false, false, false, "")
 
-struct EmptyNLPEvaluator <: MOI.AbstractNLPEvaluator end
-
-MOI.features_available(::EmptyNLPEvaluator) = [:Grad, :Jac, :Hess]
-
-MOI.initialize(::EmptyNLPEvaluator, features) = nothing
-
-MOI.eval_objective(::EmptyNLPEvaluator, x) = NaN
-
-MOI.eval_constraint(::EmptyNLPEvaluator, g, x) = nothing
-
-MOI.eval_objective_gradient(::EmptyNLPEvaluator, g, x) = nothing
-
-MOI.jacobian_structure(::EmptyNLPEvaluator) = Tuple{Int64,Int64}[]
-
-MOI.hessian_lagrangian_structure(::EmptyNLPEvaluator) = Tuple{Int64,Int64}[]
-
-MOI.eval_constraint_jacobian(::EmptyNLPEvaluator, J, x) = nothing
-
-MOI.eval_hessian_lagrangian(::EmptyNLPEvaluator, H, x, σ, μ) = nothing
-
-empty_nlp_data() = MOI.NLPBlockData([], EmptyNLPEvaluator(), false)
-
 mutable struct ComplementarityCache
     n::Int
     index_comps_1::Vector{Cint}
@@ -79,7 +57,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     number_solved::Int
     # Specify if NLP is loaded inside KNITRO to avoid double definition.
     nlp_loaded::Bool
-    nlp_data::MOI.NLPBlockData
+    nlp_data::Union{Nothing,MOI.NLPBlockData}
     # Store index of nlp constraints.
     nlp_index_cons::Vector{Cint}
     # Store optimization sense.
@@ -126,7 +104,7 @@ function Optimizer(; license_manager=nothing, options...)
         [],
         0,
         false,
-        empty_nlp_data(),
+        nothing,
         Cint[],
         MOI.FEASIBILITY_SENSE,
         nothing,
@@ -170,7 +148,7 @@ function MOI.empty!(model::Optimizer)
     end
     empty!(model.variable_info)
     model.number_solved = 0
-    model.nlp_data = empty_nlp_data()
+    model.nlp_data = nothing
     model.nlp_loaded = false
     model.nlp_index_cons = Cint[]
     model.sense = MOI.FEASIBILITY_SENSE
@@ -186,7 +164,7 @@ end
 
 function MOI.is_empty(model::Optimizer)
     return isempty(model.variable_info) &&
-           model.nlp_data.evaluator isa EmptyNLPEvaluator &&
+           model.nlp_data === nothing &&
            model.sense == MOI.FEASIBILITY_SENSE &&
            model.number_solved == 0 &&
            isa(model.objective, Nothing) &&
@@ -293,7 +271,7 @@ function MOI.optimize!(model::Optimizer)
         _load_complementarity_constraint(model, model.complementarity_cache)
     end
     # Add NLP structure if specified.
-    if !isa(model.nlp_data.evaluator, EmptyNLPEvaluator) && !model.nlp_loaded
+    if model.nlp_data !== nothing && !model.nlp_loaded
         # Instantiate NLPEvaluator once and for all.
         features = MOI.features_available(model.nlp_data.evaluator)::Vector{Symbol}
         has_hessian = (:Hess in features)
