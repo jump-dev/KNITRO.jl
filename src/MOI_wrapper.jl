@@ -823,7 +823,7 @@ function MOI.add_constraint(
     columns, coefficients = _canonical_linear_reduction(func)
     KN_add_con_linear_struct(model.inner, num_cons, columns, coefficients)
     I, J, V = _canonical_quadratic_reduction(func)
-    KN_add_con_quadratic_struct(model.inner, num_cons,  J, V)
+    KN_add_con_quadratic_struct(model.inner, num_cons, I, J, V)
     ci = MOI.ConstraintIndex{typeof(func),typeof(set)}(num_cons)
     model.constraint_mapping[ci] = num_cons
     return ci
