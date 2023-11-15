@@ -455,12 +455,12 @@ end
 function MOI.add_constraint(
     model::Optimizer,
     x::MOI.VariableIndex,
-    lt::MOI.LessThan{Float64},
+    set::MOI.LessThan{Float64},
 )
-    _throw_if_solved(model, x, lt)
+    _throw_if_solved(model, x, set)
     MOI.throw_if_not_valid(model, x)
-    if isnan(lt.upper)
-        error("Invalid upper bound value $(lt.upper).")
+    if isnan(set.upper)
+        error("Invalid upper bound value $(set.upper).")
     end
     if _has_upper_bound(model, x)
         error("Upper bound on variable $x already exists.")
@@ -468,7 +468,7 @@ function MOI.add_constraint(
     if _is_fixed(model, x)
         error("Variable $x is fixed. Cannot also set upper bound.")
     end
-    ub = _check_value(lt.upper)
+    ub = _check_value(set.upper)
     model.variable_info[x.value].has_upper_bound = true
     KN_set_var_upbnd(model.inner, _c_column(x), ub)
     ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.LessThan{Float64}}(x.value)
@@ -490,12 +490,12 @@ end
 function MOI.add_constraint(
     model::Optimizer,
     x::MOI.VariableIndex,
-    gt::MOI.GreaterThan{Float64},
+    set::MOI.GreaterThan{Float64},
 )
-    _throw_if_solved(model, x, gt)
+    _throw_if_solved(model, x, set)
     MOI.throw_if_not_valid(model, x)
-    if isnan(gt.lower)
-        error("Invalid lower bound value $(gt.lower).")
+    if isnan(set.lower)
+        error("Invalid lower bound value $(set.lower).")
     end
     if _has_lower_bound(model, x)
         error("Lower bound on variable $x already exists.")
@@ -503,7 +503,7 @@ function MOI.add_constraint(
     if _is_fixed(model, x)
         error("Variable $x is fixed. Cannot also set lower bound.")
     end
-    lb = _check_value(gt.lower)
+    lb = _check_value(set.lower)
     model.variable_info[x.value].has_lower_bound = true
     KN_set_var_lobnd(model.inner, _c_column(x), lb)
     ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.GreaterThan{Float64}}(x.value)
@@ -564,12 +564,12 @@ end
 function MOI.add_constraint(
     model::Optimizer,
     x::MOI.VariableIndex,
-    eq::MOI.EqualTo{Float64},
+    set::MOI.EqualTo{Float64},
 )
-    _throw_if_solved(model, x, eq)
+    _throw_if_solved(model, x, set)
     MOI.throw_if_not_valid(model, x)
-    if isnan(eq.value)
-        error("Invalid fixed value $(eq.value).")
+    if isnan(set.value)
+        error("Invalid fixed value $(set.value).")
     end
     if _has_lower_bound(model, x)
         error("Variable $x has a lower bound. Cannot be fixed.")
@@ -580,7 +580,7 @@ function MOI.add_constraint(
     if _is_fixed(model, x)
         error("Variable $x is already fixed.")
     end
-    eqv = _check_value(eq.value)
+    eqv = _check_value(set.value)
     model.variable_info[x.value].is_fixed = true
     KN_set_var_fxbnd(model.inner, _c_column(x), eqv)
     ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.EqualTo{Float64}}(x.value)
