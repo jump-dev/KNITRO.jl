@@ -336,28 +336,28 @@ function MOI.add_variable(model::Optimizer)
     return MOI.VariableIndex(length(model.variable_info))
 end
 
-function _check_inbounds(model::Optimizer, x::MOI.VariableIndex)
-    num_variables = length(model.variable_info)
-    if !(1 <= x.value <= num_variables)
-        error("Invalid variable index $x. ($num_variables variables in the model.)")
-    end
-    return
+function MOI.is_valid(model::Optimizer, x::MOI.VariableIndex)
+    return 1 <= x.value <= length(model.variable_info)
 end
 
-function _check_inbounds(model::Optimizer, aff::MOI.ScalarAffineFunction)
+function _throw_if_not_valid(model::Optimizer, x::MOI.VariableIndex)
+    return MOI.throw_if_not_valid(model, x)
+end
+
+function _throw_if_not_valid(model::Optimizer, aff::MOI.ScalarAffineFunction)
     for term in aff.terms
-        _check_inbounds(model, term.variable)
+        _throw_if_not_valid(model, term.variable)
     end
     return
 end
 
-function _check_inbounds(model::Optimizer, quad::MOI.ScalarQuadraticFunction)
+function _throw_if_not_valid(model::Optimizer, quad::MOI.ScalarQuadraticFunction)
     for term in quad.affine_terms
-        _check_inbounds(model, term.variable)
+        _throw_if_not_valid(model, term.variable)
     end
     for term in quad.quadratic_terms
-        _check_inbounds(model, term.variable_1)
-        _check_inbounds(model, term.variable_2)
+        _throw_if_not_valid(model, term.variable_1)
+        _throw_if_not_valid(model, term.variable_2)
     end
     return
 end
@@ -384,7 +384,7 @@ function MOI.set(
     x::MOI.VariableIndex,
     value::Union{Real,Nothing},
 )
-    _check_inbounds(model, x)
+    MOI.throw_if_not_valid(model, x)
     start = something(value, 0.0)
     KN_set_var_primal_init_value(model.inner, x.value - 1, Cdouble(start))
     return
@@ -492,7 +492,7 @@ function MOI.add_constraint(
             ),
         )
     end
-    _check_inbounds(model, x)
+    MOI.throw_if_not_valid(model, x)
     if isnan(lt.upper)
         error("Invalid upper bound value $(lt.upper).")
     end
@@ -534,7 +534,7 @@ function MOI.add_constraint(
             ),
         )
     end
-    _check_inbounds(model, x)
+    MOI.throw_if_not_valid(model, x)
     if isnan(gt.lower)
         error("Invalid lower bound value $(gt.lower).")
     end
@@ -577,7 +577,7 @@ function MOI.add_constraint(
             ),
         )
     end
-    _check_inbounds(model, x)
+    MOI.throw_if_not_valid(model, x)
     if isnan(set.lower) || isnan(set.upper)
         error("Invalid lower bound value $(set.lower).")
     end
@@ -622,7 +622,7 @@ function MOI.add_constraint(
             ),
         )
     end
-    _check_inbounds(model, x)
+    MOI.throw_if_not_valid(model, x)
     if isnan(eq.value)
         error("Invalid fixed value $(eq.value).")
     end
@@ -679,7 +679,7 @@ end
 
 function MOI.add_constraint(model::Optimizer, x::MOI.VariableIndex, ::MOI.ZeroOne)
     indv = x.value - 1
-    _check_inbounds(model, x)
+    MOI.throw_if_not_valid(model, x)
     model.number_zeroone_constraints += 1
     lb, ub = nothing, nothing
     if model.variable_info[x.value].has_lower_bound
@@ -712,7 +712,7 @@ function MOI.add_constraint(model::Optimizer, x::MOI.VariableIndex, set::MOI.Int
             ),
         )
     end
-    _check_inbounds(model, x)
+    MOI.throw_if_not_valid(model, x)
     model.number_integer_constraints += 1
     KN_set_var_type(model.inner, x.value - 1, KN_VARTYPE_INTEGER)
     return MOI.ConstraintIndex{MOI.VariableIndex,MOI.Integer}(x.value)
@@ -739,7 +739,7 @@ function MOI.add_constraint(
             ),
         )
     end
-    _check_inbounds(model, func)
+    _throw_if_not_valid(model, func)
     # Add a single constraint in KNITRO.
     num_cons = KN_add_con(model.inner)
     # Add bound to constraint.
@@ -824,7 +824,7 @@ function MOI.add_constraint(
             ),
         )
     end
-    _check_inbounds(model, func)
+    _throw_if_not_valid(model, func)
     # We add a constraint in KNITRO.
     num_cons = KN_add_con(model.inner)
     # Add upper bound.
@@ -1188,7 +1188,7 @@ function MOI.set(
         @warn("Objective is already specified in NLPBlockData.")
         return
     end
-    _check_inbounds(model, func)
+    _throw_if_not_valid(model, func)
     model.objective = func
     return
 end
@@ -1574,7 +1574,7 @@ function MOI.get(model::Optimizer, v::MOI.VariablePrimal, x::MOI.VariableIndex)
     elseif v.result_index > 1
         throw(MOI.ResultIndexBoundsError{MOI.VariablePrimal}(v, 1))
     end
-    _check_inbounds(model, x)
+    MOI.throw_if_not_valid(model, x)
     return get_solution(model.inner, x.value)
 end
 
@@ -1629,7 +1629,7 @@ function MOI.get(
         throw(MOI.ResultIndexBoundsError{MOI.ConstraintPrimal}(cp, 1))
     end
     x = MOI.VariableIndex(ci.value)
-    _check_inbounds(model, x)
+    MOI.throw_if_not_valid(model, x)
     return get_solution(model.inner, x.value)
 end
 
@@ -1702,7 +1702,7 @@ function _reduced_cost(
         throw(MOI.ResultIndexBoundsError{MOI.ConstraintDual}(attr, 1))
     end
     x = MOI.VariableIndex(ci.value)
-    _check_inbounds(model, x)
+    MOI.throw_if_not_valid(model, x)
     offset = _number_constraints(model)
     return _sense_dual(model) * get_dual(model.inner, x.value + offset)
 end
