@@ -18,28 +18,6 @@ end
 
 VariableInfo() = VariableInfo(false, false, false, "")
 
-struct EmptyNLPEvaluator <: MOI.AbstractNLPEvaluator end
-
-MOI.features_available(::EmptyNLPEvaluator) = [:Grad, :Jac, :Hess]
-
-MOI.initialize(::EmptyNLPEvaluator, features) = nothing
-
-MOI.eval_objective(::EmptyNLPEvaluator, x) = NaN
-
-MOI.eval_constraint(::EmptyNLPEvaluator, g, x) = nothing
-
-MOI.eval_objective_gradient(::EmptyNLPEvaluator, g, x) = nothing
-
-MOI.jacobian_structure(::EmptyNLPEvaluator) = Tuple{Int64,Int64}[]
-
-MOI.hessian_lagrangian_structure(::EmptyNLPEvaluator) = Tuple{Int64,Int64}[]
-
-MOI.eval_constraint_jacobian(::EmptyNLPEvaluator, J, x) = nothing
-
-MOI.eval_hessian_lagrangian(::EmptyNLPEvaluator, H, x, σ, μ) = nothing
-
-empty_nlp_data() = MOI.NLPBlockData([], EmptyNLPEvaluator(), false)
-
 mutable struct ComplementarityCache
     n::Int
     index_comps_1::Vector{Cint}
@@ -79,7 +57,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     number_solved::Int
     # Specify if NLP is loaded inside KNITRO to avoid double definition.
     nlp_loaded::Bool
-    nlp_data::MOI.NLPBlockData
+    nlp_data::Union{Nothing,MOI.NLPBlockData}
     nlp_model::MOI.Nonlinear.Model
     # Store index of nlp constraints.
     nlp_index_cons::Vector{Cint}
@@ -128,7 +106,7 @@ function Optimizer(; license_manager=nothing, options...)
         [],
         0,
         false,
-        empty_nlp_data(),
+        nothing,
         MOI.Nonlinear.Model(),
         Cint[],
         MOI.FEASIBILITY_SENSE,
@@ -173,7 +151,7 @@ function MOI.empty!(model::Optimizer)
     end
     empty!(model.variable_info)
     model.number_solved = 0
-    model.nlp_data = empty_nlp_data()
+    model.nlp_data = nothing
     model.nlp_loaded = false
     model.nlp_index_cons = Cint[]
     MOI.empty!(model.nlp_model)
@@ -190,7 +168,7 @@ end
 
 function MOI.is_empty(model::Optimizer)
     return isempty(model.variable_info) &&
-           model.nlp_data.evaluator isa EmptyNLPEvaluator &&
+           model.nlp_data === nothing &&
            MOI.is_empty(model.nlp_model) &&
            model.sense == MOI.FEASIBILITY_SENSE &&
            model.number_solved == 0 &&
@@ -201,13 +179,17 @@ function MOI.is_empty(model::Optimizer)
            !model.nlp_loaded
 end
 
-number_variables(model::Optimizer) = length(model.variable_info)
-
 number_constraints(model::Optimizer) = KN_get_number_cons(model.inner)
+
+# MOI.SolverName
 
 MOI.get(model::Optimizer, ::MOI.SolverName) = "Knitro"
 
+# MOI.SolverVersion
+
 MOI.get(::Optimizer, ::MOI.SolverVersion) = string(KNITRO_VERSION)
+
+# MOI.Silent
 
 MOI.supports(model::Optimizer, ::MOI.Silent) = true
 
@@ -226,6 +208,8 @@ function MOI.set(model::Optimizer, ::MOI.Silent, value)
     return
 end
 
+# MOI.TimeLimitSec
+
 MOI.supports(model::Optimizer, ::MOI.TimeLimitSec) = true
 
 function MOI.get(model::Optimizer, ::MOI.TimeLimitSec)
@@ -239,36 +223,41 @@ function MOI.set(model::Optimizer, ::MOI.TimeLimitSec, value)
     return
 end
 
-function MOI.supports(model::Optimizer, param::MOI.RawOptimizerAttribute)
-    if param.name == "free"
+# MOI.RawOptimizerAttribute
+
+function MOI.supports(model::Optimizer, attr::MOI.RawOptimizerAttribute)
+    if attr.name == "free"
         return true
     end
-    return KN_get_param_id(model.inner, param.name) > 0
+    return KN_get_param_id(model.inner, attr.name) > 0
 end
 
-function MOI.set(model::Optimizer, p::MOI.RawOptimizerAttribute, value)
-    if !MOI.supports(model, p)
-        throw(MOI.UnsupportedAttribute)
+function MOI.get(model::Optimizer, attr::MOI.RawOptimizerAttribute)
+    if !MOI.supports(model, attr)
+        throw(MOI.UnsupportedAttribute(attr))
+    elseif !haskey(model.options, attr.name)
+        throw(MOI.GetAttributeNotAllowed(attr))
     end
-    model.options[p.name] = value
-    if p.name == "option_file"
+    return model.options[attr.name]
+end
+
+function MOI.set(model::Optimizer, attr::MOI.RawOptimizerAttribute, value)
+    if attr.name == "option_file"
         KN_load_param_file(model.inner, value)
-    elseif p.name == "tuner_file"
+    elseif attr.name == "tuner_file"
         KN_load_tuner_file(model.inner, value)
-    elseif p.name == "free"
+    elseif attr.name == "free"
         free(model)
+    elseif !MOI.supports(model, attr)
+        throw(MOI.UnsupportedAttribute(attr))
     else
-        KN_set_param(model.inner, p.name, value)
+        KN_set_param(model.inner, attr.name, value)
     end
+    model.options[attr.name] = value
     return
 end
 
-function MOI.get(model::Optimizer, p::MOI.RawOptimizerAttribute)
-    if haskey(model.options, p.name)
-        return model.options[p.name]
-    end
-    return error("RawOptimizerAttribute with name $(p.name) is not set.")
-end
+# MOI.optimize!
 
 function _load_complementarity_constraint(model::Optimizer, cache::ComplementarityCache)
     return KN_set_compcons(
@@ -293,7 +282,7 @@ function MOI.optimize!(model::Optimizer)
         model.nlp_data = MOI.NLPBlockData(evaluator)
     end
     # Add NLP structure if specified.
-    if !isa(model.nlp_data.evaluator, EmptyNLPEvaluator) && !model.nlp_loaded
+    if model.nlp_data !== nothing && !model.nlp_loaded
         # Instantiate NLPEvaluator once and for all.
         features = MOI.features_available(model.nlp_data.evaluator)::Vector{Symbol}
         has_hessian = (:Hess in features)
