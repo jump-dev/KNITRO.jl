@@ -46,7 +46,6 @@ knitro_version() = KNITRO_VERSION
 
 include("libknitro.jl")
 include("C_wrapper.jl")
-include("callbacks.jl")
 include("MOI_wrapper.jl")
 
 end
