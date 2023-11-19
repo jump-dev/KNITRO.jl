@@ -29,7 +29,13 @@ function KN_set_cb_user_params(m::Model, cb::CallbackContext, userParams=nothing
     # Link current callback context with Knitro model
     link!(cb, m)
     # Store callback context inside KNITRO user data.
-    KN_set_cb_user_params(m.env, cb, cb)
+    # KN_set_cb_user_params(m.env, cb, cb)
+    ccall(
+        (:KN_set_cb_user_params, libknitro),
+        Cint,
+        (KN_context_ptr, Ptr{Cvoid}, #=CHANGED=# Any),
+        m.env, cb, cb,
+    )
     return nothing
 end
 
@@ -41,33 +47,15 @@ then a gradient evaluation callback must be set by `KN_set_cb_grad()`
 
 """
 function KN_set_cb_gradopt(m::Model, cb::CallbackContext, gradopt::Integer)
-    KN_set_cb_gradopt(m.env, cb, gradopt)
+    # KN_set_cb_gradopt(m.env, cb, gradopt)
+    ccall(
+        (:KN_set_cb_gradopt, libknitro),
+        Cint,
+        (KN_context_ptr, Ptr{Cvoid}, #=CHANGED=# Any),
+        m.env, cb, gradopt,
+    )
     return nothing
 end
-
-# macro callback_getter(function_name, return_type)
-#     fname = Symbol("KN_" * string(function_name))
-#     quote
-#         function $(esc(fname))(kc::Ptr{Cvoid}, cb::Ptr{Cvoid})
-#             result = zeros($return_type, 1)
-#             @kn_ccall(
-#                 $function_name,
-#                 Cint,
-#                 (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
-#                 kc,
-#                 cb,
-#                 result
-#             )
-#             return result[1]
-#         end
-#     end
-# end
-
-# @callback_getter get_cb_objgrad_nnz Cint
-# @callback_getter get_cb_jacobian_nnz KNLONG
-# @callback_getter get_cb_hessian_nnz KNLONG
-# @callback_getter get_cb_number_rsds Cint
-# @callback_getter get_cb_rsd_jacobian_nnz KNLONG
 
 # High level EvalRequest structure.
 mutable struct EvalRequest
@@ -114,15 +102,25 @@ function EvalResult(
     n::Int,
     m::Int,
 )
+    objgrad_nnz = Ref{Cint}()
+    jacobian_nnz = Ref{KNLONG}()
+    hessian_nnz = Ref{KNLONG}()
+    num_rsds = Ref{Cint}()
+    rsd_jacobian_nnz = Ref{KNLONG}()
+    KN_get_cb_objgrad_nnz(kc, cb, objgrad_nnz)
+    KN_get_cb_jacobian_nnz(kc, cb, jacobian_nnz)
+    KN_get_cb_hessian_nnz(kc, cb, hessian_nnz)
+    KN_get_cb_number_rsds(kc, cb, num_rsds)
+    KN_get_cb_rsd_jacobian_nnz(kc, cb, rsd_jacobian_nnz)
     return EvalResult(
         unsafe_wrap(Array, evalResult_.obj, 1),
         unsafe_wrap(Array, evalResult_.c, m),
-        unsafe_wrap(Array, evalResult_.objGrad, KN_get_cb_objgrad_nnz(kc, cb)),
-        unsafe_wrap(Array, evalResult_.jac, KN_get_cb_jacobian_nnz(kc, cb)),
-        unsafe_wrap(Array, evalResult_.hess, KN_get_cb_hessian_nnz(kc, cb)),
+        unsafe_wrap(Array, evalResult_.objGrad, objgrad_nnz[]),
+        unsafe_wrap(Array, evalResult_.jac, jacobian_nnz[]),
+        unsafe_wrap(Array, evalResult_.hess, hessian_nnz[]),
         unsafe_wrap(Array, evalResult_.hessVec, n),
-        unsafe_wrap(Array, evalResult_.rsd, KN_get_cb_number_rsds(kc, cb)),
-        unsafe_wrap(Array, evalResult_.rsdJac, KN_get_cb_rsd_jacobian_nnz(kc, cb)),
+        unsafe_wrap(Array, evalResult_.rsd, num_rsds[]),
+        unsafe_wrap(Array, evalResult_.rsdJac, rsd_jacobian_nnz[]),
     )
 end
 
@@ -416,11 +414,6 @@ function KN_set_cb_hess(
     return nothing
 end
 
-@kn_get_attribute get_number_FC_evals Cint
-@kn_get_attribute get_number_GA_evals Cint
-@kn_get_attribute get_number_H_evals Cint
-@kn_get_attribute get_number_HV_evals Cint
-
 #=
     RESIDUALS
 =#
@@ -639,7 +632,13 @@ function KN_set_ms_process_callback(m::Model, callback::Function, userparams=not
         (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid})
     )
 
-    KN_set_ms_process_callback(m.env, c_func, m)
+    # KN_set_ms_process_callback(m.env, c_func, m)
+    ccall(
+        (:KN_set_ms_process_callback, libknitro),
+        Cint,
+        (KN_context_ptr, Ptr{Cvoid}, #=CHANGED=# Any),
+        m.env, c_func, m,
+    )
     return nothing
 end
 
@@ -703,7 +702,13 @@ function KN_set_mip_node_callback(m::Model, callback::Function, userparams=nothi
         (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid})
     )
 
-    KN_set_mip_node_callback(m.env, c_func, m)
+    # KN_set_mip_node_callback(m.env, c_func, m)
+    ccall(
+        (:KN_set_mip_node_callback, libknitro),
+        Cint,
+        (KN_context_ptr, Ptr{Cvoid}, #=CHANGED=# Any),
+        m.env, c_func, m,
+    )
     return nothing
 end
 
@@ -760,7 +765,13 @@ function KN_set_ms_initpt_callback(m::Model, callback::Function, userparams=noth
         (Ptr{Cvoid}, Cint, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid})
     )
 
-    KN_set_ms_initpt_callback(m.env, c_func, m)
+    # KN_set_ms_initpt_callback(m.env, c_func, m)
+    ccall(
+        (:KN_set_ms_initpt_callback, libknitro),
+        Cint,
+        (KN_context_ptr, Ptr{Cvoid}, #=CHANGED=# Any),
+        m.env, c_func, m,
+    )
     return nothing
 end
 
@@ -808,6 +819,12 @@ function KN_set_puts_callback(m::Model, callback::Function, userparams=nothing)
     # Wrap user callback wrapper as C function.
     c_func = @cfunction(puts_callback_wrapper, Cint, (Ptr{Cchar}, Ptr{Cvoid}))
 
-    KN_set_puts_callback(m.env, c_func, m)
+    # KN_set_puts_callback(m.env, c_func, m)
+    ccall(
+        (:KN_set_puts_callback, libknitro),
+        Cint,
+        (KN_context_ptr, Ptr{Cvoid}, #=CHANGED=# Any),
+        m.env, c_func, m,
+    )
     return nothing
 end

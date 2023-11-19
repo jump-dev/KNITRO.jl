@@ -3,26 +3,6 @@
 # Use of this source code is governed by an MIT-style license that can be found
 # in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
-"A macro to make calling KNITRO's KN_* C API a little cleaner"
-macro kn_ccall(func, args...)
-    f = Base.Meta.quot(Symbol("KN_$(func)"))
-    args = [esc(a) for a in args]
-    quote
-        ccall(($f, libknitro), $(args...))
-    end
-end
-
-macro kn_get_attribute(function_name, type)
-    fname = Symbol("KN_" * string(function_name))
-    quote
-        function $(esc(fname))(m::Model)
-            val = zeros($type, 1)
-            ret = $fname(m, val)
-            return val[1]
-        end
-    end
-end
-
 "Return the current KNITRO version."
 function get_release()
     len = 15
@@ -168,33 +148,27 @@ has_callbacks(m::Model) = !isempty(m.callbacks)
 register_callback(model::Model, cb::CallbackContext) = push!(model.callbacks, cb)
 
 function Base.show(io::IO, m::Model)
-    if is_valid(m)
-        println(io, "$(get_release())")
-        println(io, "-----------------------")
-        println(io, "Problem Characteristics")
-        println(io, "-----------------------")
-        println(io, "Objective goal:  Minimize")
-        println(io, "Objective type:  $(KN_get_obj_type(m))")
-        println(
-            io,
-            "Number of variables:                             $(KN_get_number_vars(m))",
-        )
-        println(
-            io,
-            "Number of constraints:                           $(KN_get_number_cons(m))",
-        )
-        println(
-            io,
-            "Number of nonzeros in Jacobian:                  $(KN_get_jacobian_nnz(m))",
-        )
-        println(
-            io,
-            "Number of nonzeros in Hessian:                   $(KN_get_hessian_nnz(m))",
-        )
-
-    else
+    if !is_valid(m)
         println(io, "KNITRO Problem: NULL")
+        return
     end
+    println(io, "$(get_release())")
+    println(io, "-----------------------")
+    println(io, "Problem Characteristics")
+    println(io, "-----------------------")
+    println(io, "Objective goal:  Minimize")
+    p = Ref{Cint}()
+    KN_get_obj_type(m, p)
+    println(io, "Objective type:  $(p[])")
+    KN_get_number_vars(m, p)
+    println(io, "Number of variables:                             $(p[])")
+    KN_get_number_cons(m, p)
+    println(io, "Number of constraints:                           $(p[])")
+    q = Ref{KNLONG}()
+    KN_get_jacobian_nnz(m, q)
+    println(io, "Number of nonzeros in Jacobian:                  $(q[])")
+    KN_get_hessian_nnz(m, q)
+    println(io, "Number of nonzeros in Hessian:                   $(q[])")
     return
 end
 
