@@ -259,7 +259,6 @@ end
 =#
 
 function KN_get_solution(m::Model)
-    # we first check that the model is well defined to avoid segfault
     @assert m.env != C_NULL
     p = Ref{Cint}(0)
     KN_get_number_vars(m, p)
@@ -270,74 +269,12 @@ function KN_get_solution(m::Model)
     lambda = zeros(Cdouble, nx + nc)
     status, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
     KN_get_solution(m, status, obj, x, lambda)
-    # Keep solution in cache.
     m.status = status[]
     m.x = x
     m.mult = lambda
     m.obj_val = obj[]
     return status[], obj[], x, lambda
 end
-
-function get_status(m::Model)
-    @assert m.env != C_NULL
-    if m.status != 1
-        return m.status
-    end
-    status, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
-    KN_get_solution(m, status, obj, C_NULL, C_NULL)
-    m.status = status[]
-    return status[]
-end
-
-function get_objective(m::Model)
-    @assert m.env != C_NULL
-    if isfinite(m.obj_val)
-        return m.obj_val
-    end
-    status, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
-    KN_get_solution(m, status, obj, C_NULL, C_NULL)
-    m.obj_val = obj[]
-    return obj[]
-end
-
-function get_solution(m::Model)
-    # We first check that the model is well defined to avoid segfault.
-    @assert m.env != C_NULL
-    if !isempty(m.x)
-        return m.x
-    end
-    p = Ref{Cint}(0)
-    KN_get_number_vars(m, p)
-    nx = p[]
-    x = zeros(Cdouble, nx)
-    status, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
-    KN_get_solution(m, status, obj, x, C_NULL)
-    m.x = x
-    return x
-end
-
-get_solution(m::Model, ix::Int) = isempty(m.x) ? get_solution(m)[ix] : m.x[ix]
-
-function get_dual(m::Model)
-    # we first check that the model is well defined to avoid segfault
-    @assert m.env != C_NULL
-    if !isempty(m.mult)
-        return m.mult
-    end
-    p = Ref{Cint}(0)
-    KN_get_number_vars(m, p)
-    nx = p[]
-    KN_get_number_cons(m, p)
-    nc = p[]
-    lambda = zeros(Cdouble, nx + nc)
-    status, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
-    KN_get_solution(m, status, obj, C_NULL, lambda)
-    # Keep multipliers in cache.
-    m.mult = lambda
-    return lambda
-end
-
-get_dual(m::Model, ix::Int) = isempty(m.mult) ? get_dual(m)[ix] : m.mult[ix]
 
 # Callbacks utilities.
 
@@ -380,14 +317,12 @@ Specify which gradient option `gradopt` will be used to evaluate
 the first derivatives of the callback functions.  If `gradopt=KN_GRADOPT_EXACT`
 then a gradient evaluation callback must be set by `KN_set_cb_grad()`
 (or `KN_set_cb_rsd_jac()` for least squares).
-
 """
 function KN_set_cb_gradopt(m::Model, cb::CallbackContext, gradopt::Integer)
     KN_set_cb_gradopt(m.env, cb, gradopt)
     return
 end
 
-# High level EvalRequest structure.
 mutable struct EvalRequest
     evalRequestCode::Cint
     threadID::Cint
@@ -397,12 +332,9 @@ mutable struct EvalRequest
     vec::Array{Float64}
 end
 
-# Import low level request to Julia object.
 function EvalRequest(ptr_model::Ptr{Cvoid}, evalRequest_::KN_eval_request, n::Int, m::Int)
-    # Import objective's scaling.
     sigma =
         (evalRequest_.sigma != C_NULL) ? unsafe_wrap(Array, evalRequest_.sigma, 1)[1] : 1.0
-    # Wrap directly C arrays to avoid unnecessary copy.
     return EvalRequest(
         evalRequest_.type,
         evalRequest_.threadID,
@@ -413,7 +345,6 @@ function EvalRequest(ptr_model::Ptr{Cvoid}, evalRequest_::KN_eval_request, n::In
     )
 end
 
-# High level EvalResult structure.
 mutable struct EvalResult
     obj::Array{Float64}
     c::Array{Float64}
@@ -454,52 +385,46 @@ function EvalResult(
     )
 end
 
-macro wrap_function(wrap_name, name)
-    quote
-        function $(esc(wrap_name))(
+for (wrap_name, name) in [
+    :eval_fc_wrapper => :eval_f,
+    :eval_ga_wrapper => :eval_g,
+    :eval_hess_wrapper => :eval_h,
+    :eval_rj_wrapper => :eval_jac_rsd,
+    :eval_rsd_wrapper => :eval_rsd,
+]
+    @eval begin
+        function $wrap_name(
             ptr_model::Ptr{Cvoid},
             ptr_cb::Ptr{Cvoid},
             evalRequest_::Ptr{Cvoid},
             evalResults_::Ptr{Cvoid},
             userdata_::Ptr{Cvoid},
-        )
+        )::Cint
             try
-                # Load evalRequest object.
                 ptr_request = Ptr{KN_eval_request}(evalRequest_)
                 evalRequest = unsafe_load(ptr_request)::KN_eval_request
-                # Load evalResult object.
                 ptr_result = Ptr{KN_eval_result}(evalResults_)
                 evalResult = unsafe_load(ptr_result)::KN_eval_result
-                # Eventually, load callback context.
                 cb = unsafe_pointer_to_objref(userdata_)
-                # Ensure that cb is a CallbackContext.
-                # Otherwise, we tell KNITRO that a problem occurs by returning a
-                # non-zero status.
                 if !isa(cb, CallbackContext)
-                    return Cint(KN_RC_CALLBACK_ERR)
+                    return KN_RC_CALLBACK_ERR
                 end
                 request = EvalRequest(ptr_model, evalRequest, cb.n, cb.m)
                 result = EvalResult(ptr_model, ptr_cb, evalResult, cb.n, cb.m)
-                res = cb.$name(ptr_model, ptr_cb, request, result, cb.userparams)
-                return Cint(res)
+                return cb.$name(ptr_model, ptr_cb, request, result, cb.userparams)
             catch ex
                 if isa(ex, InterruptException)
-                    return Cint(KN_RC_USER_TERMINATION)
-                end
-                if isa(ex, DomainError)
-                    return Cint(KN_RC_EVAL_ERR)
+                    return KN_RC_USER_TERMINATION
+                elseif isa(ex, DomainError)
+                    return KN_RC_EVAL_ERR
                 else
                     @warn("Knitro encounters an exception in evaluation callback: $ex")
-                    return Cint(KN_RC_CALLBACK_ERR)
+                    return KN_RC_CALLBACK_ERR
                 end
             end
         end
     end
 end
-
-@wrap_function eval_fc_wrapper eval_f
-@wrap_function eval_ga_wrapper eval_g
-@wrap_function eval_hess_wrapper eval_h
 
 """
     KN_add_eval_callback(m::Model, funccallback::Function)
@@ -540,88 +465,55 @@ helpful to provide the sparse Jacobian structure through `KN_set_cb_grad()` to
 improve the efficiency of the finite-difference gradient approximations.
 Other optional information can also be set via `KN_set_cb_*()` functions as
 detailed below.
-
 """
 function KN_add_eval_callback_all(m::Model, funccallback::Function)
-    # wrap eval_callback_wrapper as C function
-    # Wrap eval_callback_wrapper as C function.
     c_f = @cfunction(
         eval_fc_wrapper,
         Cint,
         (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid})
     )
-
-    # Define callback context.
     rfptr = Ref{Ptr{Cvoid}}()
-
-    # Add callback to context.
     KN_add_eval_callback_all(m.env, c_f, rfptr)
     cb = CallbackContext(rfptr[])
     register_callback(m, cb)
-
-    # Store function in callback environment:
     cb.eval_f = funccallback
-
-    # Store model in user params to access callback in C
     KN_set_cb_user_params(m, cb)
-
     return cb
 end
 
-# Evaluate only the objective
 function KN_add_objective_callback(m::Model, objcallback::Function)
-    # wrap eval_callback_wrapper as C function
     c_f = @cfunction(
         eval_fc_wrapper,
         Cint,
         (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid})
     )
-
-    # define callback context
     rfptr = Ref{Ptr{Cvoid}}()
-
-    # add callback to context
     KN_add_eval_callback_one(m.env, Cint(-1), c_f, rfptr)
     cb = CallbackContext(rfptr[])
     register_callback(m, cb)
-
-    # store function in callback environment:
     cb.eval_f = objcallback
-
-    # store model in user params to access callback in C
     KN_set_cb_user_params(m, cb)
-
     return cb
 end
 
 function KN_add_eval_callback(
     m::Model,
-    evalObj::Bool,  # switch on obj eval
-    indexCons::Vector{Cint},  # index of constaints
+    evalObj::Bool,
+    indexCons::Vector{Cint},
     funccallback::Function,
-)   # callback
+)
     nC = length(indexCons)
-
-    # Wrap eval_callback_wrapper as C function.
-    c_f = @cfunction(
+   c_f = @cfunction(
         eval_fc_wrapper,
         Cint,
         (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid})
     )
-
-    # Define callback context.
     rfptr = Ref{Ptr{Cvoid}}()
-
-    # Add callback to context.
     KN_add_eval_callback(m.env, KNBOOL(evalObj), nC, indexCons, c_f, rfptr)
     cb = CallbackContext(rfptr[])
     register_callback(m, cb)
-
-    # Store function in callback environment.
     cb.eval_f = funccallback
-
     KN_set_cb_user_params(m, cb)
-
     return cb
 end
 
@@ -633,7 +525,6 @@ end
 This API function is used to set the objective gradient and constraint Jacobian
 structure and also (optionally) a callback function to evaluate the objective
 gradient and constraint Jacobian provided through this callback.
-
 """
 function KN_set_cb_grad(
     m::Model,
@@ -650,24 +541,18 @@ function KN_set_cb_grad(
         KN_get_number_cons(m, p)
         nnzJ = iszero(p[]) ? KNLONG(0) : KNITRO.KN_DENSE_COLMAJOR
     end
-    # Check consistency of arguments.
     if (nV == 0 || nV == KN_DENSE)
         (objGradIndexVars != C_NULL) &&
             error("objGradIndexVars must be set to C_NULL when nV = $nV")
     else
         @assert (objGradIndexVars != C_NULL) && (length(objGradIndexVars) == nV)
     end
-
     if jacIndexCons != C_NULL && jacIndexVars != C_NULL
         @assert length(jacIndexCons) == length(jacIndexVars)
         nnzJ = KNLONG(length(jacIndexCons))
     end
-
     if gradcallback != nothing
-        # Store grad function inside model.
         cb.eval_g = gradcallback
-
-        # Wrap gradient wrapper as C function.
         c_grad_g = @cfunction(
             eval_ga_wrapper,
             Cint,
@@ -676,7 +561,6 @@ function KN_set_cb_grad(
     else
         c_grad_g = C_NULL
     end
-
     KN_set_cb_grad(
         m.env,
         cb,
@@ -710,19 +594,13 @@ function KN_set_cb_hess(
     hessIndexVars1=C_NULL,
     hessIndexVars2=C_NULL,
 )
-
-    # If Hessian is dense, ensure that sparsity pattern is empty
     if nnzH == KN_DENSE_ROWMAJOR || nnzH == KN_DENSE_COLMAJOR
         @assert hessIndexVars1 == hessIndexVars2 == C_NULL
-        # Otherwise, check validity of sparsity pattern
     elseif nnzH > 0
         @assert hessIndexVars1 != C_NULL && hessIndexVars2 != C_NULL
         @assert length(hessIndexVars1) == length(hessIndexVars2) == nnzH
     end
-    # Store hessian function inside model.
     cb.eval_h = hesscallback
-
-    # Wrap gradient wrapper as C function.
     c_hess = @cfunction(
         eval_hess_wrapper,
         Cint,
@@ -732,14 +610,6 @@ function KN_set_cb_hess(
     return
 end
 
-#=
-    RESIDUALS
-=#
-
-@wrap_function eval_rj_wrapper eval_jac_rsd
-@wrap_function eval_rsd_wrapper eval_rsd
-
-# TODO: add _one and _* support
 """
     KN_add_lsq_eval_callback(m::Model, rsdCallBack::Function)
 
@@ -757,7 +627,6 @@ possible as this will greatly improve the performance of Knitro.  Even if a call
 for the residual Jacobian is not provided, it is still helpful to provide the sparse
 Jacobian structure for the residuals through `KN_set_cb_rsd_jac()` to improve the
 efficiency of the finite-difference Jacobian approximation.
-
 """
 function KN_add_lsq_eval_callback(m::Model, rsdCallBack::Function)
     c_f = @cfunction(
@@ -771,7 +640,7 @@ function KN_add_lsq_eval_callback(m::Model, rsdCallBack::Function)
     register_callback(m, cb)
     cb.eval_rsd = rsdCallBack
     KN_set_cb_user_params(m, cb)
-    return cb
+    return
 end
 
 function KN_set_cb_rsd_jac(
@@ -795,14 +664,12 @@ function KN_set_cb_rsd_jac(
         (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid})
     )
     KN_set_cb_rsd_jac(m.env, cb, nnzJ, jacIndexRsds, jacIndexVars, c_eval_rj)
-    return cb
+    return
 end
 
-#=
-    USER CALLBACKS
-=#
+# KN_set_newpt_callback
 
-function newpt_wrapper(
+function _newpt_wrapper(
     ptr_model::Ptr{Cvoid},
     ptr_x::Ptr{Cdouble},
     ptr_lambda::Ptr{Cdouble},
@@ -857,7 +724,7 @@ function KN_set_newpt_callback(m::Model, callback::Function, userparams=nothing)
         m.newpoint_user = userparams
     end
     c_func = @cfunction(
-        newpt_wrapper,
+        _newpt_wrapper,
         Cint,
         (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid})
     )
@@ -873,7 +740,9 @@ function KN_set_newpt_callback(m::Model, callback::Function, userparams=nothing)
     return
 end
 
-function ms_process_wrapper(
+# KN_set_ms_process_callback
+
+function _ms_process_wrapper(
     ptr_model::Ptr{Cvoid},
     ptr_x::Ptr{Cdouble},
     ptr_lambda::Ptr{Cdouble},
@@ -924,7 +793,7 @@ function KN_set_ms_process_callback(m::Model, callback::Function, userparams=not
         m.multistart_user = userparams
     end
     c_func = @cfunction(
-        ms_process_wrapper,
+        _ms_process_wrapper,
         Cint,
         (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid})
     )
@@ -940,21 +809,21 @@ function KN_set_ms_process_callback(m::Model, callback::Function, userparams=not
     return
 end
 
-function mip_node_callback_wrapper(
+# KN_set_mip_node_callback
+
+function _mip_node_callback_wrapper(
     ptr_model::Ptr{Cvoid},
     ptr_x::Ptr{Cdouble},
     ptr_lambda::Ptr{Cdouble},
-    userdata_::Ptr{Cvoid},
+    user_data::Ptr{Cvoid},
 )
     try
-        m = unsafe_pointer_to_objref(userdata_)::Model
-        p = Ref{Cint}(0)
-        KN_get_number_vars(m, p)
-        nx = p[]
-        KN_get_number_cons(m, p)
-        nc = p[]
-        x = unsafe_wrap(Array, ptr_x, nx)
-        lambda = unsafe_wrap(Array, ptr_lambda, nx + nc)
+        m = unsafe_pointer_to_objref(user_data)::Model
+        nx, nc = Ref{Cint}(0), Ref{Cint}(0)
+        KN_get_number_vars(m, nx)
+        KN_get_number_cons(m, nc)
+        x = unsafe_wrap(Array, ptr_x, nx[])
+        lambda = unsafe_wrap(Array, ptr_lambda, nx[] + nc[])
         res = m.mip_callback(m, x, lambda, m.mip_user)
         return Cint(res)
     catch ex
@@ -991,7 +860,7 @@ function KN_set_mip_node_callback(m::Model, callback::Function, userparams=nothi
         m.mip_user = userparams
     end
     c_func = @cfunction(
-        mip_node_callback_wrapper,
+        _mip_node_callback_wrapper,
         Cint,
         (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid})
     )
@@ -1007,40 +876,40 @@ function KN_set_mip_node_callback(m::Model, callback::Function, userparams=nothi
     return
 end
 
-function ms_initpt_wrapper(
+# KN_set_ms_initpt_callback
+
+function _ms_initpt_wrapper(
     ptr_model::Ptr{Cvoid},
     nSolveNumber::Cint,
     ptr_x::Ptr{Cdouble},
     ptr_lambda::Ptr{Cdouble},
-    userdata_::Ptr{Cvoid},
+    user_data::Ptr{Cvoid},
 )
-    m = unsafe_pointer_to_objref(userdata_)::Model
-    p = Ref{Cint}(0)
-    KN_get_number_vars(m, p)
-    nx = p[]
-    KN_get_number_cons(m, p)
-    nc = p[]
-    x = unsafe_wrap(Array, ptr_x, nx)
-    lambda = unsafe_wrap(Array, ptr_lambda, nx + nc)
-    res = m.ms_initpt_callback(m, nSolveNumber, x, lambda, m.multistart_user)
+    model = unsafe_pointer_to_objref(user_data)::Model
+    nx, nc = Ref{Cint}(0), Ref{Cint}(0)
+    KN_get_number_vars(model, nx)
+    KN_get_number_cons(model, nc)
+    x = unsafe_wrap(Array, ptr_x, nx[])
+    lambda = unsafe_wrap(Array, ptr_lambda, nx[] + nc[])
+    res = model.ms_initpt_callback(model, nSolveNumber, x, lambda, m.multistart_user)
     return Cint(res)
 end
 
 """
     KN_set_ms_initpt_callback(m::Model, callback::Function)
-Type declaration for the callback that allows applications to
-specify an initial point before each local solve in the multistart
-procedure.
+
+Set a callback that allows applications to specify an initial point before each local solve
+in the multistart procedure.
 
 Callback is a function with signature:
 
-    callback(kc, x, lambda, userdata)
+```julia
+callback(kc, x, lambda, userdata)
+```
 
-On input, arguments `x` and `lambda` are the randomly
-generated initial points determined by Knitro, which can be overwritten
-by the user.  The argument `nSolveNumber` is the number of the
-multistart solve.
-
+On input, arguments `x` and `lambda` are the randomly generated initial points determined by
+Knitro, which can be overwritten by the user.  The argument `nSolveNumber` is the number of
+the multistart solve.
 """
 function KN_set_ms_initpt_callback(m::Model, callback::Function, userparams=nothing)
     m.ms_initpt_callback = callback
@@ -1048,7 +917,7 @@ function KN_set_ms_initpt_callback(m::Model, callback::Function, userparams=noth
         m.multistart_user = userparams
     end
     c_func = @cfunction(
-        ms_initpt_wrapper,
+        _ms_initpt_wrapper,
         Cint,
         (Ptr{Cvoid}, Cint, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid})
     )
@@ -1064,10 +933,12 @@ function KN_set_ms_initpt_callback(m::Model, callback::Function, userparams=noth
     return
 end
 
-function puts_callback_wrapper(str::Ptr{Cchar}, userdata_::Ptr{Cvoid})
+# KN_set_puts_callback
+
+function _puts_callback_wrapper(str::Ptr{Cchar}, user_data::Ptr{Cvoid})
     try
-        m = unsafe_pointer_to_objref(userdata_)::Model
-        res = m.puts_callback(unsafe_string(str), m.puts_user)
+        model = unsafe_pointer_to_objref(user_data)::Model
+        res = model.puts_callback(unsafe_string(str), model.puts_user)
         return Cint(res)
     catch ex
         if isa(ex, InterruptException)
@@ -1082,26 +953,27 @@ end
 """
     KN_set_puts_callback(m::Model, callback::Function)
 
-Set the callback that allows applications to handle
-output. Applications can set a `put string` callback function to handle
-output generated by the Knitro solver.  By default Knitro prints to
-stdout or a file named `knitro.log`, as determined by KN_PARAM_OUTMODE.
+Set the callback that allows applications to handle output.
 
-Callback is a function with signature:
+Applications can set a `put string` callback function to handle output generated by the
+Knitro solver.  By default Knitro prints to stdout or a file named `knitro.log`, as
+determined by KN_PARAM_OUTMODE.
 
-    callback(str::String, userdata)
+The `callback` is a function with signature:
+```julia
+callback(str::String, user_data) -> Cint
+```
 
 The KN_puts callback function takes a `userParams` argument which is a pointer
 passed directly from KN_solve. The function should return the number of
 characters that were printed.
-
 """
 function KN_set_puts_callback(m::Model, callback::Function, userparams=nothing)
     m.puts_callback = callback
     if userparams != nothing
         m.puts_user = userparams
     end
-    c_func = @cfunction(puts_callback_wrapper, Cint, (Ptr{Cchar}, Ptr{Cvoid}))
+    c_func = @cfunction(_puts_callback_wrapper, Cint, (Ptr{Cchar}, Ptr{Cvoid}))
     # TODO: use a wrapper for the model so it isn't cconverted on Ptr{Cvoid}
     ccall(
         (:KN_set_puts_callback, libknitro),

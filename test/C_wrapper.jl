@@ -143,20 +143,22 @@ if KNITRO.KNITRO_VERSION >= v"12.1"
         KNITRO.KN_set_param(kc, "outlev", 0)
         KNITRO.KN_write_mps_file(kc, mps_name_out)
         status = KNITRO.KN_solve(kc)
-        obj = KNITRO.get_objective(kc)
+        obj = Ref{Cdouble}(0.0)
+        KNITRO.KN_get_solution(kc, Ref{Cint}(), obj, C_NULL, C_NULL)
         KNITRO.KN_free(kc)
         @test status == 0
-        @test obj ≈ 250.0 / 3.0
+        @test obj[] ≈ 250.0 / 3.0
 
         # Resolve with dumped MPS file
         kc = KNITRO.KN_new()
         KNITRO.KN_load_mps_file(kc, mps_name_out)
         KNITRO.KN_set_param(kc, "outlev", 0)
         status = KNITRO.KN_solve(kc)
-        obj = KNITRO.get_objective(kc)
+        obj = Ref{Cdouble}(0.0)
+        KNITRO.KN_get_solution(kc, Ref{Cint}(), obj, C_NULL, C_NULL)
         KNITRO.KN_free(kc)
         @test status == 0
-        @test obj ≈ 250.0 / 3.0
+        @test obj[] ≈ 250.0 / 3.0
     end
 end
 

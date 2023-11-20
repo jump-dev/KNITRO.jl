@@ -37,14 +37,15 @@ end
     # setting a string userparam in Knitro.
     for userparam in [nothing, "myuserparam"]
         kc = KNITRO.KN_new_lm(lm)
-        KNITRO.KN_set_param(kc, "outlev", 0)
+        KNITRO.KN_set_int_param_by_name(kc, "outlev", 0)
         # At first, `newpoint_user` is nothing
         @test isnothing(kc.newpoint_user)
-        KNITRO.KN_add_vars(kc, 1)
+        p = Ref{Cint}()
+        KNITRO.KN_add_var(kc, p)
         KNITRO.KN_set_var_lobnd(kc, Cint(0), 2.0)
         KNITRO.KN_set_var_primal_init_values_all(kc, [0.0])
         KNITRO.KN_set_obj_goal(kc, KNITRO.KN_OBJGOAL_MINIMIZE)
-        KNITRO.KN_add_obj_quadratic_struct(kc, Cint[0], Cint[0], [1.0])
+        KNITRO.KN_add_obj_quadratic_struct(kc, 1, Cint[0], Cint[0], [1.0])
         KNITRO.KN_set_newpt_callback(kc, callbackNewPoint, userparam)
         # Test that userparam is correctly set
         @test kc.newpoint_user == userparam

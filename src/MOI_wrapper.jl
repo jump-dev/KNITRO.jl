@@ -1318,7 +1318,11 @@ function MOI.optimize!(model::Optimizer)
     return
 end
 
-MOI.get(model::Optimizer, ::MOI.RawStatusString) = string(get_status(model.inner))
+function MOI.get(model::Optimizer, ::MOI.RawStatusString)
+    statusP, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
+    KN_get_solution(model.inner, statusP, obj, C_NULL, C_NULL)
+    return string(statusP[])
+end
 
 # Refer to KNITRO manual for solver status:
 # https://www.artelys.com/tools/knitro_doc/3_referenceManual/returnCodes.html#returncodes
@@ -1391,19 +1395,22 @@ function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
     if model.number_solved == 0
         return MOI.OPTIMIZE_NOT_CALLED
     end
-    status = get_status(model.inner)
-    return get(_KN_TO_MOI_RETURN_STATUS, status, MOI.OTHER_ERROR)
+    status, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
+    KN_get_solution(model.inner, status, obj, C_NULL, C_NULL)
+    return get(_KN_TO_MOI_RETURN_STATUS, status[], MOI.OTHER_ERROR)
 end
 
 function MOI.get(model::Optimizer, ::MOI.ResultCount)
     return model.number_solved >= 1 ? 1 : 0
 end
 
-function MOI.get(model::Optimizer, status::MOI.PrimalStatus)
-    if model.number_solved == 0 || status.result_index != 1
+function MOI.get(model::Optimizer, attr::MOI.PrimalStatus)
+    if model.number_solved == 0 || attr.result_index != 1
         return MOI.NO_SOLUTION
     end
-    status = get_status(model.inner)
+    statusP, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
+    KN_get_solution(model.inner, statusP, obj, C_NULL, C_NULL)
+    status = statusP[]
     if status == 0
         return MOI.FEASIBLE_POINT
     elseif -109 <= status <= -100
@@ -1424,11 +1431,13 @@ function MOI.get(model::Optimizer, status::MOI.PrimalStatus)
     end
 end
 
-function MOI.get(model::Optimizer, status::MOI.DualStatus)
-    if model.number_solved == 0 || status.result_index != 1
+function MOI.get(model::Optimizer, attr::MOI.DualStatus)
+    if model.number_solved == 0 || attr.result_index != 1
         return MOI.NO_SOLUTION
     end
-    status = get_status(model.inner)
+    statusP, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
+    KN_get_solution(model.inner, statusP, obj, C_NULL, C_NULL)
+    status = statusP[]
     if status == 0
         return MOI.FEASIBLE_POINT
     elseif -109 <= status <= -100
@@ -1454,7 +1463,34 @@ function MOI.get(model::Optimizer, obj::MOI.ObjectiveValue)
     elseif obj.result_index != 1
         throw(MOI.ResultIndexBoundsError{MOI.ObjectiveValue}(obj, 1))
     end
-    return get_objective(model.inner)
+    status, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
+    KN_get_solution(model.inner, status, obj, C_NULL, C_NULL)
+    return obj[]
+end
+
+function _get_solution(model::Model, index::Integer)
+    @assert model.env != C_NULL
+    if isempty(model.x)
+        p = Ref{Cint}(0)
+        KN_get_number_vars(model, p)
+        model.x = zeros(Cdouble, p[])
+        status, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
+        KN_get_solution(model, status, obj, model.x, C_NULL)
+    end
+    return model.x[index]
+end
+
+function _get_dual(model::Model, index::Integer)
+    @assert model.env != C_NULL
+    if isempty(model.mult)
+        nx, nc = Ref{Cint}(0), Ref{Cint}(0)
+        KN_get_number_vars(model, nx)
+        KN_get_number_cons(model, nc)
+        model.mult = zeros(Cdouble, nx[] + nc[])
+        status, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
+        KN_get_solution(model, status, obj, C_NULL, model.mult)
+    end
+    return model.mult[index]
 end
 
 function MOI.get(model::Optimizer, v::MOI.VariablePrimal, x::MOI.VariableIndex)
@@ -1464,7 +1500,7 @@ function MOI.get(model::Optimizer, v::MOI.VariablePrimal, x::MOI.VariableIndex)
         throw(MOI.ResultIndexBoundsError{MOI.VariablePrimal}(v, 1))
     end
     MOI.throw_if_not_valid(model, x)
-    return get_solution(model.inner, x.value)
+    return _get_solution(model.inner, x.value)
 end
 
 function _check_cons(model, ci, cp)
@@ -1521,26 +1557,7 @@ function MOI.get(
     end
     x = MOI.VariableIndex(ci.value)
     MOI.throw_if_not_valid(model, x)
-    return get_solution(model.inner, x.value)
-end
-
-function MOI.get(
-    model::Optimizer,
-    cp::MOI.ConstraintPrimal,
-    ci::Vector{
-        MOI.ConstraintIndex{
-            MOI.VariableIndex,
-            <:Union{MOI.EqualTo{Float64},MOI.GreaterThan{Float64},MOI.LessThan{Float64}},
-        },
-    },
-)
-    if model.number_solved == 0
-        error("ConstraintPrimal not available.")
-    elseif cp.result_index > 1
-        throw(MOI.ResultIndexBoundsError{MOI.ConstraintPrimal}(cp, 1))
-    end
-    x = get_solution(model.inner)
-    return [x[c.value] for c in ci]
+    return _get_solution(model.inner, x.value)
 end
 
 # KNITRO's dual sign depends on optimization sense.
@@ -1561,8 +1578,7 @@ function MOI.get(
 }
     _check_cons(model, ci, cd)
     index = model.constraint_mapping[ci] + 1
-    lambda = get_dual(model.inner)
-    return _sense_dual(model) * lambda[index]
+    return _sense_dual(model) * _get_dual(model.inner, index)
 end
 
 function MOI.get(
@@ -1570,8 +1586,7 @@ function MOI.get(
     ::MOI.ConstraintDual,
     ci::MOI.ConstraintIndex{MOI.ScalarNonlinearFunction},
 )
-    lambda = get_dual(model.inner)
-    return _sense_dual(model) * lambda[ci.value]
+    return _sense_dual(model) * _get_dual(model.inner, ci.value)
 end
 
 # function MOI.get(
@@ -1595,7 +1610,7 @@ function _reduced_cost(
     x = MOI.VariableIndex(ci.value)
     MOI.throw_if_not_valid(model, x)
     offset = _number_constraints(model)
-    return _sense_dual(model) * get_dual(model.inner, x.value + offset)
+    return _sense_dual(model) * _get_dual(model.inner, x.value + offset)
 end
 
 function MOI.get(
@@ -1626,11 +1641,8 @@ function MOI.get(model::Optimizer, ::MOI.NLPBlockDual)
     if model.number_solved == 0
         error("NLPBlockDual not available.")
     end
-    # Get first index corresponding to a non-linear constraint:
-    lambda = get_dual(model.inner)
-    # FIXME: Assume that lambda has same sense as for linear
-    # and quadratic constraint, but this is not tested inside MOI.
-    return _sense_dual(model) .* [lambda[i+1] for i in model.nlp_index_cons]
+    sign = _sense_dual(model)
+    return [sign * _get_dual(model.inner, i + 1) for i in model.nlp_index_cons]
 end
 
 function MOI.get(model::Optimizer, ::MOI.SolveTimeSec)
