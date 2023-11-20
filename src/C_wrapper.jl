@@ -11,37 +11,23 @@ function get_release()
     return String(strip(String(convert(Vector{UInt8}, out)), '\0'))
 end
 
-"Wrapper for KNITRO KN_context."
 mutable struct Env
     ptr_env::Ptr{Cvoid}
-
-    function Env()
-        ptrptr_env = Ref{Ptr{Cvoid}}()
-        res = KN_new(ptrptr_env)
-        if res != 0
-            error("Fail to retrieve a valid KNITRO KN_context. Error $res")
-        end
-        return new(ptrptr_env[])
-    end
-
-    Env(ptr::Ptr{Cvoid}) = new(ptr)
 end
 
+function Env()
+    ptrptr_env = Ref{Ptr{Cvoid}}()
+    res = KN_new(ptrptr_env)
+    if res != 0
+        error("Fail to retrieve a valid KNITRO KN_context. Error $res")
+    end
+    return Env(ptrptr_env[])
+end
+
+Base.cconvert(::Type{Ptr{Cvoid}}, env::Env) = env
 Base.unsafe_convert(::Type{Ptr{Cvoid}}, env::Env) = env.ptr_env::Ptr{Cvoid}
 
 is_valid(env::Env) = env.ptr_env != C_NULL
-
-"""
-Free all memory and release any Knitro license acquired by calling KN_new.
-"""
-function free_env(env::Env)
-    if env.ptr_env != C_NULL
-        ptrptr_env = Ref{Ptr{Cvoid}}(env.ptr_env)
-        KN_free(ptrptr_env)
-        env.ptr_env = C_NULL
-    end
-    return
-end
 
 """
 Structure specifying the callback context.
@@ -68,6 +54,7 @@ mutable struct CallbackContext
     end
 end
 
+Base.cconvert(::Type{Ptr{Cvoid}}, cb::CallbackContext) = cb
 Base.unsafe_convert(::Type{Ptr{Cvoid}}, cb::CallbackContext) = cb.context::Ptr{Cvoid}
 
 mutable struct Model
@@ -97,25 +84,6 @@ mutable struct Model
     ms_initpt_callback::Function
     puts_callback::Function
 
-    # Constructor.
-    function Model()
-        model = new(
-            Env(),
-            CallbackContext[],
-            nothing,
-            nothing,
-            nothing,
-            nothing,
-            1,
-            Inf,
-            Cdouble[],
-            Cdouble[],
-        )
-        # Add a destructor to properly delete model.
-        finalizer(KN_free, model)
-        return model
-    end
-    # Instantiate a new Knitro instance in current environment `env`.
     function Model(env::Env)
         return new(
             env,
@@ -132,10 +100,23 @@ mutable struct Model
     end
 end
 
+function Model()
+    model = Model(Env())
+    finalizer(KN_free, model)
+    return model
+end
+
+Base.cconvert(::Type{Ptr{Cvoid}}, model::Model) = model
 Base.unsafe_convert(::Type{Ptr{Cvoid}}, kn::Model) = kn.env.ptr_env::Ptr{Cvoid}
 
 "Free solver object."
-KN_free(m::Model) = free_env(m.env)
+function KN_free(m::Model)
+    if m.env.ptr_env != C_NULL
+        KN_free(Ref(m.env.ptr_env))
+        m.env.ptr_env = C_NULL
+    end
+    return
+end
 
 "Create solver object."
 KN_new() = Model()
@@ -143,8 +124,6 @@ KN_new() = Model()
 is_valid(m::Model) = is_valid(m.env)
 
 has_callbacks(m::Model) = !isempty(m.callbacks)
-
-register_callback(model::Model, cb::CallbackContext) = push!(model.callbacks, cb)
 
 function Base.show(io::IO, m::Model)
     if !is_valid(m)
@@ -197,6 +176,7 @@ mutable struct LMcontext
     end
 end
 
+Base.cconvert(::Type{Ptr{Cvoid}}, lm::LMcontext) = lm
 Base.unsafe_convert(::Type{Ptr{Cvoid}}, lm::LMcontext) = lm.ptr_lmcontext::Ptr{Cvoid}
 
 function Env(lm::LMcontext)
@@ -208,15 +188,9 @@ function Env(lm::LMcontext)
     return Env(ptrptr_env[])
 end
 
-function attach!(lm::LMcontext, model::Model)
-    push!(lm.linked_models, model)
-    return
-end
-
-# create Model with license manager
 function Model(lm::LMcontext)
     model = Model(Env(lm))
-    attach!(lm, model)
+    push!(lm.linked_models, model)
     return model
 end
 
@@ -254,10 +228,6 @@ function KN_solve(m::Model)
     return m.status
 end
 
-#=
-    GETTERS
-=#
-
 function KN_get_solution(m::Model)
     @assert m.env != C_NULL
     p = Ref{Cint}(0)
@@ -278,28 +248,23 @@ end
 
 # Callbacks utilities.
 
-# Note: we store here the number of constraints and variables defined
-# in the original Knitro model. We cannot retrieve these numbers during
-# callbacks invokation, as sometimes the number of variables and constraints
-# change internally in Knitro (e.g. when cuts are added when resolving
-# Branch&Bound). We prefer to use the number of variables and constraints
-# of the original model so that user's callbacks could consider that
-# the arrays of primal variable x and dual variable \lambda have fixed
-# sizes.
-function link!(cb::CallbackContext, model::Model)
+function KN_set_cb_user_params(m::Model, cb::CallbackContext, userParams=nothing)
+    if userParams != nothing
+        cb.userparams = userParams
+    end
+    # Note: we store here the number of constraints and variables defined
+    # in the original Knitro model. We cannot retrieve these numbers during
+    # callbacks invokation, as sometimes the number of variables and constraints
+    # change internally in Knitro (e.g. when cuts are added when resolving
+    # Branch&Bound). We prefer to use the number of variables and constraints
+    # of the original model so that user's callbacks could consider that
+    # the arrays of primal variable x and dual variable \lambda have fixed
+    # sizes.
     p = Ref{Cint}(0)
     KN_get_number_vars(model, p)
     cb.n = p[]
     KN_get_number_cons(model, p)
     cb.m = p[]
-    return
-end
-
-function KN_set_cb_user_params(m::Model, cb::CallbackContext, userParams=nothing)
-    if userParams != nothing
-        cb.userparams = userParams
-    end
-    link!(cb, m)
     # TODO: use a wrapper for the model so it isn't cconverted on Ptr{Cvoid}
     ccall(
         (:KN_set_cb_user_params, libknitro),
@@ -330,19 +295,17 @@ mutable struct EvalRequest
     lambda::Array{Float64}
     sigma::Float64
     vec::Array{Float64}
-end
 
-function EvalRequest(ptr_model::Ptr{Cvoid}, evalRequest_::KN_eval_request, n::Int, m::Int)
-    sigma =
-        (evalRequest_.sigma != C_NULL) ? unsafe_wrap(Array, evalRequest_.sigma, 1)[1] : 1.0
-    return EvalRequest(
-        evalRequest_.type,
-        evalRequest_.threadID,
-        unsafe_wrap(Array, evalRequest_.x, n),
-        unsafe_wrap(Array, evalRequest_.lambda, n + m),
-        sigma,
-        unsafe_wrap(Array, evalRequest_.vec, n),
-    )
+    function EvalRequest(::Ptr{Cvoid}, request::KN_eval_request, n::Int, m::Int)
+        return new(
+            request.type,
+            request.threadID,
+            unsafe_wrap(Array, request.x, n),
+            unsafe_wrap(Array, request.lambda, n + m),
+            request.sigma == C_NULL ? 1.0 : unsafe_wrap(Array, request.sigma, 1)[1],
+            unsafe_wrap(Array, request.vec, n),
+        )
+    end
 end
 
 mutable struct EvalResult
@@ -354,43 +317,43 @@ mutable struct EvalResult
     hessVec::Array{Float64}
     rsd::Array{Float64}
     rsdJac::Array{Float64}
-end
 
-function EvalResult(
-    kc::Ptr{Cvoid},
-    cb::Ptr{Cvoid},
-    evalResult_::KN_eval_result,
-    n::Int,
-    m::Int,
-)
-    objgrad_nnz = Ref{Cint}()
-    jacobian_nnz = Ref{KNLONG}()
-    hessian_nnz = Ref{KNLONG}()
-    num_rsds = Ref{Cint}()
-    rsd_jacobian_nnz = Ref{KNLONG}()
-    KN_get_cb_objgrad_nnz(kc, cb, objgrad_nnz)
-    KN_get_cb_jacobian_nnz(kc, cb, jacobian_nnz)
-    KN_get_cb_hessian_nnz(kc, cb, hessian_nnz)
-    KN_get_cb_number_rsds(kc, cb, num_rsds)
-    KN_get_cb_rsd_jacobian_nnz(kc, cb, rsd_jacobian_nnz)
-    return EvalResult(
-        unsafe_wrap(Array, evalResult_.obj, 1),
-        unsafe_wrap(Array, evalResult_.c, m),
-        unsafe_wrap(Array, evalResult_.objGrad, objgrad_nnz[]),
-        unsafe_wrap(Array, evalResult_.jac, jacobian_nnz[]),
-        unsafe_wrap(Array, evalResult_.hess, hessian_nnz[]),
-        unsafe_wrap(Array, evalResult_.hessVec, n),
-        unsafe_wrap(Array, evalResult_.rsd, num_rsds[]),
-        unsafe_wrap(Array, evalResult_.rsdJac, rsd_jacobian_nnz[]),
+    function EvalResult(
+        kc::Ptr{Cvoid},
+        cb::Ptr{Cvoid},
+        result::KN_eval_result,
+        n::Int,
+        m::Int,
     )
+        objgrad_nnz = Ref{Cint}()
+        jacobian_nnz = Ref{KNLONG}()
+        hessian_nnz = Ref{KNLONG}()
+        num_rsds = Ref{Cint}()
+        rsd_jacobian_nnz = Ref{KNLONG}()
+        KN_get_cb_objgrad_nnz(kc, cb, objgrad_nnz)
+        KN_get_cb_jacobian_nnz(kc, cb, jacobian_nnz)
+        KN_get_cb_hessian_nnz(kc, cb, hessian_nnz)
+        KN_get_cb_number_rsds(kc, cb, num_rsds)
+        KN_get_cb_rsd_jacobian_nnz(kc, cb, rsd_jacobian_nnz)
+        return new(
+            unsafe_wrap(Array, result.obj, 1),
+            unsafe_wrap(Array, result.c, m),
+            unsafe_wrap(Array, result.objGrad, objgrad_nnz[]),
+            unsafe_wrap(Array, result.jac, jacobian_nnz[]),
+            unsafe_wrap(Array, result.hess, hessian_nnz[]),
+            unsafe_wrap(Array, result.hessVec, n),
+            unsafe_wrap(Array, result.rsd, num_rsds[]),
+            unsafe_wrap(Array, result.rsdJac, rsd_jacobian_nnz[]),
+        )
+    end
 end
 
 for (wrap_name, name) in [
-    :eval_fc_wrapper => :eval_f,
-    :eval_ga_wrapper => :eval_g,
-    :eval_hess_wrapper => :eval_h,
-    :eval_rj_wrapper => :eval_jac_rsd,
-    :eval_rsd_wrapper => :eval_rsd,
+    :_eval_fc_wrapper => :eval_f,
+    :_eval_ga_wrapper => :eval_g,
+    :_eval_hess_wrapper => :eval_h,
+    :_eval_rj_wrapper => :eval_jac_rsd,
+    :_eval_rsd_wrapper => :eval_rsd,
 ]
     @eval begin
         function $wrap_name(
@@ -405,10 +368,7 @@ for (wrap_name, name) in [
                 evalRequest = unsafe_load(ptr_request)::KN_eval_request
                 ptr_result = Ptr{KN_eval_result}(evalResults_)
                 evalResult = unsafe_load(ptr_result)::KN_eval_result
-                cb = unsafe_pointer_to_objref(userdata_)
-                if !isa(cb, CallbackContext)
-                    return KN_RC_CALLBACK_ERR
-                end
+                cb = unsafe_pointer_to_objref(userdata_)::CallbackContext
                 request = EvalRequest(ptr_model, evalRequest, cb.n, cb.m)
                 result = EvalResult(ptr_model, ptr_cb, evalResult, cb.n, cb.m)
                 return cb.$name(ptr_model, ptr_cb, request, result, cb.userparams)
@@ -468,14 +428,14 @@ detailed below.
 """
 function KN_add_eval_callback_all(m::Model, funccallback::Function)
     c_f = @cfunction(
-        eval_fc_wrapper,
+        _eval_fc_wrapper,
         Cint,
         (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid})
     )
     rfptr = Ref{Ptr{Cvoid}}()
     KN_add_eval_callback_all(m.env, c_f, rfptr)
     cb = CallbackContext(rfptr[])
-    register_callback(m, cb)
+    push!(m.callbacks, cb)
     cb.eval_f = funccallback
     KN_set_cb_user_params(m, cb)
     return cb
@@ -483,14 +443,14 @@ end
 
 function KN_add_objective_callback(m::Model, objcallback::Function)
     c_f = @cfunction(
-        eval_fc_wrapper,
+        _eval_fc_wrapper,
         Cint,
         (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid})
     )
     rfptr = Ref{Ptr{Cvoid}}()
     KN_add_eval_callback_one(m.env, Cint(-1), c_f, rfptr)
     cb = CallbackContext(rfptr[])
-    register_callback(m, cb)
+    push!(m.callbacks, cb)
     cb.eval_f = objcallback
     KN_set_cb_user_params(m, cb)
     return cb
@@ -503,15 +463,15 @@ function KN_add_eval_callback(
     funccallback::Function,
 )
     nC = length(indexCons)
-   c_f = @cfunction(
-        eval_fc_wrapper,
+    c_f = @cfunction(
+        _eval_fc_wrapper,
         Cint,
         (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid})
     )
     rfptr = Ref{Ptr{Cvoid}}()
     KN_add_eval_callback(m.env, KNBOOL(evalObj), nC, indexCons, c_f, rfptr)
     cb = CallbackContext(rfptr[])
-    register_callback(m, cb)
+    push!(m.callbacks, cb)
     cb.eval_f = funccallback
     KN_set_cb_user_params(m, cb)
     return cb
@@ -637,7 +597,7 @@ function KN_add_lsq_eval_callback(m::Model, rsdCallBack::Function)
     rfptr = Ref{Ptr{Cvoid}}()
     KN_add_lsq_eval_callback_all(m.env, c_f, rfptr)
     cb = CallbackContext(rfptr[])
-    register_callback(m, cb)
+    push!(m.callbacks, cb)
     cb.eval_rsd = rsdCallBack
     KN_set_cb_user_params(m, cb)
     return
@@ -747,24 +707,21 @@ function _ms_process_wrapper(
     ptr_x::Ptr{Cdouble},
     ptr_lambda::Ptr{Cdouble},
     userdata_::Ptr{Cvoid},
-)
+)::Cint
     try
-        m = unsafe_pointer_to_objref(userdata_)::Model
-        p = Ref{Cint}(0)
-        KN_get_number_vars(m, p)
-        nx = p[]
-        KN_get_number_cons(m, p)
-        nc = p[]
-        x = unsafe_wrap(Array, ptr_x, nx)
-        lambda = unsafe_wrap(Array, ptr_lambda, nx + nc)
-        res = m.ms_process(m, x, lambda, m.multistart_user)
-        return Cint(res)
+        model = unsafe_pointer_to_objref(userdata_)::Model
+        nx, nc = Ref{Cint}(0), Ref{Cint}(0)
+        KN_get_number_vars(model, nx)
+        KN_get_number_cons(model, nc)
+        x = unsafe_wrap(Array, ptr_x, nx[])
+        lambda = unsafe_wrap(Array, ptr_lambda, nx[] + nc[])
+        return model.ms_process(model, x, lambda, m.multistart_user)
     catch ex
         if isa(ex, InterruptException)
-            return Cint(KN_RC_USER_TERMINATION)
+            return KN_RC_USER_TERMINATION
         else
             @warn("Knitro encounters an exception in multistart callback: $ex")
-            return Cint(KN_RC_CALLBACK_ERR)
+            return KN_RC_CALLBACK_ERR
         end
     end
 end
@@ -816,22 +773,21 @@ function _mip_node_callback_wrapper(
     ptr_x::Ptr{Cdouble},
     ptr_lambda::Ptr{Cdouble},
     user_data::Ptr{Cvoid},
-)
+)::Cint
     try
-        m = unsafe_pointer_to_objref(user_data)::Model
+        model = unsafe_pointer_to_objref(user_data)::Model
         nx, nc = Ref{Cint}(0), Ref{Cint}(0)
-        KN_get_number_vars(m, nx)
-        KN_get_number_cons(m, nc)
+        KN_get_number_vars(model, nx)
+        KN_get_number_cons(model, nc)
         x = unsafe_wrap(Array, ptr_x, nx[])
         lambda = unsafe_wrap(Array, ptr_lambda, nx[] + nc[])
-        res = m.mip_callback(m, x, lambda, m.mip_user)
-        return Cint(res)
+        return model.mip_callback(model, x, lambda, m.mip_user)
     catch ex
         if isa(ex, InterruptException)
-            return Cint(KN_RC_USER_TERMINATION)
+            return KN_RC_USER_TERMINATION
         else
             @warn("Knitro encounters an exception in MIP callback: $ex")
-            return Cint(KN_RC_CALLBACK_ERR)
+            return KN_RC_CALLBACK_ERR
         end
     end
 end
@@ -884,15 +840,14 @@ function _ms_initpt_wrapper(
     ptr_x::Ptr{Cdouble},
     ptr_lambda::Ptr{Cdouble},
     user_data::Ptr{Cvoid},
-)
+)::Cint
     model = unsafe_pointer_to_objref(user_data)::Model
     nx, nc = Ref{Cint}(0), Ref{Cint}(0)
     KN_get_number_vars(model, nx)
     KN_get_number_cons(model, nc)
     x = unsafe_wrap(Array, ptr_x, nx[])
     lambda = unsafe_wrap(Array, ptr_lambda, nx[] + nc[])
-    res = model.ms_initpt_callback(model, nSolveNumber, x, lambda, m.multistart_user)
-    return Cint(res)
+    return model.ms_initpt_callback(model, nSolveNumber, x, lambda, m.multistart_user)
 end
 
 """
@@ -935,17 +890,16 @@ end
 
 # KN_set_puts_callback
 
-function _puts_callback_wrapper(str::Ptr{Cchar}, user_data::Ptr{Cvoid})
+function _puts_callback_wrapper(str::Ptr{Cchar}, user_data::Ptr{Cvoid})::Cint
     try
         model = unsafe_pointer_to_objref(user_data)::Model
-        res = model.puts_callback(unsafe_string(str), model.puts_user)
-        return Cint(res)
+        return model.puts_callback(unsafe_string(str), model.puts_user)
     catch ex
         if isa(ex, InterruptException)
-            return Cint(KN_RC_USER_TERMINATION)
+            return KN_RC_USER_TERMINATION
         else
             @warn("Knitro encounters an exception in puts callback: $ex")
-            return Cint(KN_RC_CALLBACK_ERR)
+            return KN_RC_CALLBACK_ERR
         end
     end
 end
