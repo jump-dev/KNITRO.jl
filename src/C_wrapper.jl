@@ -514,7 +514,7 @@ function KN_set_cb_grad(
     if gradcallback != nothing
         cb.eval_g = gradcallback
         c_grad_g = @cfunction(
-            eval_ga_wrapper,
+            _eval_ga_wrapper,
             Cint,
             (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid})
         )
@@ -562,7 +562,7 @@ function KN_set_cb_hess(
     end
     cb.eval_h = hesscallback
     c_hess = @cfunction(
-        eval_hess_wrapper,
+        _eval_hess_wrapper,
         Cint,
         (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid})
     )
@@ -590,7 +590,7 @@ efficiency of the finite-difference Jacobian approximation.
 """
 function KN_add_lsq_eval_callback(m::Model, rsdCallBack::Function)
     c_f = @cfunction(
-        eval_rsd_wrapper,
+        _eval_rsd_wrapper,
         Cint,
         (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid})
     )
@@ -619,7 +619,7 @@ function KN_set_cb_rsd_jac(
     end
     cb.eval_jac_rsd = evalRJ
     c_eval_rj = @cfunction(
-        eval_rj_wrapper,
+        _eval_rj_wrapper,
         Cint,
         (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid})
     )
