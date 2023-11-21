@@ -260,7 +260,7 @@ MOI.get(model::Optimizer, ::MOI.SolverName) = "Knitro"
 
 # MOI.SolverVersion
 
-MOI.get(::Optimizer, ::MOI.SolverVersion) = string(KNITRO_VERSION)
+MOI.get(::Optimizer, ::MOI.SolverVersion) = string(knitro_version())
 
 # MOI.Silent
 
@@ -1642,7 +1642,7 @@ end
 
 function MOI.get(model::Optimizer, ::MOI.SolveTimeSec)
     p = Ref{Cdouble}(NaN)
-    if KNITRO_VERSION >= v"12.0"
+    if knitro_version() >= v"12.0"
         KN_get_solve_time_cpu(model.inner, p)
     end
     return p[]

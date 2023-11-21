@@ -106,14 +106,11 @@ function KN_new()
 end
 
 function Base.show(io::IO, model::Model)
-    if model.env.ptr_env !== C_NULL
+    if model.env.ptr_env === C_NULL
         println(io, "KNITRO Problem: NULL")
         return
     end
-    out = zeros(Cchar, 15)
-    KN_get_release(15, out)
-    release = GC.@preserve(len, unsafe_string(pointer(out)))
-    println(io, "$get_release")
+    println(io, "$(knitro_version())")
     println(io, "-----------------------")
     println(io, "Problem Characteristics")
     println(io, "-----------------------")
@@ -187,7 +184,7 @@ function KN_solve(model::Model)
     # as we have trouble calling Julia code from multithreaded C
     # code. See issue #93 on https://github.com/jump-dev/KNITRO.jl.
     if !isempty(model.callbacks)
-        if KNITRO_VERSION >= v"13.0"
+        if knitro_version() >= v"13.0"
             KN_set_int_param(model, KN_PARAM_MS_NUMTHREADS, 1)
             KN_set_int_param(model, KN_PARAM_NUMTHREADS, 1)
             KN_set_int_param(model, KN_PARAM_MIP_NUMTHREADS, 1)

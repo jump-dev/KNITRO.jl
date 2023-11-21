@@ -95,7 +95,7 @@ function callback(name)
     return callbackFn
 end
 
-if KNITRO.KNITRO_VERSION >= v"12.1"
+if KNITRO.knitro_version() >= v"12.1"
     @testset "MPS reader/writer" begin
         mps_name = joinpath(dirname(@__FILE__), "lp.mps")
         mps_name_out = joinpath(dirname(@__FILE__), "lp2.mps")
@@ -206,7 +206,7 @@ end
     KNITRO.KN_set_con_upbnds_all(kc, [2 * 2 * 0.99])
 
     # Test getters.
-    if KNITRO.KNITRO_VERSION >= v"12.0"
+    if KNITRO.knitro_version() >= v"12.0"
         xindex = Cint[0, 1, 2]
         ret = zeros(Cdouble, 3)
         KNITRO.KN_get_var_lobnds(kc, 3, xindex, ret)
@@ -292,7 +292,7 @@ end
     @test objSol ≈ 31.363199 atol = 1e-5
 
     # Test getters for primal and dual variables
-    if KNITRO.KNITRO_VERSION >= v"12.0"
+    if KNITRO.knitro_version() >= v"12.0"
         xopt = zeros(Cdouble, 3)
         KNITRO.KN_get_var_primal_values(kc, 3, Cint[0, 1, 2], xopt)
         @test xopt == x
@@ -310,16 +310,15 @@ end
 @testset "Second problem test" begin
     kc = KNITRO.KN_new()
 
-    function prettyPrinting(str, userParams)
-        s = "KNITRO-Julia: " * str * "\n"
-        println(s)
-        return length(s)
+    function pretty_printer(contents::String, ::Any)
+        print("[KNITRO.jl] $contents")
+        return 12 + length(contents)
     end
 
-    KNITRO.KN_set_puts_callback(kc, prettyPrinting)
+    KNITRO.KN_set_puts_callback(kc, pretty_printer)
 
     # START: Some specific parameter settings
-    KNITRO.KN_set_int_param_by_name(kc, "outlev", 0)
+    # KNITRO.KN_set_int_param_by_name(kc, "outlev", 0)
     KNITRO.KN_set_int_param_by_name(kc, "presolve", 0)
     KNITRO.KN_set_int_param_by_name(kc, "ms_enable", 1)
     KNITRO.KN_set_int_param_by_name(kc, "ms_maxsolves", 5)
@@ -691,7 +690,7 @@ end
 end
 
 @testset "Knitro violation information" begin
-    if KNITRO.KNITRO_VERSION < v"12.4"
+    if KNITRO.knitro_version() < v"12.4"
         return 0
     end
     #*------------------------------------------------------------------*
@@ -789,7 +788,7 @@ end
 end
 
 @testset "Knitro structural manipulation" begin
-    if KNITRO.KNITRO_VERSION < v"12.4"
+    if KNITRO.knitro_version() < v"12.4"
         return 0
     end
     #*------------------------------------------------------------------*
@@ -1014,4 +1013,11 @@ end
 
     # Delete the Knitro solver instance.
     KNITRO.KN_free(kc)
+end
+
+@testset "show" begin
+    model = KNITRO.KN_new()
+    @test occursin("Problem Characteristics", sprint(show, model))
+    KNITRO.KN_free(model)
+    @test sprint(show, model) == "KNITRO Problem: NULL\n"
 end
