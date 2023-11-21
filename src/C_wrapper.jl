@@ -725,7 +725,13 @@ function _ms_initpt_wrapper(
     KN_get_number_cons(model, nc)
     x = unsafe_wrap(Array, ptr_x, nx[])
     lambda = unsafe_wrap(Array, ptr_lambda, nx[] + nc[])
-    return model.ms_initpt_callback(model, nSolveNumber, x, lambda, model.ms_initpt_user_data)
+    return model.ms_initpt_callback(
+        model,
+        nSolveNumber,
+        x,
+        lambda,
+        model.ms_initpt_user_data,
+    )
 end
 
 """
