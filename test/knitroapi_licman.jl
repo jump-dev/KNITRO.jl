@@ -3,7 +3,7 @@ using KNITRO
 using Test
 
 @testset "License manager test" begin
-    m = KNITRO.Model()
+    m = KNITRO.KN_new()
     KNITRO.KN_free(m)
     # create license manager context
     @show lm = KNITRO.LMcontext()

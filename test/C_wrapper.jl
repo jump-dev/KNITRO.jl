@@ -38,12 +38,8 @@ const MPS_PROBLEM = """
                     ENDATA
                     """
 
-@testset "Instantiation Knitro C interface" begin
-    rel = KNITRO.get_release()
-    @test isa(rel, String)
-end
 @testset "Definition of model" begin
-    m = KNITRO.Model()
+    m = KNITRO.KN_new()
     options = joinpath(dirname(@__FILE__), "..", "examples", "knitro.opt")
     KNITRO.KN_reset_params_to_defaults(m)
     KNITRO.KN_free(m)
@@ -134,9 +130,7 @@ end
     kc = KNITRO.KN_new()
     @test isa(kc, KNITRO.Model)
     # By default, kc does not have any callback
-    @test !KNITRO.has_callbacks(kc)
-
-    release = KNITRO.get_release()
+    @test isempty(kc.callbacks)
 
     KNITRO.KN_reset_params_to_defaults(kc)
 
@@ -233,7 +227,7 @@ end
 
     # Define callback functions.
     cb = KNITRO.KN_add_objective_callback(kc, evalAll)
-    @test KNITRO.has_callbacks(kc)
+    @test !isempty(kc.callbacks)
     KNITRO.KN_set_cb_grad(kc, cb, evalAll)
     KNITRO.KN_set_cb_hess(
         kc,

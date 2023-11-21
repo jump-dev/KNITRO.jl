@@ -150,9 +150,9 @@ end
 function Optimizer(; license_manager=nothing, options...)
     # Create KNITRO context.
     kc = if isa(license_manager, LMcontext)
-        Model(license_manager)
+        KN_new_lm(license_manager)
     else
-        Model()
+        KN_new()
     end
     model = Optimizer(
         kc,
@@ -187,17 +187,12 @@ function MOI.copy_to(model::Optimizer, src::MOI.ModelLike)
     return MOI.Utilities.default_copy_to(model, src)
 end
 
-function free(model::Optimizer)
-    KN_free(model.inner)
-    return
-end
-
 function MOI.empty!(model::Optimizer)
-    free(model)
+    KN_free(model.inner)
     model.inner = if isa(model.license_manager, LMcontext)
-        Model(model.license_manager)
+        KN_new_lm(model.license_manager)
     else
-        Model()
+        KN_new()
     end
     empty!(model.variable_info)
     model.number_solved = 0
@@ -327,7 +322,7 @@ function MOI.set(model::Optimizer, attr::MOI.RawOptimizerAttribute, value)
     elseif attr.name == "tuner_file"
         KN_load_tuner_file(model.inner, value)
     elseif attr.name == "free"
-        free(model)
+        KN_free(model.inner)
     elseif !MOI.supports(model, attr)
         throw(MOI.UnsupportedAttribute(attr))
     elseif value isa Integer

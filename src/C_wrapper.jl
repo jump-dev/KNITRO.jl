@@ -3,14 +3,6 @@
 # Use of this source code is governed by an MIT-style license that can be found
 # in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
-"Return the current KNITRO version."
-function get_release()
-    len = 15
-    out = zeros(Cchar, len)
-    KN_get_release(len, out)
-    return String(strip(String(convert(Vector{UInt8}, out)), '\0'))
-end
-
 mutable struct Env
     ptr_env::Ptr{Cvoid}
 end
@@ -26,8 +18,6 @@ end
 
 Base.cconvert(::Type{Ptr{Cvoid}}, env::Env) = env
 Base.unsafe_convert(::Type{Ptr{Cvoid}}, env::Env) = env.ptr_env::Ptr{Cvoid}
-
-is_valid(env::Env) = env.ptr_env != C_NULL
 
 """
 Structure specifying the callback context.
@@ -100,12 +90,6 @@ mutable struct Model
     end
 end
 
-function Model()
-    model = Model(Env())
-    finalizer(KN_free, model)
-    return model
-end
-
 Base.cconvert(::Type{Ptr{Cvoid}}, model::Model) = model
 Base.unsafe_convert(::Type{Ptr{Cvoid}}, kn::Model) = kn.env.ptr_env::Ptr{Cvoid}
 
@@ -119,18 +103,21 @@ function KN_free(model::Model)
 end
 
 "Create solver object."
-KN_new() = Model()
-
-is_valid(model::Model) = is_valid(model.env)
-
-has_callbacks(model::Model) = !isempty(model.callbacks)
+function KN_new()
+    model = Model(Env())
+    finalizer(KN_free, model)
+    return model
+end
 
 function Base.show(io::IO, model::Model)
-    if !is_valid(model)
+    if model.env.ptr_env !== C_NULL
         println(io, "KNITRO Problem: NULL")
         return
     end
-    println(io, "$(get_release())")
+    out = zeros(Cchar, 15)
+    KN_get_release(15, out)
+    release = GC.@preserve(len, unsafe_string(pointer(out)))
+    println(io, "$get_release")
     println(io, "-----------------------")
     println(io, "Problem Characteristics")
     println(io, "-----------------------")
@@ -149,10 +136,6 @@ function Base.show(io::IO, model::Model)
     println(io, "Number of nonzeros in Hessian:                   $(q[])")
     return
 end
-
-#=
-    LM license manager
-=#
 
 """
 Type declaration for the Artelys License Manager context object.
@@ -179,26 +162,21 @@ end
 Base.cconvert(::Type{Ptr{Cvoid}}, lm::LMcontext) = lm
 Base.unsafe_convert(::Type{Ptr{Cvoid}}, lm::LMcontext) = lm.ptr_lmcontext::Ptr{Cvoid}
 
-function Env(lm::LMcontext)
+function KN_new_lm(lm::LMcontext)
     ptrptr_env = Ref{Ptr{Cvoid}}()
     res = KN_new_lm(lm, ptrptr_env)
     if res != 0
         error("Fail to retrieve a valid KNITRO KN_context. Error $res")
     end
-    return Env(ptrptr_env[])
-end
-
-function Model(lm::LMcontext)
-    model = Model(Env(lm))
+    env = Env(ptrptr_env[])
+    model = Model(env)
     push!(lm.linked_models, model)
     return model
 end
 
-KN_new_lm(lm::LMcontext) = Model(lm)
-
 function KN_release_license(lm::LMcontext)
-    # First, ensure that all linked models are properly freed
-    # before releasing license manager!
+    # First, ensure that all linked models are properly freed before releasing
+    # license manager!
     KN_free.(lm.linked_models)
     if lm.ptr_lmcontext != C_NULL
         refptr = Ref{Ptr{Cvoid}}(lm.ptr_lmcontext)
@@ -213,7 +191,7 @@ function KN_solve(model::Model)
     # that Knitro is not multithreaded. Otherwise, the code will segfault
     # as we have trouble calling Julia code from multithreaded C
     # code. See issue #93 on https://github.com/jump-dev/KNITRO.jl.
-    if has_callbacks(model)
+    if !isempty(model.callbacks)
         if KNITRO_VERSION >= v"13.0"
             KN_set_int_param(model, KN_PARAM_MS_NUMTHREADS, 1)
             KN_set_int_param(model, KN_PARAM_NUMTHREADS, 1)
@@ -241,8 +219,6 @@ function KN_get_solution(model::Model)
     model.obj_val = obj[]
     return status[], obj[], model.x, model.mult
 end
-
-# Callbacks utilities.
 
 function KN_set_cb_user_params(model::Model, cb::CallbackContext, user_data=nothing)
     cb.user_data = user_data
