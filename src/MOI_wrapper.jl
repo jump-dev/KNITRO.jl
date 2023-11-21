@@ -1477,15 +1477,15 @@ end
 
 function _get_dual(model::Model, index::Integer)
     @assert model.env != C_NULL
-    if isempty(model.mult)
+    if isempty(model.lambda)
         nx, nc = Ref{Cint}(0), Ref{Cint}(0)
         KN_get_number_vars(model, nx)
         KN_get_number_cons(model, nc)
-        model.mult = zeros(Cdouble, nx[] + nc[])
+        model.lambda = zeros(Cdouble, nx[] + nc[])
         status, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
-        KN_get_solution(model, status, obj, C_NULL, model.mult)
+        KN_get_solution(model, status, obj, C_NULL, model.lambda)
     end
-    return model.mult[index]
+    return model.lambda[index]
 end
 
 function MOI.get(model::Optimizer, v::MOI.VariablePrimal, x::MOI.VariableIndex)

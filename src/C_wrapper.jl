@@ -20,48 +20,34 @@ mutable struct CallbackContext
     context::Ptr{Cvoid}
     n::Int
     m::Int
-    # Add a dictionnary to store user params.
     user_data::Any
-    # Oracle's callbacks are context dependent, so store
-    # them inside dedicated CallbackContext.
     eval_f::Function
     eval_g::Function
     eval_h::Function
     eval_rsd::Function
     eval_jac_rsd::Function
 
-    function CallbackContext(ptr_cb::Ptr{Cvoid})
-        return new(ptr_cb, 0, 0, nothing)
-    end
+    CallbackContext(ptr_cb::Ptr{Cvoid}) = new(ptr_cb, 0, 0, nothing)
 end
 
 Base.cconvert(::Type{Ptr{Cvoid}}, cb::CallbackContext) = cb
 Base.unsafe_convert(::Type{Ptr{Cvoid}}, cb::CallbackContext) = cb.context::Ptr{Cvoid}
 
 mutable struct Model
-    # KNITRO context environment.
     env::Env
-    # Keep reference to callbacks for garbage collector.
     callbacks::Vector{CallbackContext}
-    # Some structures for user_data
-    puts_user::Any
-    multistart_user::Any
-    mip_user::Any
-    newpoint_user::Any
-
-    # Solution values.
-    # Optimization status. Equal to 1 if problem is unsolved.
     status::Cint
     obj_val::Cdouble
     x::Vector{Cdouble}
-    mult::Vector{Cdouble}
-
-    # Special callbacks (undefined by default).
-    # (this functions do not depend on callback environments)
-    ms_process::Function
+    lambda::Vector{Cdouble}
+    newpt_user_data::Any
+    ms_process_user_data::Any
+    mip_node_user_data::Any
+    ms_initpt_user_data::Any
+    puts_user_data::Any
     newpt_callback::Function
-    mip_callback::Function
-    user_callback::Function
+    ms_process_callback::Function
+    mip_node_callback::Function
     ms_initpt_callback::Function
     puts_callback::Function
 
@@ -69,14 +55,14 @@ mutable struct Model
         return new(
             env,
             CallbackContext[],
-            nothing,
-            nothing,
-            nothing,
-            nothing,
             1,
-            Inf,
+            NaN,
             Cdouble[],
             Cdouble[],
+            nothing,
+            nothing,
+            nothing,
+            nothing,
         )
     end
 end
@@ -136,8 +122,6 @@ Applications must not modify any part of the context.
 """
 mutable struct LMcontext
     ptr_lmcontext::Ptr{Cvoid}
-    # Keep a pointer to instantiated models in order to free
-    # memory properly.
     linked_models::Vector{Model}
 
     function LMcontext()
@@ -204,12 +188,12 @@ function KN_get_solution(model::Model)
     KN_get_number_vars(model, nx)
     KN_get_number_cons(model, nc)
     model.x = zeros(Cdouble, nx[])
-    model.mult = zeros(Cdouble, nx[] + nc[])
+    model.lambda = zeros(Cdouble, nx[] + nc[])
     status, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
-    KN_get_solution(model, status, obj, model.x, model.mult)
+    KN_get_solution(model, status, obj, model.x, model.lambda)
     model.status = status[]
     model.obj_val = obj[]
-    return status[], obj[], model.x, model.mult
+    return status[], obj[], model.x, model.lambda
 end
 
 function KN_set_cb_user_params(model::Model, cb::CallbackContext, user_data=nothing)
@@ -593,7 +577,7 @@ function _newpt_wrapper(
         KN_get_number_cons(model, nc)
         x = unsafe_wrap(Array, ptr_x, nx[])
         lambda = unsafe_wrap(Array, ptr_lambda, nx[] + nc[])
-        return model.newpt_callback(model, x, lambda, model.newpoint_user)
+        return model.newpt_callback(model, x, lambda, model.newpt_user_data)
     end
 end
 
@@ -620,7 +604,7 @@ Note: Currently only active for continuous models.
 
 """
 function KN_set_newpt_callback(model::Model, callback::Function, user_data=nothing)
-    model.newpt_callback, model.newpoint_user = callback, user_data
+    model.newpt_callback, model.newpt_user_data = callback, user_data
     c_func = @cfunction(
         _newpt_wrapper,
         Cint,
@@ -645,7 +629,7 @@ function _ms_process_wrapper(
         KN_get_number_cons(model, nc)
         x = unsafe_wrap(Array, ptr_x, nx[])
         lambda = unsafe_wrap(Array, ptr_lambda, nx[] + nc[])
-        return model.ms_process(model, x, lambda, model.multistart_user)
+        return model.ms_process_callback(model, x, lambda, model.ms_process_user_data)
     end
 end
 
@@ -668,7 +652,7 @@ the last solve.
 
 """
 function KN_set_ms_process_callback(model::Model, callback::Function, user_data=nothing)
-    model.ms_process, model.multistart_user = callback, user_data
+    model.ms_process_callback, model.ms_process_user_data = callback, user_data
     c_func = @cfunction(
         _ms_process_wrapper,
         Cint,
@@ -693,7 +677,7 @@ function _mip_node_callback_wrapper(
         KN_get_number_cons(model, nc)
         x = unsafe_wrap(Array, ptr_x, nx[])
         lambda = unsafe_wrap(Array, ptr_lambda, nx[] + nc[])
-        return model.mip_callback(model, x, lambda, model.mip_user)
+        return model.mip_node_callback(model, x, lambda, model.mip_node_user_data)
     end
 end
 
@@ -716,7 +700,7 @@ Arguments `x` and `lambda` contain the solution from the node solve.
 
 """
 function KN_set_mip_node_callback(model::Model, callback::Function, user_data=nothing)
-    model.mip_callback, model.mip_user = callback, user_data
+    model.mip_node_callback, model.mip_node_user_data = callback, user_data
     c_func = @cfunction(
         _mip_node_callback_wrapper,
         Cint,
@@ -741,7 +725,7 @@ function _ms_initpt_wrapper(
     KN_get_number_cons(model, nc)
     x = unsafe_wrap(Array, ptr_x, nx[])
     lambda = unsafe_wrap(Array, ptr_lambda, nx[] + nc[])
-    return model.ms_initpt_callback(model, nSolveNumber, x, lambda, model.multistart_user)
+    return model.ms_initpt_callback(model, nSolveNumber, x, lambda, model.ms_initpt_user_data)
 end
 
 """
@@ -761,7 +745,7 @@ Knitro, which can be overwritten by the user.  The argument `nSolveNumber` is th
 the multistart solve.
 """
 function KN_set_ms_initpt_callback(model::Model, callback::Function, user_data=nothing)
-    model.ms_initpt_callback, model.multistart_user = callback, user_data
+    model.ms_initpt_callback, model.ms_initpt_user_data = callback, user_data
     c_func = @cfunction(
         _ms_initpt_wrapper,
         Cint,
@@ -776,7 +760,7 @@ end
 function _puts_callback_wrapper(str::Ptr{Cchar}, user_data::Ptr{Cvoid})::Cint
     return _try_catch_handler() do
         model = unsafe_pointer_to_objref(user_data)::Model
-        return model.puts_callback(unsafe_string(str), model.puts_user)
+        return model.puts_callback(unsafe_string(str), model.puts_user_data)
     end
 end
 
@@ -799,7 +783,7 @@ passed directly from KN_solve. The function should return the number of
 characters that were printed.
 """
 function KN_set_puts_callback(model::Model, callback::Function, user_data=nothing)
-    model.puts_callback, model.puts_user = callback, user_data
+    model.puts_callback, model.puts_user_data = callback, user_data
     c_func = @cfunction(_puts_callback_wrapper, Cint, (Ptr{Cchar}, Ptr{Cvoid}))
     KN_set_puts_callback(model, c_func, pointer_from_objref(model))
     return
