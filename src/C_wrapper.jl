@@ -412,7 +412,7 @@ function KN_add_eval_callback_all(model::Model, callback::Function)
         (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid})
     )
     rfptr = Ref{Ptr{Cvoid}}()
-    KN_add_eval_callback_all(model, c_f, rfptr)
+    KN_add_eval_callback_all(model, c_func, rfptr)
     cb = CallbackContext(rfptr[])
     push!(model.callbacks, cb)
     cb.eval_f = callback
@@ -583,7 +583,7 @@ function KN_add_lsq_eval_callback(model::Model, callback::Function)
     push!(model.callbacks, cb)
     cb.eval_rsd = callback
     KN_set_cb_user_params(model, cb)
-    return
+    return cb
 end
 
 function KN_set_cb_rsd_jac(
