@@ -7,15 +7,6 @@ mutable struct Env
     ptr_env::Ptr{Cvoid}
 end
 
-function Env()
-    ptrptr_env = Ref{Ptr{Cvoid}}()
-    res = KN_new(ptrptr_env)
-    if res != 0
-        error("Fail to retrieve a valid KNITRO KN_context. Error $res")
-    end
-    return Env(ptrptr_env[])
-end
-
 Base.cconvert(::Type{Ptr{Cvoid}}, env::Env) = env
 Base.unsafe_convert(::Type{Ptr{Cvoid}}, env::Env) = env.ptr_env::Ptr{Cvoid}
 
@@ -104,7 +95,12 @@ end
 
 "Create solver object."
 function KN_new()
-    model = Model(Env())
+    ptrptr_env = Ref{Ptr{Cvoid}}()
+    res = KN_new(ptrptr_env)
+    if res != 0
+        error("Fail to retrieve a valid KNITRO KN_context. Error $res")
+    end
+    model = Model(Env(ptrptr_env[]))
     finalizer(KN_free, model)
     return model
 end
@@ -168,8 +164,7 @@ function KN_new_lm(lm::LMcontext)
     if res != 0
         error("Fail to retrieve a valid KNITRO KN_context. Error $res")
     end
-    env = Env(ptrptr_env[])
-    model = Model(env)
+    model = Model(Env(ptrptr_env[]))
     push!(lm.linked_models, model)
     return model
 end
