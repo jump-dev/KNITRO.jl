@@ -50,20 +50,21 @@ function example_nlp2noderivs(; verbose=true)
     # Note: any unset lower bounds are assumed to be
     # unbounded below and any unset upper bounds are
     # assumed to be unbounded above.
-    xIndices = KNITRO.KN_add_vars(kc, 4)
+    xIndices = zeros(Cint, 4)
+    KNITRO.KN_add_vars(kc, 4, xIndices)
     for x in xIndices
         KNITRO.KN_set_var_primal_init_value(kc, x, 0.8)
     end
 
     # Add the constraints and set the rhs and coefficients
-    KNITRO.KN_add_cons(kc, 3)
+    KNITRO.KN_add_cons(kc, 3, C_NULL)
     KNITRO.KN_set_con_eqbnds_all(kc, [1.0, 0.0, 0.0])
 
     # Coefficients for 2 linear terms
     lconIndexCons = Int32[1, 2]
     lconIndexVars = Int32[2, 1]
     lconCoefs = [-1.0, -1.0]
-    KNITRO.KN_add_con_linear_struct(kc, lconIndexCons, lconIndexVars, lconCoefs)
+    KNITRO.KN_add_con_linear_struct(kc, 2, lconIndexCons, lconIndexVars, lconCoefs)
 
     # Coefficients for 2 quadratic terms
 
@@ -76,6 +77,7 @@ function example_nlp2noderivs(; verbose=true)
 
     KNITRO.KN_add_con_quadratic_struct(
         kc,
+        2,
         qconIndexCons,
         qconIndexVars1,
         qconIndexVars2,
@@ -93,7 +95,7 @@ function example_nlp2noderivs(; verbose=true)
 
     # Set option to println output after every iteration.
     kn_outlev = verbose ? KNITRO.KN_OUTLEV_ITER : KNITRO.KN_OUTLEV_NONE
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
+    KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
 
     # Solve the problem.
     #
@@ -101,18 +103,23 @@ function example_nlp2noderivs(; verbose=true)
     # in the Knitro manual.
     nStatus = KNITRO.KN_solve(kc)
     nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
-    varbndInfeas, varintInfeas, varviols = KNITRO.KN_get_var_viols(kc, Cint[0, 1, 2, 3])
-    coninfeas, conviols = KNITRO.KN_get_con_viols(kc, Cint[0, 1, 2])
-    err = KNITRO.KN_get_presolve_error(kc)
+    varbndInfeas, varintInfeas, varviols = zeros(Cint, 4), zeros(Cint, 4), zeros(Cdouble, 4)
+    KNITRO.KN_get_var_viols(kc, 4, Cint[0, 1, 2, 3], varbndInfeas, varintInfeas, varviols)
+    coninfeas, conviols = zeros(Cint, 3), zeros(Cdouble, 3)
+    KNITRO.KN_get_con_viols(kc, 3, Cint[0, 1, 2], coninfeas, conviols)
 
+    feasError = Ref{Cdouble}()
+    KNITRO.KN_get_abs_feas_error(kc, feasError)
     if verbose
         println()
         println("Knitro converged with final status = ", nStatus)
         # An example of obtaining solution information.
         println("  optimal objective value  = ", objSol)
         println("  optimal primal values x  = ", x)
-        println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
-        println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
+        optError = Ref{Cdouble}()
+        KNITRO.KN_get_abs_opt_error(kc, optError)
+        println("  feasibility violation    = ", feasError[])
+        println("  KKT optimality violation = ", optError[])
         println("Variables bound violations = ", varbndInfeas)
         println("Variables integrality violations = ", varintInfeas)
         println("Variables violation values = ", varviols)
@@ -126,7 +133,7 @@ function example_nlp2noderivs(; verbose=true)
         @test varviols ≈ [0.0, 0.0, 0.0, 0.0] atol = 1e-6
         @test coninfeas == [0, 0, 0]
         @test conviols ≈ [0.0, 0.0, 0.0] atol = 1e-6
-        @test KNITRO.KN_get_abs_feas_error(kc) == max(conviols...)
+        @test feasError[] == max(conviols...)
     end
 
     # Delete the Knitro solver instance.

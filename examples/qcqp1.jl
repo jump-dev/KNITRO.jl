@@ -30,18 +30,18 @@ function example_qcqp1(; verbose=true)
     options = joinpath(dirname(@__FILE__), "..", "examples", "knitro.opt")
     KNITRO.KN_load_param_file(kc, options)
     kn_outlev = verbose ? KNITRO.KN_OUTLEV_ITER : KNITRO.KN_OUTLEV_NONE
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
+    KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
 
     # Initialize Knitro with the problem definition.
 
     # Add the variables and set their bounds and initial values.
     # Note: unset bounds assumed to be infinite.
-    KNITRO.KN_add_vars(kc, 3)
+    KNITRO.KN_add_vars(kc, 3, C_NULL)
     KNITRO.KN_set_var_lobnds_all(kc, [0.0, 0.0, 0.0])
     KNITRO.KN_set_var_primal_init_values_all(kc, [2.0, 2.0, 2.0])
 
     # Add the constraints and set their bounds.
-    KNITRO.KN_add_cons(kc, 2)
+    KNITRO.KN_add_cons(kc, 2, C_NULL)
     KNITRO.KN_set_con_eqbnd(kc, 0, 56.0)
     KNITRO.KN_set_con_lobnd(kc, 1, 25.0)
 
@@ -85,11 +85,15 @@ function example_qcqp1(; verbose=true)
 
     # An example of obtaining solution information.
     if verbose
+        feasError = Ref{Cdouble}()
+        KNITRO.KN_get_abs_feas_error(kc, feasError)
+        optError = Ref{Cdouble}()
+        KNITRO.KN_get_abs_opt_error(kc, optError)
         println("Knitro converged with final status = ", nStatus)
         println("  optimal objective value  = ", objSol)
         println("  optimal primal values x  = ", x)
-        println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
-        println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
+        println("  feasibility violation    = ", feasError[])
+        println("  KKT optimality violation = ", optError[])
     end
 
     # Delete the Knitro solver instance.

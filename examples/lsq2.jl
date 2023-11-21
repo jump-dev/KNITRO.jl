@@ -98,7 +98,7 @@ function example_lsq2(; verbose=true)
     # unbounded below and any unset upper bounds are
     # assumed to be unbounded above.
     n = 2 # # of variables/parameters
-    KNITRO.KN_add_vars(kc, n)
+    KNITRO.KN_add_vars(kc, n, C_NULL)
 
     # In order to prevent the possiblity of numerical
     # overflow from very large numbers, we set a
@@ -110,7 +110,7 @@ function example_lsq2(; verbose=true)
 
     # Add the residuals.
     m = 6 # # of residuals
-    KNITRO.KN_add_rsds(kc, m)
+    KNITRO.KN_add_rsds(kc, m, C_NULL)
 
     # Set the array of constants in the residuals
     KNITRO.KN_add_rsd_constants_all(kc, [-2.138, -3.421, -3.597, -4.34, -4.882, -5.66])
@@ -132,7 +132,7 @@ function example_lsq2(; verbose=true)
     KNITRO.KN_set_cb_rsd_jac(kc, cb, KNITRO.KN_DENSE_ROWMAJOR, callbackEvalRJ)
 
     kn_outlev = verbose ? KNITRO.KN_OUTLEV_ALL : KNITRO.KN_OUTLEV_NONE
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
+    KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
 
     # Solve the problem.
     #

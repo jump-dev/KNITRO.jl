@@ -47,12 +47,12 @@ function example_mpec1(; verbose=true)
 
     # Add the variables and set their bounds and initial values.
     # Note: unset bounds assumed to be infinite.
-    KNITRO.KN_add_vars(kc, 8)
+    KNITRO.KN_add_vars(kc, 8, C_NULL)
     KNITRO.KN_set_var_lobnds_all(kc, zeros(Float64, 8))
     KNITRO.KN_set_var_primal_init_values_all(kc, zeros(Float64, 8))
 
     # Add the constraints and set their bounds.
-    KNITRO.KN_add_cons(kc, 4)
+    KNITRO.KN_add_cons(kc, 4, C_NULL)
     KNITRO.KN_set_con_eqbnds_all(kc, Float64[2, 3, -4, -7])
 
     # Add coefficients for all linear constraints at once.
@@ -77,7 +77,8 @@ function example_mpec1(; verbose=true)
     lconIndexVars = [lconIndexVars; Int32[0, 1, 7]]
     lconCoefs = [lconCoefs; [-1.0, -1.0, -1.0]]
 
-    KNITRO.KN_add_con_linear_struct(kc, lconIndexCons, lconIndexVars, lconCoefs)
+    nnz = length(lconIndexCons)
+    KNITRO.KN_add_con_linear_struct(kc, nnz, lconIndexCons, lconIndexVars, lconCoefs)
 
     # Note that the objective(x0 - 5)^2 +(2 x1 + 1)^2 when
     # expanded becomes:
@@ -87,12 +88,12 @@ function example_mpec1(; verbose=true)
     qobjIndexVars1 = Int32[0, 1]
     qobjIndexVars2 = Int32[0, 1]
     qobjCoefs = [1.0, 4.0]
-    KNITRO.KN_add_obj_quadratic_struct(kc, qobjIndexVars1, qobjIndexVars2, qobjCoefs)
+    KNITRO.KN_add_obj_quadratic_struct(kc, 2, qobjIndexVars1, qobjIndexVars2, qobjCoefs)
 
     # Add linear coefficients for the objective
     lobjIndexVars = Int32[0, 1]
     lobjCoefs = [-10.0, 4.0]
-    KNITRO.KN_add_obj_linear_struct(kc, lobjIndexVars, lobjCoefs)
+    KNITRO.KN_add_obj_linear_struct(kc, 2, lobjIndexVars, lobjCoefs)
 
     # Add constant to the objective
     KNITRO.KN_add_obj_constant(kc, 26.0)
@@ -107,7 +108,7 @@ function example_mpec1(; verbose=true)
     KNITRO.KN_set_compcons(kc, 3, ccTypes, indexComps1, indexComps2)
 
     kn_outlev = verbose ? KNITRO.KN_OUTLEV_ALL : KNITRO.KN_OUTLEV_NONE
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
+    KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
 
     # Solve the problem.
     #
@@ -119,6 +120,10 @@ function example_mpec1(; verbose=true)
     nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
 
     if verbose
+        feasError = Ref{Cdouble}()
+        KNITRO.KN_get_abs_feas_error(kc, feasError)
+        optError = Ref{Cdouble}()
+        KNITRO.KN_get_abs_opt_error(kc, optError)
         println("Knitro converged with final status = ", nStatus)
         println("  optimal objective value  = ", objSol)
         println("  optimal primal values x0=", x[1])
@@ -126,8 +131,8 @@ function example_mpec1(; verbose=true)
         println("                        x2=", (x[3], x[6]))
         println("                        x3=", (x[4], x[7]))
         println("                        x4=", (x[5], x[8]))
-        println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
-        println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
+        println("  feasibility violation    = ", feasError[])
+        println("  KKT optimality violation = ", optError[])
     end
 
     # Delete the Knitro solver instance.

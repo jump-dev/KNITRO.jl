@@ -143,13 +143,15 @@ function example_multiple_cb(; verbose=true)
     # Note: any unset lower bounds are assumed to be
     # unbounded below and any unset upper bounds are
     # assumed to be unbounded above.
-    xIndices = KNITRO.KN_add_vars(kc, 4)
+    xIndices = zeros(Cint, 4)
+    KNITRO.KN_add_vars(kc, 4, xIndices)
     for x in xIndices
         KNITRO.KN_set_var_primal_init_value(kc, x, 0.8)
     end
 
     # Add the constraints and set the rhs and coefficients
-    cIndices = KNITRO.KN_add_cons(kc, 3)
+    cIndices = zeros(Cint, 3)
+    KNITRO.KN_add_cons(kc, 3, cIndices)
     KNITRO.KN_set_con_eqbnd(kc, cIndices[1], 1.0)
     KNITRO.KN_set_con_eqbnd(kc, cIndices[2], 0.0)
     KNITRO.KN_set_con_eqbnd(kc, cIndices[3], 0.0)
@@ -158,7 +160,7 @@ function example_multiple_cb(; verbose=true)
     lconIndexCons = Int32[1, 2]
     lconIndexVars = Int32[2, 1]
     lconCoefs = [-1.0, -1.0]
-    KNITRO.KN_add_con_linear_struct(kc, lconIndexCons, lconIndexVars, lconCoefs)
+    KNITRO.KN_add_con_linear_struct(kc, 2, lconIndexCons, lconIndexVars, lconCoefs)
 
     # Coefficients for 2 quadratic terms
 
@@ -171,6 +173,7 @@ function example_multiple_cb(; verbose=true)
 
     KNITRO.KN_add_con_quadratic_struct(
         kc,
+        2,
         qconIndexCons,
         qconIndexVars1,
         qconIndexVars2,
@@ -226,10 +229,10 @@ function example_multiple_cb(; verbose=true)
     KNITRO.KN_set_obj_goal(kc, KNITRO.KN_OBJGOAL_MAXIMIZE)
 
     # Approximate hessian using BFGS
-    KNITRO.KN_set_param(kc, "hessopt", KNITRO.KN_HESSOPT_BFGS)
+    KNITRO.KN_set_int_param_by_name(kc, "hessopt", KNITRO.KN_HESSOPT_BFGS)
 
     kn_outlev = verbose ? KNITRO.KN_OUTLEV_ALL : KNITRO.KN_OUTLEV_NONE
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
+    KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
 
     # Solve the problem.
     #
@@ -240,11 +243,15 @@ function example_multiple_cb(; verbose=true)
 
     # An example of obtaining solution information.
     if verbose
+        feasError = Ref{Cdouble}()
+        KNITRO.KN_get_abs_feas_error(kc, feasError)
+        optError = Ref{Cdouble}()
+        KNITRO.KN_get_abs_opt_error(kc, optError)
         println("Knitro converged with final status = ", nStatus)
         println("  optimal objective value  = ", objSol)
         println("  optimal primal values x  = ", x)
-        println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
-        println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
+        println("  feasibility violation    = ", feasError[])
+        println("  KKT optimality violation = ", optError[])
     end
 
     # Delete the Knitro solver instance.

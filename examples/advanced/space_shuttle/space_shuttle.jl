@@ -301,12 +301,12 @@ objIndex, objCoef = ind_θ[end], 1.0
 KNITRO.KN_add_obj_linear_struct(kc, objIndex - 1, objCoef)
 KNITRO.KN_set_obj_goal(kc, KNITRO.KN_OBJGOAL_MAXIMIZE)
 
-KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_ALG, KNITRO.KN_ALG_BAR_DIRECT)
-KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_BAR_MURULE, KNITRO.KN_BAR_MURULE_QUALITY)
-KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_LINSOLVER, KNITRO.KN_LINSOLVER_MA27)
+KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_ALG, KNITRO.KN_ALG_BAR_DIRECT)
+KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_BAR_MURULE, KNITRO.KN_BAR_MURULE_QUALITY)
+KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_LINSOLVER, KNITRO.KN_LINSOLVER_MA27)
 
-KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_HESSOPT, KNITRO.KN_HESSOPT_LBFGS)
-KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_LMSIZE, 5)  # limited-memory pairs stored
+KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_HESSOPT, KNITRO.KN_HESSOPT_LBFGS)
+KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_LMSIZE, 5)  # limited-memory pairs stored
 
 KNITRO.KN_solve(kc)
 nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)

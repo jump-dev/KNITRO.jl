@@ -113,7 +113,7 @@ KNITRO.KN_set_con_lobnds(kc, [1.0, 0.0])
 # structure for these constraints.
 
 # First load quadratic structure x0*x1 for the first constraint
-KNITRO.KN_add_con_quadratic_struct(kc, 0, 0, 1, 1.0)
+KNITRO.KN_add_con_quadratic_struct_one(kc, 1, 0, Cint[0], Cint[1], [1.0])
 
 # Load structure for the second constraint.  below we add the linear
 # structure and the quadratic structure separately, though it
@@ -122,10 +122,10 @@ KNITRO.KN_add_con_quadratic_struct(kc, 0, 0, 1, 1.0)
 # supports adding linear terms.
 
 # Add linear term x0 in the second constraint
-KNITRO.KN_add_con_linear_struct(kc, 1, 0, 1.0)
+KNITRO.KN_add_con_linear_struct_one(kc, 1, 1, Cint[0], [1.0])
 
 # Add quadratic term x1^2 in the second constraint
-KNITRO.KN_add_con_quadratic_struct(kc, 1, 1, 1, 1.0)
+KNITRO.KN_add_con_quadratic_struct_one(kc, 1, 1, Cint[1], Cint[1], [1.0])
 
 # Add a callback function "callbackEvalF" to evaluate the nonlinear
 #(non-quadratic) objective.  Note that the linear and
@@ -160,13 +160,13 @@ KNITRO.KN_set_cb_hess(kc, cb, KNITRO.KN_DENSE_ROWMAJOR, callbackEvalH!)
 # Specify that the user is able to provide evaluations
 # of the hessian matrix without the objective component.
 # turned off by default but should be enabled if possible.
-KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_HESSIAN_NO_F, KNITRO.KN_HESSIAN_NO_F_ALLOW)
+KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_HESSIAN_NO_F, KNITRO.KN_HESSIAN_NO_F_ALLOW)
 
 # Set minimize or maximize(if not set, assumed minimize)
 KNITRO.KN_set_obj_goal(kc, KNITRO.KN_OBJGOAL_MINIMIZE)
 
 # Perform a derivative check.
-KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_DERIVCHECK, KNITRO.KN_DERIVCHECK_ALL)
+KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_DERIVCHECK, KNITRO.KN_DERIVCHECK_ALL)
 
 # Solve the problem.
 #
