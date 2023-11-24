@@ -37,20 +37,20 @@ function example_qp1(; verbose=true)
     options = joinpath(dirname(@__FILE__), "..", "examples", "knitro.opt")
     KNITRO.KN_load_param_file(kc, options)
     kn_outlev = verbose ? KNITRO.KN_OUTLEV_ITER : KNITRO.KN_OUTLEV_NONE
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
+    KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
 
     # Initialize Knitro with the problem definition.
 
     # Add the variables and set their bounds.
     # Note: unset bounds assumed to be infinite.
-    KNITRO.KN_add_vars(kc, 3)
+    KNITRO.KN_add_vars(kc, 3, C_NULL)
     KNITRO.KN_set_var_lobnds_all(kc, [0.0, 0.0, -3.0])
     KNITRO.KN_set_var_upbnd(kc, 2, 2.0)
 
     # Add the constraint and set the bound and coefficient.
-    KNITRO.KN_add_cons(kc, 1)
+    KNITRO.KN_add_cons(kc, 1, C_NULL)
     KNITRO.KN_set_con_upbnd(kc, 0, 5.0)
-    KNITRO.KN_add_con_linear_struct(kc, 0, 2, -6.0)
+    KNITRO.KN_add_con_linear_struct(kc, 1, Cint[0], Cint[2], [-6.0])
 
     # Set the coefficients for the objective -
     # can either set linear and quadratic objective structure
@@ -62,12 +62,12 @@ function example_qp1(; verbose=true)
         # First set linear objective structure.
         lobjIndexVars = Int32[0, 2]
         lobjCoefs = [11.0, 1.0]
-        KNITRO.KN_add_obj_linear_struct(kc, lobjIndexVars, lobjCoefs)
+        KNITRO.KN_add_obj_linear_struct(kc, 2, lobjIndexVars, lobjCoefs)
         # Now set quadratic objective structure.
         qobjIndexVars1 = Int32[0, 1, 2]
         qobjIndexVars2 = Int32[0, 1, 2]
         qobjCoefs = [0.5, 0.5, 0.5]
-        KNITRO.KN_add_obj_quadratic_struct(kc, qobjIndexVars1, qobjIndexVars2, qobjCoefs)
+        KNITRO.KN_add_obj_quadratic_struct(kc, 3, qobjIndexVars1, qobjIndexVars2, qobjCoefs)
     else
         # Example of how to set linear and quadratic objective
         # structure at once. Setting the 2nd variable index in a
@@ -75,7 +75,7 @@ function example_qp1(; verbose=true)
         indexVars1 = Int32[0, 1, 2, 0, 2]
         indexVars2 = Int32[0, 1, 2, -1, -1]  # -1 for linear coefficients
         objCoefs = [0.5, 0.5, 0.5, 11.0, 1.0]
-        KNITRO.KN_add_obj_quadratic_struct(kc, indexVars1, indexVars2, objCoefs)
+        KNITRO.KN_add_obj_quadratic_struct(kc, 5, indexVars1, indexVars2, objCoefs)
     end
 
     # Set minimize or maximize (if not set, assumed minimize)
@@ -83,7 +83,7 @@ function example_qp1(; verbose=true)
 
     # Enable iteration output and crossover procedure to try to
     # get more solution precision
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_BAR_MAXCROSSIT, 5)
+    KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_BAR_MAXCROSSIT, 5)
 
     # Solve the problem.
     #
@@ -94,11 +94,15 @@ function example_qp1(; verbose=true)
 
     # An example of obtaining solution information.
     if verbose
+        feasError = Ref{Cdouble}()
+        KNITRO.KN_get_abs_feas_error(kc, feasError)
+        optError = Ref{Cdouble}()
+        KNITRO.KN_get_abs_opt_error(kc, optError)
         println("Knitro converged with final status = ", nStatus)
         println("  optimal objective value  = ", objSol)
         println("  optimal primal values x  = ", x)
-        println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
-        println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
+        println("  feasibility violation    = ", feasError[])
+        println("  KKT optimality violation = ", optError[])
     end
     # Delete the Knitro solver instance.
     KNITRO.KN_free(kc)

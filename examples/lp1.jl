@@ -36,13 +36,15 @@ function example_lp1(; verbose=true)
 
     # Add the variables and set their bounds.
     # Note: unset bounds assumed to be infinite.
-    xIndices = KNITRO.KN_add_vars(kc, 4)
+    xIndices = zeros(Cint, 4)
+    KNITRO.KN_add_vars(kc, 4, xIndices)
     for x in xIndices
         KNITRO.KN_set_var_lobnd(kc, x, 0.0)
     end
 
     # Add the constraints and set the rhs and coefficients.
-    cons = KNITRO.KN_add_cons(kc, 2)
+    cons = zeros(Cint, 2)
+    KNITRO.KN_add_cons(kc, 2, cons)
     KNITRO.KN_set_con_eqbnds_all(kc, [5.0, 8.0])
     # Add Jacobian structure and coefficients.
     # First constraint
@@ -53,8 +55,8 @@ function example_lp1(; verbose=true)
     jacIndexCons = [jacIndexCons; Int32[1, 1, 1]]
     jacIndexVars = [jacIndexVars; Int32[0, 1, 3]]
     jacCoefs = [jacCoefs; [2.0, 0.5, 1.0]]
-    KNITRO.KN_add_con_linear_struct(kc, 0, Int32[0, 1, 2], [1.0, 1.0, 1.0])
-    KNITRO.KN_add_con_linear_struct(kc, 1, Int32[0, 1, 3], [2.0, 0.5, 1.0])
+    KNITRO.KN_add_con_linear_struct_one(kc, 3, 0, Int32[0, 1, 2], [1.0, 1.0, 1.0])
+    KNITRO.KN_add_con_linear_struct_one(kc, 3, 1, Int32[0, 1, 3], [2.0, 0.5, 1.0])
 
     # Set minimize or maximize (if not set, assumed minimize).
     KNITRO.KN_set_obj_goal(kc, KNITRO.KN_OBJGOAL_MINIMIZE)
@@ -65,7 +67,7 @@ function example_lp1(; verbose=true)
     KNITRO.KN_add_obj_linear_struct(kc, 2, objIndices, objCoefs)
 
     kn_outlev = verbose ? KNITRO.KN_OUTLEV_ALL : KNITRO.KN_OUTLEV_NONE
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
+    KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
 
     # Solve the problem.
     #
@@ -75,11 +77,15 @@ function example_lp1(; verbose=true)
     nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
 
     if verbose
+        feasError = Ref{Cdouble}()
+        KNITRO.KN_get_abs_feas_error(kc, feasError)
+        optError = Ref{Cdouble}()
+        KNITRO.KN_get_abs_opt_error(kc, optError)
         println("Knitro converged with final status = ", nStatus)
         println("  optimal objective value  = ", objSol)
         println("  optimal primal values x  = ", x)
-        println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
-        println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
+        println("  feasibility violation    = ", feasError[])
+        println("  KKT optimality violation = ", optError[])
     end
 
     # Delete the Knitro solver instance.

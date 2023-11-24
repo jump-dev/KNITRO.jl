@@ -93,7 +93,7 @@ function example_nlp1(; verbose=true)
     KNITRO.KN_load_param_file(kc, options)
 
     kn_outlev = verbose ? KNITRO.KN_OUTLEV_ALL : KNITRO.KN_OUTLEV_NONE
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
+    KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
 
     # Initialize Knitro with the problem definition.
 
@@ -102,7 +102,7 @@ function example_nlp1(; verbose=true)
     # unbounded below and any unset upper bounds are
     # assumed to be unbounded above.
     n = 2
-    KNITRO.KN_add_vars(kc, n)
+    KNITRO.KN_add_vars(kc, n, C_NULL)
     KNITRO.KN_set_var_lobnds_all(kc, [-KNITRO.KN_INFINITY, -KNITRO.KN_INFINITY]) # not necessary since infinite
     KNITRO.KN_set_var_upbnds_all(kc, [0.5, KNITRO.KN_INFINITY])
     # Define an initial point. If not set, Knitro will generate one.
@@ -110,14 +110,14 @@ function example_nlp1(; verbose=true)
 
     # Add the constraints and set their lower bounds
     m = 2
-    KNITRO.KN_add_cons(kc, m)
+    KNITRO.KN_add_cons(kc, m, C_NULL)
     KNITRO.KN_set_con_lobnds_all(kc, [1.0, 0.0])
 
     # Both constraints are quadratic so we can directly load all the
     # structure for these constraints.
 
     # First load quadratic structure x0*x1 for the first constraint
-    KNITRO.KN_add_con_quadratic_struct(kc, 0, 0, 1, 1.0)
+    KNITRO.KN_add_con_quadratic_struct_one(kc, 1, 0, Cint[0], Cint[1], [1.0])
 
     # Load structure for the second constraint.  below we add the linear
     # structure and the quadratic structure separately, though it
@@ -126,10 +126,10 @@ function example_nlp1(; verbose=true)
     # supports adding linear terms.
 
     # Add linear term x0 in the second constraint
-    KNITRO.KN_add_con_linear_struct(kc, 1, 0, 1.0)
+    KNITRO.KN_add_con_linear_struct_one(kc, 1, 1, Cint[0], [1.0])
 
     # Add quadratic term x1^2 in the second constraint
-    KNITRO.KN_add_con_quadratic_struct(kc, 1, 1, 1, 1.0)
+    KNITRO.KN_add_con_quadratic_struct_one(kc, 1, 1, Cint[1], Cint[1], [1.0])
 
     # Add a callback function "callbackEvalF" to evaluate the nonlinear
     #(non-quadratic) objective.  Note that the linear and
@@ -163,13 +163,13 @@ function example_nlp1(; verbose=true)
     # Specify that the user is able to provide evaluations
     # of the hessian matrix without the objective component.
     # turned off by default but should be enabled if possible.
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_HESSIAN_NO_F, KNITRO.KN_HESSIAN_NO_F_ALLOW)
+    KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_HESSIAN_NO_F, KNITRO.KN_HESSIAN_NO_F_ALLOW)
 
     # Set minimize or maximize(if not set, assumed minimize)
     KNITRO.KN_set_obj_goal(kc, KNITRO.KN_OBJGOAL_MINIMIZE)
 
     # Perform a derivative check.
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_DERIVCHECK, KNITRO.KN_DERIVCHECK_ALL)
+    KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_DERIVCHECK, KNITRO.KN_DERIVCHECK_ALL)
 
     # Solve the problem.
     #
@@ -187,12 +187,17 @@ function example_nlp1(; verbose=true)
             println("  x[$i] = ", x[i], "(lambda = ", lambda_[m+i], ")")
         end
         println("Optimal constraint values(with corresponding multiplier)")
-        c = KNITRO.KN_get_con_values(kc)
+        c = zeros(Cdouble, m)
+        KNITRO.KN_get_con_values_all(kc, c)
         for j in 1:m
             println("  c[$j] = ", c[j], "(lambda = ", lambda_[j], ")")
         end
-        println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
-        println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
+        feasError = Ref{Cdouble}()
+        KNITRO.KN_get_abs_feas_error(kc, feasError)
+        optError = Ref{Cdouble}()
+        KNITRO.KN_get_abs_opt_error(kc, optError)
+        println("  feasibility violation    = ", feasError[])
+        println("  KKT optimality violation = ", optError[])
     end
 
     # Delete the Knitro solver instance.

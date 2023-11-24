@@ -111,20 +111,26 @@ function example_nlp2(; verbose=true)
     function callbackNewPoint(kc, x, lambda_, userParams)
 
         # Get the number of variables in the model
-        n = KNITRO.KN_get_number_vars(kc)
+        n = Ref{Cint}()
+        KNITRO.KN_get_number_vars(kc, n)
 
         # Query information about the current problem.
-        dFeasError = KNITRO.KN_get_abs_feas_error(kc)
+        dFeasError = Ref{Cdouble}()
+        KNITRO.KN_get_abs_feas_error(kc, dFeasError)
 
         if verbose
             println(">> New point computed by Knitro:(", x, ")")
-            println("Number FC evals= ", KNITRO.KN_get_number_FC_evals(kc))
-            println("Current feasError= ", dFeasError)
+            pCint = Ref{Cint}()
+            KNITRO.KN_get_number_FC_evals(kc, pCint)
+            println("Number FC evals= ", pCint[])
+            println("Current feasError= ", dFeasError[])
         end
 
         # Demonstrate user-defined termination
         #(Uncomment to activate)
-        if KNITRO.KN_get_obj_value(kc) > 0.2 && dFeasError <= 1.0e-4
+        pObj = Ref{Cdouble}()
+        KNITRO.KN_get_obj_value(kc, pObj)
+        if pObj[] > 0.2 && dFeasError[] <= 1.0e-4
             return KNITRO.KN_RC_USER_TERMINATION
         end
 
@@ -144,20 +150,21 @@ function example_nlp2(; verbose=true)
     # Note: any unset lower bounds are assumed to be
     # unbounded below and any unset upper bounds are
     # assumed to be unbounded above.
-    xIndices = KNITRO.KN_add_vars(kc, 4)
+    xIndices = zeros(Cint, 4)
+    KNITRO.KN_add_vars(kc, 4, xIndices)
     for x in xIndices
         KNITRO.KN_set_var_primal_init_value(kc, x, 0.8)
     end
 
     # Add the constraints and set the rhs and coefficients
-    KNITRO.KN_add_cons(kc, 3)
+    KNITRO.KN_add_cons(kc, 3, C_NULL)
     KNITRO.KN_set_con_eqbnds_all(kc, [1.0, 0.0, 0.0])
 
     # Coefficients for 2 linear terms
     lconIndexCons = Int32[1, 2]
     lconIndexVars = Int32[2, 1]
     lconCoefs = [-1.0, -1.0]
-    KNITRO.KN_add_con_linear_struct(kc, lconIndexCons, lconIndexVars, lconCoefs)
+    KNITRO.KN_add_con_linear_struct(kc, 2, lconIndexCons, lconIndexVars, lconCoefs)
 
     # Coefficients for 2 quadratic terms
 
@@ -170,6 +177,7 @@ function example_nlp2(; verbose=true)
 
     KNITRO.KN_add_con_quadratic_struct(
         kc,
+        2,
         qconIndexCons,
         qconIndexVars1,
         qconIndexVars2,
@@ -224,7 +232,7 @@ function example_nlp2(; verbose=true)
 
     # Set option to println output after every iteration.
     kn_outlev = verbose ? KNITRO.KN_OUTLEV_ITER : KNITRO.KN_OUTLEV_NONE
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
+    KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
 
     # Solve the problem.
     #
@@ -239,8 +247,12 @@ function example_nlp2(; verbose=true)
         println("Knitro converged with final status = ", nStatus)
         println("  optimal objective value  = ", objSol)
         println("  optimal primal values x  = ", x)
-        println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
-        println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
+        feasError = Ref{Cdouble}()
+        KNITRO.KN_get_abs_feas_error(kc, feasError)
+        optError = Ref{Cdouble}()
+        KNITRO.KN_get_abs_opt_error(kc, optError)
+        println("  feasibility violation    = ", feasError[])
+        println("  KKT optimality violation = ", optError[])
     end
 
     # Delete the Knitro solver instance.

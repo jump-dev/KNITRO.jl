@@ -95,7 +95,7 @@ function example_restart(; verbose=true)
     options = joinpath(dirname(@__FILE__), "..", "examples", "knitro.opt")
     KNITRO.KN_load_param_file(kc, options)
     kn_outlev = verbose ? KNITRO.KN_OUTLEV_ITER : KNITRO.KN_OUTLEV_NONE
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
+    KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
 
     # Initialize knitro with the problem definition.
 
@@ -103,19 +103,19 @@ function example_restart(; verbose=true)
     # Note: any unset lower bounds are assumed to be
     # unbounded below and any unset upper bounds are
     # assumed to be unbounded above.
-    KNITRO.KN_add_vars(kc, 2)
+    KNITRO.KN_add_vars(kc, 2, C_NULL)
     KNITRO.KN_set_var_lobnds_all(kc, [-KNITRO.KN_INFINITY, -KNITRO.KN_INFINITY]) # not necessary since infinite
     KNITRO.KN_set_var_upbnds_all(kc, [0.5, KNITRO.KN_INFINITY])
 
     # Add the constraints and set their lower bounds
-    KNITRO.KN_add_cons(kc, 2)
+    KNITRO.KN_add_cons(kc, 2, C_NULL)
     KNITRO.KN_set_con_lobnds_all(kc, [1.0, 0.0])
 
     # Both constraints are quadratic so we can directly load all the
     # structure for these constraints.
 
     # First load quadratic structure x0*x1 for the first constraint
-    KNITRO.KN_add_con_quadratic_struct(kc, 0, 0, 1, 1.0)
+    KNITRO.KN_add_con_quadratic_struct_one(kc, 1, 0, Cint[0], Cint[1], [1.0])
 
     # Load structure for the second constraint.  below we add the linear
     # structure and the quadratic structure separately, though it
@@ -124,10 +124,10 @@ function example_restart(; verbose=true)
     # supports adding linear terms.
 
     # Add linear term x0 in the second constraint
-    KNITRO.KN_add_con_linear_struct(kc, 1, 0, 1.0)
+    KNITRO.KN_add_con_linear_struct_one(kc, 1, 1, Cint[0], [1.0])
 
     # Add quadratic term x1^2 in the second constraint
-    KNITRO.KN_add_con_quadratic_struct(kc, 1, 1, 1, 1.0)
+    KNITRO.KN_add_con_quadratic_struct_one(kc, 1, 1, Cint[1], Cint[1], [1.0])
 
     # Add a callback function "callbackEvalF" to evaluate the nonlinear
     #(non-quadratic) objective.  Note that the linear and
@@ -161,14 +161,14 @@ function example_restart(; verbose=true)
     # specify that the user is able to provide evaluations
     # of the hessian matrix without the objective component.
     # turned off by default but should be enabled if possible.
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_HESSIAN_NO_F, KNITRO.KN_HESSIAN_NO_F_ALLOW)
+    KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_HESSIAN_NO_F, KNITRO.KN_HESSIAN_NO_F_ALLOW)
 
     # Set minimize or maximize(if not set, assumed minimize)
     KNITRO.KN_set_obj_goal(kc, KNITRO.KN_OBJGOAL_MINIMIZE)
 
     # Turn output off and use Interior/Direct algorithm
-    KNITRO.KN_set_param(kc, "outlev", KNITRO.KN_OUTLEV_NONE)
-    KNITRO.KN_set_param(kc, "algorithm", KNITRO.KN_ALG_BAR_DIRECT)
+    KNITRO.KN_set_int_param_by_name(kc, "outlev", KNITRO.KN_OUTLEV_NONE)
+    KNITRO.KN_set_int_param_by_name(kc, "algorithm", KNITRO.KN_ALG_BAR_DIRECT)
 
     # Solve the problem.
     #
@@ -180,7 +180,7 @@ function example_restart(; verbose=true)
     # iteration in the barrier/interior-point solver.
     verbose && println("Changing a user option and re-solving...")
     for i in 1:6
-        KNITRO.KN_set_param(kc, "bar_murule", i)
+        KNITRO.KN_set_int_param_by_name(kc, "bar_murule", i)
         # Reset original initial point
         KNITRO.KN_set_var_primal_init_values_all(kc, [-2.0, 1.0])
         nStatus = KNITRO.KN_solve(kc)
@@ -188,12 +188,16 @@ function example_restart(; verbose=true)
             if nStatus != 0
                 println("  bar_murule=$i - Knitro failed to solve, status = $nStatus")
             else
+                pIters, pEvals, pObj = Ref{Cint}(), Ref{Cint}(), Ref{Cdouble}()
+                KNITRO.KN_get_number_iters(kc, pIters)
+                KNITRO.KN_get_number_FC_evals(kc, pEvals)
+                KNITRO.KN_get_obj_value(kc, pObj)
                 @printf(
                     "\n  bar_murule=%d - solved in %2d iters, %2d function evaluations, objective=%e",
                     i,
-                    KNITRO.KN_get_number_iters(kc),
-                    KNITRO.KN_get_number_FC_evals(kc),
-                    KNITRO.KN_get_obj_value(kc)
+                    pIters[],
+                    pEvals[],
+                    pObj[],
                 )
             end
         end
@@ -206,7 +210,7 @@ function example_restart(; verbose=true)
     # Change to the active-set algorithm and do not reset the
     # initial point, so the re-solves are "warm-started".
     verbose && println("\nChanging a variable bound and re-solving...")
-    KNITRO.KN_set_param(kc, "algorithm", KNITRO.KN_ALG_ACT_CG)
+    KNITRO.KN_set_int_param_by_name(kc, "algorithm", KNITRO.KN_ALG_ACT_CG)
     i = 0
 
     for i in 1:20
@@ -224,10 +228,12 @@ function example_restart(; verbose=true)
                     nStatus
                 )
             else
+                pIters = Ref{Cint}()
+                KNITRO.KN_get_number_iters(kc, pIters)
                 @printf(
                     "\n  x0 upper bound=%e - solved in %2d iters, x0=%e, objective=%e",
                     tmpbound,
-                    KNITRO.KN_get_number_iters(kc),
+                    pIters[],
                     x[1],
                     objSol
                 )
@@ -251,7 +257,8 @@ function example_restart(; verbose=true)
         tmpbound = 1.0 - 0.1 * i
         KNITRO.KN_set_con_lobnd(kc, 0, tmpbound)
         nStatus = KNITRO.KN_solve(kc)
-        c0 = KNITRO.KN_get_con_values(kc, 0)
+        c0 = Ref{Cdouble}()
+        KNITRO.KN_get_con_value(kc, 0, c0)
         if verbose
             if nStatus != 0
                 @printf(
@@ -260,16 +267,19 @@ function example_restart(; verbose=true)
                     nStatus
                 )
             else
+                pIter, pObj = Ref{Cint}(), Ref{Cdouble}()
+                KNITRO.KN_get_number_iters(kc, pIter)
+                KNITRO.KN_get_obj_value(kc, pObj)
                 @printf(
                     "\n  c0 lower bound=%e - solved in %2d iters, c0=%e, objective=%e",
                     tmpbound,
-                    KNITRO.KN_get_number_iters(kc),
-                    c0,
-                    KNITRO.KN_get_obj_value(kc)
+                    pIter[],
+                    c0[],
+                    pObj[],
                 )
             end
         end
-        if nStatus != 0 || c0 > tmpbound + 1e-4
+        if nStatus != 0 || c0[] > tmpbound + 1e-4
             break
         end
     end

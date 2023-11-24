@@ -16,24 +16,17 @@ else
     error("KNITRO.jl not properly installed. Please run `] build KNITRO`")
 end
 
-const IS_KNITRO_LOADED = endswith(libknitro, Libdl.dlext)
-KNITRO_VERSION = VersionNumber(0, 0, 0) # Fake a version for AutoMerge
+has_knitro() = endswith(libknitro, Libdl.dlext)
 
 function __init__()
     libiomp5 = replace(libknitro, "libknitro" => "libiomp5")
     if isfile(libiomp5)
         Libdl.dlopen(libiomp5)
     end
-    if IS_KNITRO_LOADED
-        len = 15
-        out = zeros(Cchar, len)
-        ccall((:KTR_get_release, libknitro), Any, (Cint, Ptr{Cchar}), len, out)
-        res = String(strip(String(convert(Vector{UInt8}, out)), '\0'))
-        global KNITRO_VERSION = VersionNumber(split(res, " ")[2])
-    end
-    if KNITRO_VERSION != v"0.0.0" && KNITRO_VERSION < v"11.0"
+    version = has_knitro() ? knitro_version() : v"0.0.0"
+    if version != v"0.0.0" && version < v"11.0"
         error(
-            "You have installed version $KNITRO_VERSION of Artelys " *
+            "You have installed version $version of Artelys " *
             "Knitro, which is not supported by KNITRO.jl. We require a " *
             "Knitro version greater than 11.0.",
         )
@@ -41,12 +34,15 @@ function __init__()
     return
 end
 
-has_knitro() = IS_KNITRO_LOADED
-knitro_version() = KNITRO_VERSION
+function knitro_version()
+    buffer = zeros(Cchar, 15)
+    ccall((:KTR_get_release, libknitro), Cint, (Cint, Ptr{Cchar}), 15, buffer)
+    version_string = GC.@preserve(buffer, unsafe_string(pointer(buffer)))
+    return VersionNumber(split(version_string, " ")[2])
+end
 
 include("libknitro.jl")
 include("C_wrapper.jl")
-include("callbacks.jl")
 include("MOI_wrapper.jl")
 
 end

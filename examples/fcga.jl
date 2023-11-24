@@ -108,20 +108,21 @@ function example_fcga(; verbose=true)
     # Note: any unset lower bounds are assumed to be
     # unbounded below and any unset upper bounds are
     # assumed to be unbounded above.
-    vars = KNITRO.KN_add_vars(kc, 4)
+    vars = zeros(Cint, 4)
+    KNITRO.KN_add_vars(kc, 4, vars)
     for x in vars
         KNITRO.KN_set_var_primal_init_value(kc, x, 0.8)
     end
 
     # Add the constraints and set the rhs and coefficients
-    KNITRO.KN_add_cons(kc, 3)
+    KNITRO.KN_add_cons(kc, 3, C_NULL)
     KNITRO.KN_set_con_eqbnds_all(kc, [1.0, 0.0, 0.0])
 
     # Coefficients for 2 linear terms
     lconIndexCons = Int32[1, 2]
     lconIndexVars = Int32[2, 1]
     lconCoefs = [-1.0, -1.0]
-    KNITRO.KN_add_con_linear_struct(kc, lconIndexCons, lconIndexVars, lconCoefs)
+    KNITRO.KN_add_con_linear_struct(kc, 2, lconIndexCons, lconIndexVars, lconCoefs)
 
     # Coefficients for 2 quadratic terms
 
@@ -132,6 +133,7 @@ function example_fcga(; verbose=true)
 
     KNITRO.KN_add_con_quadratic_struct(
         kc,
+        2,
         qconIndexCons,
         qconIndexVars1,
         qconIndexVars2,
@@ -185,11 +187,11 @@ function example_fcga(; verbose=true)
 
     # Set option to print output after every iteration.
     kn_outlev = verbose ? KNITRO.KN_OUTLEV_ITER : KNITRO.KN_OUTLEV_NONE
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
+    KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
 
     # Set option to tell Knitro that the gradients are being provided
     # with the functions in one callback.
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_EVAL_FCGA, KNITRO.KN_EVAL_FCGA_YES)
+    KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_EVAL_FCGA, KNITRO.KN_EVAL_FCGA_YES)
 
     # Solve the problem.
     #
@@ -197,14 +199,17 @@ function example_fcga(; verbose=true)
     # in the Knitro manual.
     nStatus = KNITRO.KN_solve(kc)
     nStatus, objSol, x, lambda_ = KNITRO.KN_get_solution(kc)
-
     # An example of obtaining solution information.
     if verbose
+        feasError = Ref{Cdouble}()
+        KNITRO.KN_get_abs_feas_error(kc, feasError)
+        optError = Ref{Cdouble}()
+        KNITRO.KN_get_abs_opt_error(kc, optError)
         println("Knitro converged with final status = ", nStatus)
         println("  optimal objective value  = ", objSol)
         println("  optimal primal values x  = ", x)
-        println("  feasibility violation    = ", KNITRO.KN_get_abs_feas_error(kc))
-        println("  KKT optimality violation = ", KNITRO.KN_get_abs_opt_error(kc))
+        println("  feasibility violation    = ", feasError[])
+        println("  KKT optimality violation = ", optError[])
     end
 
     # Delete the Knitro solver instance.
@@ -215,6 +220,7 @@ function example_fcga(; verbose=true)
         @test objSol ≈ 0.25
         @test x ≈ [0.793701, 0.707107, 0.529732, 0.840896] atol = 1e-5
     end
+    return
 end
 
 example_fcga(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)

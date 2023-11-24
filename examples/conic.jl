@@ -34,7 +34,7 @@ function example_conic(; verbose=true)
     ####*  unbounded below and any unset upper bounds are
     ####*  assumed to be unbounded above. */
     n = 4
-    KNITRO.KN_add_vars(kc, n)
+    KNITRO.KN_add_vars(kc, n, C_NULL)
 
     xLoBnds = [-KNITRO.KN_INFINITY, 1.0, -KNITRO.KN_INFINITY, 2.0]
     xUpBnds = [KNITRO.KN_INFINITY, KNITRO.KN_INFINITY, 1.0, KNITRO.KN_INFINITY]
@@ -43,7 +43,7 @@ function example_conic(; verbose=true)
 
     #** Add the constraints and set the RHS and coefficients */
     m = 3
-    KNITRO.KN_add_cons(kc, m)
+    KNITRO.KN_add_cons(kc, m, C_NULL)
     KNITRO.KN_set_con_upbnd(kc, 0, 0.0)
     KNITRO.KN_set_con_upbnd(kc, 1, 100.0)
     KNITRO.KN_set_con_upbnd(kc, 2, 100.0)
@@ -51,23 +51,23 @@ function example_conic(; verbose=true)
     #** coefficients for linear terms in constraint c2 */
     indexVars1 = Cint[1, 2]
     coefs1 = [2.0, 3.0]
-    KNITRO.KN_add_con_linear_struct(kc, 2, indexVars1, coefs1)
+    KNITRO.KN_add_con_linear_struct_one(kc, 2, 2, indexVars1, coefs1)
 
     #** coefficient for linear term in constraint c1 */
     indexVars2 = Cint[0]
     coefs2 = [5.0]
-    KNITRO.KN_add_con_linear_struct(kc, 1, indexVars2, coefs2)
+    KNITRO.KN_add_con_linear_struct_one(kc, 1, 1, indexVars2, coefs2)
 
     #** coefficient for linear term in constraint c0 */
     indexVars3 = Cint[1]
     coefs3 = [-10.0]
-    KNITRO.KN_add_con_linear_struct(kc, 0, indexVars3, coefs3)
+    KNITRO.KN_add_con_linear_struct_one(kc, 1, 0, indexVars3, coefs3)
 
     #** coefficient for quadratic term in constraint c1 */
-    qconIndexVar1 = 3
-    qconIndexVar2 = 3
-    qconCoef = 1.0
-    KNITRO.KN_add_con_quadratic_struct(kc, 1, qconIndexVar1, qconIndexVar2, qconCoef)
+    qconIndexVar1 = Cint[3]
+    qconIndexVar2 = Cint[3]
+    qconCoef = [1.0]
+    KNITRO.KN_add_con_quadratic_struct_one(kc, 1, 1, qconIndexVar1, qconIndexVar2, qconCoef)
 
     #** Coefficients for L2-norm constraint components in c0.
     #*  Assume the form ||Ax+b|| (here with b = 0)
@@ -90,27 +90,27 @@ function example_conic(; verbose=true)
     qobjIndexVars1 = Cint[0, 2, 3, 2, 1]
     qobjIndexVars2 = Cint[0, 2, 3, 3, 1]
     qobjCoefs = [1.0, 1.0, 1.0, 2.0, 1.0]
-    KNITRO.KN_add_obj_quadratic_struct(kc, qobjIndexVars1, qobjIndexVars2, qobjCoefs)
+    KNITRO.KN_add_obj_quadratic_struct(kc, 5, qobjIndexVars1, qobjIndexVars2, qobjCoefs)
 
     #** Add linear objective term. */
     lobjIndexVar = Cint[2]
     lobjCoef = [1.0]
-    KNITRO.KN_add_obj_linear_struct(kc, lobjIndexVar, lobjCoef)
+    KNITRO.KN_add_obj_linear_struct(kc, 1, lobjIndexVar, lobjCoef)
 
     #** Interior/Direct algorithm is required for models with
     #*  L2 norm structure.
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_ALGORITHM, KNITRO.KN_ALG_BAR_DIRECT)
+    KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_ALGORITHM, KNITRO.KN_ALG_BAR_DIRECT)
     #** Enable the special barrier tools for second order cone(SOC) constraints. */
-    KNITRO.KN_set_param(
+    KNITRO.KN_set_int_param(
         kc,
         KNITRO.KN_PARAM_BAR_CONIC_ENABLE,
         KNITRO.KN_BAR_CONIC_ENABLE_SOC,
     )
     #** Specify maximum output */
     outlev = verbose ? KNITRO.KN_OUTLEV_ALL : KNITRO.KN_OUTLEV_NONE
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, outlev)
+    KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_OUTLEV, outlev)
     #** Specify special barrier update rule */
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_BAR_MURULE, KNITRO.KN_BAR_MURULE_FULLMPC)
+    KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_BAR_MURULE, KNITRO.KN_BAR_MURULE_FULLMPC)
 
     #** Solve the problem.
     ####*
@@ -118,20 +118,23 @@ function example_conic(; verbose=true)
     ####*  in the Knitro manual. */
     nStatus = KNITRO.KN_solve(kc)
     nStatus, objSol, x, _ = KNITRO.KN_get_solution(kc)
-    feasError = KNITRO.KN_get_abs_feas_error(kc)
-    optError = KNITRO.KN_get_abs_opt_error(kc)
+    feasError = Ref{Cdouble}()
+    KNITRO.KN_get_abs_feas_error(kc, feasError)
+    optError = Ref{Cdouble}()
+    KNITRO.KN_get_abs_opt_error(kc, optError)
 
     #** An example of obtaining solution information. */
     if verbose
         println("Knitro converged with final status = ", nStatus)
         println("  optimal objective value  = ", objSol)
         println("  optimal primal values x  = ", x)
-        println("  feasibility violation    = ", feasError)
-        println("  KKT optimality violation = ", optError)
+        println("  feasibility violation    = ", feasError[])
+        println("  KKT optimality violation = ", optError[])
     end
 
     #** Delete the Knitro solver instance. */
-    return KNITRO.KN_free(kc)
+    KNITRO.KN_free(kc)
+    return
 end
 
 example_conic(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)

@@ -121,23 +121,29 @@ function example_minlp1(; verbose=true)
         # The Knitro context pointer was passed in through "userParams".
 
         # Print info about the status of the MIP solution.
-        numNodes = KNITRO.KN_get_mip_number_nodes(kc)
-        relaxBound = KNITRO.KN_get_mip_relaxation_bnd(kc)
+        numNodes = Ref{Cint}()
+        KNITRO.KN_get_mip_number_nodes(kc, numNodes)
+        relaxBound = Ref{Cdouble}()
+        KNITRO.KN_get_mip_relaxation_bnd(kc, relaxBound)
         # Note: To retrieve solution information about the node subproblem
         # we need to pass in "kcSub" here.
-        nodeObj = KNITRO.KN_get_obj_value(kc)
-        mip_io = KNITRO.KN_get_mip_incumbent_obj(kc)
-        mip_ag = KNITRO.KN_get_mip_abs_gap(kc)
-        mip_rg = KNITRO.KN_get_mip_rel_gap(kc)
+        nodeObj = Ref{Cdouble}()
+        KNITRO.KN_get_obj_value(kc, nodeObj)
+        mip_io = Ref{Cdouble}()
+        KNITRO.KN_get_mip_incumbent_obj(kc, mip_io)
+        mip_ag = Ref{Cdouble}()
+        KNITRO.KN_get_mip_abs_gap(kc, mip_ag)
+        mip_rg = Ref{Cdouble}()
+        KNITRO.KN_get_mip_rel_gap(kc, mip_rg)
 
         if verbose
             println("callbackProcessNode:")
-            println("    Node number    = ", numNodes)
-            println("    Node objective = ", nodeObj)
-            println("    Current relaxation bound = ", relaxBound)
-            println("    Current incumbent bound  = ", mip_io)
-            println("    Absolute integrality gap = ", mip_ag)
-            println("    Relative integrality gap = ", mip_rg)
+            println("    Node number    = ", numNodes[])
+            println("    Node objective = ", nodeObj[])
+            println("    Current relaxation bound = ", relaxBound[])
+            println("    Current incumbent bound  = ", mip_io[])
+            println("    Absolute integrality gap = ", mip_ag[])
+            println("    Relative integrality gap = ", mip_rg[])
         end
 
         # User defined termination example.
@@ -156,12 +162,12 @@ function example_minlp1(; verbose=true)
     kc = KNITRO.KN_new()
 
     # Illustrate how to override default options.
-    KNITRO.KN_set_param(kc, "mip_method", KNITRO.KN_MIP_METHOD_BB)
-    KNITRO.KN_set_param(kc, "algorithm", KNITRO.KN_ALG_ACT_CG)
-    KNITRO.KN_set_param(kc, "outmode", KNITRO.KN_OUTMODE_SCREEN)
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, KNITRO.KN_OUTLEV_ALL)
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_MIP_OUTINTERVAL, 1)
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_MIP_MAXNODES, 10000)
+    KNITRO.KN_set_int_param_by_name(kc, "mip_method", KNITRO.KN_MIP_METHOD_BB)
+    KNITRO.KN_set_int_param_by_name(kc, "algorithm", KNITRO.KN_ALG_ACT_CG)
+    KNITRO.KN_set_int_param_by_name(kc, "outmode", KNITRO.KN_OUTMODE_SCREEN)
+    KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_OUTLEV, KNITRO.KN_OUTLEV_ALL)
+    KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_MIP_OUTINTERVAL, 1)
+    KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_MIP_MAXNODES, 10000)
 
     # Initialize Knitro with the problem definition.
 
@@ -170,7 +176,7 @@ function example_minlp1(; verbose=true)
     # unbounded below and any unset upper bounds are
     # assumed to be unbounded above.
     n = 6
-    KNITRO.KN_add_vars(kc, n)
+    KNITRO.KN_add_vars(kc, n, C_NULL)
     KNITRO.KN_set_var_lobnds_all(kc, zeros(Float64, n))
     KNITRO.KN_set_var_upbnds_all(kc, [2.0, 2.0, 1.0, 1.0, 1.0, 1.0])
     ret = KNITRO.KN_set_var_types_all(
@@ -193,7 +199,7 @@ function example_minlp1(; verbose=true)
     end
 
     # Add the constraints and set their bounds
-    KNITRO.KN_add_cons(kc, 6)
+    KNITRO.KN_add_cons(kc, 6, C_NULL)
     KNITRO.KN_set_con_lobnds_all(
         kc,
         [
@@ -210,7 +216,7 @@ function example_minlp1(; verbose=true)
     # Add the linear structure in the objective function.
     objGradIndexVars = Int32[3, 4, 5, 0, 2]
     objGradCoefs = [5.0, 6.0, 8.0, 10.0, -7.0]
-    KNITRO.KN_add_obj_linear_struct(kc, objGradIndexVars, objGradCoefs)
+    KNITRO.KN_add_obj_linear_struct(kc, 5, objGradIndexVars, objGradCoefs)
 
     # Add the constant in the objective function.
     KNITRO.KN_add_obj_constant(kc, 10.0)
@@ -219,7 +225,13 @@ function example_minlp1(; verbose=true)
     jacIndexCons = Int32[0, 1, 1, 2, 2, 3, 3, 4, 4, 4, 5, 5]
     jacIndexVars = Int32[2, 2, 5, 1, 0, 1, 3, 0, 1, 4, 3, 4]
     jacCoefs = [-0.8, -1.0, -2.0, 1.0, -1.0, 1.0, -2.0, 1.0, -1.0, -2.0, 1.0, 1.0]
-    KNITRO.KN_add_con_linear_struct(kc, jacIndexCons, jacIndexVars, jacCoefs)
+    KNITRO.KN_add_con_linear_struct(
+        kc,
+        length(jacIndexCons),
+        jacIndexCons,
+        jacIndexVars,
+        jacCoefs,
+    )
 
     # Add a callback function "callbackEvalFC" to evaluate the nonlinear
     # structure in the objective and first two constraints.  Note that
@@ -271,7 +283,7 @@ function example_minlp1(; verbose=true)
     # Specify that the user is able to provide evaluations
     #  of the Hessian matrix without the objective component.
     #  turned off by default but should be enabled if possible.
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_HESSIAN_NO_F, KNITRO.KN_HESSIAN_NO_F_ALLOW)
+    KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_HESSIAN_NO_F, KNITRO.KN_HESSIAN_NO_F_ALLOW)
 
     # Set minimize or maximize(if not set, assumed minimize)
     KNITRO.KN_set_obj_goal(kc, KNITRO.KN_OBJGOAL_MINIMIZE)
@@ -281,7 +293,7 @@ function example_minlp1(; verbose=true)
     KNITRO.KN_set_mip_node_callback(kc, callbackProcessNode)
 
     kn_outlev = verbose ? KNITRO.KN_OUTLEV_ALL : KNITRO.KN_OUTLEV_NONE
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
+    KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
 
     # Solve the problem.
     #

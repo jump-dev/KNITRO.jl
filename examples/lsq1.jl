@@ -42,11 +42,11 @@ function example_lsq1(; verbose=true)
     # unbounded below and any unset upper bounds are
     # assumed to be unbounded above.
     n = 3 # # of variables/parameters
-    KNITRO.KN_add_vars(kc, n)
+    KNITRO.KN_add_vars(kc, n, C_NULL)
 
     # Add the residuals.
     m = 5 # # of residuals
-    KNITRO.KN_add_rsds(kc, m)
+    KNITRO.KN_add_rsds(kc, m, C_NULL)
 
     # Set the array of constants, y, in the residuals
     KNITRO.KN_add_rsd_constants_all(kc, [1.0, 0.5, 0.0, 0.5, 2.0])
@@ -79,10 +79,10 @@ function example_lsq1(; verbose=true)
     coefs = [coefs; [-1.0, -1.0, -1.0]]
 
     # Pass in the linear coefficients
-    KNITRO.KN_add_rsd_linear_struct(kc, indexRsds, indexVars, coefs)
+    KNITRO.KN_add_rsd_linear_struct(kc, length(indexRsds), indexRsds, indexVars, coefs)
 
     kn_outlev = verbose ? KNITRO.KN_OUTLEV_ALL : KNITRO.KN_OUTLEV_NONE
-    KNITRO.KN_set_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
+    KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_OUTLEV, kn_outlev)
 
     # Solve the problem.
     #
