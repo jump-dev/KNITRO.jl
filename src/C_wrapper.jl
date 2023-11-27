@@ -73,10 +73,11 @@ Base.unsafe_convert(::Type{Ptr{Cvoid}}, kn::Model) = kn.env.ptr_env::Ptr{Cvoid}
 "Free solver object."
 function KN_free(model::Model)
     if model.env.ptr_env != C_NULL
-        KN_free(Ref(model.env.ptr_env))
+        ret = KN_free(Ref(model.env.ptr_env))
         model.env.ptr_env = C_NULL
+        return ret
     end
-    return
+    return Cint(0)
 end
 
 "Create solver object."
@@ -211,8 +212,7 @@ function KN_set_cb_user_params(model::Model, cb::CallbackContext, user_data=noth
     cb.n = p[]
     KN_get_number_cons(model, p)
     cb.m = p[]
-    KN_set_cb_user_params(model.env, cb, pointer_from_objref(cb))
-    return
+    return KN_set_cb_user_params(model.env, cb, pointer_from_objref(cb))
 end
 
 mutable struct EvalRequest
@@ -451,7 +451,7 @@ function KN_set_cb_grad(
             (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid})
         )
     end
-    KN_set_cb_grad(
+    return KN_set_cb_grad(
         model,
         cb,
         nV,
@@ -461,7 +461,6 @@ function KN_set_cb_grad(
         jacIndexVars,
         c_func,
     )
-    return
 end
 
 """
@@ -501,8 +500,7 @@ function KN_set_cb_hess(
         Cint,
         (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid})
     )
-    KN_set_cb_hess(model, cb, nnzH, hessIndexVars1, hessIndexVars2, c_func)
-    return
+    return KN_set_cb_hess(model, cb, nnzH, hessIndexVars1, hessIndexVars2, c_func)
 end
 
 """
@@ -558,8 +556,7 @@ function KN_set_cb_rsd_jac(
         Cint,
         (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid})
     )
-    KN_set_cb_rsd_jac(model, cb, nnzJ, jacIndexRsds, jacIndexVars, c_func)
-    return
+    return KN_set_cb_rsd_jac(model, cb, nnzJ, jacIndexRsds, jacIndexVars, c_func)
 end
 
 # KN_set_newpt_callback
