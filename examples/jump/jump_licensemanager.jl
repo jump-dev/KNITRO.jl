@@ -20,7 +20,8 @@ lm = KNITRO.LMcontext()
 nruns = 10
 
 for i in 1:nruns
-    model = Model(() -> KNITRO.Optimizer(license_manager=lm, outlev=1))
+    model = Model(() -> KNITRO.Optimizer(license_manager=lm))
+    set_attribute(model, "outlev", 1)
 
     initval = [1, 5, 5, 1]
 
