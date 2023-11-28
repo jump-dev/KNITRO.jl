@@ -134,9 +134,7 @@ end
 
 function Optimizer(; license_manager::Union{LMcontext,Nothing}=nothing, kwargs...)
     if !isempty(kwargs)
-        error(
-            "Unsupported keyword arguments passed to `Optimizer`. Set attributes instead",
-        )
+        error("Unsupported keyword arguments passed to `Optimizer`. Set attributes instead")
     end
     kc = if isa(license_manager, LMcontext)
         KN_new_lm(license_manager)
@@ -1102,7 +1100,7 @@ function MOI.optimize!(model::Optimizer)
     @_checked KN_set_int_param_by_name(model.inner, "hessian_no_f", 1)
     if _has_complementarity(model.complementarity_cache)
         @_checked KN_set_compcons(
-           model.inner,
+            model.inner,
             length(model.complementarity_cache.cc_types),
             model.complementarity_cache.cc_types,
             model.complementarity_cache.index_comps_1,
