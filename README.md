@@ -10,6 +10,10 @@ It has two components:
  - a thin wrapper around the [C API](https://www.artelys.com/tools/knitro_doc/3_referenceManual/callableLibraryAPI.html)
  - an interface to [MathOptInterface](https://github.com/jump-dev/MathOptInterface.jl).
 
+**KNITRO.jl v0.14.0 introduced a number of breaking changes to the low-level C
+API. No breaking changes have been made to the MathOptInterface API. See the
+Low-level wrapper section for details.**
+
 ## Affiliation
 
 This wrapper is maintained by the JuMP community with help from Artelys.
@@ -125,12 +129,36 @@ A list of available options is provided in the
 
 ## Low-level wrapper
 
-KNITRO.jl implements most of Knitro's functionalities. If you aim at using part
-of Knitro's API that are not implemented in the MathOptInterface/JuMP ecosystem,
-you can refer to the low-level API, which wraps Knitro's C API (whose templates
-are specified in the file `knitro.h`).
+The complete C API can be accessed via `KNITRO.KN_xx` functions, where the names
+and arguments are identical to the C API.
+
+See the [KNITRO documentation](https://www.artelys.com/app/docs/knitro/)
+for details.
+
+As general rules when converting from Julia to C:
+
+ * When KNITRO requires a `Ptr{T}` that holds one element, like `double *`,
+   use a `Ref{T}()`.
+ * When KNITRO requires a `Ptr{T}` that holds multiple elements, use
+   a `Vector{T}`.
+ * When KNITRO requires a `double`, use `Cdouble`
+ * When KNITRO requires an `int`, use `Cint`
+ * When KNITRO requires a `NULL`, use `C_NULL`
 
 Extensive examples using the C wrapper can be found in `examples/`.
+
+### Breaking changes
+
+KNITRO.jl v0.14.0 introduced a number of breaking changes to the low-level C
+API. The main changes were:
+
+1) removing Julia-specific functions like `KN_set_param`. Use the C API functions
+   like `KN_set_int_param` and `KN_set_double_param_by_name`.
+2) removing intermediate methods that tried to make the C API more Julia-like.
+   For example, we have removed the `KN_add_var` method that returned the index of
+   the variable. There is now only the method from the C API.
+
+If you have trouble updating, please open a GitHub issue.
 
 ## Multi-threading
 
