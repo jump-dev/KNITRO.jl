@@ -111,12 +111,11 @@ end
 
 function test_RawOptimizerAttribute()
     model = MOI.instantiate(KNITRO.Optimizer)
-    MOI.add_variable(model)
     attr = MOI.RawOptimizerAttribute("bad_attr")
     @test !MOI.supports(model, attr)
     @test_throws MOI.UnsupportedAttribute{typeof(attr)} MOI.get(model, attr)
     @test_throws MOI.UnsupportedAttribute{typeof(attr)} MOI.set(model, attr, 0)
-    attr = MOI.RawOptimizerAttribute("maxtime_cpu")
+    attr = MOI.RawOptimizerAttribute("maxtime_real")
     @test MOI.supports(model, attr)
     @test_throws MOI.GetAttributeNotAllowed{typeof(attr)} MOI.get(model, attr)
     MOI.set(model, attr, 10.0)
