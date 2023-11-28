@@ -3,6 +3,17 @@
 # Use of this source code is governed by an MIT-style license that can be found
 # in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
+macro _checked(expr)
+    @assert Meta.isexpr(expr, :call)
+    msg = "unexpected return code from $(expr.args[1]): "
+    return quote
+        ret = $(esc(expr))
+        if ret != 0
+            error($msg * string(ret))
+        end
+    end
+end
+
 mutable struct Env
     ptr_env::Ptr{Cvoid}
 end
@@ -83,10 +94,7 @@ end
 "Create solver object."
 function KN_new()
     ptrptr_env = Ref{Ptr{Cvoid}}()
-    res = KN_new(ptrptr_env)
-    if res != 0
-        error("Fail to retrieve a valid KNITRO KN_context. Error $res")
-    end
+    @_checked KN_new(ptrptr_env)
     model = Model(Env(ptrptr_env[]))
     finalizer(KN_free, model)
     return model
@@ -103,16 +111,16 @@ function Base.show(io::IO, model::Model)
     println(io, "-----------------------")
     println(io, "Objective goal:  Minimize")
     p = Ref{Cint}()
-    KN_get_obj_type(model, p)
+    @_checked KN_get_obj_type(model, p)
     println(io, "Objective type:  $(p[])")
-    KN_get_number_vars(model, p)
+    @_checked KN_get_number_vars(model, p)
     println(io, "Number of variables:                             $(p[])")
-    KN_get_number_cons(model, p)
+    @_checked KN_get_number_cons(model, p)
     println(io, "Number of constraints:                           $(p[])")
     q = Ref{KNLONG}()
-    KN_get_jacobian_nnz(model, q)
+    @_checked KN_get_jacobian_nnz(model, q)
     println(io, "Number of nonzeros in Jacobian:                  $(q[])")
-    KN_get_hessian_nnz(model, q)
+    @_checked KN_get_hessian_nnz(model, q)
     println(io, "Number of nonzeros in Hessian:                   $(q[])")
     return
 end
@@ -127,10 +135,7 @@ mutable struct LMcontext
 
     function LMcontext()
         ptrref = Ref{Ptr{Cvoid}}()
-        res = KN_checkout_license(ptrref)
-        if res != 0
-            error("KNITRO: Error checkout license")
-        end
+        @_checked KN_checkout_license(ptrref)
         lm = new(ptrref[], Model[])
         finalizer(KN_release_license, lm)
         return lm
@@ -142,10 +147,7 @@ Base.unsafe_convert(::Type{Ptr{Cvoid}}, lm::LMcontext) = lm.ptr_lmcontext::Ptr{C
 
 function KN_new_lm(lm::LMcontext)
     ptrptr_env = Ref{Ptr{Cvoid}}()
-    res = KN_new_lm(lm, ptrptr_env)
-    if res != 0
-        error("Fail to retrieve a valid KNITRO KN_context. Error $res")
-    end
+    @_checked KN_new_lm(lm, ptrptr_env)
     model = Model(Env(ptrptr_env[]))
     push!(lm.linked_models, model)
     return model
@@ -154,10 +156,12 @@ end
 function KN_release_license(lm::LMcontext)
     # First, ensure that all linked models are properly freed before releasing
     # license manager!
-    KN_free.(lm.linked_models)
+    for model in lm.linked_models
+        @_checked KN_free(model)
+    end
     if lm.ptr_lmcontext != C_NULL
         refptr = Ref{Ptr{Cvoid}}(lm.ptr_lmcontext)
-        KN_release_license(refptr)
+        @_checked KN_release_license(refptr)
         lm.ptr_lmcontext = C_NULL
     end
     return
@@ -170,12 +174,12 @@ function KN_solve(model::Model)
     # code. See issue #93 on https://github.com/jump-dev/KNITRO.jl.
     if !isempty(model.callbacks)
         if knitro_version() >= v"13.0"
-            KN_set_int_param(model, KN_PARAM_MS_NUMTHREADS, 1)
-            KN_set_int_param(model, KN_PARAM_NUMTHREADS, 1)
-            KN_set_int_param(model, KN_PARAM_MIP_NUMTHREADS, 1)
+            @_checked KN_set_int_param(model, KN_PARAM_MS_NUMTHREADS, 1)
+            @_checked KN_set_int_param(model, KN_PARAM_NUMTHREADS, 1)
+            @_checked KN_set_int_param(model, KN_PARAM_MIP_NUMTHREADS, 1)
         else
-            KN_set_int_param_by_name(model, "par_numthreads", 1)
-            KN_set_int_param_by_name(model, "par_msnumthreads", 1)
+            @_checked KN_set_int_param_by_name(model, "par_numthreads", 1)
+            @_checked KN_set_int_param_by_name(model, "par_msnumthreads", 1)
         end
     end
     # For KN_solve, we do not return an error if ret is different of 0.
@@ -186,12 +190,12 @@ end
 function KN_get_solution(model::Model)
     @assert model.env != C_NULL
     nx, nc = Ref{Cint}(0), Ref{Cint}(0)
-    KN_get_number_vars(model, nx)
-    KN_get_number_cons(model, nc)
+    @_checked KN_get_number_vars(model, nx)
+    @_checked KN_get_number_cons(model, nc)
     model.x = zeros(Cdouble, nx[])
     model.lambda = zeros(Cdouble, nx[] + nc[])
     status, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
-    KN_get_solution(model, status, obj, model.x, model.lambda)
+    @_checked KN_get_solution(model, status, obj, model.x, model.lambda)
     model.status = status[]
     model.obj_val = obj[]
     return status[], obj[], model.x, model.lambda
@@ -208,9 +212,9 @@ function KN_set_cb_user_params(model::Model, cb::CallbackContext, user_data=noth
     # the arrays of primal variable x and dual variable \lambda have fixed
     # sizes.
     p = Ref{Cint}(0)
-    KN_get_number_vars(model, p)
+    @_checked KN_get_number_vars(model, p)
     cb.n = p[]
-    KN_get_number_cons(model, p)
+    @_checked KN_get_number_cons(model, p)
     cb.m = p[]
     return KN_set_cb_user_params(model.env, cb, pointer_from_objref(cb))
 end
@@ -257,11 +261,11 @@ mutable struct EvalResult
         hessian_nnz = Ref{KNLONG}()
         num_rsds = Ref{Cint}()
         rsd_jacobian_nnz = Ref{KNLONG}()
-        KN_get_cb_objgrad_nnz(kc, cb, objgrad_nnz)
-        KN_get_cb_jacobian_nnz(kc, cb, jacobian_nnz)
-        KN_get_cb_hessian_nnz(kc, cb, hessian_nnz)
-        KN_get_cb_number_rsds(kc, cb, num_rsds)
-        KN_get_cb_rsd_jacobian_nnz(kc, cb, rsd_jacobian_nnz)
+        @_checked KN_get_cb_objgrad_nnz(kc, cb, objgrad_nnz)
+        @_checked KN_get_cb_jacobian_nnz(kc, cb, jacobian_nnz)
+        @_checked KN_get_cb_hessian_nnz(kc, cb, hessian_nnz)
+        @_checked KN_get_cb_number_rsds(kc, cb, num_rsds)
+        @_checked KN_get_cb_rsd_jacobian_nnz(kc, cb, rsd_jacobian_nnz)
         return new(
             unsafe_wrap(Array, result.obj, 1),
             unsafe_wrap(Array, result.c, m),
@@ -364,11 +368,11 @@ function KN_add_eval_callback_all(model::Model, callback::Function)
         (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid})
     )
     rfptr = Ref{Ptr{Cvoid}}()
-    KN_add_eval_callback_all(model, c_func, rfptr)
+    @_checked KN_add_eval_callback_all(model, c_func, rfptr)
     cb = CallbackContext(rfptr[])
     push!(model.callbacks, cb)
     cb.eval_f = callback
-    KN_set_cb_user_params(model, cb)
+    @_checked KN_set_cb_user_params(model, cb)
     return cb
 end
 
@@ -379,11 +383,11 @@ function KN_add_objective_callback(model::Model, callback::Function)
         (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid})
     )
     rfptr = Ref{Ptr{Cvoid}}()
-    KN_add_eval_callback_one(model, Cint(-1), c_func, rfptr)
+    @_checked KN_add_eval_callback_one(model, Cint(-1), c_func, rfptr)
     cb = CallbackContext(rfptr[])
     push!(model.callbacks, cb)
     cb.eval_f = callback
-    KN_set_cb_user_params(model, cb)
+    @_checked KN_set_cb_user_params(model, cb)
     return cb
 end
 
@@ -399,11 +403,13 @@ function KN_add_eval_callback(
         (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid})
     )
     rfptr = Ref{Ptr{Cvoid}}()
-    KN_add_eval_callback(model, evalObj, length(indexCons), indexCons, c_func, rfptr)
+    @_checked(
+        KN_add_eval_callback(model, evalObj, length(indexCons), indexCons, c_func, rfptr),
+    )
     cb = CallbackContext(rfptr[])
     push!(model.callbacks, cb)
     cb.eval_f = callback
-    KN_set_cb_user_params(model, cb)
+    @_checked KN_set_cb_user_params(model, cb)
     return cb
 end
 
@@ -428,7 +434,7 @@ function KN_set_cb_grad(
 )
     if nnzJ === nothing
         p = Ref{Cint}(0)
-        KN_get_number_cons(model, p)
+        @_checked KN_get_number_cons(model, p)
         nnzJ = iszero(p[]) ? KNLONG(0) : KNITRO.KN_DENSE_COLMAJOR
     end
     if (nV == 0 || nV == KN_DENSE)
@@ -528,11 +534,11 @@ function KN_add_lsq_eval_callback(model::Model, callback::Function)
         (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid})
     )
     rfptr = Ref{Ptr{Cvoid}}()
-    KN_add_lsq_eval_callback_all(model, c_func, rfptr)
+    @_checked KN_add_lsq_eval_callback_all(model, c_func, rfptr)
     cb = CallbackContext(rfptr[])
     push!(model.callbacks, cb)
     cb.eval_rsd = callback
-    KN_set_cb_user_params(model, cb)
+    @_checked KN_set_cb_user_params(model, cb)
     return cb
 end
 
@@ -570,8 +576,8 @@ function _newpt_wrapper(
     return _try_catch_handler() do
         model = unsafe_pointer_to_objref(user_data)::Model
         nx, nc = Ref{Cint}(0), Ref{Cint}(0)
-        KN_get_number_vars(model, nx)
-        KN_get_number_cons(model, nc)
+        @_checked KN_get_number_vars(model, nx)
+        @_checked KN_get_number_cons(model, nc)
         x = unsafe_wrap(Array, ptr_x, nx[])
         lambda = unsafe_wrap(Array, ptr_lambda, nx[] + nc[])
         return model.newpt_callback(model, x, lambda, model.newpt_user_data)
@@ -607,8 +613,7 @@ function KN_set_newpt_callback(model::Model, callback::Function, user_data=nothi
         Cint,
         (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid})
     )
-    KN_set_newpt_callback(model, c_func, pointer_from_objref(model))
-    return
+    return KN_set_newpt_callback(model, c_func, pointer_from_objref(model))
 end
 
 # KN_set_ms_process_callback
@@ -622,8 +627,8 @@ function _ms_process_wrapper(
     return _try_catch_handler() do
         model = unsafe_pointer_to_objref(user_data)::Model
         nx, nc = Ref{Cint}(0), Ref{Cint}(0)
-        KN_get_number_vars(model, nx)
-        KN_get_number_cons(model, nc)
+        @_checked KN_get_number_vars(model, nx)
+        @_checked KN_get_number_cons(model, nc)
         x = unsafe_wrap(Array, ptr_x, nx[])
         lambda = unsafe_wrap(Array, ptr_lambda, nx[] + nc[])
         return model.ms_process_callback(model, x, lambda, model.ms_process_user_data)
@@ -655,8 +660,7 @@ function KN_set_ms_process_callback(model::Model, callback::Function, user_data=
         Cint,
         (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid})
     )
-    KN_set_ms_process_callback(model, c_func, pointer_from_objref(model))
-    return
+    return KN_set_ms_process_callback(model, c_func, pointer_from_objref(model))
 end
 
 # KN_set_mip_node_callback
@@ -670,8 +674,8 @@ function _mip_node_callback_wrapper(
     return _try_catch_handler() do
         model = unsafe_pointer_to_objref(user_data)::Model
         nx, nc = Ref{Cint}(0), Ref{Cint}(0)
-        KN_get_number_vars(model, nx)
-        KN_get_number_cons(model, nc)
+        @_checked KN_get_number_vars(model, nx)
+        @_checked KN_get_number_cons(model, nc)
         x = unsafe_wrap(Array, ptr_x, nx[])
         lambda = unsafe_wrap(Array, ptr_lambda, nx[] + nc[])
         return model.mip_node_callback(model, x, lambda, model.mip_node_user_data)
@@ -703,8 +707,7 @@ function KN_set_mip_node_callback(model::Model, callback::Function, user_data=no
         Cint,
         (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid})
     )
-    KN_set_mip_node_callback(model, c_func, pointer_from_objref(model))
-    return
+    return KN_set_mip_node_callback(model, c_func, pointer_from_objref(model))
 end
 
 # KN_set_ms_initpt_callback
@@ -718,8 +721,8 @@ function _ms_initpt_wrapper(
 )::Cint
     model = unsafe_pointer_to_objref(user_data)::Model
     nx, nc = Ref{Cint}(0), Ref{Cint}(0)
-    KN_get_number_vars(model, nx)
-    KN_get_number_cons(model, nc)
+    @_checked KN_get_number_vars(model, nx)
+    @_checked KN_get_number_cons(model, nc)
     x = unsafe_wrap(Array, ptr_x, nx[])
     lambda = unsafe_wrap(Array, ptr_lambda, nx[] + nc[])
     return model.ms_initpt_callback(
@@ -754,8 +757,7 @@ function KN_set_ms_initpt_callback(model::Model, callback::Function, user_data=n
         Cint,
         (Ptr{Cvoid}, Cint, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cvoid})
     )
-    KN_set_ms_initpt_callback(model, c_func, pointer_from_objref(model))
-    return
+    return KN_set_ms_initpt_callback(model, c_func, pointer_from_objref(model))
 end
 
 # KN_set_puts_callback
@@ -788,6 +790,5 @@ characters that were printed.
 function KN_set_puts_callback(model::Model, callback::Function, user_data=nothing)
     model.puts_callback, model.puts_user_data = callback, user_data
     c_func = @cfunction(_puts_callback_wrapper, Cint, (Ptr{Cchar}, Ptr{Cvoid}))
-    KN_set_puts_callback(model, c_func, pointer_from_objref(model))
-    return
+    return KN_set_puts_callback(model, c_func, pointer_from_objref(model))
 end

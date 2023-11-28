@@ -3,17 +3,6 @@
 # Use of this source code is governed by an MIT-style license that can be found
 # in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
-macro _checked(expr)
-    @assert Meta.isexpr(expr, :call)
-    msg = "unexpected return code from $(expr.args[1]): "
-    return quote
-        ret = $(esc(expr))
-        if ret != 0
-            error($msg * string(ret))
-        end
-    end
-end
-
 """
     _c_column(x::MOI.VariableIndex) --> Cint
 
@@ -717,7 +706,9 @@ function MOI.add_constraint(
         @_checked KN_set_con_upbnd(model.inner, num_cons, ub - func.constant)
     end
     nnz, columns, coefficients = _canonical_linear_reduction(func)
-    @_checked KN_add_con_linear_struct_one(model.inner, nnz, num_cons, columns, coefficients)
+    @_checked(
+        KN_add_con_linear_struct_one(model.inner, nnz, num_cons, columns, coefficients),
+    )
     ci = MOI.ConstraintIndex{typeof(func),typeof(set)}(num_cons)
     model.constraint_mapping[ci] = num_cons
     return ci
@@ -795,7 +786,9 @@ function MOI.add_constraint(
         @_checked KN_set_con_upbnd(model.inner, num_cons, ub - func.constant)
     end
     nnz, columns, coefficients = _canonical_linear_reduction(func)
-    @_checked KN_add_con_linear_struct_one(model.inner, nnz, num_cons, columns, coefficients)
+    @_checked(
+        KN_add_con_linear_struct_one(model.inner, nnz, num_cons, columns, coefficients),
+    )
     nnz, I, J, V = _canonical_quadratic_reduction(func)
     @_checked KN_add_con_quadratic_struct_one(model.inner, nnz, num_cons, I, J, V)
     ci = MOI.ConstraintIndex{typeof(func),typeof(set)}(num_cons)
