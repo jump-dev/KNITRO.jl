@@ -58,15 +58,7 @@ function _canonical_vector_affine_reduction(f::MOI.VectorAffineFunction)
     return I, J, V
 end
 
-# Convert Julia'Inf to KNITRO's Inf.
-function _check_value(val::Float64)
-    if val > KN_INFINITY
-        return KN_INFINITY
-    elseif val < -KN_INFINITY
-        return -KN_INFINITY
-    end
-    return val
-end
+_clamp_inf(x::Float64) = clamp(x, -KN_INFINITY, KN_INFINITY)
 
 mutable struct _VariableInfo
     has_lower_bound::Bool
@@ -140,21 +132,16 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     options::Dict{String,Any}
 end
 
-function _set_options(model::Optimizer, options)
-    for (name, value) in options
-        MOI.set(model, MOI.RawOptimizerAttribute(string(name)), value)
+function Optimizer(; license_manager::Union{LMcontext,Nothing}=nothing, kwargs...)
+    if !isempty(kwargs)
+        error("Unsupported keyword arguments passed to `Optimizer`. Set attributes instead")
     end
-    return
-end
-
-function Optimizer(; license_manager=nothing, options...)
-    # Create KNITRO context.
     kc = if isa(license_manager, LMcontext)
         KN_new_lm(license_manager)
     else
         KN_new()
     end
-    model = Optimizer(
+    return Optimizer(
         kc,
         _VariableInfo[],
         0,
@@ -171,8 +158,6 @@ function Optimizer(; license_manager=nothing, options...)
         license_manager,
         Dict{String,Any}(),
     )
-    _set_options(model, options)
-    return model
 end
 
 function Base.show(io::IO, model::Optimizer)
@@ -207,7 +192,9 @@ function MOI.empty!(model::Optimizer)
     model.complementarity_cache = _ComplementarityCache()
     model.constraint_mapping = Dict()
     model.license_manager = model.license_manager
-    _set_options(model, model.options)
+    for (name, value) in model.options
+        MOI.set(model, MOI.RawOptimizerAttribute(name), value)
+    end
     return
 end
 
@@ -246,12 +233,6 @@ function _throw_if_solved(model::Optimizer, ::Type{MOI.VariableIndex})
         throw(MOI.AddVariableNotAllowed(msg))
     end
     return
-end
-
-function _number_constraints(model::Optimizer)
-    p = Ref{Cint}(0)
-    @_checked KN_get_number_cons(model.inner, p)
-    return p[]
 end
 
 # MOI.SolverName
@@ -478,7 +459,7 @@ function MOI.add_constraint(
     if _is_fixed(model, x)
         error("Variable $x is fixed. Cannot also set upper bound.")
     end
-    ub = _check_value(set.upper)
+    ub = _clamp_inf(set.upper)
     model.variable_info[x.value].has_upper_bound = true
     @_checked KN_set_var_upbnd(model.inner, _c_column(x), ub)
     ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.LessThan{Float64}}(x.value)
@@ -513,7 +494,7 @@ function MOI.add_constraint(
     if _is_fixed(model, x)
         error("Variable $x is fixed. Cannot also set lower bound.")
     end
-    lb = _check_value(set.lower)
+    lb = _clamp_inf(set.lower)
     model.variable_info[x.value].has_lower_bound = true
     @_checked KN_set_var_lobnd(model.inner, _c_column(x), lb)
     ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.GreaterThan{Float64}}(x.value)
@@ -549,8 +530,8 @@ function MOI.add_constraint(
     if _is_fixed(model, x)
         error("Variable $x is fixed. Cannot also set lower bound.")
     end
-    lb = _check_value(set.lower)
-    ub = _check_value(set.upper)
+    lb = _clamp_inf(set.lower)
+    ub = _clamp_inf(set.upper)
     model.variable_info[x.value].has_lower_bound = true
     model.variable_info[x.value].has_upper_bound = true
     @_checked KN_set_var_lobnd(model.inner, _c_column(x), lb)
@@ -590,7 +571,7 @@ function MOI.add_constraint(
     if _is_fixed(model, x)
         error("Variable $x is already fixed.")
     end
-    eqv = _check_value(set.value)
+    eqv = _clamp_inf(set.value)
     model.variable_info[x.value].is_fixed = true
     @_checked KN_set_var_fxbnd(model.inner, _c_column(x), eqv)
     ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.EqualTo{Float64}}(x.value)
@@ -690,18 +671,18 @@ function MOI.add_constraint(
     num_cons = p[]
     # Add bound to constraint.
     if isa(set, MOI.LessThan{Float64})
-        val = _check_value(set.upper)
+        val = _clamp_inf(set.upper)
         @_checked KN_set_con_upbnd(model.inner, num_cons, val - func.constant)
     elseif isa(set, MOI.GreaterThan{Float64})
-        val = _check_value(set.lower)
+        val = _clamp_inf(set.lower)
         @_checked KN_set_con_lobnd(model.inner, num_cons, val - func.constant)
     elseif isa(set, MOI.EqualTo{Float64})
-        val = _check_value(set.value)
+        val = _clamp_inf(set.value)
         @_checked KN_set_con_eqbnd(model.inner, num_cons, val - func.constant)
     else
         @assert set isa MOI.Interval{Float64}
         # Add upper bound.
-        lb, ub = _check_value(set.lower), _check_value(set.upper)
+        lb, ub = _clamp_inf(set.lower), _clamp_inf(set.upper)
         @_checked KN_set_con_lobnd(model.inner, num_cons, lb - func.constant)
         @_checked KN_set_con_upbnd(model.inner, num_cons, ub - func.constant)
     end
@@ -771,17 +752,17 @@ function MOI.add_constraint(
     num_cons = p[]
     # Add upper bound.
     if isa(set, MOI.LessThan{Float64})
-        val = _check_value(set.upper)
+        val = _clamp_inf(set.upper)
         @_checked KN_set_con_upbnd(model.inner, num_cons, val - func.constant)
     elseif isa(set, MOI.GreaterThan{Float64})
-        val = _check_value(set.lower)
+        val = _clamp_inf(set.lower)
         @_checked KN_set_con_lobnd(model.inner, num_cons, val - func.constant)
     elseif isa(set, MOI.EqualTo{Float64})
-        val = _check_value(set.value)
+        val = _clamp_inf(set.value)
         @_checked KN_set_con_eqbnd(model.inner, num_cons, val - func.constant)
     elseif isa(set, MOI.Interval{Float64})
-        lb = _check_value(set.lower)
-        ub = _check_value(set.upper)
+        lb = _clamp_inf(set.lower)
+        ub = _clamp_inf(set.upper)
         @_checked KN_set_con_lobnd(model.inner, num_cons, lb - func.constant)
         @_checked KN_set_con_upbnd(model.inner, num_cons, ub - func.constant)
     end
@@ -1114,42 +1095,17 @@ end
 
 # MOI.optimize!
 
-function _load_complementarity_constraint(model::Optimizer, cache::_ComplementarityCache)
-    return @_checked KN_set_compcons(
-        model.inner,
-        length(cache.cc_types),
-        cache.cc_types,
-        cache.index_comps_1,
-        cache.index_comps_2,
-    )
-end
-
-# Keep loading of NLP constraints apart to load all NLP model all in once
-# inside Knitro.
-function _load_nlp_constraints(model::Optimizer)
-    num_nlp_constraints = length(model.nlp_data.constraint_bounds)
-    if num_nlp_constraints == 0
-        return
-    end
-    num_cons = zeros(Cint, num_nlp_constraints)
-    @_checked KN_add_cons(model.inner, num_nlp_constraints, num_cons)
-    for (ib, pair) in enumerate(model.nlp_data.constraint_bounds)
-        if pair.upper == pair.lower
-            @_checked KN_set_con_eqbnd(model.inner, num_cons[ib], pair.upper)
-        else
-            @_checked KN_set_con_upbnd(model.inner, num_cons[ib], _check_value(pair.upper))
-            @_checked KN_set_con_lobnd(model.inner, num_cons[ib], _check_value(pair.lower))
-        end
-    end
-    model.nlp_index_cons = num_cons
-    return
-end
-
 function MOI.optimize!(model::Optimizer)
     @_checked KN_set_int_param_by_name(model.inner, "datacheck", 0)
     @_checked KN_set_int_param_by_name(model.inner, "hessian_no_f", 1)
     if _has_complementarity(model.complementarity_cache)
-        _load_complementarity_constraint(model, model.complementarity_cache)
+        @_checked KN_set_compcons(
+            model.inner,
+            length(model.complementarity_cache.cc_types),
+            model.complementarity_cache.cc_types,
+            model.complementarity_cache.index_comps_1,
+            model.complementarity_cache.index_comps_2,
+        )
     end
     if !MOI.is_empty(model.nlp_model) && !model.nlp_loaded
         vars = MOI.get(model, MOI.ListOfVariableIndices())
@@ -1177,9 +1133,20 @@ function MOI.optimize!(model::Optimizer)
         end
         MOI.initialize(model.nlp_data.evaluator, init_feat)
         # Load NLP structure inside Knitro.
-        offset = _number_constraints(model)
-        _load_nlp_constraints(model)
-        num_cons = _number_constraints(model)
+        p = Ref{Cint}(0)
+        @_checked KN_get_number_cons(model.inner, p)
+        offset = p[]
+        num_nlp_constraints = length(model.nlp_data.constraint_bounds)
+        if num_nlp_constraints > 0
+            nlp_rows = model.nlp_index_cons = zeros(Cint, num_nlp_constraints)
+            @_checked KN_add_cons(model.inner, num_nlp_constraints, nlp_rows)
+            for (row, pair) in zip(nlp_rows, model.nlp_data.constraint_bounds)
+                @_checked KN_set_con_upbnd(model.inner, row, _clamp_inf(pair.upper))
+                @_checked KN_set_con_lobnd(model.inner, row, _clamp_inf(pair.lower))
+            end
+        end
+        @_checked KN_get_number_cons(model.inner, p)
+        num_cons = p[]
         # 1/ Definition of the callbacks
         # Objective callback (used both for objective and constraint evaluation).
         function eval_f_cb(kc, cb, evalRequest, evalResult, userParams)
@@ -1508,7 +1475,10 @@ function _check_cons(model, ci, cp)
         error("Solve problem before accessing solution.")
     elseif cp.result_index > 1
         throw(MOI.ResultIndexBoundsError{typeof(cp)}(cp, 1))
-    elseif !(0 <= ci.value <= _number_constraints(model) - 1)
+    end
+    p = Ref{Cint}()
+    @_checked KN_get_number_cons(model.inner, p)
+    if !(0 <= ci.value <= p[] - 1)
         error("Invalid constraint index ", ci.value)
     end
     return
@@ -1609,8 +1579,9 @@ function _reduced_cost(
     end
     x = MOI.VariableIndex(ci.value)
     MOI.throw_if_not_valid(model, x)
-    offset = _number_constraints(model)
-    return _sense_dual(model) * _get_dual(model.inner, x.value + offset)
+    p = Ref{Cint}()
+    @_checked KN_get_number_cons(model.inner, p)
+    return _sense_dual(model) * _get_dual(model.inner, x.value + p[])
 end
 
 function MOI.get(

@@ -64,7 +64,9 @@ end
 function example_moi_nlp1(; verbose=true)
     options = joinpath(dirname(@__FILE__), "..", "examples", "knitro.opt")
     # Define a Knitro solver instance through MOI.
-    solver = KNITRO.Optimizer(outlev=3, opttol=1e-8)
+    solver = KNITRO.Optimizer()
+    MOI.set(solver, MOI.RawOptimizerAttribute("outlev"), 3)
+    MOI.set(solver, MOI.RawOptimizerAttribute("opttol"), 1e-8)
     MOI.set(solver, MOI.Silent(), !verbose)
 
     lb = []
