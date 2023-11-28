@@ -48,7 +48,7 @@ include("MOI_wrapper.jl")
 # KNITRO exports all `KN_XXX` symbols. If you don't want all of these symbols in
 # your environment, then use `import KNITRO` instead of `using KNITRO`.
 
-for name in filter(s -> startswith("$s", "KN_"), names(@__MODULE__, all = true))
+for name in filter(s -> startswith("$s", "KN_"), names(@__MODULE__; all=true))
     @eval export $name
 end
 
