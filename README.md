@@ -7,12 +7,12 @@
 [Artelys Knitro solver](https://www.artelys.com/knitro).
 
 It has two components:
+
  - a thin wrapper around the [C API](https://www.artelys.com/tools/knitro_doc/3_referenceManual/callableLibraryAPI.html)
  - an interface to [MathOptInterface](https://github.com/jump-dev/MathOptInterface.jl).
 
 **KNITRO.jl v0.14.0 introduced a number of breaking changes to the low-level C
-API. No breaking changes have been made to the MathOptInterface API. See the
-Low-level wrapper section for details.**
+API. See the Low-level wrapper section for details.**
 
 ## Affiliation
 
@@ -89,6 +89,7 @@ The Knitro optimizer supports the following constraints and attributes.
 List of supported objective functions:
 
  * [`MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}`](@ref)
+ * [`MOI.ObjectiveFunction{MOI.ScalarNonlinearFunction}`](@ref)
  * [`MOI.ObjectiveFunction{MOI.ScalarQuadraticFunction{Float64}}`](@ref)
  * [`MOI.ObjectiveFunction{MOI.VariableIndex}`](@ref)
 
@@ -102,6 +103,10 @@ List of supported constraint types:
  * [`MOI.ScalarAffineFunction{Float64}`](@ref) in [`MOI.GreaterThan{Float64}`](@ref)
  * [`MOI.ScalarAffineFunction{Float64}`](@ref) in [`MOI.Interval{Float64}`](@ref)
  * [`MOI.ScalarAffineFunction{Float64}`](@ref) in [`MOI.LessThan{Float64}`](@ref)
+ * [`MOI.ScalarNonlinearFunction`](@ref) in [`MOI.EqualTo{Float64}`](@ref)
+ * [`MOI.ScalarNonlinearFunction`](@ref) in [`MOI.GreaterThan{Float64}`](@ref)
+ * [`MOI.ScalarNonlinearFunction`](@ref) in [`MOI.Interval{Float64}`](@ref)
+ * [`MOI.ScalarNonlinearFunction`](@ref) in [`MOI.LessThan{Float64}`](@ref)
  * [`MOI.ScalarQuadraticFunction{Float64}`](@ref) in [`MOI.EqualTo{Float64}`](@ref)
  * [`MOI.ScalarQuadraticFunction{Float64}`](@ref) in [`MOI.GreaterThan{Float64}`](@ref)
  * [`MOI.ScalarQuadraticFunction{Float64}`](@ref) in [`MOI.Interval{Float64}`](@ref)
