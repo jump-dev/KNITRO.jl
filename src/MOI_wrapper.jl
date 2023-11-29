@@ -1445,10 +1445,10 @@ end
 function _get_solution(model::Optimizer, index::Integer)
     if isempty(model.x)
         p = Ref{Cint}(0)
-        @_checked KN_get_number_vars(model, p)
+        @_checked KN_get_number_vars(model.inner, p)
         model.x = zeros(Cdouble, p[])
         status, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
-        @_checked KN_get_solution(model, status, obj, model.x, C_NULL)
+        @_checked KN_get_solution(model.inner, status, obj, model.x, C_NULL)
     end
     return model.x[index]
 end
@@ -1456,11 +1456,11 @@ end
 function _get_dual(model::Optimizer, index::Integer)
     if isempty(model.lambda)
         nx, nc = Ref{Cint}(0), Ref{Cint}(0)
-        @_checked KN_get_number_vars(model, nx)
-        @_checked KN_get_number_cons(model, nc)
+        @_checked KN_get_number_vars(model.inner, nx)
+        @_checked KN_get_number_cons(model.inner, nc)
         model.lambda = zeros(Cdouble, nx[] + nc[])
         status, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
-        @_checked KN_get_solution(model, status, obj, C_NULL, model.lambda)
+        @_checked KN_get_solution(model.inner, status, obj, C_NULL, model.lambda)
     end
     return model.lambda[index]
 end
