@@ -26,16 +26,6 @@ end
     include("MOI_wrapper.jl")
 end
 
-try
-    @testset "Test C API License" begin
-        include("knitroapi_licman.jl")
-    end
-catch e
-    @warn(
-        "License tests failed, but this might be due to License Manager" *
-        " not being supported by your license."
-    )
-    println("The error catched was:\n")
-    println("$e\n")
-    println("See table above for more details.")
+@testset "Test C API License" begin
+    include("knitroapi_licman.jl")
 end
