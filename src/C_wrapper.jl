@@ -574,8 +574,7 @@ function _newpt_wrapper(
         @_checked KN_get_number_cons(model, nc)
         x = unsafe_wrap(Array, ptr_x, nx[])
         lambda = unsafe_wrap(Array, ptr_lambda, nx[] + nc[])
-        # TODO: should `model` arugment be `ptr_model`?
-        return model.newpt_callback(model, x, lambda, model.newpt_user_data)
+        return model.newpt_callback(ptr_model, x, lambda, model.newpt_user_data)
     end
 end
 
@@ -591,7 +590,7 @@ solution point (that is, after every iteration).
 `callback` is a function with signature:
 
 ```julia
-callback(kc::Model, x::Vector{Cdouble}, lambda::Vector{Cdouble}, user_data::Any) -> Cint
+callback(kc::Ptr, x::Vector{Cdouble}, lambda::Vector{Cdouble}, user_data::Any) -> Cint
 ```
 
 ## Notes
@@ -629,8 +628,7 @@ function _ms_process_wrapper(
         @_checked KN_get_number_cons(model, nc)
         x = unsafe_wrap(Array, ptr_x, nx[])
         lambda = unsafe_wrap(Array, ptr_lambda, nx[] + nc[])
-        # TODO: should `model` arugment be `ptr_model`?
-        return model.ms_process_callback(model, x, lambda, model.ms_process_user_data)
+        return model.ms_process_callback(ptr_model, x, lambda, model.ms_process_user_data)
     end
 end
 
@@ -646,7 +644,7 @@ processing a multistart solve.
 `callback` is a function with signature:
 
 ```julia
-callback(kc::Model, x::Vector{Cdouble}, lambda::Vector{Cdouble}, user_data::Any) -> Cint
+callback(kc::Ptr, x::Vector{Cdouble}, lambda::Vector{Cdouble}, user_data::Any) -> Cint
 ```
 
 ## Notes
@@ -681,8 +679,7 @@ function _mip_node_callback_wrapper(
         @_checked KN_get_number_cons(model, nc)
         x = unsafe_wrap(Array, ptr_x, nx[])
         lambda = unsafe_wrap(Array, ptr_lambda, nx[] + nc[])
-        # TODO: should `model` arugment be `ptr_model`?
-        return model.mip_node_callback(model, x, lambda, model.mip_node_user_data)
+        return model.mip_node_callback(ptr_model, x, lambda, model.mip_node_user_data)
     end
 end
 
@@ -699,7 +696,7 @@ procedure).
 `callback` is a function with signature:
 
 ```julia
-callback(kc::Model, x::Vector{Cdouble}, lambda::Vector{Cdouble}, user_data::Any) -> Cint
+callback(kc::Ptr, x::Vector{Cdouble}, lambda::Vector{Cdouble}, user_data::Any) -> Cint
 ```
 
 ## Notes
@@ -735,7 +732,7 @@ function _ms_initpt_wrapper(
     x = unsafe_wrap(Array, ptr_x, nx[])
     lambda = unsafe_wrap(Array, ptr_lambda, nx[] + nc[])
     return model.ms_initpt_callback(
-        model,
+        ptr_model,
         nSolveNumber,
         x,
         lambda,
@@ -753,7 +750,7 @@ in the multistart procedure.
 
 ```julia
 callback(
-    model::Model,
+    kc::Ptr,
     nSolveNumber::Cint,
     x::Vector{Cdouble},
     lambda::Vector{Cdouble},
