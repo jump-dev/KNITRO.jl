@@ -1,0 +1,45 @@
+name: MINLPTests
+on:
+  push:
+    branches: [master]
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  test:
+    name: KNITRO
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: '1'
+          arch: 'x64'
+      - uses: actions/cache@v1
+        env:
+          cache-name: cache-artifacts
+        with:
+          path: ~/.julia/artifacts
+          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-test-${{ env.cache-name }}-
+            ${{ runner.os }}-test-
+            ${{ runner.os }}-
+      - shell: bash
+        env:
+          ARTELYS_LIC_JUMP_DEV: ${{ secrets.ARTELYS_LIC_8326_JUMP_DEV_2023_11_02 }}
+        run: |
+          echo "$ARTELYS_LIC_JUMP_DEV" > ~/artelys_lic.txt        
+      - name: "run_minlptests"
+        env:
+          SECRET_KNITRO_URL: ${{ secrets.SECRET_KNITRO_URL }}
+          SECRET_KNITRO_LIBIOMP5: ${{ secrets.SECRET_KNITRO_LIBIOMP5 }}
+        shell: julia --color=yes {0}
+        run: |
+          path = joinpath(ENV["GITHUB_WORKSPACE"], "test", "MINLPTests")
+          cd(path)
+          using Pkg
+          Pkg.activate(".")
+          Pkg.instantiate()
+          Pkg.add(PackageSpec(path=ENV["GITHUB_WORKSPACE"]))
+          Pkg.build("KNITRO")
+          include(joinpath(path, "run_minlptests.jl"))
