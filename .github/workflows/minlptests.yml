@@ -34,12 +34,11 @@ jobs:
         env:
           ARTELYS_LIC_JUMP_DEV: ${{ secrets.ARTELYS_LIC_8326_JUMP_DEV_2023_11_02 }}
         run: |
-          echo "$ARTELYS_LIC_JUMP_DEV" > ~/artelys_lic.txt
-      - uses: julia-actions/julia-buildpkg@v1
+          echo "$ARTELYS_LIC_JUMP_DEV" > ~/artelys_lic.txt        
+      - name:
         env:
           SECRET_KNITRO_URL: ${{ secrets.SECRET_KNITRO_URL }}
           SECRET_KNITRO_LIBIOMP5: ${{ secrets.SECRET_KNITRO_LIBIOMP5 }}
-      - name:
         shell: julia --color=yes {0}
         run: |
           path = joinpath(ENV["GITHUB_WORKSPACE"], "test", "MINLPTests")
@@ -48,4 +47,5 @@ jobs:
           Pkg.activate(".")
           Pkg.instantiate()
           Pkg.add(PackageSpec(path=ENV["GITHUB_WORKSPACE"]))
+          Pkg.build("KNITRO")
           include(joinpath(path, "run_minlptests.jl"))
