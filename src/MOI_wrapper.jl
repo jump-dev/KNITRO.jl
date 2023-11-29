@@ -130,6 +130,9 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     constraint_mapping::Dict{MOI.ConstraintIndex,Union{Cint,Vector{Cint}}}
     license_manager::Union{LMcontext,Nothing}
     options::Dict{String,Any}
+    # Cache for the solution
+    x::Vector{Float64}
+    lambda::Vector{Float64}
 end
 
 function Optimizer(; license_manager::Union{LMcontext,Nothing}=nothing, kwargs...)
@@ -157,6 +160,8 @@ function Optimizer(; license_manager::Union{LMcontext,Nothing}=nothing, kwargs..
         Dict{MOI.ConstraintIndex,Union{Cint,Vector{Cint}}}(),
         license_manager,
         Dict{String,Any}(),
+        Float64[],
+        Float64[],
     )
 end
 
@@ -195,6 +200,8 @@ function MOI.empty!(model::Optimizer)
     for (name, value) in model.options
         MOI.set(model, MOI.RawOptimizerAttribute(name), value)
     end
+    empty!(model.x)
+    empty!(model.lambda)
     return
 end
 
@@ -1435,8 +1442,7 @@ function MOI.get(model::Optimizer, obj::MOI.ObjectiveValue)
     return obj[]
 end
 
-function _get_solution(model::Model, index::Integer)
-    @assert model.env != C_NULL
+function _get_solution(model::Optimizer, index::Integer)
     if isempty(model.x)
         p = Ref{Cint}(0)
         @_checked KN_get_number_vars(model, p)
@@ -1447,8 +1453,7 @@ function _get_solution(model::Model, index::Integer)
     return model.x[index]
 end
 
-function _get_dual(model::Model, index::Integer)
-    @assert model.env != C_NULL
+function _get_dual(model::Optimizer, index::Integer)
     if isempty(model.lambda)
         nx, nc = Ref{Cint}(0), Ref{Cint}(0)
         @_checked KN_get_number_vars(model, nx)
@@ -1467,7 +1472,7 @@ function MOI.get(model::Optimizer, v::MOI.VariablePrimal, x::MOI.VariableIndex)
         throw(MOI.ResultIndexBoundsError{MOI.VariablePrimal}(v, 1))
     end
     MOI.throw_if_not_valid(model, x)
-    return _get_solution(model.inner, x.value)
+    return _get_solution(model, x.value)
 end
 
 function _check_cons(model, ci, cp)
@@ -1527,7 +1532,7 @@ function MOI.get(
     end
     x = MOI.VariableIndex(ci.value)
     MOI.throw_if_not_valid(model, x)
-    return _get_solution(model.inner, x.value)
+    return _get_solution(model, x.value)
 end
 
 # KNITRO's dual sign depends on optimization sense.
@@ -1548,7 +1553,7 @@ function MOI.get(
 }
     _check_cons(model, ci, cd)
     index = model.constraint_mapping[ci] + 1
-    return _sense_dual(model) * _get_dual(model.inner, index)
+    return _sense_dual(model) * _get_dual(model, index)
 end
 
 function MOI.get(
@@ -1556,7 +1561,7 @@ function MOI.get(
     ::MOI.ConstraintDual,
     ci::MOI.ConstraintIndex{MOI.ScalarNonlinearFunction},
 )
-    return _sense_dual(model) * _get_dual(model.inner, ci.value)
+    return _sense_dual(model) * _get_dual(model, ci.value)
 end
 
 # function MOI.get(
@@ -1581,7 +1586,7 @@ function _reduced_cost(
     MOI.throw_if_not_valid(model, x)
     p = Ref{Cint}()
     @_checked KN_get_number_cons(model.inner, p)
-    return _sense_dual(model) * _get_dual(model.inner, x.value + p[])
+    return _sense_dual(model) * _get_dual(model, x.value + p[])
 end
 
 function MOI.get(
@@ -1612,8 +1617,7 @@ function MOI.get(model::Optimizer, ::MOI.NLPBlockDual)
     if model.number_solved == 0
         error("NLPBlockDual not available.")
     end
-    sign = _sense_dual(model)
-    return [sign * _get_dual(model.inner, i + 1) for i in model.nlp_index_cons]
+    return [_sense_dual(model) * _get_dual(model, i + 1) for i in model.nlp_index_cons]
 end
 
 function MOI.get(model::Optimizer, ::MOI.SolveTimeSec)

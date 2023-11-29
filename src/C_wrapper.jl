@@ -47,35 +47,19 @@ Base.unsafe_convert(::Type{Ptr{Cvoid}}, cb::CallbackContext) = cb.context::Ptr{C
 mutable struct Model
     env::Env
     callbacks::Vector{CallbackContext}
-    status::Cint
-    obj_val::Cdouble
-    x::Vector{Cdouble}
-    lambda::Vector{Cdouble}
+    # These fields are left undefined on initialization.
     newpt_user_data::Any
-    ms_process_user_data::Any
-    mip_node_user_data::Any
-    ms_initpt_user_data::Any
-    puts_user_data::Any
     newpt_callback::Function
+    ms_process_user_data::Any
     ms_process_callback::Function
+    mip_node_user_data::Any
     mip_node_callback::Function
+    ms_initpt_user_data::Any
     ms_initpt_callback::Function
+    puts_user_data::Any
     puts_callback::Function
 
-    function Model(env::Env)
-        return new(
-            env,
-            CallbackContext[],
-            1,
-            NaN,
-            Cdouble[],
-            Cdouble[],
-            nothing,
-            nothing,
-            nothing,
-            nothing,
-        )
-    end
+    Model(env::Env) = new(env, CallbackContext[])
 end
 
 Base.cconvert(::Type{Ptr{Cvoid}}, model::Model) = model
@@ -183,8 +167,7 @@ function KN_solve(model::Model)
         end
     end
     # For KN_solve, we do not return an error if ret is different of 0.
-    model.status = KN_solve(model.env)
-    return model.status
+    return KN_solve(model.env)
 end
 
 function KN_get_solution(model::Model)
@@ -192,24 +175,21 @@ function KN_get_solution(model::Model)
     nx, nc = Ref{Cint}(0), Ref{Cint}(0)
     @_checked KN_get_number_vars(model, nx)
     @_checked KN_get_number_cons(model, nc)
-    model.x = zeros(Cdouble, nx[])
-    model.lambda = zeros(Cdouble, nx[] + nc[])
+    x = zeros(Cdouble, nx[])
+    lambda = zeros(Cdouble, nx[] + nc[])
     status, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
-    @_checked KN_get_solution(model, status, obj, model.x, model.lambda)
-    model.status = status[]
-    model.obj_val = obj[]
-    return status[], obj[], model.x, model.lambda
+    @_checked KN_get_solution(model, status, obj, x, lambda)
+    return status[], obj[], x, lambda
 end
 
 function KN_set_cb_user_params(model::Model, cb::CallbackContext, user_data=nothing)
     cb.user_data = user_data
-    # Note: we store here the number of constraints and variables defined
-    # in the original Knitro model. We cannot retrieve these numbers during
-    # callbacks invokation, as sometimes the number of variables and constraints
-    # change internally in Knitro (e.g. when cuts are added when resolving
-    # Branch&Bound). We prefer to use the number of variables and constraints
-    # of the original model so that user's callbacks could consider that
-    # the arrays of primal variable x and dual variable \lambda have fixed
+    # Note: we store here the number of constraints and variables defined in the original
+    # Knitro model. We cannot retrieve these numbers during callbacks invokation, because
+    # sometimes the number of variables and constraints change internally in Knitro (e.g.
+    # when cuts are added when resolving Branch&Bound). We prefer to use the number of
+    # variables and constraints of the original model so that user's callbacks could
+    # consider that the arrays of primal variable x and dual variable lambda have fixed
     # sizes.
     p = Ref{Cint}(0)
     @_checked KN_get_number_vars(model, p)
@@ -322,9 +302,12 @@ for (wrap_name, name) in [
 end
 
 """
-    KN_add_eval_callback(model::Model, funccallback::Function)
-    KN_add_eval_callback(model::Model, evalObj::Bool, indexCons::Vector{Cint},
-                         funccallback::Function)
+    KN_add_eval_callback(
+        model::Model,
+        evalObj::Bool,
+        indexCons::Vector{Cint},
+        callback::Function,
+    )
 
 This is the routine for adding a callback for (nonlinear) evaluations
 of objective and constraint functions.  This routine can be called
@@ -334,31 +317,32 @@ This routine specifies the minimal information needed for a callback, and
 creates the callback structure `cb`, which can then be passed to other
 callback functions to set additional information for that callback.
 
-# Parameters
-* `evalObj`: boolean indicating whether or not any part of the objective
-                  function is evaluated in the callback
-* `indexCons`: (length nC) index of constraints evaluated in the callback
-                  (set to NULL if nC=0)
-* `funcCallback`: a function that evaluates the objective parts
-                  (if evalObj=KNTRUE) and any constraint parts (specified by
-                  nC and indexCons) involved in this callback; when
-                  eval_fcga=KN_EVAL_FCGA_YES, this callback should also evaluate
-                  the relevant first derivatives/gradients
+## Arguments
 
-# Returns
-* `cb`: the callback structure that gets created by
-                  calling this function; all the memory for this structure is
-                  handled by Knitro
+* `evalObj`: boolean indicating whether or not any part of the objective function is
+  evaluated in the callback
+* `indexCons`: (length nC) index of constraints evaluated in the callback (set to `C_NULL`
+  if `nC` is 0)
+* `callback`: a function that evaluates the objective parts (if `evalObj=KNTRUE`) and any
+  constraint parts (specified by `nC` and `indexCons`) involved in this callback; when
+  `eval_fcga=KN_EVAL_FCGA_YES`, this callback should also evaluate the relevant first
+  derivatives/gradients.
 
-After a callback is created by `KN_add_eval_callback()`, the user can then specify
-gradient information and structure through `KN_set_cb_grad()` and Hessian
-information and structure through `KN_set_cb_hess()`.  If not set, Knitro will
-approximate these.  However, it is highly recommended to provide a callback routine
-to specify the gradients if at all possible as this will greatly improve the
-performance of Knitro.  Even if a gradient callback is not provided, it is still
-helpful to provide the sparse Jacobian structure through `KN_set_cb_grad()` to
-improve the efficiency of the finite-difference gradient approximations.
-Other optional information can also be set via `KN_set_cb_*()` functions as
+## Returns
+
+* `cb`: the callback structure that gets created by calling this function; all the memory
+  for this structure is handled by Knitro
+
+## Notes
+
+After a callback is created by `KN_add_eval_callback()`, the user can then specify gradient
+information and structure through `KN_set_cb_grad()` and Hessian information and structure
+through `KN_set_cb_hess()`.  If not set, Knitro will approximate these.  However, it is
+highly recommended to provide a callback routine to specify the gradients if at all possible
+as this will greatly improve the performance of Knitro.  Even if a gradient callback is not
+provided, it is still helpful to provide the sparse Jacobian structure through
+`KN_set_cb_grad()` to improve the efficiency of the finite-difference gradient
+approximations. Other optional information can also be set via `KN_set_cb_*()` functions as
 detailed below.
 """
 function KN_add_eval_callback_all(model::Model, callback::Function)
@@ -414,9 +398,15 @@ function KN_add_eval_callback(
 end
 
 """
-    KN_set_cb_grad(model::Model, cb::CallbackContext, gradcallback;
-                   nV::Integer=KN_DENSE, objGradIndexVars=C_NULL,
-                   jacIndexCons=C_NULL, jacIndexVars=C_NULL)
+    KN_set_cb_grad(
+        model::Model,
+        cb::CallbackContext,
+        gradcallback;
+        nV::Integer=KN_DENSE,
+        objGradIndexVars=C_NULL,
+        jacIndexCons=C_NULL,
+        jacIndexVars=C_NULL,
+    )
 
 This API function is used to set the objective gradient and constraint Jacobian
 structure and also (optionally) a callback function to evaluate the objective
@@ -515,17 +505,21 @@ end
 Add an evaluation callback for a least-squares models.  Similar to KN_add_eval_callback()
 above, but for least-squares models.
 
-* `model`: current KNITRO model
-* `callback`: a function that evaluates any residual parts
+## Arguments
 
-After a callback is created by `KN_add_lsq_eval_callback()`, the user can then
-specify residual Jacobian information and structure through `KN_set_cb_rsd_jac()`.
-If not set, Knitro will approximate the residual Jacobian.  However, it is highly
-recommended to provide a callback routine to specify the residual Jacobian if at all
-possible as this will greatly improve the performance of Knitro.  Even if a callback
-for the residual Jacobian is not provided, it is still helpful to provide the sparse
-Jacobian structure for the residuals through `KN_set_cb_rsd_jac()` to improve the
-efficiency of the finite-difference Jacobian approximation.
+ * `model`: current KNITRO model
+ * `callback`: a function that evaluates any residual parts
+
+## Notes
+
+After a callback is created by `KN_add_lsq_eval_callback()`, the user can then specify the
+residual Jacobian information and structure through `KN_set_cb_rsd_jac()`. If not set,
+Knitro will approximate the residual Jacobian.  However, it is highly recommended to provide
+a callback routine to specify the residual Jacobian if at all possible as this will greatly
+improve the performance of Knitro.  Even if a callback for the residual Jacobian is not
+provided, it is still helpful to provide the sparse Jacobian structure for the residuals
+through `KN_set_cb_rsd_jac()` to improve the efficiency of the finite-difference Jacobian
+approximation.
 """
 function KN_add_lsq_eval_callback(model::Model, callback::Function)
     c_func = @cfunction(
@@ -580,33 +574,37 @@ function _newpt_wrapper(
         @_checked KN_get_number_cons(model, nc)
         x = unsafe_wrap(Array, ptr_x, nx[])
         lambda = unsafe_wrap(Array, ptr_lambda, nx[] + nc[])
+        # TODO: should `model` arugment be `ptr_model`?
         return model.newpt_callback(model, x, lambda, model.newpt_user_data)
     end
 end
 
 """
-    KN_set_newpt_callback(model::Model, callback::Function)
+    KN_set_newpt_callback(model::Model, callback::Function, user_data::Any=nothing)
 
-Set the callback function that is invoked after Knitro computes a
-new estimate of the solution point (i.e., after every iteration).
-The function should not modify any Knitro arguments.
+Set the callback function that is invoked after Knitro computes a new estimate of the
+solution point (that is, after every iteration).
 
-Callback is a function with signature:
+!!! warning
+    This callback is for continuous problems only.
 
-    callback(kc, x, lambda, userdata)
+`callback` is a function with signature:
 
-Argument `kc` passed to the callback from inside Knitro is the
-context pointer for the current problem being solved inside Knitro
-(either the main single-solve problem, or a subproblem when using
-multi-start, Tuner, etc.).
-Arguments `x` and `lambda` contain the latest solution estimates.
-Other values (such as objective, constraint, jacobian, etc.) can be
-queried using the corresonding KN_get_XXX_values methods.
+```julia
+callback(kc::Model, x::Vector{Cdouble}, lambda::Vector{Cdouble}, user_data::Any) -> Cint
+```
 
-Note: Currently only active for continuous models.
+## Notes
 
+ * Argument `kc` passed to the callback from inside Knitro is the context pointer for the
+   current problem being solved inside Knitro (either the main single-solve problem, or a
+   subproblem when using multi-start, Tuner, etc.)
+ * The callback function should not modify any Knitro arguments
+ * Arguments `x` and `lambda` contain the latest solution estimates. Other values (such as
+   the objective, constraint, jacobian, etc.) can be queried using the corresponding
+   `KN_get_XXX_values` methods.
 """
-function KN_set_newpt_callback(model::Model, callback::Function, user_data=nothing)
+function KN_set_newpt_callback(model::Model, callback::Function, user_data::Any=nothing)
     model.newpt_callback, model.newpt_user_data = callback, user_data
     c_func = @cfunction(
         _newpt_wrapper,
@@ -631,27 +629,32 @@ function _ms_process_wrapper(
         @_checked KN_get_number_cons(model, nc)
         x = unsafe_wrap(Array, ptr_x, nx[])
         lambda = unsafe_wrap(Array, ptr_lambda, nx[] + nc[])
+        # TODO: should `model` arugment be `ptr_model`?
         return model.ms_process_callback(model, x, lambda, model.ms_process_user_data)
     end
 end
 
 """
-    KN_set_ms_process_callback(model::Model, callback::Function)
+    KN_set_ms_process_callback(model::Model, callback::Function, user_data::Any=nothing)
 
-This callback function is for multistart (MS) problems only.
 Set the callback function that is invoked after Knitro finishes
 processing a multistart solve.
 
-Callback is a function with signature:
+!!! warning
+    This callback function is for multistart (MS) problems only.
 
-    callback(kc, x, lambda, userdata)
+`callback` is a function with signature:
 
-Argument `kc` passed to the callback
-from inside Knitro is the context pointer for the last multistart
-subproblem solved inside Knitro.  The function should not modify any
-Knitro arguments.  Arguments `x` and `lambda` contain the solution from
-the last solve.
+```julia
+callback(kc::Model, x::Vector{Cdouble}, lambda::Vector{Cdouble}, user_data::Any) -> Cint
+```
 
+## Notes
+
+ * Argument `kc` passed to the callback from inside Knitro is the context pointer for the
+   last multistart subproblem solved inside Knitro.
+ * The callback function should not modify any Knitro arguments.
+ * Arguments `x` and `lambda` contain the solution from the last solve.
 """
 function KN_set_ms_process_callback(model::Model, callback::Function, user_data=nothing)
     model.ms_process_callback, model.ms_process_user_data = callback, user_data
@@ -678,27 +681,33 @@ function _mip_node_callback_wrapper(
         @_checked KN_get_number_cons(model, nc)
         x = unsafe_wrap(Array, ptr_x, nx[])
         lambda = unsafe_wrap(Array, ptr_lambda, nx[] + nc[])
+        # TODO: should `model` arugment be `ptr_model`?
         return model.mip_node_callback(model, x, lambda, model.mip_node_user_data)
     end
 end
 
 """
-    KN_set_mip_node_callback(model::Model, callback::Function)
+    KN_set_mip_node_callback(model::Model, callback::Function, user_data::Any=nothing)
 
-This callback function is for mixed integer (MIP) problems only.
-Set the callback function that is invoked after Knitro finishes
-processing a node on the branch-and-bound tree (i.e., after a relaxed
-subproblem solve in the branch-and-bound procedure).
+Set the callback function that is invoked after Knitro finishes processing a node on the
+branch-and-bound tree (that is, after a relaxed subproblem solve in the branch-and-bound
+procedure).
 
-Callback is a function with signature:
+!!! warning
+    This callback function is for mixed integer (MIP) problems only.
 
-    callback(kc, x, lambda, userdata)
+`callback` is a function with signature:
 
-Argument `kc` passed to the callback from inside Knitro is the
-context pointer for the last node subproblem solved inside Knitro.
-The function should not modify any Knitro arguments.
-Arguments `x` and `lambda` contain the solution from the node solve.
+```julia
+callback(kc::Model, x::Vector{Cdouble}, lambda::Vector{Cdouble}, user_data::Any) -> Cint
+```
 
+## Notes
+
+ * Argument `kc` passed to the callback from inside Knitro is the context pointer for the
+   last node subproblem solved inside Knitro.
+ * The callback function should not modify any Knitro arguments.
+ * Arguments `x` and `lambda` contain the solution from the node solve.
 """
 function KN_set_mip_node_callback(model::Model, callback::Function, user_data=nothing)
     model.mip_node_callback, model.mip_node_user_data = callback, user_data
@@ -735,22 +744,28 @@ function _ms_initpt_wrapper(
 end
 
 """
-    KN_set_ms_initpt_callback(model::Model, callback::Function)
+    KN_set_ms_initpt_callback(model::Model, callback::Function, user_data::Any=nothing)
 
 Set a callback that allows applications to specify an initial point before each local solve
 in the multistart procedure.
 
-Callback is a function with signature:
+`callback` is a function with signature:
 
 ```julia
-callback(kc, x, lambda, userdata)
+callback(
+    model::Model,
+    nSolveNumber::Cint,
+    x::Vector{Cdouble},
+    lambda::Vector{Cdouble},
+    user_data::Any,
+) -> Cint
 ```
 
-On input, arguments `x` and `lambda` are the randomly generated initial points determined by
-Knitro, which can be overwritten by the user.  The argument `nSolveNumber` is the number of
-the multistart solve.
+The arguments `x` and `lambda` are the randomly generated initial points determined by
+Knitro, which can be overwritten by the user by modifying them in-place.  The argument
+`nSolveNumber` is the number of the multistart solve.
 """
-function KN_set_ms_initpt_callback(model::Model, callback::Function, user_data=nothing)
+function KN_set_ms_initpt_callback(model::Model, callback::Function, user_data::Any=nothing)
     model.ms_initpt_callback, model.ms_initpt_user_data = callback, user_data
     c_func = @cfunction(
         _ms_initpt_wrapper,
@@ -770,7 +785,7 @@ function _puts_callback_wrapper(str::Ptr{Cchar}, user_data::Ptr{Cvoid})::Cint
 end
 
 """
-    KN_set_puts_callback(model::Model, callback::Function)
+    KN_set_puts_callback(model::Model, callback::Function, user_data::Any=nothing)
 
 Set the callback that allows applications to handle output.
 
@@ -780,14 +795,11 @@ determined by KN_PARAM_OUTMODE.
 
 The `callback` is a function with signature:
 ```julia
-callback(str::String, user_data) -> Cint
+callback(output::String, user_data::Any) -> Cint
 ```
-
-The KN_puts callback function takes a `user_data` argument which is a pointer
-passed directly from KN_solve. The function should return the number of
-characters that were printed.
+The function should return the number of characters that were printed.
 """
-function KN_set_puts_callback(model::Model, callback::Function, user_data=nothing)
+function KN_set_puts_callback(model::Model, callback::Function, user_data::Any=nothing)
     model.puts_callback, model.puts_user_data = callback, user_data
     c_func = @cfunction(_puts_callback_wrapper, Cint, (Ptr{Cchar}, Ptr{Cvoid}))
     return KN_set_puts_callback(model, c_func, pointer_from_objref(model))
