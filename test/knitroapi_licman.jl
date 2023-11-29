@@ -19,7 +19,7 @@ using Test
 end
 
 function newpt_callback(kc, x::Vector{Cdouble}, lambda::Vector{Cdouble}, user_data)
-    @test kc isa KNITRO.Model
+    @test kc isa Ptr{Cvoid}
     return 0
 end
 
