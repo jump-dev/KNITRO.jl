@@ -30,7 +30,15 @@ jobs:
             ${{ runner.os }}-test-${{ env.cache-name }}-
             ${{ runner.os }}-test-
             ${{ runner.os }}-
+      - shell: bash
+        env:
+          ARTELYS_LIC_JUMP_DEV: ${{ secrets.ARTELYS_LIC_8326_JUMP_DEV_2023_11_02 }}
+        run: |
+          echo "$ARTELYS_LIC_JUMP_DEV" > ~/artelys_lic.txt
       - uses: julia-actions/julia-buildpkg@v1
+        env:
+          SECRET_KNITRO_URL: ${{ secrets.SECRET_KNITRO_URL }}
+          SECRET_KNITRO_LIBIOMP5: ${{ secrets.SECRET_KNITRO_LIBIOMP5 }}
       - name:
         shell: julia --color=yes {0}
         run: |
