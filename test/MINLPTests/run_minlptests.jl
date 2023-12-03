@@ -12,7 +12,10 @@ using Test
     solver =
         JuMP.optimizer_with_attributes(KNITRO.Optimizer, "outlev" => 0, "opttol" => 1e-8)
     # 005_010 : knitro finds a slightly different solution
-    # 005_011 : uses the function `\`
+    # 005_011 : fixed in upcoming MINLPTests@0.5.7
+    # 006_010 : fixed in upcoming MINLPTests@0.5.7
+    # 008_010 : MINLPTests.jl#21
+    # 008_011 : MINLPTests.jl#21
     MINLPTests.test_nlp(solver; exclude=["005_010", "005_011"])
     MINLPTests.test_nlp_expr(solver; exclude=["005_010", "005_011", "008_010", "008_011"])
     # For 005_010, Knitro founds a different solution, close to those of MINLPTests.
