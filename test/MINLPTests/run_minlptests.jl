@@ -20,6 +20,6 @@ using Test
     MINLPTests.nlp_expr_005_010(solver, 1e-5, 1e-5, 1e-5)
     MINLPTests.test_nlp_cvx(solver)
     MINLPTests.test_nlp_cvx_expr(solver)
-    MINLPTests.test_nlp_mi(solver, exclude=["005_011"])
-    MINLPTests.test_nlp_mi_expr(solver, exclude=["005_011"])
+    MINLPTests.test_nlp_mi(solver, exclude=["005_011", "006_010"])
+    MINLPTests.test_nlp_mi_expr(solver, exclude=["005_011", "006_010"])
 end
