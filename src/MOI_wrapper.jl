@@ -334,12 +334,6 @@ function MOI.set(model::Optimizer, attr::MOI.UserDefinedFunction, args)
     return
 end
 
-### MOI.ListOfSupportedNonlinearOperators
-
-function MOI.get(model::Optimizer, attr::MOI.ListOfSupportedNonlinearOperators)
-    return MOI.get(model.nlp_model, attr)
-end
-
 MOI.get(model::Optimizer, ::MOI.NumberOfVariables) = length(model.variable_info)
 
 function MOI.get(model::Optimizer, ::MOI.ListOfVariableIndices)
