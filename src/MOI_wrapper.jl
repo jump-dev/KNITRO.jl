@@ -330,12 +330,7 @@ end
 MOI.supports(model::Optimizer, ::MOI.UserDefinedFunction) = true
 
 function MOI.set(model::Optimizer, attr::MOI.UserDefinedFunction, args)
-    MOI.Nonlinear.register_operator(
-        model.nlp_model,
-        attr.name,
-        attr.arity,
-        args...,
-    )
+    MOI.Nonlinear.register_operator(model.nlp_model, attr.name, attr.arity, args...)
     return
 end
 

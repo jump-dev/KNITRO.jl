@@ -14,10 +14,7 @@ using Test
     # 005_010 : knitro finds a slightly different solution
     # 005_011 : uses the function `\`
     MINLPTests.test_nlp(solver; exclude=["005_010", "005_011"])
-    MINLPTests.test_nlp_expr(
-        solver;
-        exclude=["005_010", "005_011", "008_010", "008_011"],
-    )
+    MINLPTests.test_nlp_expr(solver; exclude=["005_010", "005_011", "008_010", "008_011"])
     # For 005_010, Knitro founds a different solution, close to those of MINLPTests.
     MINLPTests.nlp_005_010(solver, 1e-5, 1e-5, 1e-5)
     MINLPTests.nlp_expr_005_010(solver, 1e-5, 1e-5, 1e-5)
