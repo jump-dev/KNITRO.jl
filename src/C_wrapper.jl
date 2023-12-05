@@ -156,7 +156,7 @@ function KN_solve(model::Model)
     # that Knitro is not multithreaded. Otherwise, the code will segfault
     # as we have trouble calling Julia code from multithreaded C
     # code. See issue #93 on https://github.com/jump-dev/KNITRO.jl.
-    if !isempty(model.callbacks)
+    if VERSION < v"1.9" && !isempty(model.callbacks)
         if knitro_version() >= v"13.0"
             @_checked KN_set_int_param(model, KN_PARAM_MS_NUMTHREADS, 1)
             @_checked KN_set_int_param(model, KN_PARAM_NUMTHREADS, 1)
