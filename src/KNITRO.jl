@@ -21,6 +21,7 @@ has_knitro() = endswith(libknitro, Libdl.dlext)
 function __init__()
     @show libknitro
     @show readdir(dirname(_DEPS_FILE))
+    @show readdir(joinpath(dirname(_DEPS_FILE), "libknitro"))
     libiomp5 = replace(libknitro, "libknitro" => "libiomp5")
     if isfile(libiomp5)
         Libdl.dlopen(libiomp5)
