@@ -51,7 +51,7 @@ function try_ci_installation()
     return
 end
 
-if get(ENV, "SECRET_KNITRO_URL", "") != ""
+if get(ENV, "SECRET_KNITRO_TAR_BZ2", "") != ""
     try_ci_installation()
 else
     try_local_installation()
