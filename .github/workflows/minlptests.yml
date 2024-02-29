@@ -31,8 +31,7 @@ jobs:
           echo "$ARTELYS_LIC_JUMP_DEV" > ~/artelys_lic.txt        
       - name: "run_minlptests"
         env:
-          SECRET_KNITRO_URL: ${{ secrets.SECRET_KNITRO_URL }}
-          SECRET_KNITRO_LIBIOMP5: ${{ secrets.SECRET_KNITRO_LIBIOMP5 }}
+          SECRET_KNITRO_TAR_BZ2: ${{ secrets.SECRET_KNITRO_TAR_BZ2 }}
         shell: julia --color=yes {0}
         run: |
           path = joinpath(ENV["GITHUB_WORKSPACE"], "test", "MINLPTests")

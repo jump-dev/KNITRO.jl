@@ -1,4 +1,4 @@
-using Libdl, Base.Sys
+using Libdl
 
 const DEPS_FILE = joinpath(dirname(@__FILE__), "deps.jl")
 
@@ -42,10 +42,11 @@ function try_local_installation()
 end
 
 function try_ci_installation()
-    local_filename = joinpath(@__DIR__, "libknitro.so")
-    download(ENV["SECRET_KNITRO_URL"], local_filename)
-    download(ENV["SECRET_KNITRO_LIBIOMP5"], joinpath(@__DIR__, "libiomp5.so"))
-    write_depsfile("", local_filename)
+    local_filename = joinpath(@__DIR__, "libknitro.tar.bz2")
+    download(ENV["SECRET_KNITRO_TAR_BZ2"], local_filename)
+    run(`tar -xjf libknitro.tar.bz2`)
+    libname = string(Sys.iswindows() ? "" : "lib", "knitro", ".", Libdl.dlext)
+    write_depsfile("", joinpath(@__DIR__, "libknitro", libname))
     return
 end
 
