@@ -45,8 +45,8 @@ function try_ci_installation()
     local_filename = joinpath(@__DIR__, "libknitro.tar.bz2")
     download(ENV["SECRET_KNITRO_TAR_BZ2"], local_filename)
     run(`tar -xjf libknitro.tar.bz2`)
-    libname = string(Sys.iswindows() ? "" : "lib", "knitro", ".", Libdl.dlext)
-    write_depsfile("", joinpath(@__DIR__, "libknitro", libname))
+    # CI runs on linux only
+    write_depsfile("", joinpath(@__DIR__, "libknitro", "libknitro1310.so"))
     return
 end
 
