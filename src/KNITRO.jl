@@ -19,7 +19,7 @@ end
 has_knitro() = endswith(libknitro, Libdl.dlext)
 
 function __init__()
-    for libiomp_name in ("libiomp5.", "libiomp.", "libiomp5md.")
+    for libiomp_name in ("libiomp5.", "libomp.", "libiomp5md.")
         libiomp = replace(libknitro, r"libknitro[0-9]+\." => libiomp_name)
         if isfile(libiomp)
             Libdl.dlopen(libiomp)
