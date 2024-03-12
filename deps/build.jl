@@ -44,12 +44,14 @@ end
 function try_ci_installation()
     local_filename = joinpath(@__DIR__, "knitro14.zip")
     download(ENV["SECRET_KNITRO_ZIP"], local_filename)
-    run(`tar -xf knitro14.zip`)
     if Sys.islinux()
+        run(`unzip knitro14.zip`)
         write_depsfile("", joinpath(@__DIR__, "libknitro1400.so"))
     elseif Sys.isapple()
+        run(`tar -xf knitro14.zip`)
         write_depsfile("", joinpath(@__DIR__, "libknitro1400.dylib"))
     elseif Sys.iswindows()
+        run(`tar -xf knitro14.zip`)
         write_depsfile("", joinpath(@__DIR__, "knitro1400.dll"))
     end
     return
