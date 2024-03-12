@@ -43,17 +43,29 @@ end
 
 function try_ci_installation()
     local_filename = joinpath(@__DIR__, "knitro14.zip")
-    download(ENV["SECRET_KNITRO_ZIP"], local_filename)
-    if Sys.islinux()
-        run(`unzip knitro14.zip`)
-        write_depsfile("", joinpath(@__DIR__, "libknitro1400.so"))
-    elseif Sys.isapple()
-        run(`tar -xf knitro14.zip`)
-        write_depsfile("", joinpath(@__DIR__, "libknitro1400.dylib"))
-    elseif Sys.iswindows()
-        run(`tar -xf knitro14.zip`)
-        write_depsfile("", joinpath(@__DIR__, "knitro1400.dll"))
+    # If these files exist, it is because they have been cached from a separate
+    # CI job.
+    if !isfile(local_filename)
+        download(ENV["SECRET_KNITRO_ZIP"], local_filename)
     end
+    if !isfile("libknitro1400.so")
+        if Sys.islinux()
+            run(`unzip knitro14.zip`)
+        elseif Sys.isapple()
+            run(`tar -xf knitro14.zip`)
+        elseif Sys.iswindows()
+            run(`tar -xf knitro14.zip`)
+        end
+    end
+    filename = if Sys.islinux()
+        "libknitro1400.so"
+    elseif Sys.isapple()
+        joinpath(Sys.ARCH == :x86_64 ? "" : "mac-arm", "libknitro1400.dylib")
+    else
+        @assert Sys.iswindows()
+        "knitro1400.dll"
+    end
+    write_depsfile("", joinpath(@__DIR__, filename))
     return
 end
 
