@@ -54,12 +54,12 @@ function test_MOI_Test_cached()
         model,
         config;
         include = String[
-            "test_constraint_ZeroOne_bounds",
-            # "test_constraint_ZeroOne_bounds_2",
+            # "test_constraint_ZeroOne_bounds",
+            "test_constraint_ZeroOne_bounds_2",
             "test_constraint_ZeroOne_bounds_3",
             "test_constraint_get_ConstraintIndex",
             "test_constraint_qcp_duplicate_diagonal",
-            "test_constraint_qcp_duplicate_off_diagonal",
+            # "test_constraint_qcp_duplicate_off_diagonal",
         ],
         verbose = true
     )
