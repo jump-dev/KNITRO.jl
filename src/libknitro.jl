@@ -7,7 +7,6 @@
 
 const DBL_MAX = Float64(0x1.fffffffffffffp+1023)
 
-
 const KNINT = Cint
 
 const KNLONG = Clonglong
@@ -590,39 +589,39 @@ const CB_context_ptr = Ptr{CB_context}
 const KN_eval_callback = Cvoid
 
 function KN_add_eval_callback(kc, evalObj, nC, indexCons, funcCallback, cb)
-    ccall((:KN_add_eval_callback, libknitro), Cint, (KN_context_ptr, KNBOOL, KNINT, Ptr{KNINT}, Ptr{Cvoid}, Ptr{CB_context_ptr}), kc, evalObj, nC, indexCons, funcCallback, cb)
+    ccall((:KN_add_eval_callback, libknitro), Cint, (KN_context_ptr, KNBOOL, KNINT, Ptr{KNINT}, Ptr{KN_eval_callback}, Ptr{CB_context_ptr}), kc, evalObj, nC, indexCons, funcCallback, cb)
 end
 
 function KN_add_eval_callback_all(kc, funcCallback, cb)
-    ccall((:KN_add_eval_callback_all, libknitro), Cint, (KN_context_ptr, Ptr{Cvoid}, Ptr{CB_context_ptr}), kc, funcCallback, cb)
+    ccall((:KN_add_eval_callback_all, libknitro), Cint, (KN_context_ptr, Ptr{KN_eval_callback}, Ptr{CB_context_ptr}), kc, funcCallback, cb)
 end
 
 function KN_add_eval_callback_one(kc, index, funcCallback, cb)
-    ccall((:KN_add_eval_callback_one, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{Cvoid}, Ptr{CB_context_ptr}), kc, index, funcCallback, cb)
+    ccall((:KN_add_eval_callback_one, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KN_eval_callback}, Ptr{CB_context_ptr}), kc, index, funcCallback, cb)
 end
 
 function KN_add_lsq_eval_callback(kc, nR, indexRsds, rsdCallback, cb)
-    ccall((:KN_add_lsq_eval_callback, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cvoid}, Ptr{CB_context_ptr}), kc, nR, indexRsds, rsdCallback, cb)
+    ccall((:KN_add_lsq_eval_callback, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{KN_eval_callback}, Ptr{CB_context_ptr}), kc, nR, indexRsds, rsdCallback, cb)
 end
 
 function KN_add_lsq_eval_callback_all(kc, rsdCallback, cb)
-    ccall((:KN_add_lsq_eval_callback_all, libknitro), Cint, (KN_context_ptr, Ptr{Cvoid}, Ptr{CB_context_ptr}), kc, rsdCallback, cb)
+    ccall((:KN_add_lsq_eval_callback_all, libknitro), Cint, (KN_context_ptr, Ptr{KN_eval_callback}, Ptr{CB_context_ptr}), kc, rsdCallback, cb)
 end
 
 function KN_add_lsq_eval_callback_one(kc, indexRsd, rsdCallback, cb)
-    ccall((:KN_add_lsq_eval_callback_one, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{Cvoid}, Ptr{CB_context_ptr}), kc, indexRsd, rsdCallback, cb)
+    ccall((:KN_add_lsq_eval_callback_one, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KN_eval_callback}, Ptr{CB_context_ptr}), kc, indexRsd, rsdCallback, cb)
 end
 
 function KN_set_cb_grad(kc, cb, nV, objGradIndexVars, nnzJ, jacIndexCons, jacIndexVars, gradCallback)
-    ccall((:KN_set_cb_grad, libknitro), Cint, (KN_context_ptr, CB_context_ptr, KNINT, Ptr{KNINT}, KNLONG, Ptr{KNINT}, Ptr{KNINT}, Ptr{Cvoid}), kc, cb, nV, objGradIndexVars, nnzJ, jacIndexCons, jacIndexVars, gradCallback)
+    ccall((:KN_set_cb_grad, libknitro), Cint, (KN_context_ptr, CB_context_ptr, KNINT, Ptr{KNINT}, KNLONG, Ptr{KNINT}, Ptr{KNINT}, Ptr{KN_eval_callback}), kc, cb, nV, objGradIndexVars, nnzJ, jacIndexCons, jacIndexVars, gradCallback)
 end
 
 function KN_set_cb_hess(kc, cb, nnzH, hessIndexVars1, hessIndexVars2, hessCallback)
-    ccall((:KN_set_cb_hess, libknitro), Cint, (KN_context_ptr, CB_context_ptr, KNLONG, Ptr{KNINT}, Ptr{KNINT}, Ptr{Cvoid}), kc, cb, nnzH, hessIndexVars1, hessIndexVars2, hessCallback)
+    ccall((:KN_set_cb_hess, libknitro), Cint, (KN_context_ptr, CB_context_ptr, KNLONG, Ptr{KNINT}, Ptr{KNINT}, Ptr{KN_eval_callback}), kc, cb, nnzH, hessIndexVars1, hessIndexVars2, hessCallback)
 end
 
 function KN_set_cb_rsd_jac(kc, cb, nnzJ, jacIndexRsds, jacIndexVars, rsdJacCallback)
-    ccall((:KN_set_cb_rsd_jac, libknitro), Cint, (KN_context_ptr, CB_context_ptr, KNLONG, Ptr{KNINT}, Ptr{KNINT}, Ptr{Cvoid}), kc, cb, nnzJ, jacIndexRsds, jacIndexVars, rsdJacCallback)
+    ccall((:KN_set_cb_rsd_jac, libknitro), Cint, (KN_context_ptr, CB_context_ptr, KNLONG, Ptr{KNINT}, Ptr{KNINT}, Ptr{KN_eval_callback}), kc, cb, nnzJ, jacIndexRsds, jacIndexVars, rsdJacCallback)
 end
 
 function KN_set_cb_user_params(kc, cb, userParams)
@@ -673,29 +672,37 @@ end
 const KN_user_callback = Cvoid
 
 function KN_set_newpt_callback(kc, fnPtr, userParams)
-    ccall((:KN_set_newpt_callback, libknitro), Cint, (KN_context_ptr, Ptr{Cvoid}, Ptr{Cvoid}), kc, fnPtr, userParams)
+    ccall((:KN_set_newpt_callback, libknitro), Cint, (KN_context_ptr, Ptr{KN_user_callback}, Ptr{Cvoid}), kc, fnPtr, userParams)
 end
 
 function KN_set_mip_node_callback(kc, fnPtr, userParams)
-    ccall((:KN_set_mip_node_callback, libknitro), Cint, (KN_context_ptr, Ptr{Cvoid}, Ptr{Cvoid}), kc, fnPtr, userParams)
+    ccall((:KN_set_mip_node_callback, libknitro), Cint, (KN_context_ptr, Ptr{KN_user_callback}, Ptr{Cvoid}), kc, fnPtr, userParams)
+end
+
+function KN_set_mip_usercuts_callback(kc, fnPtr, userParams)
+    ccall((:KN_set_mip_usercuts_callback, libknitro), Cint, (KN_context_ptr, Ptr{KN_user_callback}, Ptr{Cvoid}), kc, fnPtr, userParams)
+end
+
+function KN_set_mip_lazyconstraints_callback(kc, fnPtr, userParams)
+    ccall((:KN_set_mip_lazyconstraints_callback, libknitro), Cint, (KN_context_ptr, Ptr{KN_user_callback}, Ptr{Cvoid}), kc, fnPtr, userParams)
 end
 
 function KN_set_ms_process_callback(kc, fnPtr, userParams)
-    ccall((:KN_set_ms_process_callback, libknitro), Cint, (KN_context_ptr, Ptr{Cvoid}, Ptr{Cvoid}), kc, fnPtr, userParams)
+    ccall((:KN_set_ms_process_callback, libknitro), Cint, (KN_context_ptr, Ptr{KN_user_callback}, Ptr{Cvoid}), kc, fnPtr, userParams)
 end
 
 # typedef int KN_ms_initpt_callback ( KN_context_ptr kc , const KNINT nSolveNumber , double * const x , double * const lambda , void * const userParams )
 const KN_ms_initpt_callback = Cvoid
 
 function KN_set_ms_initpt_callback(kc, fnPtr, userParams)
-    ccall((:KN_set_ms_initpt_callback, libknitro), Cint, (KN_context_ptr, Ptr{Cvoid}, Ptr{Cvoid}), kc, fnPtr, userParams)
+    ccall((:KN_set_ms_initpt_callback, libknitro), Cint, (KN_context_ptr, Ptr{KN_ms_initpt_callback}, Ptr{Cvoid}), kc, fnPtr, userParams)
 end
 
 # typedef int KN_puts ( const char * const str , void * const userParams )
 const KN_puts = Cvoid
 
 function KN_set_puts_callback(kc, fnPtr, userParams)
-    ccall((:KN_set_puts_callback, libknitro), Cint, (KN_context_ptr, Ptr{Cvoid}, Ptr{Cvoid}), kc, fnPtr, userParams)
+    ccall((:KN_set_puts_callback, libknitro), Cint, (KN_context_ptr, Ptr{KN_puts}, Ptr{Cvoid}), kc, fnPtr, userParams)
 end
 
 struct KN_linsolver_request
@@ -725,7 +732,7 @@ const KN_linsolver_result_ptr = Ptr{KN_linsolver_result}
 const KN_linsolver_callback = Cvoid
 
 function KN_set_linsolver_callback(kc, fnPtr, userParams)
-    ccall((:KN_set_linsolver_callback, libknitro), Cint, (KN_context_ptr, Ptr{Cvoid}, Ptr{Cvoid}), kc, fnPtr, userParams)
+    ccall((:KN_set_linsolver_callback, libknitro), Cint, (KN_context_ptr, Ptr{KN_linsolver_callback}, Ptr{Cvoid}), kc, fnPtr, userParams)
 end
 
 function KN_load_lp(kc, n, lobjCoefs, xLoBnds, xUpBnds, m, cLoBnds, cUpBnds, nnzJ, ljacIndexCons, ljacIndexVars, ljacCoefs)
@@ -892,6 +899,30 @@ function KN_set_var_honorbnd(kc, indexVar, xHonorBnd)
     ccall((:KN_set_var_honorbnd, libknitro), Cint, (KN_context_ptr, KNINT, Cint), kc, indexVar, xHonorBnd)
 end
 
+function KN_set_con_honorbnds(kc, nC, indexCons, cHonorBnds)
+    ccall((:KN_set_con_honorbnds, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cint}), kc, nC, indexCons, cHonorBnds)
+end
+
+function KN_set_con_honorbnds_all(kc, cHonorBnds)
+    ccall((:KN_set_con_honorbnds_all, libknitro), Cint, (KN_context_ptr, Ptr{Cint}), kc, cHonorBnds)
+end
+
+function KN_set_con_honorbnd(kc, indexCon, cHonorBnd)
+    ccall((:KN_set_con_honorbnd, libknitro), Cint, (KN_context_ptr, KNINT, Cint), kc, indexCon, cHonorBnd)
+end
+
+function KN_set_mip_var_primal_init_values(kc, nV, indexVars, xInitVals)
+    ccall((:KN_set_mip_var_primal_init_values, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nV, indexVars, xInitVals)
+end
+
+function KN_set_mip_var_primal_init_values_all(kc, xInitVals)
+    ccall((:KN_set_mip_var_primal_init_values_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, xInitVals)
+end
+
+function KN_set_mip_var_primal_init_value(kc, indexVar, xInitVal)
+    ccall((:KN_set_mip_var_primal_init_value, libknitro), Cint, (KN_context_ptr, KNINT, Cdouble), kc, indexVar, xInitVal)
+end
+
 function KN_set_mip_branching_priorities(kc, nV, indexVars, xPriorities)
     ccall((:KN_set_mip_branching_priorities, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cint}), kc, nV, indexVars, xPriorities)
 end
@@ -918,6 +949,10 @@ end
 
 function KN_solve(kc)
     ccall((:KN_solve, libknitro), Cint, (KN_context_ptr,), kc)
+end
+
+function KN_update(kc)
+    ccall((:KN_update, libknitro), Cint, (KN_context_ptr,), kc)
 end
 
 function KN_get_number_vars(kc, nV)
@@ -1656,6 +1691,8 @@ const KN_CG_PRECOND_CHOL = 1
 
 const KN_PARAM_BLASOPTION = 1042
 
+const KN_BLASOPTION_AUTO = -1
+
 const KN_BLASOPTION_KNITRO = 0
 
 const KN_BLASOPTION_INTEL = 1
@@ -1663,6 +1700,8 @@ const KN_BLASOPTION_INTEL = 1
 const KN_BLASOPTION_DYNAMIC = 2
 
 const KN_BLASOPTION_BLIS = 3
+
+const KN_BLASOPTION_APPLE = 4
 
 const KN_PARAM_BAR_MAXREFACTOR = 1043
 
@@ -1716,6 +1755,8 @@ const KN_PRESOLVEDBG_BASIC = 1
 
 const KN_PRESOLVEDBG_VERBOSE = 2
 
+const KN_PRESOLVEDBG_DETAIL = 3
+
 const KN_PARAM_MSTERMINATE = 1054
 
 const KN_PARAM_MS_TERMINATE = 1054
@@ -1735,6 +1776,10 @@ const KN_MS_TERMINATE_FEASIBLE = 2
 const KN_MSTERMINATE_ANY = 3
 
 const KN_MS_TERMINATE_ANY = 3
+
+const KN_MSTERMINATE_RULEBASED = 4
+
+const KN_MS_TERMINATE_RULEBASED = 4
 
 const KN_PARAM_MSSTARTPTRANGE = 1055
 
@@ -2118,6 +2163,10 @@ const KN_PRESOLVEOP_TIGHTEN_NONE = 0
 
 const KN_PRESOLVEOP_TIGHTEN_VARBND = 1
 
+const KN_PRESOLVEOP_TIGHTEN_COEF = 2
+
+const KN_PRESOLVEOP_TIGHTEN_ALL = 3
+
 const KN_PARAM_BAR_LINSYS = 1126
 
 const KN_BAR_LINSYS_AUTO = -1
@@ -2201,6 +2250,82 @@ const KN_NCVX_QCQP_INIT_HYBRID = 2
 const KN_NCVX_QCQP_INIT_PENALTY = 3
 
 const KN_NCVX_QCQP_INIT_CVXQUAD = 4
+
+const KN_PARAM_FINDIFF_ESTNOISE = 1140
+
+const KN_FINDIFF_ESTNOISE_NO = 0
+
+const KN_FINDIFF_ESTNOISE_YES = 1
+
+const KN_FINDIFF_ESTNOISE_WITHCURV = 2
+
+const KN_PARAM_FINDIFF_NUMTHREADS = 1141
+
+const KN_PARAM_BAR_MPEC_HEURISTIC = 1142
+
+const KN_BAR_MPEC_HEURISTIC_NO = 0
+
+const KN_BAR_MPEC_HEURISTIC_YES = 1
+
+const KN_PARAM_PRESOLVEOP_REDUNDANT = 1143
+
+const KN_PRESOLVEOP_REDUNDANT_NONE = 0
+
+const KN_PRESOLVEOP_REDUNDANT_DUPCON = 1
+
+const KN_PRESOLVEOP_REDUNDANT_DEPCON = 2
+
+const KN_PARAM_LINSOLVER_ORDERING = 1144
+
+const KN_LINSOLVER_ORDERING_AUTO = -1
+
+const KN_LINSOLVER_ORDERING_BEST = 0
+
+const KN_LINSOLVER_ORDERING_AMD = 1
+
+const KN_LINSOLVER_ORDERING_METIS = 2
+
+const KN_PARAM_LINSOLVER_NODEAMALG = 1145
+
+const KN_PARAM_PRESOLVEOP_SUBSTITUTION = 1146
+
+const KN_PRESOLVEOP_SUBSTITUTION_AUTO = -1
+
+const KN_PRESOLVEOP_SUBSTITUTION_NONE = 0
+
+const KN_PRESOLVEOP_SUBSTITUTION_SIMPLE = 1
+
+const KN_PRESOLVEOP_SUBSTITUTION_ALL = 2
+
+const KN_PARAM_PRESOLVEOP_SUBSTITUTION_TOL = 1147
+
+const KN_PARAM_MS_INITPT_CLUSTER = 1149
+
+const KN_MS_INITPT_CLUSTER_NONE = 0
+
+const KN_MS_INITPT_CLUSTER_SL = 1
+
+const KN_PARAM_SCALE_VARS = 1153
+
+const KN_SCALE_VARS_NONE = 0
+
+const KN_SCALE_VARS_BNDS = 1
+
+const KN_PARAM_BAR_MAXMU = 1154
+
+const KN_PARAM_BAR_GLOBALIZE = 1155
+
+const KN_BAR_GLOBALIZE_NONE = 0
+
+const KN_BAR_GLOBALIZE_KKT = 1
+
+const KN_BAR_GLOBALIZE_FILTER = 2
+
+const KN_PARAM_LINSOLVER_SCALING = 1156
+
+const KN_LINSOLVER_SCALING_NONE = 0
+
+const KN_LINSOLVER_SCALING_ALWAYS = 1
 
 const KN_PARAM_MIP_METHOD = 2001
 
@@ -2294,9 +2419,15 @@ const KN_MIP_GUB_BRANCH_YES = 1
 
 const KN_PARAM_MIP_KNAPSACK = 2016
 
+const KN_MIP_KNAPSACK_AUTO = -1
+
 const KN_MIP_KNAPSACK_NO = 0
 
 const KN_MIP_KNAPSACK_NONE = 0
+
+const KN_MIP_KNAPSACK_ROOT = 1
+
+const KN_MIP_KNAPSACK_TREE = 2
 
 const KN_MIP_KNAPSACK_INEQ = 1
 
@@ -2424,6 +2555,8 @@ const KN_PARAM_MIP_CUTFACTOR = 2035
 
 const KN_PARAM_MIP_ZEROHALF = 2036
 
+const KN_MIP_ZEROHALF_AUTO = -1
+
 const KN_MIP_ZEROHALF_NONE = 0
 
 const KN_MIP_ZEROHALF_ROOT = 1
@@ -2438,11 +2571,15 @@ const KN_MIP_MIR_AUTO = -1
 
 const KN_MIP_MIR_NONE = 0
 
-const KN_MIP_MIR_TREE = 1
+const KN_MIP_MIR_ROOT = 1
+
+const KN_MIP_MIR_TREE = 2
 
 const KN_MIP_MIR_NLP = 2
 
 const KN_PARAM_MIP_CLIQUE = 2038
+
+const KN_MIP_CLIQUE_AUTO = -1
 
 const KN_MIP_CLIQUE_NONE = 0
 
@@ -2500,11 +2637,65 @@ const KN_MIP_MULTISTART_ON = 1
 
 const KN_PARAM_MIP_LIFTPROJECT = 2047
 
+const KN_MIP_LIFTPROJECT_AUTO = -1
+
 const KN_MIP_LIFTPROJECT_NONE = 0
 
 const KN_MIP_LIFTPROJECT_ROOT = 1
 
 const KN_PARAM_MIP_NUMTHREADS = 2048
+
+const KN_PARAM_MIP_HEUR_MISQP = 2049
+
+const KN_MIP_HEUR_MISQP_AUTO = -1
+
+const KN_MIP_HEUR_MISQP_OFF = 0
+
+const KN_MIP_HEUR_MISQP_ON = 1
+
+const KN_PARAM_MIP_RESTART = 2050
+
+const KN_MIP_RESTART_OFF = 0
+
+const KN_MIP_RESTART_ON = 1
+
+const KN_PARAM_MIP_GOMORY = 2051
+
+const KN_MIP_GOMORY_AUTO = -1
+
+const KN_MIP_GOMORY_NONE = 0
+
+const KN_MIP_GOMORY_ROOT = 1
+
+const KN_MIP_GOMORY_TREE = 2
+
+const KN_PARAM_MIP_CUT_PROBING = 2052
+
+const KN_MIP_CUT_PROBING_AUTO = -1
+
+const KN_MIP_CUT_PROBING_NONE = 0
+
+const KN_MIP_CUT_PROBING_ROOT = 1
+
+const KN_MIP_CUT_PROBING_TREE = 2
+
+const KN_PARAM_MIP_CUT_FLOWCOVER = 2053
+
+const KN_MIP_CUT_FLOWCOVER_AUTO = -1
+
+const KN_MIP_CUT_FLOWCOVER_NONE = 0
+
+const KN_MIP_CUT_FLOWCOVER_ROOT = 1
+
+const KN_MIP_CUT_FLOWCOVER_TREE = 2
+
+const KN_PARAM_MIP_HEUR_LOCALSEARCH = 2054
+
+const KN_MIP_HEUR_LOCALSEARCH_AUTO = -1
+
+const KN_MIP_HEUR_LOCALSEARCH_OFF = 0
+
+const KN_MIP_HEUR_LOCALSEARCH_ON = 1
 
 const KN_PARAM_PAR_NUMTHREADS = 3001
 
@@ -2523,3 +2714,4 @@ const KN_PARAM_PAR_MSNUMTHREADS = 3005
 const KN_PAR_MSNUMTHREADS_AUTO = 0
 
 const KN_PARAM_PAR_CONICNUMTHREADS = 3006
+
