@@ -4,30 +4,26 @@ on:
     branches: [master]
   pull_request:
     types: [opened, synchronize, reopened]
+# needed to allow julia-actions/cache to delete old caches that it has created
+permissions:
+  actions: write
+  contents: read
 jobs:
   test:
     name: 'KNITRO'
-    runs-on: 'ubuntu-latest'
+    runs-on: '${{ matrix.os }}'
     strategy:
       fail-fast: false
       matrix:
         version: ['1.6', '1']
+        os: ['ubuntu-latest', 'macOS-latest', 'windows-latest']
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.version }}
           arch: 'x64'
-      - uses: actions/cache@v1
-        env:
-          cache-name: cache-artifacts
-        with:
-          path: ~/.julia/artifacts
-          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-test-${{ env.cache-name }}-
-            ${{ runner.os }}-test-
-            ${{ runner.os }}-
+      - uses: julia-actions/cache@v1
       - shell: bash
         env:
           ARTELYS_LIC_JUMP_DEV: ${{ secrets.ARTELYS_LIC_8326_JUMP_DEV_2023_11_02 }}
@@ -35,7 +31,7 @@ jobs:
           echo "$ARTELYS_LIC_JUMP_DEV" > ~/artelys_lic.txt
       - uses: julia-actions/julia-buildpkg@v1
         env:
-          SECRET_KNITRO_TAR_BZ2: ${{ secrets.SECRET_KNITRO_TAR_BZ2 }}
+          SECRET_KNITRO_ZIP: ${{ secrets.SECRET_KNITRO_ZIP }}
       - uses: julia-actions/julia-runtest@v1
       - uses: julia-actions/julia-processcoverage@v1
       - uses: codecov/codecov-action@v1

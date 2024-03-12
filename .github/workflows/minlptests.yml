@@ -4,26 +4,21 @@ on:
     branches: [master]
   pull_request:
     types: [opened, synchronize, reopened]
+# needed to allow julia-actions/cache to delete old caches that it has created
+permissions:
+  actions: write
+  contents: read
 jobs:
   test:
     name: KNITRO
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v1
         with:
           version: '1'
           arch: 'x64'
-      - uses: actions/cache@v1
-        env:
-          cache-name: cache-artifacts
-        with:
-          path: ~/.julia/artifacts
-          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-test-${{ env.cache-name }}-
-            ${{ runner.os }}-test-
-            ${{ runner.os }}-
+      - uses: julia-actions/cache@v1
       - shell: bash
         env:
           ARTELYS_LIC_JUMP_DEV: ${{ secrets.ARTELYS_LIC_8326_JUMP_DEV_2023_11_02 }}
@@ -31,7 +26,7 @@ jobs:
           echo "$ARTELYS_LIC_JUMP_DEV" > ~/artelys_lic.txt        
       - name: "run_minlptests"
         env:
-          SECRET_KNITRO_TAR_BZ2: ${{ secrets.SECRET_KNITRO_TAR_BZ2 }}
+          SECRET_KNITRO_ZIP: ${{ secrets.SECRET_KNITRO_ZIP }}
         shell: julia --color=yes {0}
         run: |
           path = joinpath(ENV["GITHUB_WORKSPACE"], "test", "MINLPTests")
