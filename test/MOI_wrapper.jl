@@ -90,12 +90,14 @@ function test_MOI_Test_cached()
             # ConstraintDual not supported for SecondOrderCone
             second_order_exclude...,
         ],
+        verbose = true,
     )
     # Run the tests for second_order_exclude, this time excluding
     # `MOI.ConstraintDual` and `MOI.DualObjectiveValue`.
     push!(config.exclude, MOI.ConstraintDual)
     push!(config.exclude, MOI.DualObjectiveValue)
-    MOI.Test.runtests(model, config; include=second_order_exclude)
+    @info "Running SOC"
+    MOI.Test.runtests(model, config; include=second_order_exclude, verbose = true)
     return
 end
 
