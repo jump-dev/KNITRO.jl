@@ -178,7 +178,7 @@ function MOI.copy_to(model::Optimizer, src::MOI.ModelLike)
 end
 
 function MOI.empty!(model::Optimizer)
-    @_checked KN_free(model.inner)
+    # We don't need to free the existing .inner because that will get finalized.
     model.inner = if isa(model.license_manager, LMcontext)
         KN_new_lm(model.license_manager)
     else
