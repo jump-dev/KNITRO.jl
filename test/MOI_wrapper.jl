@@ -123,6 +123,19 @@ function test_RawOptimizerAttribute()
     return
 end
 
+# Issue #289
+function test_get_nlp_block()
+    model = MOI.instantiate(KNITRO.Optimizer)
+    MOI.set(model, MOI.Silent(), true)
+    x = MOI.add_variable(model)
+    f = MOI.ScalarNonlinearFunction(:^, Any[x, 4])
+    MOI.add_constraint(model, f, MOI.LessThan(1.0))
+    MOI.optimize!(model)
+    block = MOI.get(model, MOI.NLPBlock())
+    @test block.evaluator isa MOI.Nonlinear.Evaluator
+    return
+end
+
 end
 
 TestMOIWrapper.runtests()

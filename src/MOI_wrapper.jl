@@ -992,6 +992,8 @@ end
 
 MOI.supports(::Optimizer, ::MOI.NLPBlock) = true
 
+MOI.get(model::Optimizer, ::MOI.NLPBlock) = model.nlp_data
+
 function MOI.set(model::Optimizer, attr::MOI.NLPBlock, nlp_data::MOI.NLPBlockData)
     _throw_if_solved(model, attr)
     model.nlp_data = nlp_data
