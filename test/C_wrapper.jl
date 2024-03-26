@@ -111,7 +111,7 @@ if KNITRO.knitro_version() >= v"12.1"
         KN_get_solution(kc, Ref{Cint}(), obj, C_NULL, C_NULL)
         KN_free(kc)
         @test status == 0
-        @test obj[] ≈ 250.0 / 3.0
+        @test isapprox(obj[], 250.0 / 3.0, rtol=1e-6)
 
         # Resolve with dumped MPS file
         kc = KN_new()
@@ -122,7 +122,7 @@ if KNITRO.knitro_version() >= v"12.1"
         KN_get_solution(kc, Ref{Cint}(), obj, C_NULL, C_NULL)
         KN_free(kc)
         @test status == 0
-        @test obj[] ≈ 250.0 / 3.0
+        @test isapprox(obj[], 250.0 / 3.0, rtol=1e-6)
     end
 end
 
