@@ -50,11 +50,11 @@ function try_ci_installation()
     end
     if !isfile("libknitro1400.so")
         if Sys.islinux()
-            run(`unzip knitro14.zip`)
+            run(`unzip $local_filename`)
         elseif Sys.isapple()
-            run(`tar -xf knitro14.zip`)
+            run(`tar -xf $local_filename`)
         elseif Sys.iswindows()
-            run(`tar -xf knitro14.zip`)
+            run(`tar -xf $local_filename`)
         end
     end
     filename = if Sys.islinux()

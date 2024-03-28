@@ -128,7 +128,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     complementarity_cache::_ComplementarityCache
     # Constraint mappings.
     constraint_mapping::Dict{MOI.ConstraintIndex,Union{Cint,Vector{Cint}}}
-    license_manager::Union{LMcontext,Nothing}
+    license_manager::LMcontext
     options::Dict{String,Any}
     # Cache for the solution
     x::Vector{Float64}
@@ -139,11 +139,10 @@ function Optimizer(; license_manager::Union{LMcontext,Nothing}=nothing, kwargs..
     if !isempty(kwargs)
         error("Unsupported keyword arguments passed to `Optimizer`. Set attributes instead")
     end
-    kc = if isa(license_manager, LMcontext)
-        KN_new_lm(license_manager)
-    else
-        KN_new()
+    if license_manager === nothing
+        license_manager = LMcontext()
     end
+    kc = KN_new_lm(license_manager)
     return Optimizer(
         kc,
         _VariableInfo[],
@@ -178,12 +177,8 @@ function MOI.copy_to(model::Optimizer, src::MOI.ModelLike)
 end
 
 function MOI.empty!(model::Optimizer)
-    # We don't need to free the existing .inner because that will get finalized.
-    model.inner = if isa(model.license_manager, LMcontext)
-        KN_new_lm(model.license_manager)
-    else
-        KN_new()
-    end
+    @_checked KN_free(model.inner)
+    model.inner = KN_new_lm(model.license_manager)
     empty!(model.variable_info)
     model.number_solved = 0
     model.nlp_data = nothing
