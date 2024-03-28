@@ -1,4 +1,4 @@
-using Libdl, Base.Sys
+using Libdl
 
 const DEPS_FILE = joinpath(dirname(@__FILE__), "deps.jl")
 
@@ -42,14 +42,34 @@ function try_local_installation()
 end
 
 function try_ci_installation()
-    local_filename = joinpath(@__DIR__, "libknitro.so")
-    download(ENV["SECRET_KNITRO_URL"], local_filename)
-    download(ENV["SECRET_KNITRO_LIBIOMP5"], joinpath(@__DIR__, "libiomp5.so"))
-    write_depsfile("", local_filename)
+    local_filename = joinpath(@__DIR__, "knitro14.zip")
+    # If these files exist, it is because they have been cached from a separate
+    # CI job.
+    if !isfile(local_filename)
+        download(ENV["SECRET_KNITRO_ZIP"], local_filename)
+    end
+    if !isfile("libknitro1400.so")
+        if Sys.islinux()
+            run(`unzip $local_filename`)
+        elseif Sys.isapple()
+            run(`tar -xf $local_filename`)
+        elseif Sys.iswindows()
+            run(`tar -xf $local_filename`)
+        end
+    end
+    filename = if Sys.islinux()
+        "libknitro1400.so"
+    elseif Sys.isapple()
+        joinpath(Sys.ARCH == :x86_64 ? "" : "mac-arm", "libknitro1400.dylib")
+    else
+        @assert Sys.iswindows()
+        "knitro1400.dll"
+    end
+    write_depsfile("", joinpath(@__DIR__, filename))
     return
 end
 
-if get(ENV, "SECRET_KNITRO_URL", "") != ""
+if get(ENV, "SECRET_KNITRO_ZIP", "") != ""
     try_ci_installation()
 else
     try_local_installation()

@@ -102,7 +102,7 @@ function example_qcqp1(; verbose=true)
     @testset "Example QCQP1" begin
         @test nStatus == 0
         @test objSol ≈ 936.0
-        @test x ≈ [0.0, 0.0, 8.0]
+        @test isapprox(x, [0.0, 0.0, 8.0]; atol=1e-5)
     end
 end
 

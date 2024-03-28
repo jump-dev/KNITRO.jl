@@ -9,7 +9,7 @@ import Libdl
 import MathOptInterface as MOI
 import SparseArrays
 
-const _DEPS_FILE = joinpath(dirname(@__FILE__), "..", "deps", "deps.jl")
+const _DEPS_FILE = joinpath(dirname(@__DIR__), "deps", "deps.jl")
 if isfile(_DEPS_FILE)
     include(_DEPS_FILE)
 else
@@ -19,9 +19,12 @@ end
 has_knitro() = endswith(libknitro, Libdl.dlext)
 
 function __init__()
-    libiomp5 = replace(libknitro, "libknitro" => "libiomp5")
-    if isfile(libiomp5)
-        Libdl.dlopen(libiomp5)
+    for libiomp_name in ("libiomp5.", "libomp.", "libiomp5md.")
+        libiomp = replace(libknitro, r"libknitro[0-9]+\." => libiomp_name)
+        if isfile(libiomp)
+            Libdl.dlopen(libiomp)
+            break
+        end
     end
     version = has_knitro() ? knitro_version() : v"0.0.0"
     if version != v"0.0.0" && version < v"11.0"

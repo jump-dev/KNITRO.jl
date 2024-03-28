@@ -67,6 +67,7 @@ Base.unsafe_convert(::Type{Ptr{Cvoid}}, kn::Model) = kn.env.ptr_env::Ptr{Cvoid}
 
 "Free solver object."
 function KN_free(model::Model)
+    @show model.env.ptr_env
     if model.env.ptr_env != C_NULL
         ret = KN_free(Ref(model.env.ptr_env))
         model.env.ptr_env = C_NULL
