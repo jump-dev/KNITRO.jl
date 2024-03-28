@@ -177,8 +177,12 @@ function MOI.copy_to(model::Optimizer, src::MOI.ModelLike)
 end
 
 function MOI.empty!(model::Optimizer)
+    p = model.inner.env.ptr_env
     @_checked KN_free(model.inner)
     model.inner = KN_new_lm(model.license_manager)
+    if p == model.inner.env.ptr_env
+        error("Bad pointer: $p")
+    end
     empty!(model.variable_info)
     model.number_solved = 0
     model.nlp_data = nothing
