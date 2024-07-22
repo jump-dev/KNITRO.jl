@@ -143,7 +143,7 @@ function test_maxtime_cpu()
     MOI.set(model, attr, 30)
     p = Ref{Cdouble}(0.0)
     KNITRO.KN_get_double_param(model.inner, KNITRO.KN_PARAM_MIP_MAXTIMECPU, p)
-    @test p == 30.0
+    @test p[] == 30.0
     return
 end
 
