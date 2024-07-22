@@ -136,6 +136,17 @@ function test_get_nlp_block()
     return
 end
 
+function test_maxtime_cpu()
+    model = KNITRO.Optimizer()
+    attr = MOI.RawOptimizerAttribute("mip_maxtimecpu")
+    @test MOI.supports(model, attr)
+    MOI.set(model, attr, 30)
+    p = Ref{Cdouble}(0.0)
+    KN_get_double_param(model.inner, KN_PARAM_MIP_MAXTIMECPU, p)
+    @test p == 30.0
+    return
+end
+
 end
 
 TestMOIWrapper.runtests()
