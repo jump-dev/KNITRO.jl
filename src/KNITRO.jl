@@ -7,7 +7,6 @@ module KNITRO
 
 import Libdl
 import MathOptInterface as MOI
-import SparseArrays
 
 const _DEPS_FILE = joinpath(dirname(@__FILE__), "..", "deps", "deps.jl")
 if isfile(_DEPS_FILE)
