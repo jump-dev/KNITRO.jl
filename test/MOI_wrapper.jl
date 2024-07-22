@@ -136,6 +136,31 @@ function test_get_nlp_block()
     return
 end
 
+function test_maxtime_cpu()
+    model = KNITRO.Optimizer()
+    attr = MOI.RawOptimizerAttribute("mip_maxtimecpu")
+    @test MOI.supports(model, attr)
+    MOI.set(model, attr, 30)
+    p = Ref{Cdouble}(0.0)
+    KNITRO.KN_get_double_param(model.inner, KNITRO.KN_PARAM_MIP_MAXTIMECPU, p)
+    @test p[] == 30.0
+    return
+end
+
+function test_outname()
+    model = KNITRO.Optimizer()
+    attr = MOI.RawOptimizerAttribute("outname")
+    @test MOI.supports(model, attr)
+    MOI.set(model, attr, "new_name.log")
+    MOI.set(model, MOI.RawOptimizerAttribute("outmode"), 1)
+    MOI.add_variable(model)
+    MOI.optimize!(model)
+    @test isfile("new_name.log")
+    @test occursin("Artelys", read("new_name.log", String))
+    rm("new_name.log")
+    return
+end
+
 end
 
 TestMOIWrapper.runtests()

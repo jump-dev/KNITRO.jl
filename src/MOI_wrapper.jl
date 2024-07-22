@@ -312,14 +312,21 @@ function MOI.set(model::Optimizer, attr::MOI.RawOptimizerAttribute, value)
         @_checked KN_load_tuner_file(model.inner, value)
     elseif attr.name == "free"
         @_checked KN_free(model.inner)
-    elseif !MOI.supports(model, attr)
+    end
+    pId = Ref{Cint}(0)
+    ret = KN_get_param_id(model.inner, attr.name, pId)
+    if ret == KN_RC_BAD_PARAMINPUT || pId[] <= 0
         throw(MOI.UnsupportedAttribute(attr))
-    elseif value isa Integer
-        @_checked KN_set_int_param_by_name(model.inner, attr.name, value)
-    elseif value isa Cdouble
-        @_checked KN_set_double_param_by_name(model.inner, attr.name, value)
-    elseif value isa AbstractString
-        @_checked KN_set_char_param_by_name(model.inner, attr.name, value)
+    end
+    pType = Ref{Cint}()
+    @_checked KN_get_param_type(model.inner, pId[], pType)
+    if pType[] == KN_PARAMTYPE_INTEGER
+        @_checked KN_set_int_param(model.inner, pId[], value)
+    elseif pType[] == KN_PARAMTYPE_FLOAT
+        @_checked KN_set_double_param(model.inner, pId[], value)
+    else
+        @assert pType[] == KN_PARAMTYPE_STRING
+        @_checked KN_set_char_param(model.inner, pId[], value)
     end
     model.options[attr.name] = value
     return
