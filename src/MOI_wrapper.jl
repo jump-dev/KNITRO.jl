@@ -274,14 +274,19 @@ MOI.supports(model::Optimizer, ::MOI.TimeLimitSec) = true
 
 function MOI.get(model::Optimizer, ::MOI.TimeLimitSec)
     p = Ref{Cdouble}(0.0)
-    @_checked KN_get_double_param(model.inner, KN_PARAM_MAXTIMECPU, p)
+    @_checked KN_get_double_param(model.inner, KN_PARAM_MAXTIMEREAL, p)
     return p[] == 1e8 ? nothing : p[]
 end
 
 function MOI.set(model::Optimizer, ::MOI.TimeLimitSec, value)
     # By default, maxtime is set to 1e8 in Knitro.
     limit = something(value, 1e8)
-    @_checked KN_set_double_param(model.inner, KN_PARAM_MAXTIMECPU, limit)
+    # KNITRO does not have a single option to control the global time limit, so
+    # we set various options.
+    # MAXTIME_REAL is the base option, which applies if the problem is a NLP.
+    @_checked KN_set_double_param(model.inner, KN_PARAM_MAXTIMEREAL, limit)
+    # MIP_MAXTIME_REAL applies if the problem is a MINLP
+    @_checked KN_set_double_param(model.inner, KN_PARAM_MIP_MAXTIMEREAL, limit)
     return
 end
 
