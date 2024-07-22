@@ -133,6 +133,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     # Cache for the solution
     x::Vector{Float64}
     lambda::Vector{Float64}
+    time_limit_sec::Union{Nothing,Float64}
 end
 
 function Optimizer(; license_manager::Union{LMcontext,Nothing}=nothing, kwargs...)
@@ -162,6 +163,7 @@ function Optimizer(; license_manager::Union{LMcontext,Nothing}=nothing, kwargs..
         Dict{String,Any}(),
         Float64[],
         Float64[],
+        nothing,
     )
 end
 
@@ -202,6 +204,7 @@ function MOI.empty!(model::Optimizer)
     end
     empty!(model.x)
     empty!(model.lambda)
+    MOI.set(model, MOI.TimeLimitSec(), model.time_limit_sec)
     return
 end
 
@@ -272,13 +275,10 @@ end
 
 MOI.supports(model::Optimizer, ::MOI.TimeLimitSec) = true
 
-function MOI.get(model::Optimizer, ::MOI.TimeLimitSec)
-    p = Ref{Cdouble}(0.0)
-    @_checked KN_get_double_param(model.inner, KN_PARAM_MAXTIMEREAL, p)
-    return p[] == 1e8 ? nothing : p[]
-end
+MOI.get(model::Optimizer, ::MOI.TimeLimitSec) = model.time_limit_sec
 
 function MOI.set(model::Optimizer, ::MOI.TimeLimitSec, value)
+    model.time_limit_sec = value
     # By default, maxtime is set to 1e8 in Knitro.
     limit = something(value, 1e8)
     # KNITRO does not have a single option to control the global time limit, so
