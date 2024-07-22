@@ -18,8 +18,11 @@ const _SETS = Union{
 }
 
 function _canonical_quadratic_reduction(f::MOI.ScalarQuadraticFunction)
-    I = Cint[term.variable_1.value for term in f.quadratic_terms]
-    J = Cint[term.variable_2.value for term in f.quadratic_terms]
+    if !MOI.Utilities.is_canonical(f)
+        f = MOI.Utilities.canonicalize!(copy(f))
+    end
+    I = Cint[_c_column(term.variable_1) for term in f.quadratic_terms]
+    J = Cint[_c_column(term.variable_2) for term in f.quadratic_terms]
     V = Cdouble[term.coefficient for term in f.quadratic_terms]
     for i in 1:length(V)
         if I[i] == J[i]
@@ -28,9 +31,6 @@ function _canonical_quadratic_reduction(f::MOI.ScalarQuadraticFunction)
             I[i], J[i] = J[i], I[i]
         end
     end
-    I, J, V = SparseArrays.findnz(SparseArrays.sparse(I, J, V))
-    I .-= Cint(1)
-    J .-= Cint(1)
     return return length(I), I, J, V
 end
 
