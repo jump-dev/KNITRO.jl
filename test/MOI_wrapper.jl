@@ -147,6 +147,20 @@ function test_maxtime_cpu()
     return
 end
 
+function test_outname()
+    model = KNITRO.Optimizer()
+    attr = MOI.RawOptimizerAttribute("outname")
+    @test MOI.supports(model, attr)
+    MOI.set(model, attr, "new_name.log")
+    MOI.set(model, MOI.RawOptimizerAttribute("outmode"), 1)
+    MOI.add_variable(model)
+    MOI.optimize!(model)
+    @test isfile("new_name.log")
+    @test occursin("Artelys", read("new_name.log", String))
+    rm("new_name.log")
+    return
+end
+
 end
 
 TestMOIWrapper.runtests()
