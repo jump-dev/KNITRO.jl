@@ -19,11 +19,10 @@ const _SETS = Union{
 
 function _canonical_quadratic_reduction(f::MOI.ScalarQuadraticFunction)
     if !MOI.Utilities.is_canonical(f)
-        f = copy(f)
-        f = MOI.Utilities.canonicalize!(f)
+        f = MOI.Utilities.canonicalize!(copy(f))
     end
-    I = Cint[term.variable_1.value - 1 for term in f.quadratic_terms]
-    J = Cint[term.variable_2.value - 1 for term in f.quadratic_terms]
+    I = Cint[_c_column(term.variable_1) for term in f.quadratic_terms]
+    J = Cint[_c_column(term.variable_2) for term in f.quadratic_terms]
     V = Cdouble[term.coefficient for term in f.quadratic_terms]
     for i in 1:length(V)
         if I[i] == J[i]
