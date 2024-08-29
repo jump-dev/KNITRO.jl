@@ -62,6 +62,15 @@ set_attribute(model, "outlev", 1)
 set_attribute(model, "algorithm", 4)
 ```
 
+To use KNITRO's license manager, do:
+
+```julia
+using JuMP, KNITRO
+manager = KNITRO.LMcontext()
+model_1 = Model(() -> KNITRO.Optimizer(; license_manager = manager))
+model_2 = Model(() -> KNITRO.Optimizer(; license_manager = manager))
+```
+
 ## Use with AMPL
 
 To use KNITRO with [AmplNLWriter.jl](https://github.com/jump-dev/AmplNLWriter.jl),
