@@ -1,6 +1,6 @@
 # KNITRO.jl
 
-[![Build Status](https://github.com/jump-dev/KNITRO.jl/workflows/CI/badge.svg?branch=master)](https://github.com/jump-dev/KNITRO.jl/actions?query=workflow%3ACI)
+[![Build Status](https://github.com/jump-dev/KNITRO.jl/workflows/CI/badge.svg)](https://github.com/jump-dev/KNITRO.jl/actions?query=workflow%3ACI)
 [![codecov](https://codecov.io/gh/jump-dev/KNITRO.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/jump-dev/KNITRO.jl)
 
 [KNITRO.jl](https://github.com/jump-dev/KNITRO.jl) is a wrapper for the
@@ -33,23 +33,20 @@ The underlying solver is a closed-source commercial product for which you must
 First, obtain a license and install a copy of KNITRO from
 [Artelys](https://www.artelys.com/knitro).
 
-Then, install `KNITRO.jl` using the Julia package manager:
+Once installed, set the `KNITRODIR` environment variable to point to the directory
+of your KNITRO installation, so that the file `${KNITRODIR}/lib/libknitro` exists.
+Then run `Pkg.add("KNITRO")`. For example:
+
 ```julia
+ENV["KNITRODIR"] = "/path/to/knitro"
 import Pkg
 Pkg.add("KNITRO")
+using KNITRO
+KNITRO.has_knitro()  # true if installed correctly
 ```
 
-If you are having trouble installing KNITRO.jl, here are several things to try:
-
-- Make sure that you have defined your global variables correctly, for example
-  with `export KNITRODIR="/path/to/knitro-vXXX-$OS-64"` and `export
-  LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$KNITRODIR/lib"`. You can check that
-  `KNITRO.jl` sees your library with `using KNITRO; KNITRO.has_knitro()`.
-- If `KNITRO.has_knitro()` returns `false` but you are confident that your paths
-  are correct, try running `Pkg.build("KNITRO")` and restarting Julia. In at
-  least one user's experience, installing and using KNITRO in a temporary Julia
-  environment (activated with `] activate --temp`) does not work and the need to
-  manually build is likely the reason why.
+If `KNITRO.has_knitro()` returns `false` but you are confident that your paths
+are correct, try running `Pkg.build("KNITRO")` and restarting Julia.
 
 ## Use with JuMP
 
