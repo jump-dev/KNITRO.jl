@@ -1651,13 +1651,13 @@ function MOI.get(model::Optimizer, ::MOI.SolveTimeSec)
     return p[]
 end
 
-function MOI.get(model::Optimizer, ::MOI.NodeCount)
+function MOI.get(model::Optimizer, ::MOI.NodeCount)::Int64
     p = Ref{Cint}(0)
     @_checked KN_get_mip_number_nodes(model.inner, p)
     return p[]
 end
 
-function MOI.get(model::Optimizer, ::MOI.BarrierIterations)
+function MOI.get(model::Optimizer, ::MOI.BarrierIterations)::Int64
     p = Ref{Cint}(0)
     @_checked KN_get_number_iters(model.inner, p)
     return p[]
