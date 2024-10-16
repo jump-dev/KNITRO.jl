@@ -1654,13 +1654,13 @@ end
 function MOI.get(model::Optimizer, ::MOI.NodeCount)
     p = Ref{Cint}(0)
     @_checked KN_get_mip_number_nodes(model.inner, p)
-    return p[]
+    return Int(p[]) # MOI expect Int, not Int32
 end
 
 function MOI.get(model::Optimizer, ::MOI.BarrierIterations)
     p = Ref{Cint}(0)
     @_checked KN_get_number_iters(model.inner, p)
-    return p[]
+    return Int(p[]) # MOI expect Int, not Int32
 end
 
 function MOI.get(model::Optimizer, ::MOI.RelativeGap)
