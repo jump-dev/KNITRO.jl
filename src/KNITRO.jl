@@ -34,9 +34,10 @@ function __init__()
 end
 
 function knitro_version()
-    buffer = zeros(Cchar, 15)
-    ccall((:KTR_get_release, libknitro), Cint, (Cint, Ptr{Cchar}), 15, buffer)
-    version_string = GC.@preserve(buffer, unsafe_string(pointer(buffer)))
+    length = 15
+    release = zeros(Cchar, length)
+    KN_get_release(length, release)
+    version_string = GC.@preserve(release, unsafe_string(pointer(release)))
     return VersionNumber(split(version_string, " ")[2])
 end
 

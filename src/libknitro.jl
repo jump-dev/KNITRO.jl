@@ -3,8 +3,6 @@
 # Use of this source code is governed by an MIT-style license that can be found
 # in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
-#!format:off
-
 const DBL_MAX = Float64(0x1.fffffffffffffp+1023)
 
 const KNINT = Cint
@@ -22,539 +20,1002 @@ const LM_context = Cvoid
 const LM_context_ptr = Ptr{LM_context}
 
 function KN_get_release(length, release)
-    ccall((:KN_get_release, libknitro), Cint, (Cint, Ptr{Cchar}), length, release)
+    @ccall libknitro.KN_get_release(length::Cint, release::Ptr{Cchar})::Cint
 end
 
 function KN_new(kc)
-    ccall((:KN_new, libknitro), Cint, (Ptr{KN_context_ptr},), kc)
+    @ccall libknitro.KN_new(kc::Ptr{KN_context_ptr})::Cint
 end
 
 function KN_free(kc)
-    ccall((:KN_free, libknitro), Cint, (Ptr{KN_context_ptr},), kc)
+    @ccall libknitro.KN_free(kc::Ptr{KN_context_ptr})::Cint
 end
 
 function KN_checkout_license(lmc)
-    ccall((:KN_checkout_license, libknitro), Cint, (Ptr{LM_context_ptr},), lmc)
+    @ccall libknitro.KN_checkout_license(lmc::Ptr{LM_context_ptr})::Cint
 end
 
 function KN_new_lm(lmc, kc)
-    ccall((:KN_new_lm, libknitro), Cint, (LM_context_ptr, Ptr{KN_context_ptr}), lmc, kc)
+    @ccall libknitro.KN_new_lm(lmc::LM_context_ptr, kc::Ptr{KN_context_ptr})::Cint
 end
 
 function KN_release_license(lmc)
-    ccall((:KN_release_license, libknitro), Cint, (Ptr{LM_context_ptr},), lmc)
+    @ccall libknitro.KN_release_license(lmc::Ptr{LM_context_ptr})::Cint
 end
 
 function KN_reset_params_to_defaults(kc)
-    ccall((:KN_reset_params_to_defaults, libknitro), Cint, (KN_context_ptr,), kc)
+    @ccall libknitro.KN_reset_params_to_defaults(kc::KN_context_ptr)::Cint
 end
 
 function KN_load_param_file(kc, filename)
-    ccall((:KN_load_param_file, libknitro), Cint, (KN_context_ptr, Ptr{Cchar}), kc, filename)
+    @ccall libknitro.KN_load_param_file(kc::KN_context_ptr, filename::Ptr{Cchar})::Cint
 end
 
 function KN_load_tuner_file(kc, filename)
-    ccall((:KN_load_tuner_file, libknitro), Cint, (KN_context_ptr, Ptr{Cchar}), kc, filename)
+    @ccall libknitro.KN_load_tuner_file(kc::KN_context_ptr, filename::Ptr{Cchar})::Cint
 end
 
 function KN_save_param_file(kc, filename)
-    ccall((:KN_save_param_file, libknitro), Cint, (KN_context_ptr, Ptr{Cchar}), kc, filename)
+    @ccall libknitro.KN_save_param_file(kc::KN_context_ptr, filename::Ptr{Cchar})::Cint
 end
 
 function KN_set_int_param_by_name(kc, name, value)
-    ccall((:KN_set_int_param_by_name, libknitro), Cint, (KN_context_ptr, Ptr{Cchar}, Cint), kc, name, value)
+    @ccall libknitro.KN_set_int_param_by_name(
+        kc::KN_context_ptr,
+        name::Ptr{Cchar},
+        value::Cint,
+    )::Cint
 end
 
 function KN_set_char_param_by_name(kc, name, value)
-    ccall((:KN_set_char_param_by_name, libknitro), Cint, (KN_context_ptr, Ptr{Cchar}, Ptr{Cchar}), kc, name, value)
+    @ccall libknitro.KN_set_char_param_by_name(
+        kc::KN_context_ptr,
+        name::Ptr{Cchar},
+        value::Ptr{Cchar},
+    )::Cint
 end
 
 function KN_set_double_param_by_name(kc, name, value)
-    ccall((:KN_set_double_param_by_name, libknitro), Cint, (KN_context_ptr, Ptr{Cchar}, Cdouble), kc, name, value)
+    @ccall libknitro.KN_set_double_param_by_name(
+        kc::KN_context_ptr,
+        name::Ptr{Cchar},
+        value::Cdouble,
+    )::Cint
 end
 
 function KN_set_param_by_name(kc, name, value)
-    ccall((:KN_set_param_by_name, libknitro), Cint, (KN_context_ptr, Ptr{Cchar}, Cdouble), kc, name, value)
+    @ccall libknitro.KN_set_param_by_name(
+        kc::KN_context_ptr,
+        name::Ptr{Cchar},
+        value::Cdouble,
+    )::Cint
 end
 
 function KN_set_int_param(kc, param_id, value)
-    ccall((:KN_set_int_param, libknitro), Cint, (KN_context_ptr, Cint, Cint), kc, param_id, value)
+    @ccall libknitro.KN_set_int_param(kc::KN_context_ptr, param_id::Cint, value::Cint)::Cint
 end
 
 function KN_set_char_param(kc, param_id, value)
-    ccall((:KN_set_char_param, libknitro), Cint, (KN_context_ptr, Cint, Ptr{Cchar}), kc, param_id, value)
+    @ccall libknitro.KN_set_char_param(
+        kc::KN_context_ptr,
+        param_id::Cint,
+        value::Ptr{Cchar},
+    )::Cint
 end
 
 function KN_set_double_param(kc, param_id, value)
-    ccall((:KN_set_double_param, libknitro), Cint, (KN_context_ptr, Cint, Cdouble), kc, param_id, value)
+    @ccall libknitro.KN_set_double_param(
+        kc::KN_context_ptr,
+        param_id::Cint,
+        value::Cdouble,
+    )::Cint
 end
 
 function KN_get_int_param_by_name(kc, name, value)
-    ccall((:KN_get_int_param_by_name, libknitro), Cint, (KN_context_ptr, Ptr{Cchar}, Ptr{Cint}), kc, name, value)
+    @ccall libknitro.KN_get_int_param_by_name(
+        kc::KN_context_ptr,
+        name::Ptr{Cchar},
+        value::Ptr{Cint},
+    )::Cint
 end
 
 function KN_get_double_param_by_name(kc, name, value)
-    ccall((:KN_get_double_param_by_name, libknitro), Cint, (KN_context_ptr, Ptr{Cchar}, Ptr{Cdouble}), kc, name, value)
+    @ccall libknitro.KN_get_double_param_by_name(
+        kc::KN_context_ptr,
+        name::Ptr{Cchar},
+        value::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_int_param(kc, param_id, value)
-    ccall((:KN_get_int_param, libknitro), Cint, (KN_context_ptr, Cint, Ptr{Cint}), kc, param_id, value)
+    @ccall libknitro.KN_get_int_param(
+        kc::KN_context_ptr,
+        param_id::Cint,
+        value::Ptr{Cint},
+    )::Cint
 end
 
 function KN_get_double_param(kc, param_id, value)
-    ccall((:KN_get_double_param, libknitro), Cint, (KN_context_ptr, Cint, Ptr{Cdouble}), kc, param_id, value)
+    @ccall libknitro.KN_get_double_param(
+        kc::KN_context_ptr,
+        param_id::Cint,
+        value::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_param_name(kc, param_id, param_name, output_size)
-    ccall((:KN_get_param_name, libknitro), Cint, (KN_context_ptr, Cint, Ptr{Cchar}, Csize_t), kc, param_id, param_name, output_size)
+    @ccall libknitro.KN_get_param_name(
+        kc::KN_context_ptr,
+        param_id::Cint,
+        param_name::Ptr{Cchar},
+        output_size::Csize_t,
+    )::Cint
 end
 
 function KN_get_param_doc(kc, param_id, description, output_size)
-    ccall((:KN_get_param_doc, libknitro), Cint, (KN_context_ptr, Cint, Ptr{Cchar}, Csize_t), kc, param_id, description, output_size)
+    @ccall libknitro.KN_get_param_doc(
+        kc::KN_context_ptr,
+        param_id::Cint,
+        description::Ptr{Cchar},
+        output_size::Csize_t,
+    )::Cint
 end
 
 function KN_get_param_type(kc, param_id, param_type)
-    ccall((:KN_get_param_type, libknitro), Cint, (KN_context_ptr, Cint, Ptr{Cint}), kc, param_id, param_type)
+    @ccall libknitro.KN_get_param_type(
+        kc::KN_context_ptr,
+        param_id::Cint,
+        param_type::Ptr{Cint},
+    )::Cint
 end
 
 function KN_get_num_param_values(kc, param_id, num_param_values)
-    ccall((:KN_get_num_param_values, libknitro), Cint, (KN_context_ptr, Cint, Ptr{Cint}), kc, param_id, num_param_values)
+    @ccall libknitro.KN_get_num_param_values(
+        kc::KN_context_ptr,
+        param_id::Cint,
+        num_param_values::Ptr{Cint},
+    )::Cint
 end
 
 function KN_get_param_value_doc(kc, param_id, value_id, param_value_string, output_size)
-    ccall((:KN_get_param_value_doc, libknitro), Cint, (KN_context_ptr, Cint, Cint, Ptr{Cchar}, Csize_t), kc, param_id, value_id, param_value_string, output_size)
+    @ccall libknitro.KN_get_param_value_doc(
+        kc::KN_context_ptr,
+        param_id::Cint,
+        value_id::Cint,
+        param_value_string::Ptr{Cchar},
+        output_size::Csize_t,
+    )::Cint
+end
+
+function KN_get_param_value_doc_from_index(
+    kc,
+    param_id,
+    value_index,
+    param_value_string,
+    output_size,
+)
+    @ccall libknitro.KN_get_param_value_doc_from_index(
+        kc::KN_context_ptr,
+        param_id::Cint,
+        value_index::Cint,
+        param_value_string::Ptr{Cchar},
+        output_size::Csize_t,
+    )::Cint
 end
 
 function KN_get_param_id(kc, name, param_id)
-    ccall((:KN_get_param_id, libknitro), Cint, (KN_context_ptr, Ptr{Cchar}, Ptr{Cint}), kc, name, param_id)
+    @ccall libknitro.KN_get_param_id(
+        kc::KN_context_ptr,
+        name::Ptr{Cchar},
+        param_id::Ptr{Cint},
+    )::Cint
+end
+
+function KN_get_param_id_from_index(kc, param_id, param_index)
+    @ccall libknitro.KN_get_param_id_from_index(
+        kc::KN_context_ptr,
+        param_id::Ptr{Cint},
+        param_index::Cint,
+    )::Cint
+end
+
+function KN_write_param_desc_file(kc, filepath)
+    @ccall libknitro.KN_write_param_desc_file(
+        kc::KN_context_ptr,
+        filepath::Ptr{Cchar},
+    )::Cint
 end
 
 function KN_add_vars(kc, nV, indexVars)
-    ccall((:KN_add_vars, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}), kc, nV, indexVars)
+    @ccall libknitro.KN_add_vars(kc::KN_context_ptr, nV::KNINT, indexVars::Ptr{KNINT})::Cint
 end
 
 function KN_add_var(kc, indexVar)
-    ccall((:KN_add_var, libknitro), Cint, (KN_context_ptr, Ptr{KNINT}), kc, indexVar)
+    @ccall libknitro.KN_add_var(kc::KN_context_ptr, indexVar::Ptr{KNINT})::Cint
 end
 
 function KN_add_cons(kc, nC, indexCons)
-    ccall((:KN_add_cons, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}), kc, nC, indexCons)
+    @ccall libknitro.KN_add_cons(kc::KN_context_ptr, nC::KNINT, indexCons::Ptr{KNINT})::Cint
 end
 
 function KN_add_con(kc, indexCon)
-    ccall((:KN_add_con, libknitro), Cint, (KN_context_ptr, Ptr{KNINT}), kc, indexCon)
+    @ccall libknitro.KN_add_con(kc::KN_context_ptr, indexCon::Ptr{KNINT})::Cint
 end
 
 function KN_add_rsds(kc, nR, indexRsds)
-    ccall((:KN_add_rsds, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}), kc, nR, indexRsds)
+    @ccall libknitro.KN_add_rsds(kc::KN_context_ptr, nR::KNINT, indexRsds::Ptr{KNINT})::Cint
 end
 
 function KN_add_rsd(kc, indexRsd)
-    ccall((:KN_add_rsd, libknitro), Cint, (KN_context_ptr, Ptr{KNINT}), kc, indexRsd)
+    @ccall libknitro.KN_add_rsd(kc::KN_context_ptr, indexRsd::Ptr{KNINT})::Cint
 end
 
 function KN_set_var_lobnds(kc, nV, indexVars, xLoBnds)
-    ccall((:KN_set_var_lobnds, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nV, indexVars, xLoBnds)
+    @ccall libknitro.KN_set_var_lobnds(
+        kc::KN_context_ptr,
+        nV::KNINT,
+        indexVars::Ptr{KNINT},
+        xLoBnds::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_var_lobnds_all(kc, xLoBnds)
-    ccall((:KN_set_var_lobnds_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, xLoBnds)
+    @ccall libknitro.KN_set_var_lobnds_all(kc::KN_context_ptr, xLoBnds::Ptr{Cdouble})::Cint
 end
 
 function KN_set_var_lobnd(kc, indexVar, xLoBnd)
-    ccall((:KN_set_var_lobnd, libknitro), Cint, (KN_context_ptr, KNINT, Cdouble), kc, indexVar, xLoBnd)
+    @ccall libknitro.KN_set_var_lobnd(
+        kc::KN_context_ptr,
+        indexVar::KNINT,
+        xLoBnd::Cdouble,
+    )::Cint
 end
 
 function KN_set_var_upbnds(kc, nV, indexVars, xUpBnds)
-    ccall((:KN_set_var_upbnds, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nV, indexVars, xUpBnds)
+    @ccall libknitro.KN_set_var_upbnds(
+        kc::KN_context_ptr,
+        nV::KNINT,
+        indexVars::Ptr{KNINT},
+        xUpBnds::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_var_upbnds_all(kc, xUpBnds)
-    ccall((:KN_set_var_upbnds_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, xUpBnds)
+    @ccall libknitro.KN_set_var_upbnds_all(kc::KN_context_ptr, xUpBnds::Ptr{Cdouble})::Cint
 end
 
 function KN_set_var_upbnd(kc, indexVar, xUpBnd)
-    ccall((:KN_set_var_upbnd, libknitro), Cint, (KN_context_ptr, KNINT, Cdouble), kc, indexVar, xUpBnd)
+    @ccall libknitro.KN_set_var_upbnd(
+        kc::KN_context_ptr,
+        indexVar::KNINT,
+        xUpBnd::Cdouble,
+    )::Cint
 end
 
 function KN_set_var_fxbnds(kc, nV, indexVars, xFxBnds)
-    ccall((:KN_set_var_fxbnds, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nV, indexVars, xFxBnds)
+    @ccall libknitro.KN_set_var_fxbnds(
+        kc::KN_context_ptr,
+        nV::KNINT,
+        indexVars::Ptr{KNINT},
+        xFxBnds::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_var_fxbnds_all(kc, xFxBnds)
-    ccall((:KN_set_var_fxbnds_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, xFxBnds)
+    @ccall libknitro.KN_set_var_fxbnds_all(kc::KN_context_ptr, xFxBnds::Ptr{Cdouble})::Cint
 end
 
 function KN_set_var_fxbnd(kc, indexVar, xFxBnd)
-    ccall((:KN_set_var_fxbnd, libknitro), Cint, (KN_context_ptr, KNINT, Cdouble), kc, indexVar, xFxBnd)
+    @ccall libknitro.KN_set_var_fxbnd(
+        kc::KN_context_ptr,
+        indexVar::KNINT,
+        xFxBnd::Cdouble,
+    )::Cint
 end
 
 function KN_get_var_lobnds(kc, nV, indexVars, xLoBnds)
-    ccall((:KN_get_var_lobnds, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nV, indexVars, xLoBnds)
+    @ccall libknitro.KN_get_var_lobnds(
+        kc::KN_context_ptr,
+        nV::KNINT,
+        indexVars::Ptr{KNINT},
+        xLoBnds::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_var_lobnds_all(kc, xLoBnds)
-    ccall((:KN_get_var_lobnds_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, xLoBnds)
+    @ccall libknitro.KN_get_var_lobnds_all(kc::KN_context_ptr, xLoBnds::Ptr{Cdouble})::Cint
 end
 
 function KN_get_var_lobnd(kc, indexVar, xLoBnd)
-    ccall((:KN_get_var_lobnd, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{Cdouble}), kc, indexVar, xLoBnd)
+    @ccall libknitro.KN_get_var_lobnd(
+        kc::KN_context_ptr,
+        indexVar::KNINT,
+        xLoBnd::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_var_upbnds(kc, nV, indexVars, xUpBnds)
-    ccall((:KN_get_var_upbnds, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nV, indexVars, xUpBnds)
+    @ccall libknitro.KN_get_var_upbnds(
+        kc::KN_context_ptr,
+        nV::KNINT,
+        indexVars::Ptr{KNINT},
+        xUpBnds::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_var_upbnds_all(kc, xUpBnds)
-    ccall((:KN_get_var_upbnds_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, xUpBnds)
+    @ccall libknitro.KN_get_var_upbnds_all(kc::KN_context_ptr, xUpBnds::Ptr{Cdouble})::Cint
 end
 
 function KN_get_var_upbnd(kc, indexVar, xUpBnd)
-    ccall((:KN_get_var_upbnd, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{Cdouble}), kc, indexVar, xUpBnd)
+    @ccall libknitro.KN_get_var_upbnd(
+        kc::KN_context_ptr,
+        indexVar::KNINT,
+        xUpBnd::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_var_fxbnds(kc, nV, indexVars, xFxBnds)
-    ccall((:KN_get_var_fxbnds, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nV, indexVars, xFxBnds)
+    @ccall libknitro.KN_get_var_fxbnds(
+        kc::KN_context_ptr,
+        nV::KNINT,
+        indexVars::Ptr{KNINT},
+        xFxBnds::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_var_fxbnds_all(kc, xFxBnds)
-    ccall((:KN_get_var_fxbnds_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, xFxBnds)
+    @ccall libknitro.KN_get_var_fxbnds_all(kc::KN_context_ptr, xFxBnds::Ptr{Cdouble})::Cint
 end
 
 function KN_get_var_fxbnd(kc, indexVar, xFxBnd)
-    ccall((:KN_get_var_fxbnd, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{Cdouble}), kc, indexVar, xFxBnd)
+    @ccall libknitro.KN_get_var_fxbnd(
+        kc::KN_context_ptr,
+        indexVar::KNINT,
+        xFxBnd::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_var_types(kc, nV, indexVars, xTypes)
-    ccall((:KN_set_var_types, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cint}), kc, nV, indexVars, xTypes)
+    @ccall libknitro.KN_set_var_types(
+        kc::KN_context_ptr,
+        nV::KNINT,
+        indexVars::Ptr{KNINT},
+        xTypes::Ptr{Cint},
+    )::Cint
 end
 
 function KN_set_var_types_all(kc, xTypes)
-    ccall((:KN_set_var_types_all, libknitro), Cint, (KN_context_ptr, Ptr{Cint}), kc, xTypes)
+    @ccall libknitro.KN_set_var_types_all(kc::KN_context_ptr, xTypes::Ptr{Cint})::Cint
 end
 
 function KN_set_var_type(kc, indexVar, xType)
-    ccall((:KN_set_var_type, libknitro), Cint, (KN_context_ptr, KNINT, Cint), kc, indexVar, xType)
+    @ccall libknitro.KN_set_var_type(kc::KN_context_ptr, indexVar::KNINT, xType::Cint)::Cint
 end
 
 function KN_get_var_types(kc, nV, indexVars, xTypes)
-    ccall((:KN_get_var_types, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cint}), kc, nV, indexVars, xTypes)
+    @ccall libknitro.KN_get_var_types(
+        kc::KN_context_ptr,
+        nV::KNINT,
+        indexVars::Ptr{KNINT},
+        xTypes::Ptr{Cint},
+    )::Cint
 end
 
 function KN_get_var_types_all(kc, xTypes)
-    ccall((:KN_get_var_types_all, libknitro), Cint, (KN_context_ptr, Ptr{Cint}), kc, xTypes)
+    @ccall libknitro.KN_get_var_types_all(kc::KN_context_ptr, xTypes::Ptr{Cint})::Cint
 end
 
 function KN_get_var_type(kc, indexVar, xType)
-    ccall((:KN_get_var_type, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{Cint}), kc, indexVar, xType)
+    @ccall libknitro.KN_get_var_type(
+        kc::KN_context_ptr,
+        indexVar::KNINT,
+        xType::Ptr{Cint},
+    )::Cint
 end
 
 function KN_set_var_properties(kc, nV, indexVars, xProperties)
-    ccall((:KN_set_var_properties, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cint}), kc, nV, indexVars, xProperties)
+    @ccall libknitro.KN_set_var_properties(
+        kc::KN_context_ptr,
+        nV::KNINT,
+        indexVars::Ptr{KNINT},
+        xProperties::Ptr{Cint},
+    )::Cint
 end
 
 function KN_set_var_properties_all(kc, xProperties)
-    ccall((:KN_set_var_properties_all, libknitro), Cint, (KN_context_ptr, Ptr{Cint}), kc, xProperties)
+    @ccall libknitro.KN_set_var_properties_all(
+        kc::KN_context_ptr,
+        xProperties::Ptr{Cint},
+    )::Cint
 end
 
 function KN_set_var_property(kc, indexVar, xProperty)
-    ccall((:KN_set_var_property, libknitro), Cint, (KN_context_ptr, KNINT, Cint), kc, indexVar, xProperty)
+    @ccall libknitro.KN_set_var_property(
+        kc::KN_context_ptr,
+        indexVar::KNINT,
+        xProperty::Cint,
+    )::Cint
 end
 
 function KN_set_con_lobnds(kc, nC, indexCons, cLoBnds)
-    ccall((:KN_set_con_lobnds, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nC, indexCons, cLoBnds)
+    @ccall libknitro.KN_set_con_lobnds(
+        kc::KN_context_ptr,
+        nC::KNINT,
+        indexCons::Ptr{KNINT},
+        cLoBnds::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_con_lobnds_all(kc, cLoBnds)
-    ccall((:KN_set_con_lobnds_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, cLoBnds)
+    @ccall libknitro.KN_set_con_lobnds_all(kc::KN_context_ptr, cLoBnds::Ptr{Cdouble})::Cint
 end
 
 function KN_set_con_lobnd(kc, indexCon, cLoBnd)
-    ccall((:KN_set_con_lobnd, libknitro), Cint, (KN_context_ptr, KNINT, Cdouble), kc, indexCon, cLoBnd)
+    @ccall libknitro.KN_set_con_lobnd(
+        kc::KN_context_ptr,
+        indexCon::KNINT,
+        cLoBnd::Cdouble,
+    )::Cint
 end
 
 function KN_set_con_upbnds(kc, nC, indexCons, cUpBnds)
-    ccall((:KN_set_con_upbnds, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nC, indexCons, cUpBnds)
+    @ccall libknitro.KN_set_con_upbnds(
+        kc::KN_context_ptr,
+        nC::KNINT,
+        indexCons::Ptr{KNINT},
+        cUpBnds::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_con_upbnds_all(kc, cUpBnds)
-    ccall((:KN_set_con_upbnds_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, cUpBnds)
+    @ccall libknitro.KN_set_con_upbnds_all(kc::KN_context_ptr, cUpBnds::Ptr{Cdouble})::Cint
 end
 
 function KN_set_con_upbnd(kc, indexCon, cUpBnd)
-    ccall((:KN_set_con_upbnd, libknitro), Cint, (KN_context_ptr, KNINT, Cdouble), kc, indexCon, cUpBnd)
+    @ccall libknitro.KN_set_con_upbnd(
+        kc::KN_context_ptr,
+        indexCon::KNINT,
+        cUpBnd::Cdouble,
+    )::Cint
 end
 
 function KN_set_con_eqbnds(kc, nC, indexCons, cEqBnds)
-    ccall((:KN_set_con_eqbnds, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nC, indexCons, cEqBnds)
+    @ccall libknitro.KN_set_con_eqbnds(
+        kc::KN_context_ptr,
+        nC::KNINT,
+        indexCons::Ptr{KNINT},
+        cEqBnds::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_con_eqbnds_all(kc, cEqBnds)
-    ccall((:KN_set_con_eqbnds_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, cEqBnds)
+    @ccall libknitro.KN_set_con_eqbnds_all(kc::KN_context_ptr, cEqBnds::Ptr{Cdouble})::Cint
 end
 
 function KN_set_con_eqbnd(kc, indexCon, cEqBnd)
-    ccall((:KN_set_con_eqbnd, libknitro), Cint, (KN_context_ptr, KNINT, Cdouble), kc, indexCon, cEqBnd)
+    @ccall libknitro.KN_set_con_eqbnd(
+        kc::KN_context_ptr,
+        indexCon::KNINT,
+        cEqBnd::Cdouble,
+    )::Cint
 end
 
 function KN_get_con_lobnds(kc, nC, indexCons, cLoBnds)
-    ccall((:KN_get_con_lobnds, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nC, indexCons, cLoBnds)
+    @ccall libknitro.KN_get_con_lobnds(
+        kc::KN_context_ptr,
+        nC::KNINT,
+        indexCons::Ptr{KNINT},
+        cLoBnds::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_con_lobnds_all(kc, cLoBnds)
-    ccall((:KN_get_con_lobnds_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, cLoBnds)
+    @ccall libknitro.KN_get_con_lobnds_all(kc::KN_context_ptr, cLoBnds::Ptr{Cdouble})::Cint
 end
 
 function KN_get_con_lobnd(kc, indexCon, cLoBnd)
-    ccall((:KN_get_con_lobnd, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{Cdouble}), kc, indexCon, cLoBnd)
+    @ccall libknitro.KN_get_con_lobnd(
+        kc::KN_context_ptr,
+        indexCon::KNINT,
+        cLoBnd::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_con_upbnds(kc, nC, indexCons, cUpBnds)
-    ccall((:KN_get_con_upbnds, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nC, indexCons, cUpBnds)
+    @ccall libknitro.KN_get_con_upbnds(
+        kc::KN_context_ptr,
+        nC::KNINT,
+        indexCons::Ptr{KNINT},
+        cUpBnds::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_con_upbnds_all(kc, cUpBnds)
-    ccall((:KN_get_con_upbnds_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, cUpBnds)
+    @ccall libknitro.KN_get_con_upbnds_all(kc::KN_context_ptr, cUpBnds::Ptr{Cdouble})::Cint
 end
 
 function KN_get_con_upbnd(kc, indexCon, cUpBnd)
-    ccall((:KN_get_con_upbnd, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{Cdouble}), kc, indexCon, cUpBnd)
+    @ccall libknitro.KN_get_con_upbnd(
+        kc::KN_context_ptr,
+        indexCon::KNINT,
+        cUpBnd::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_con_eqbnds(kc, nC, indexCons, cEqBnds)
-    ccall((:KN_get_con_eqbnds, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nC, indexCons, cEqBnds)
+    @ccall libknitro.KN_get_con_eqbnds(
+        kc::KN_context_ptr,
+        nC::KNINT,
+        indexCons::Ptr{KNINT},
+        cEqBnds::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_con_eqbnds_all(kc, cEqBnds)
-    ccall((:KN_get_con_eqbnds_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, cEqBnds)
+    @ccall libknitro.KN_get_con_eqbnds_all(kc::KN_context_ptr, cEqBnds::Ptr{Cdouble})::Cint
 end
 
 function KN_get_con_eqbnd(kc, indexCon, cEqBnd)
-    ccall((:KN_get_con_eqbnd, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{Cdouble}), kc, indexCon, cEqBnd)
+    @ccall libknitro.KN_get_con_eqbnd(
+        kc::KN_context_ptr,
+        indexCon::KNINT,
+        cEqBnd::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_obj_property(kc, objProperty)
-    ccall((:KN_set_obj_property, libknitro), Cint, (KN_context_ptr, Cint), kc, objProperty)
+    @ccall libknitro.KN_set_obj_property(kc::KN_context_ptr, objProperty::Cint)::Cint
 end
 
 function KN_set_con_properties(kc, nC, indexCons, cProperties)
-    ccall((:KN_set_con_properties, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cint}), kc, nC, indexCons, cProperties)
+    @ccall libknitro.KN_set_con_properties(
+        kc::KN_context_ptr,
+        nC::KNINT,
+        indexCons::Ptr{KNINT},
+        cProperties::Ptr{Cint},
+    )::Cint
 end
 
 function KN_set_con_properties_all(kc, cProperties)
-    ccall((:KN_set_con_properties_all, libknitro), Cint, (KN_context_ptr, Ptr{Cint}), kc, cProperties)
+    @ccall libknitro.KN_set_con_properties_all(
+        kc::KN_context_ptr,
+        cProperties::Ptr{Cint},
+    )::Cint
 end
 
 function KN_set_con_property(kc, indexCon, cProperty)
-    ccall((:KN_set_con_property, libknitro), Cint, (KN_context_ptr, KNINT, Cint), kc, indexCon, cProperty)
+    @ccall libknitro.KN_set_con_property(
+        kc::KN_context_ptr,
+        indexCon::KNINT,
+        cProperty::Cint,
+    )::Cint
 end
 
 function KN_set_obj_goal(kc, objGoal)
-    ccall((:KN_set_obj_goal, libknitro), Cint, (KN_context_ptr, Cint), kc, objGoal)
+    @ccall libknitro.KN_set_obj_goal(kc::KN_context_ptr, objGoal::Cint)::Cint
 end
 
 function KN_set_var_primal_init_values(kc, nV, indexVars, xInitVals)
-    ccall((:KN_set_var_primal_init_values, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nV, indexVars, xInitVals)
+    @ccall libknitro.KN_set_var_primal_init_values(
+        kc::KN_context_ptr,
+        nV::KNINT,
+        indexVars::Ptr{KNINT},
+        xInitVals::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_var_primal_init_values_all(kc, xInitVals)
-    ccall((:KN_set_var_primal_init_values_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, xInitVals)
+    @ccall libknitro.KN_set_var_primal_init_values_all(
+        kc::KN_context_ptr,
+        xInitVals::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_var_primal_init_value(kc, indexVar, xInitVal)
-    ccall((:KN_set_var_primal_init_value, libknitro), Cint, (KN_context_ptr, KNINT, Cdouble), kc, indexVar, xInitVal)
+    @ccall libknitro.KN_set_var_primal_init_value(
+        kc::KN_context_ptr,
+        indexVar::KNINT,
+        xInitVal::Cdouble,
+    )::Cint
 end
 
 function KN_set_var_dual_init_values(kc, nV, indexVars, lambdaInitVals)
-    ccall((:KN_set_var_dual_init_values, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nV, indexVars, lambdaInitVals)
+    @ccall libknitro.KN_set_var_dual_init_values(
+        kc::KN_context_ptr,
+        nV::KNINT,
+        indexVars::Ptr{KNINT},
+        lambdaInitVals::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_var_dual_init_values_all(kc, lambdaInitVals)
-    ccall((:KN_set_var_dual_init_values_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, lambdaInitVals)
+    @ccall libknitro.KN_set_var_dual_init_values_all(
+        kc::KN_context_ptr,
+        lambdaInitVals::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_var_dual_init_value(kc, indexVar, lambdaInitVal)
-    ccall((:KN_set_var_dual_init_value, libknitro), Cint, (KN_context_ptr, KNINT, Cdouble), kc, indexVar, lambdaInitVal)
+    @ccall libknitro.KN_set_var_dual_init_value(
+        kc::KN_context_ptr,
+        indexVar::KNINT,
+        lambdaInitVal::Cdouble,
+    )::Cint
 end
 
 function KN_set_con_dual_init_values(kc, nC, indexCons, lambdaInitVals)
-    ccall((:KN_set_con_dual_init_values, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nC, indexCons, lambdaInitVals)
+    @ccall libknitro.KN_set_con_dual_init_values(
+        kc::KN_context_ptr,
+        nC::KNINT,
+        indexCons::Ptr{KNINT},
+        lambdaInitVals::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_con_dual_init_values_all(kc, lambdaInitVals)
-    ccall((:KN_set_con_dual_init_values_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, lambdaInitVals)
+    @ccall libknitro.KN_set_con_dual_init_values_all(
+        kc::KN_context_ptr,
+        lambdaInitVals::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_con_dual_init_value(kc, indexCon, lambdaInitVal)
-    ccall((:KN_set_con_dual_init_value, libknitro), Cint, (KN_context_ptr, KNINT, Cdouble), kc, indexCon, lambdaInitVal)
+    @ccall libknitro.KN_set_con_dual_init_value(
+        kc::KN_context_ptr,
+        indexCon::KNINT,
+        lambdaInitVal::Cdouble,
+    )::Cint
 end
 
 function KN_add_obj_constant(kc, constant)
-    ccall((:KN_add_obj_constant, libknitro), Cint, (KN_context_ptr, Cdouble), kc, constant)
+    @ccall libknitro.KN_add_obj_constant(kc::KN_context_ptr, constant::Cdouble)::Cint
 end
 
 function KN_del_obj_constant(kc)
-    ccall((:KN_del_obj_constant, libknitro), Cint, (KN_context_ptr,), kc)
+    @ccall libknitro.KN_del_obj_constant(kc::KN_context_ptr)::Cint
 end
 
 function KN_chg_obj_constant(kc, constant)
-    ccall((:KN_chg_obj_constant, libknitro), Cint, (KN_context_ptr, Cdouble), kc, constant)
+    @ccall libknitro.KN_chg_obj_constant(kc::KN_context_ptr, constant::Cdouble)::Cint
 end
 
 function KN_add_con_constants(kc, nC, indexCons, constants)
-    ccall((:KN_add_con_constants, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nC, indexCons, constants)
+    @ccall libknitro.KN_add_con_constants(
+        kc::KN_context_ptr,
+        nC::KNINT,
+        indexCons::Ptr{KNINT},
+        constants::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_add_con_constants_all(kc, constants)
-    ccall((:KN_add_con_constants_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, constants)
+    @ccall libknitro.KN_add_con_constants_all(
+        kc::KN_context_ptr,
+        constants::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_add_con_constant(kc, indexCon, constant)
-    ccall((:KN_add_con_constant, libknitro), Cint, (KN_context_ptr, KNINT, Cdouble), kc, indexCon, constant)
+    @ccall libknitro.KN_add_con_constant(
+        kc::KN_context_ptr,
+        indexCon::KNINT,
+        constant::Cdouble,
+    )::Cint
 end
 
 function KN_del_con_constants(kc, nC, indexCons)
-    ccall((:KN_del_con_constants, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}), kc, nC, indexCons)
+    @ccall libknitro.KN_del_con_constants(
+        kc::KN_context_ptr,
+        nC::KNINT,
+        indexCons::Ptr{KNINT},
+    )::Cint
 end
 
 function KN_del_con_constants_all(kc)
-    ccall((:KN_del_con_constants_all, libknitro), Cint, (KN_context_ptr,), kc)
+    @ccall libknitro.KN_del_con_constants_all(kc::KN_context_ptr)::Cint
 end
 
 function KN_del_con_constant(kc, indexCon)
-    ccall((:KN_del_con_constant, libknitro), Cint, (KN_context_ptr, KNINT), kc, indexCon)
+    @ccall libknitro.KN_del_con_constant(kc::KN_context_ptr, indexCon::KNINT)::Cint
 end
 
 function KN_chg_con_constants(kc, nC, indexCons, constants)
-    ccall((:KN_chg_con_constants, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nC, indexCons, constants)
+    @ccall libknitro.KN_chg_con_constants(
+        kc::KN_context_ptr,
+        nC::KNINT,
+        indexCons::Ptr{KNINT},
+        constants::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_chg_con_constants_all(kc, constants)
-    ccall((:KN_chg_con_constants_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, constants)
+    @ccall libknitro.KN_chg_con_constants_all(
+        kc::KN_context_ptr,
+        constants::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_chg_con_constant(kc, indexCon, constant)
-    ccall((:KN_chg_con_constant, libknitro), Cint, (KN_context_ptr, KNINT, Cdouble), kc, indexCon, constant)
+    @ccall libknitro.KN_chg_con_constant(
+        kc::KN_context_ptr,
+        indexCon::KNINT,
+        constant::Cdouble,
+    )::Cint
 end
 
 function KN_add_rsd_constants(kc, nR, indexRsds, constants)
-    ccall((:KN_add_rsd_constants, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nR, indexRsds, constants)
+    @ccall libknitro.KN_add_rsd_constants(
+        kc::KN_context_ptr,
+        nR::KNINT,
+        indexRsds::Ptr{KNINT},
+        constants::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_add_rsd_constants_all(kc, constants)
-    ccall((:KN_add_rsd_constants_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, constants)
+    @ccall libknitro.KN_add_rsd_constants_all(
+        kc::KN_context_ptr,
+        constants::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_add_rsd_constant(kc, indexRsd, constant)
-    ccall((:KN_add_rsd_constant, libknitro), Cint, (KN_context_ptr, KNINT, Cdouble), kc, indexRsd, constant)
+    @ccall libknitro.KN_add_rsd_constant(
+        kc::KN_context_ptr,
+        indexRsd::KNINT,
+        constant::Cdouble,
+    )::Cint
 end
 
 function KN_add_obj_linear_struct(kc, nnz, indexVars, coefs)
-    ccall((:KN_add_obj_linear_struct, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nnz, indexVars, coefs)
+    @ccall libknitro.KN_add_obj_linear_struct(
+        kc::KN_context_ptr,
+        nnz::KNINT,
+        indexVars::Ptr{KNINT},
+        coefs::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_add_obj_linear_term(kc, indexVar, coef)
-    ccall((:KN_add_obj_linear_term, libknitro), Cint, (KN_context_ptr, KNINT, Cdouble), kc, indexVar, coef)
+    @ccall libknitro.KN_add_obj_linear_term(
+        kc::KN_context_ptr,
+        indexVar::KNINT,
+        coef::Cdouble,
+    )::Cint
 end
 
 function KN_del_obj_linear_struct(kc, nnz, indexVars)
-    ccall((:KN_del_obj_linear_struct, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}), kc, nnz, indexVars)
+    @ccall libknitro.KN_del_obj_linear_struct(
+        kc::KN_context_ptr,
+        nnz::KNINT,
+        indexVars::Ptr{KNINT},
+    )::Cint
 end
 
 function KN_del_obj_linear_term(kc, indexVar)
-    ccall((:KN_del_obj_linear_term, libknitro), Cint, (KN_context_ptr, KNINT), kc, indexVar)
+    @ccall libknitro.KN_del_obj_linear_term(kc::KN_context_ptr, indexVar::KNINT)::Cint
 end
 
 function KN_chg_obj_linear_struct(kc, nnz, indexVars, coefs)
-    ccall((:KN_chg_obj_linear_struct, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nnz, indexVars, coefs)
+    @ccall libknitro.KN_chg_obj_linear_struct(
+        kc::KN_context_ptr,
+        nnz::KNINT,
+        indexVars::Ptr{KNINT},
+        coefs::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_chg_obj_linear_term(kc, indexVar, coef)
-    ccall((:KN_chg_obj_linear_term, libknitro), Cint, (KN_context_ptr, KNINT, Cdouble), kc, indexVar, coef)
+    @ccall libknitro.KN_chg_obj_linear_term(
+        kc::KN_context_ptr,
+        indexVar::KNINT,
+        coef::Cdouble,
+    )::Cint
 end
 
 function KN_add_con_linear_struct(kc, nnz, indexCons, indexVars, coefs)
-    ccall((:KN_add_con_linear_struct, libknitro), Cint, (KN_context_ptr, KNLONG, Ptr{KNINT}, Ptr{KNINT}, Ptr{Cdouble}), kc, nnz, indexCons, indexVars, coefs)
+    @ccall libknitro.KN_add_con_linear_struct(
+        kc::KN_context_ptr,
+        nnz::KNLONG,
+        indexCons::Ptr{KNINT},
+        indexVars::Ptr{KNINT},
+        coefs::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_add_con_linear_struct_one(kc, nnz, indexCon, indexVars, coefs)
-    ccall((:KN_add_con_linear_struct_one, libknitro), Cint, (KN_context_ptr, KNLONG, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nnz, indexCon, indexVars, coefs)
+    @ccall libknitro.KN_add_con_linear_struct_one(
+        kc::KN_context_ptr,
+        nnz::KNLONG,
+        indexCon::KNINT,
+        indexVars::Ptr{KNINT},
+        coefs::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_add_con_linear_term(kc, indexCon, indexVar, coef)
-    ccall((:KN_add_con_linear_term, libknitro), Cint, (KN_context_ptr, KNINT, KNINT, Cdouble), kc, indexCon, indexVar, coef)
+    @ccall libknitro.KN_add_con_linear_term(
+        kc::KN_context_ptr,
+        indexCon::KNINT,
+        indexVar::KNINT,
+        coef::Cdouble,
+    )::Cint
 end
 
 function KN_del_con_linear_struct(kc, nnz, indexCons, indexVars)
-    ccall((:KN_del_con_linear_struct, libknitro), Cint, (KN_context_ptr, KNLONG, Ptr{KNINT}, Ptr{KNINT}), kc, nnz, indexCons, indexVars)
+    @ccall libknitro.KN_del_con_linear_struct(
+        kc::KN_context_ptr,
+        nnz::KNLONG,
+        indexCons::Ptr{KNINT},
+        indexVars::Ptr{KNINT},
+    )::Cint
 end
 
 function KN_del_con_linear_struct_one(kc, nnz, indexCon, indexVars)
-    ccall((:KN_del_con_linear_struct_one, libknitro), Cint, (KN_context_ptr, KNLONG, KNINT, Ptr{KNINT}), kc, nnz, indexCon, indexVars)
+    @ccall libknitro.KN_del_con_linear_struct_one(
+        kc::KN_context_ptr,
+        nnz::KNLONG,
+        indexCon::KNINT,
+        indexVars::Ptr{KNINT},
+    )::Cint
 end
 
 function KN_del_con_linear_term(kc, indexCon, indexVar)
-    ccall((:KN_del_con_linear_term, libknitro), Cint, (KN_context_ptr, KNINT, KNINT), kc, indexCon, indexVar)
+    @ccall libknitro.KN_del_con_linear_term(
+        kc::KN_context_ptr,
+        indexCon::KNINT,
+        indexVar::KNINT,
+    )::Cint
 end
 
 function KN_chg_con_linear_struct(kc, nnz, indexCons, indexVars, coefs)
-    ccall((:KN_chg_con_linear_struct, libknitro), Cint, (KN_context_ptr, KNLONG, Ptr{KNINT}, Ptr{KNINT}, Ptr{Cdouble}), kc, nnz, indexCons, indexVars, coefs)
+    @ccall libknitro.KN_chg_con_linear_struct(
+        kc::KN_context_ptr,
+        nnz::KNLONG,
+        indexCons::Ptr{KNINT},
+        indexVars::Ptr{KNINT},
+        coefs::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_chg_con_linear_struct_one(kc, nnz, indexCon, indexVars, coefs)
-    ccall((:KN_chg_con_linear_struct_one, libknitro), Cint, (KN_context_ptr, KNLONG, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nnz, indexCon, indexVars, coefs)
+    @ccall libknitro.KN_chg_con_linear_struct_one(
+        kc::KN_context_ptr,
+        nnz::KNLONG,
+        indexCon::KNINT,
+        indexVars::Ptr{KNINT},
+        coefs::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_chg_con_linear_term(kc, indexCon, indexVar, coef)
-    ccall((:KN_chg_con_linear_term, libknitro), Cint, (KN_context_ptr, KNINT, KNINT, Cdouble), kc, indexCon, indexVar, coef)
+    @ccall libknitro.KN_chg_con_linear_term(
+        kc::KN_context_ptr,
+        indexCon::KNINT,
+        indexVar::KNINT,
+        coef::Cdouble,
+    )::Cint
 end
 
 function KN_add_rsd_linear_struct(kc, nnz, indexRsds, indexVars, coefs)
-    ccall((:KN_add_rsd_linear_struct, libknitro), Cint, (KN_context_ptr, KNLONG, Ptr{KNINT}, Ptr{KNINT}, Ptr{Cdouble}), kc, nnz, indexRsds, indexVars, coefs)
+    @ccall libknitro.KN_add_rsd_linear_struct(
+        kc::KN_context_ptr,
+        nnz::KNLONG,
+        indexRsds::Ptr{KNINT},
+        indexVars::Ptr{KNINT},
+        coefs::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_add_rsd_linear_struct_one(kc, nnz, indexRsd, indexVars, coefs)
-    ccall((:KN_add_rsd_linear_struct_one, libknitro), Cint, (KN_context_ptr, KNLONG, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nnz, indexRsd, indexVars, coefs)
+    @ccall libknitro.KN_add_rsd_linear_struct_one(
+        kc::KN_context_ptr,
+        nnz::KNLONG,
+        indexRsd::KNINT,
+        indexVars::Ptr{KNINT},
+        coefs::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_add_rsd_linear_term(kc, indexRsd, indexVar, coef)
-    ccall((:KN_add_rsd_linear_term, libknitro), Cint, (KN_context_ptr, KNINT, KNINT, Cdouble), kc, indexRsd, indexVar, coef)
+    @ccall libknitro.KN_add_rsd_linear_term(
+        kc::KN_context_ptr,
+        indexRsd::KNINT,
+        indexVar::KNINT,
+        coef::Cdouble,
+    )::Cint
 end
 
 function KN_add_obj_quadratic_struct(kc, nnz, indexVars1, indexVars2, coefs)
-    ccall((:KN_add_obj_quadratic_struct, libknitro), Cint, (KN_context_ptr, KNLONG, Ptr{KNINT}, Ptr{KNINT}, Ptr{Cdouble}), kc, nnz, indexVars1, indexVars2, coefs)
+    @ccall libknitro.KN_add_obj_quadratic_struct(
+        kc::KN_context_ptr,
+        nnz::KNLONG,
+        indexVars1::Ptr{KNINT},
+        indexVars2::Ptr{KNINT},
+        coefs::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_add_obj_quadratic_term(kc, indexVar1, indexVar2, coef)
-    ccall((:KN_add_obj_quadratic_term, libknitro), Cint, (KN_context_ptr, KNINT, KNINT, Cdouble), kc, indexVar1, indexVar2, coef)
+    @ccall libknitro.KN_add_obj_quadratic_term(
+        kc::KN_context_ptr,
+        indexVar1::KNINT,
+        indexVar2::KNINT,
+        coef::Cdouble,
+    )::Cint
 end
 
 function KN_add_con_quadratic_struct(kc, nnz, indexCons, indexVars1, indexVars2, coefs)
-    ccall((:KN_add_con_quadratic_struct, libknitro), Cint, (KN_context_ptr, KNLONG, Ptr{KNINT}, Ptr{KNINT}, Ptr{KNINT}, Ptr{Cdouble}), kc, nnz, indexCons, indexVars1, indexVars2, coefs)
+    @ccall libknitro.KN_add_con_quadratic_struct(
+        kc::KN_context_ptr,
+        nnz::KNLONG,
+        indexCons::Ptr{KNINT},
+        indexVars1::Ptr{KNINT},
+        indexVars2::Ptr{KNINT},
+        coefs::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_add_con_quadratic_struct_one(kc, nnz, indexCon, indexVars1, indexVars2, coefs)
-    ccall((:KN_add_con_quadratic_struct_one, libknitro), Cint, (KN_context_ptr, KNLONG, KNINT, Ptr{KNINT}, Ptr{KNINT}, Ptr{Cdouble}), kc, nnz, indexCon, indexVars1, indexVars2, coefs)
+    @ccall libknitro.KN_add_con_quadratic_struct_one(
+        kc::KN_context_ptr,
+        nnz::KNLONG,
+        indexCon::KNINT,
+        indexVars1::Ptr{KNINT},
+        indexVars2::Ptr{KNINT},
+        coefs::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_add_con_quadratic_term(kc, indexCon, indexVar1, indexVar2, coef)
-    ccall((:KN_add_con_quadratic_term, libknitro), Cint, (KN_context_ptr, KNINT, KNINT, KNINT, Cdouble), kc, indexCon, indexVar1, indexVar2, coef)
+    @ccall libknitro.KN_add_con_quadratic_term(
+        kc::KN_context_ptr,
+        indexCon::KNINT,
+        indexVar1::KNINT,
+        indexVar2::KNINT,
+        coef::Cdouble,
+    )::Cint
 end
 
-function KN_add_con_L2norm(kc, indexCon, nCoords, nnz, indexCoords, indexVars, coefs, constants)
-    ccall((:KN_add_con_L2norm, libknitro), Cint, (KN_context_ptr, KNINT, KNINT, KNLONG, Ptr{KNINT}, Ptr{KNINT}, Ptr{Cdouble}, Ptr{Cdouble}), kc, indexCon, nCoords, nnz, indexCoords, indexVars, coefs, constants)
+function KN_add_con_L2norm(
+    kc,
+    indexCon,
+    nCoords,
+    nnz,
+    indexCoords,
+    indexVars,
+    coefs,
+    constants,
+)
+    @ccall libknitro.KN_add_con_L2norm(
+        kc::KN_context_ptr,
+        indexCon::KNINT,
+        nCoords::KNINT,
+        nnz::KNLONG,
+        indexCoords::Ptr{KNINT},
+        indexVars::Ptr{KNINT},
+        coefs::Ptr{Cdouble},
+        constants::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_compcons(kc, nCC, ccTypes, indexComps1, indexComps2)
-    ccall((:KN_set_compcons, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{Cint}, Ptr{KNINT}, Ptr{KNINT}), kc, nCC, ccTypes, indexComps1, indexComps2)
+    @ccall libknitro.KN_set_compcons(
+        kc::KN_context_ptr,
+        nCC::KNINT,
+        ccTypes::Ptr{Cint},
+        indexComps1::Ptr{KNINT},
+        indexComps2::Ptr{KNINT},
+    )::Cint
 end
 
 function KN_load_mps_file(kc, filename)
-    ccall((:KN_load_mps_file, libknitro), Cint, (KN_context_ptr, Ptr{Cchar}), kc, filename)
+    @ccall libknitro.KN_load_mps_file(kc::KN_context_ptr, filename::Ptr{Cchar})::Cint
 end
 
 function KN_write_mps_file(kc, filename)
-    ccall((:KN_write_mps_file, libknitro), Cint, (KN_context_ptr, Ptr{Cchar}), kc, filename)
+    @ccall libknitro.KN_write_mps_file(kc::KN_context_ptr, filename::Ptr{Cchar})::Cint
 end
 
 struct KN_eval_request
@@ -589,120 +1050,258 @@ const CB_context_ptr = Ptr{CB_context}
 const KN_eval_callback = Cvoid
 
 function KN_add_eval_callback(kc, evalObj, nC, indexCons, funcCallback, cb)
-    ccall((:KN_add_eval_callback, libknitro), Cint, (KN_context_ptr, KNBOOL, KNINT, Ptr{KNINT}, Ptr{KN_eval_callback}, Ptr{CB_context_ptr}), kc, evalObj, nC, indexCons, funcCallback, cb)
+    @ccall libknitro.KN_add_eval_callback(
+        kc::KN_context_ptr,
+        evalObj::KNBOOL,
+        nC::KNINT,
+        indexCons::Ptr{KNINT},
+        funcCallback::Ptr{KN_eval_callback},
+        cb::Ptr{CB_context_ptr},
+    )::Cint
 end
 
 function KN_add_eval_callback_all(kc, funcCallback, cb)
-    ccall((:KN_add_eval_callback_all, libknitro), Cint, (KN_context_ptr, Ptr{KN_eval_callback}, Ptr{CB_context_ptr}), kc, funcCallback, cb)
+    @ccall libknitro.KN_add_eval_callback_all(
+        kc::KN_context_ptr,
+        funcCallback::Ptr{KN_eval_callback},
+        cb::Ptr{CB_context_ptr},
+    )::Cint
 end
 
 function KN_add_eval_callback_one(kc, index, funcCallback, cb)
-    ccall((:KN_add_eval_callback_one, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KN_eval_callback}, Ptr{CB_context_ptr}), kc, index, funcCallback, cb)
+    @ccall libknitro.KN_add_eval_callback_one(
+        kc::KN_context_ptr,
+        index::KNINT,
+        funcCallback::Ptr{KN_eval_callback},
+        cb::Ptr{CB_context_ptr},
+    )::Cint
 end
 
 function KN_add_lsq_eval_callback(kc, nR, indexRsds, rsdCallback, cb)
-    ccall((:KN_add_lsq_eval_callback, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{KN_eval_callback}, Ptr{CB_context_ptr}), kc, nR, indexRsds, rsdCallback, cb)
+    @ccall libknitro.KN_add_lsq_eval_callback(
+        kc::KN_context_ptr,
+        nR::KNINT,
+        indexRsds::Ptr{KNINT},
+        rsdCallback::Ptr{KN_eval_callback},
+        cb::Ptr{CB_context_ptr},
+    )::Cint
 end
 
 function KN_add_lsq_eval_callback_all(kc, rsdCallback, cb)
-    ccall((:KN_add_lsq_eval_callback_all, libknitro), Cint, (KN_context_ptr, Ptr{KN_eval_callback}, Ptr{CB_context_ptr}), kc, rsdCallback, cb)
+    @ccall libknitro.KN_add_lsq_eval_callback_all(
+        kc::KN_context_ptr,
+        rsdCallback::Ptr{KN_eval_callback},
+        cb::Ptr{CB_context_ptr},
+    )::Cint
 end
 
 function KN_add_lsq_eval_callback_one(kc, indexRsd, rsdCallback, cb)
-    ccall((:KN_add_lsq_eval_callback_one, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KN_eval_callback}, Ptr{CB_context_ptr}), kc, indexRsd, rsdCallback, cb)
+    @ccall libknitro.KN_add_lsq_eval_callback_one(
+        kc::KN_context_ptr,
+        indexRsd::KNINT,
+        rsdCallback::Ptr{KN_eval_callback},
+        cb::Ptr{CB_context_ptr},
+    )::Cint
 end
 
-function KN_set_cb_grad(kc, cb, nV, objGradIndexVars, nnzJ, jacIndexCons, jacIndexVars, gradCallback)
-    ccall((:KN_set_cb_grad, libknitro), Cint, (KN_context_ptr, CB_context_ptr, KNINT, Ptr{KNINT}, KNLONG, Ptr{KNINT}, Ptr{KNINT}, Ptr{KN_eval_callback}), kc, cb, nV, objGradIndexVars, nnzJ, jacIndexCons, jacIndexVars, gradCallback)
+function KN_set_cb_grad(
+    kc,
+    cb,
+    nV,
+    objGradIndexVars,
+    nnzJ,
+    jacIndexCons,
+    jacIndexVars,
+    gradCallback,
+)
+    @ccall libknitro.KN_set_cb_grad(
+        kc::KN_context_ptr,
+        cb::CB_context_ptr,
+        nV::KNINT,
+        objGradIndexVars::Ptr{KNINT},
+        nnzJ::KNLONG,
+        jacIndexCons::Ptr{KNINT},
+        jacIndexVars::Ptr{KNINT},
+        gradCallback::Ptr{KN_eval_callback},
+    )::Cint
 end
 
 function KN_set_cb_hess(kc, cb, nnzH, hessIndexVars1, hessIndexVars2, hessCallback)
-    ccall((:KN_set_cb_hess, libknitro), Cint, (KN_context_ptr, CB_context_ptr, KNLONG, Ptr{KNINT}, Ptr{KNINT}, Ptr{KN_eval_callback}), kc, cb, nnzH, hessIndexVars1, hessIndexVars2, hessCallback)
+    @ccall libknitro.KN_set_cb_hess(
+        kc::KN_context_ptr,
+        cb::CB_context_ptr,
+        nnzH::KNLONG,
+        hessIndexVars1::Ptr{KNINT},
+        hessIndexVars2::Ptr{KNINT},
+        hessCallback::Ptr{KN_eval_callback},
+    )::Cint
 end
 
 function KN_set_cb_rsd_jac(kc, cb, nnzJ, jacIndexRsds, jacIndexVars, rsdJacCallback)
-    ccall((:KN_set_cb_rsd_jac, libknitro), Cint, (KN_context_ptr, CB_context_ptr, KNLONG, Ptr{KNINT}, Ptr{KNINT}, Ptr{KN_eval_callback}), kc, cb, nnzJ, jacIndexRsds, jacIndexVars, rsdJacCallback)
+    @ccall libknitro.KN_set_cb_rsd_jac(
+        kc::KN_context_ptr,
+        cb::CB_context_ptr,
+        nnzJ::KNLONG,
+        jacIndexRsds::Ptr{KNINT},
+        jacIndexVars::Ptr{KNINT},
+        rsdJacCallback::Ptr{KN_eval_callback},
+    )::Cint
 end
 
 function KN_set_cb_user_params(kc, cb, userParams)
-    ccall((:KN_set_cb_user_params, libknitro), Cint, (KN_context_ptr, CB_context_ptr, Ptr{Cvoid}), kc, cb, userParams)
+    @ccall libknitro.KN_set_cb_user_params(
+        kc::KN_context_ptr,
+        cb::CB_context_ptr,
+        userParams::Ptr{Cvoid},
+    )::Cint
 end
 
 function KN_set_cb_gradopt(kc, cb, gradopt)
-    ccall((:KN_set_cb_gradopt, libknitro), Cint, (KN_context_ptr, CB_context_ptr, Cint), kc, cb, gradopt)
+    @ccall libknitro.KN_set_cb_gradopt(
+        kc::KN_context_ptr,
+        cb::CB_context_ptr,
+        gradopt::Cint,
+    )::Cint
 end
 
 function KN_set_cb_relstepsizes(kc, cb, nV, indexVars, xRelStepSizes)
-    ccall((:KN_set_cb_relstepsizes, libknitro), Cint, (KN_context_ptr, CB_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, cb, nV, indexVars, xRelStepSizes)
+    @ccall libknitro.KN_set_cb_relstepsizes(
+        kc::KN_context_ptr,
+        cb::CB_context_ptr,
+        nV::KNINT,
+        indexVars::Ptr{KNINT},
+        xRelStepSizes::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_cb_relstepsizes_all(kc, cb, xRelStepSizes)
-    ccall((:KN_set_cb_relstepsizes_all, libknitro), Cint, (KN_context_ptr, CB_context_ptr, Ptr{Cdouble}), kc, cb, xRelStepSizes)
+    @ccall libknitro.KN_set_cb_relstepsizes_all(
+        kc::KN_context_ptr,
+        cb::CB_context_ptr,
+        xRelStepSizes::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_cb_relstepsize(kc, cb, indexVar, xRelStepSize)
-    ccall((:KN_set_cb_relstepsize, libknitro), Cint, (KN_context_ptr, CB_context_ptr, KNINT, Cdouble), kc, cb, indexVar, xRelStepSize)
+    @ccall libknitro.KN_set_cb_relstepsize(
+        kc::KN_context_ptr,
+        cb::CB_context_ptr,
+        indexVar::KNINT,
+        xRelStepSize::Cdouble,
+    )::Cint
 end
 
 function KN_get_cb_number_cons(kc, cb, nC)
-    ccall((:KN_get_cb_number_cons, libknitro), Cint, (KN_context_ptr, CB_context_ptr, Ptr{KNINT}), kc, cb, nC)
+    @ccall libknitro.KN_get_cb_number_cons(
+        kc::KN_context_ptr,
+        cb::CB_context_ptr,
+        nC::Ptr{KNINT},
+    )::Cint
 end
 
 function KN_get_cb_number_rsds(kc, cb, nR)
-    ccall((:KN_get_cb_number_rsds, libknitro), Cint, (KN_context_ptr, CB_context_ptr, Ptr{KNINT}), kc, cb, nR)
+    @ccall libknitro.KN_get_cb_number_rsds(
+        kc::KN_context_ptr,
+        cb::CB_context_ptr,
+        nR::Ptr{KNINT},
+    )::Cint
 end
 
 function KN_get_cb_objgrad_nnz(kc, cb, nnz)
-    ccall((:KN_get_cb_objgrad_nnz, libknitro), Cint, (KN_context_ptr, CB_context_ptr, Ptr{KNINT}), kc, cb, nnz)
+    @ccall libknitro.KN_get_cb_objgrad_nnz(
+        kc::KN_context_ptr,
+        cb::CB_context_ptr,
+        nnz::Ptr{KNINT},
+    )::Cint
 end
 
 function KN_get_cb_jacobian_nnz(kc, cb, nnz)
-    ccall((:KN_get_cb_jacobian_nnz, libknitro), Cint, (KN_context_ptr, CB_context_ptr, Ptr{KNLONG}), kc, cb, nnz)
+    @ccall libknitro.KN_get_cb_jacobian_nnz(
+        kc::KN_context_ptr,
+        cb::CB_context_ptr,
+        nnz::Ptr{KNLONG},
+    )::Cint
 end
 
 function KN_get_cb_rsd_jacobian_nnz(kc, cb, nnz)
-    ccall((:KN_get_cb_rsd_jacobian_nnz, libknitro), Cint, (KN_context_ptr, CB_context_ptr, Ptr{KNLONG}), kc, cb, nnz)
+    @ccall libknitro.KN_get_cb_rsd_jacobian_nnz(
+        kc::KN_context_ptr,
+        cb::CB_context_ptr,
+        nnz::Ptr{KNLONG},
+    )::Cint
 end
 
 function KN_get_cb_hessian_nnz(kc, cb, nnz)
-    ccall((:KN_get_cb_hessian_nnz, libknitro), Cint, (KN_context_ptr, CB_context_ptr, Ptr{KNLONG}), kc, cb, nnz)
+    @ccall libknitro.KN_get_cb_hessian_nnz(
+        kc::KN_context_ptr,
+        cb::CB_context_ptr,
+        nnz::Ptr{KNLONG},
+    )::Cint
 end
 
 # typedef int KN_user_callback ( KN_context_ptr kc , const double * const x , const double * const lambda , void * const userParams )
 const KN_user_callback = Cvoid
 
 function KN_set_newpt_callback(kc, fnPtr, userParams)
-    ccall((:KN_set_newpt_callback, libknitro), Cint, (KN_context_ptr, Ptr{KN_user_callback}, Ptr{Cvoid}), kc, fnPtr, userParams)
+    @ccall libknitro.KN_set_newpt_callback(
+        kc::KN_context_ptr,
+        fnPtr::Ptr{KN_user_callback},
+        userParams::Ptr{Cvoid},
+    )::Cint
 end
 
 function KN_set_mip_node_callback(kc, fnPtr, userParams)
-    ccall((:KN_set_mip_node_callback, libknitro), Cint, (KN_context_ptr, Ptr{KN_user_callback}, Ptr{Cvoid}), kc, fnPtr, userParams)
+    @ccall libknitro.KN_set_mip_node_callback(
+        kc::KN_context_ptr,
+        fnPtr::Ptr{KN_user_callback},
+        userParams::Ptr{Cvoid},
+    )::Cint
 end
 
 function KN_set_mip_usercuts_callback(kc, fnPtr, userParams)
-    ccall((:KN_set_mip_usercuts_callback, libknitro), Cint, (KN_context_ptr, Ptr{KN_user_callback}, Ptr{Cvoid}), kc, fnPtr, userParams)
+    @ccall libknitro.KN_set_mip_usercuts_callback(
+        kc::KN_context_ptr,
+        fnPtr::Ptr{KN_user_callback},
+        userParams::Ptr{Cvoid},
+    )::Cint
 end
 
 function KN_set_mip_lazyconstraints_callback(kc, fnPtr, userParams)
-    ccall((:KN_set_mip_lazyconstraints_callback, libknitro), Cint, (KN_context_ptr, Ptr{KN_user_callback}, Ptr{Cvoid}), kc, fnPtr, userParams)
+    @ccall libknitro.KN_set_mip_lazyconstraints_callback(
+        kc::KN_context_ptr,
+        fnPtr::Ptr{KN_user_callback},
+        userParams::Ptr{Cvoid},
+    )::Cint
 end
 
 function KN_set_ms_process_callback(kc, fnPtr, userParams)
-    ccall((:KN_set_ms_process_callback, libknitro), Cint, (KN_context_ptr, Ptr{KN_user_callback}, Ptr{Cvoid}), kc, fnPtr, userParams)
+    @ccall libknitro.KN_set_ms_process_callback(
+        kc::KN_context_ptr,
+        fnPtr::Ptr{KN_user_callback},
+        userParams::Ptr{Cvoid},
+    )::Cint
 end
 
 # typedef int KN_ms_initpt_callback ( KN_context_ptr kc , const KNINT nSolveNumber , double * const x , double * const lambda , void * const userParams )
 const KN_ms_initpt_callback = Cvoid
 
 function KN_set_ms_initpt_callback(kc, fnPtr, userParams)
-    ccall((:KN_set_ms_initpt_callback, libknitro), Cint, (KN_context_ptr, Ptr{KN_ms_initpt_callback}, Ptr{Cvoid}), kc, fnPtr, userParams)
+    @ccall libknitro.KN_set_ms_initpt_callback(
+        kc::KN_context_ptr,
+        fnPtr::Ptr{KN_ms_initpt_callback},
+        userParams::Ptr{Cvoid},
+    )::Cint
 end
 
 # typedef int KN_puts ( const char * const str , void * const userParams )
 const KN_puts = Cvoid
 
 function KN_set_puts_callback(kc, fnPtr, userParams)
-    ccall((:KN_set_puts_callback, libknitro), Cint, (KN_context_ptr, Ptr{KN_puts}, Ptr{Cvoid}), kc, fnPtr, userParams)
+    @ccall libknitro.KN_set_puts_callback(
+        kc::KN_context_ptr,
+        fnPtr::Ptr{KN_puts},
+        userParams::Ptr{Cvoid},
+    )::Cint
 end
 
 struct KN_linsolver_request
@@ -732,479 +1331,942 @@ const KN_linsolver_result_ptr = Ptr{KN_linsolver_result}
 const KN_linsolver_callback = Cvoid
 
 function KN_set_linsolver_callback(kc, fnPtr, userParams)
-    ccall((:KN_set_linsolver_callback, libknitro), Cint, (KN_context_ptr, Ptr{KN_linsolver_callback}, Ptr{Cvoid}), kc, fnPtr, userParams)
+    @ccall libknitro.KN_set_linsolver_callback(
+        kc::KN_context_ptr,
+        fnPtr::Ptr{KN_linsolver_callback},
+        userParams::Ptr{Cvoid},
+    )::Cint
 end
 
-function KN_load_lp(kc, n, lobjCoefs, xLoBnds, xUpBnds, m, cLoBnds, cUpBnds, nnzJ, ljacIndexCons, ljacIndexVars, ljacCoefs)
-    ccall((:KN_load_lp, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}, KNINT, Ptr{Cdouble}, Ptr{Cdouble}, KNLONG, Ptr{KNINT}, Ptr{KNINT}, Ptr{Cdouble}), kc, n, lobjCoefs, xLoBnds, xUpBnds, m, cLoBnds, cUpBnds, nnzJ, ljacIndexCons, ljacIndexVars, ljacCoefs)
+function KN_load_lp(
+    kc,
+    n,
+    lobjCoefs,
+    xLoBnds,
+    xUpBnds,
+    m,
+    cLoBnds,
+    cUpBnds,
+    nnzJ,
+    ljacIndexCons,
+    ljacIndexVars,
+    ljacCoefs,
+)
+    @ccall libknitro.KN_load_lp(
+        kc::KN_context_ptr,
+        n::KNINT,
+        lobjCoefs::Ptr{Cdouble},
+        xLoBnds::Ptr{Cdouble},
+        xUpBnds::Ptr{Cdouble},
+        m::KNINT,
+        cLoBnds::Ptr{Cdouble},
+        cUpBnds::Ptr{Cdouble},
+        nnzJ::KNLONG,
+        ljacIndexCons::Ptr{KNINT},
+        ljacIndexVars::Ptr{KNINT},
+        ljacCoefs::Ptr{Cdouble},
+    )::Cint
 end
 
-function KN_load_qp(kc, n, lobjCoefs, xLoBnds, xUpBnds, m, cLoBnds, cUpBnds, nnzJ, ljacIndexCons, ljacIndexVars, ljacCoefs, nnzH, qobjIndexVars1, qobjIndexVars2, qobjCoefs)
-    ccall((:KN_load_qp, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}, KNINT, Ptr{Cdouble}, Ptr{Cdouble}, KNLONG, Ptr{KNINT}, Ptr{KNINT}, Ptr{Cdouble}, KNLONG, Ptr{KNINT}, Ptr{KNINT}, Ptr{Cdouble}), kc, n, lobjCoefs, xLoBnds, xUpBnds, m, cLoBnds, cUpBnds, nnzJ, ljacIndexCons, ljacIndexVars, ljacCoefs, nnzH, qobjIndexVars1, qobjIndexVars2, qobjCoefs)
+function KN_load_qp(
+    kc,
+    n,
+    lobjCoefs,
+    xLoBnds,
+    xUpBnds,
+    m,
+    cLoBnds,
+    cUpBnds,
+    nnzJ,
+    ljacIndexCons,
+    ljacIndexVars,
+    ljacCoefs,
+    nnzH,
+    qobjIndexVars1,
+    qobjIndexVars2,
+    qobjCoefs,
+)
+    @ccall libknitro.KN_load_qp(
+        kc::KN_context_ptr,
+        n::KNINT,
+        lobjCoefs::Ptr{Cdouble},
+        xLoBnds::Ptr{Cdouble},
+        xUpBnds::Ptr{Cdouble},
+        m::KNINT,
+        cLoBnds::Ptr{Cdouble},
+        cUpBnds::Ptr{Cdouble},
+        nnzJ::KNLONG,
+        ljacIndexCons::Ptr{KNINT},
+        ljacIndexVars::Ptr{KNINT},
+        ljacCoefs::Ptr{Cdouble},
+        nnzH::KNLONG,
+        qobjIndexVars1::Ptr{KNINT},
+        qobjIndexVars2::Ptr{KNINT},
+        qobjCoefs::Ptr{Cdouble},
+    )::Cint
 end
 
-function KN_load_qcqp(kc, n, lobjCoefs, xLoBnds, xUpBnds, m, cLoBnds, cUpBnds, nnzJ, ljacIndexCons, ljacIndexVars, ljacCoefs, nnzH, qobjIndexVars1, qobjIndexVars2, qobjCoefs, nnzQ, qconIndexCons, qconIndexVars1, qconIndexVars2, qconCoefs)
-    ccall((:KN_load_qcqp, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}, KNINT, Ptr{Cdouble}, Ptr{Cdouble}, KNLONG, Ptr{KNINT}, Ptr{KNINT}, Ptr{Cdouble}, KNLONG, Ptr{KNINT}, Ptr{KNINT}, Ptr{Cdouble}, KNLONG, Ptr{KNINT}, Ptr{KNINT}, Ptr{KNINT}, Ptr{Cdouble}), kc, n, lobjCoefs, xLoBnds, xUpBnds, m, cLoBnds, cUpBnds, nnzJ, ljacIndexCons, ljacIndexVars, ljacCoefs, nnzH, qobjIndexVars1, qobjIndexVars2, qobjCoefs, nnzQ, qconIndexCons, qconIndexVars1, qconIndexVars2, qconCoefs)
+function KN_load_qcqp(
+    kc,
+    n,
+    lobjCoefs,
+    xLoBnds,
+    xUpBnds,
+    m,
+    cLoBnds,
+    cUpBnds,
+    nnzJ,
+    ljacIndexCons,
+    ljacIndexVars,
+    ljacCoefs,
+    nnzH,
+    qobjIndexVars1,
+    qobjIndexVars2,
+    qobjCoefs,
+    nnzQ,
+    qconIndexCons,
+    qconIndexVars1,
+    qconIndexVars2,
+    qconCoefs,
+)
+    @ccall libknitro.KN_load_qcqp(
+        kc::KN_context_ptr,
+        n::KNINT,
+        lobjCoefs::Ptr{Cdouble},
+        xLoBnds::Ptr{Cdouble},
+        xUpBnds::Ptr{Cdouble},
+        m::KNINT,
+        cLoBnds::Ptr{Cdouble},
+        cUpBnds::Ptr{Cdouble},
+        nnzJ::KNLONG,
+        ljacIndexCons::Ptr{KNINT},
+        ljacIndexVars::Ptr{KNINT},
+        ljacCoefs::Ptr{Cdouble},
+        nnzH::KNLONG,
+        qobjIndexVars1::Ptr{KNINT},
+        qobjIndexVars2::Ptr{KNINT},
+        qobjCoefs::Ptr{Cdouble},
+        nnzQ::KNLONG,
+        qconIndexCons::Ptr{KNINT},
+        qconIndexVars1::Ptr{KNINT},
+        qconIndexVars2::Ptr{KNINT},
+        qconCoefs::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_var_feastols(kc, nV, indexVars, xFeasTols)
-    ccall((:KN_set_var_feastols, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nV, indexVars, xFeasTols)
+    @ccall libknitro.KN_set_var_feastols(
+        kc::KN_context_ptr,
+        nV::KNINT,
+        indexVars::Ptr{KNINT},
+        xFeasTols::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_var_feastols_all(kc, xFeasTols)
-    ccall((:KN_set_var_feastols_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, xFeasTols)
+    @ccall libknitro.KN_set_var_feastols_all(
+        kc::KN_context_ptr,
+        xFeasTols::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_var_feastol(kc, indexVar, xFeasTol)
-    ccall((:KN_set_var_feastol, libknitro), Cint, (KN_context_ptr, KNINT, Cdouble), kc, indexVar, xFeasTol)
+    @ccall libknitro.KN_set_var_feastol(
+        kc::KN_context_ptr,
+        indexVar::KNINT,
+        xFeasTol::Cdouble,
+    )::Cint
 end
 
 function KN_set_con_feastols(kc, nC, indexCons, cFeasTols)
-    ccall((:KN_set_con_feastols, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nC, indexCons, cFeasTols)
+    @ccall libknitro.KN_set_con_feastols(
+        kc::KN_context_ptr,
+        nC::KNINT,
+        indexCons::Ptr{KNINT},
+        cFeasTols::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_con_feastols_all(kc, cFeasTols)
-    ccall((:KN_set_con_feastols_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, cFeasTols)
+    @ccall libknitro.KN_set_con_feastols_all(
+        kc::KN_context_ptr,
+        cFeasTols::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_con_feastol(kc, indexCon, cFeasTol)
-    ccall((:KN_set_con_feastol, libknitro), Cint, (KN_context_ptr, KNINT, Cdouble), kc, indexCon, cFeasTol)
+    @ccall libknitro.KN_set_con_feastol(
+        kc::KN_context_ptr,
+        indexCon::KNINT,
+        cFeasTol::Cdouble,
+    )::Cint
 end
 
 function KN_set_compcon_feastols(kc, nCC, indexCompCons, ccFeasTols)
-    ccall((:KN_set_compcon_feastols, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nCC, indexCompCons, ccFeasTols)
+    @ccall libknitro.KN_set_compcon_feastols(
+        kc::KN_context_ptr,
+        nCC::KNINT,
+        indexCompCons::Ptr{KNINT},
+        ccFeasTols::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_compcon_feastols_all(kc, ccFeasTols)
-    ccall((:KN_set_compcon_feastols_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, ccFeasTols)
+    @ccall libknitro.KN_set_compcon_feastols_all(
+        kc::KN_context_ptr,
+        ccFeasTols::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_compcon_feastol(kc, indexCompCon, ccFeasTol)
-    ccall((:KN_set_compcon_feastol, libknitro), Cint, (KN_context_ptr, KNINT, Cdouble), kc, indexCompCon, ccFeasTol)
+    @ccall libknitro.KN_set_compcon_feastol(
+        kc::KN_context_ptr,
+        indexCompCon::KNINT,
+        ccFeasTol::Cdouble,
+    )::Cint
 end
 
 function KN_set_var_scalings(kc, nV, indexVars, xScaleFactors, xScaleCenters)
-    ccall((:KN_set_var_scalings, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}, Ptr{Cdouble}), kc, nV, indexVars, xScaleFactors, xScaleCenters)
+    @ccall libknitro.KN_set_var_scalings(
+        kc::KN_context_ptr,
+        nV::KNINT,
+        indexVars::Ptr{KNINT},
+        xScaleFactors::Ptr{Cdouble},
+        xScaleCenters::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_var_scalings_all(kc, xScaleFactors, xScaleCenters)
-    ccall((:KN_set_var_scalings_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}, Ptr{Cdouble}), kc, xScaleFactors, xScaleCenters)
+    @ccall libknitro.KN_set_var_scalings_all(
+        kc::KN_context_ptr,
+        xScaleFactors::Ptr{Cdouble},
+        xScaleCenters::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_var_scaling(kc, indexVar, xScaleFactor, xScaleCenter)
-    ccall((:KN_set_var_scaling, libknitro), Cint, (KN_context_ptr, KNINT, Cdouble, Cdouble), kc, indexVar, xScaleFactor, xScaleCenter)
+    @ccall libknitro.KN_set_var_scaling(
+        kc::KN_context_ptr,
+        indexVar::KNINT,
+        xScaleFactor::Cdouble,
+        xScaleCenter::Cdouble,
+    )::Cint
 end
 
 function KN_set_con_scalings(kc, nC, indexCons, cScaleFactors)
-    ccall((:KN_set_con_scalings, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nC, indexCons, cScaleFactors)
+    @ccall libknitro.KN_set_con_scalings(
+        kc::KN_context_ptr,
+        nC::KNINT,
+        indexCons::Ptr{KNINT},
+        cScaleFactors::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_con_scalings_all(kc, cScaleFactors)
-    ccall((:KN_set_con_scalings_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, cScaleFactors)
+    @ccall libknitro.KN_set_con_scalings_all(
+        kc::KN_context_ptr,
+        cScaleFactors::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_con_scaling(kc, indexCon, cScaleFactor)
-    ccall((:KN_set_con_scaling, libknitro), Cint, (KN_context_ptr, KNINT, Cdouble), kc, indexCon, cScaleFactor)
+    @ccall libknitro.KN_set_con_scaling(
+        kc::KN_context_ptr,
+        indexCon::KNINT,
+        cScaleFactor::Cdouble,
+    )::Cint
 end
 
 function KN_set_compcon_scalings(kc, nCC, indexCompCons, ccScaleFactors)
-    ccall((:KN_set_compcon_scalings, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nCC, indexCompCons, ccScaleFactors)
+    @ccall libknitro.KN_set_compcon_scalings(
+        kc::KN_context_ptr,
+        nCC::KNINT,
+        indexCompCons::Ptr{KNINT},
+        ccScaleFactors::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_compcon_scalings_all(kc, ccScaleFactors)
-    ccall((:KN_set_compcon_scalings_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, ccScaleFactors)
+    @ccall libknitro.KN_set_compcon_scalings_all(
+        kc::KN_context_ptr,
+        ccScaleFactors::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_compcon_scaling(kc, indexCompCons, ccScaleFactor)
-    ccall((:KN_set_compcon_scaling, libknitro), Cint, (KN_context_ptr, KNINT, Cdouble), kc, indexCompCons, ccScaleFactor)
+    @ccall libknitro.KN_set_compcon_scaling(
+        kc::KN_context_ptr,
+        indexCompCons::KNINT,
+        ccScaleFactor::Cdouble,
+    )::Cint
 end
 
 function KN_set_obj_scaling(kc, objScaleFactor)
-    ccall((:KN_set_obj_scaling, libknitro), Cint, (KN_context_ptr, Cdouble), kc, objScaleFactor)
+    @ccall libknitro.KN_set_obj_scaling(kc::KN_context_ptr, objScaleFactor::Cdouble)::Cint
 end
 
 function KN_set_var_names(kc, nV, indexVars, xNames)
-    ccall((:KN_set_var_names, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Ptr{Cchar}}), kc, nV, indexVars, xNames)
+    @ccall libknitro.KN_set_var_names(
+        kc::KN_context_ptr,
+        nV::KNINT,
+        indexVars::Ptr{KNINT},
+        xNames::Ptr{Ptr{Cchar}},
+    )::Cint
 end
 
 function KN_set_var_names_all(kc, xNames)
-    ccall((:KN_set_var_names_all, libknitro), Cint, (KN_context_ptr, Ptr{Ptr{Cchar}}), kc, xNames)
+    @ccall libknitro.KN_set_var_names_all(kc::KN_context_ptr, xNames::Ptr{Ptr{Cchar}})::Cint
 end
 
 function KN_set_var_name(kc, indexVars, xName)
-    ccall((:KN_set_var_name, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{Cchar}), kc, indexVars, xName)
+    @ccall libknitro.KN_set_var_name(
+        kc::KN_context_ptr,
+        indexVars::KNINT,
+        xName::Ptr{Cchar},
+    )::Cint
 end
 
 function KN_set_con_names(kc, nC, indexCons, cNames)
-    ccall((:KN_set_con_names, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Ptr{Cchar}}), kc, nC, indexCons, cNames)
+    @ccall libknitro.KN_set_con_names(
+        kc::KN_context_ptr,
+        nC::KNINT,
+        indexCons::Ptr{KNINT},
+        cNames::Ptr{Ptr{Cchar}},
+    )::Cint
 end
 
 function KN_set_con_names_all(kc, cNames)
-    ccall((:KN_set_con_names_all, libknitro), Cint, (KN_context_ptr, Ptr{Ptr{Cchar}}), kc, cNames)
+    @ccall libknitro.KN_set_con_names_all(kc::KN_context_ptr, cNames::Ptr{Ptr{Cchar}})::Cint
 end
 
 function KN_set_con_name(kc, indexCon, cName)
-    ccall((:KN_set_con_name, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{Cchar}), kc, indexCon, cName)
+    @ccall libknitro.KN_set_con_name(
+        kc::KN_context_ptr,
+        indexCon::KNINT,
+        cName::Ptr{Cchar},
+    )::Cint
 end
 
 function KN_set_compcon_names(kc, nCC, indexCompCons, ccNames)
-    ccall((:KN_set_compcon_names, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Ptr{Cchar}}), kc, nCC, indexCompCons, ccNames)
+    @ccall libknitro.KN_set_compcon_names(
+        kc::KN_context_ptr,
+        nCC::KNINT,
+        indexCompCons::Ptr{KNINT},
+        ccNames::Ptr{Ptr{Cchar}},
+    )::Cint
 end
 
 function KN_set_compcon_names_all(kc, ccNames)
-    ccall((:KN_set_compcon_names_all, libknitro), Cint, (KN_context_ptr, Ptr{Ptr{Cchar}}), kc, ccNames)
+    @ccall libknitro.KN_set_compcon_names_all(
+        kc::KN_context_ptr,
+        ccNames::Ptr{Ptr{Cchar}},
+    )::Cint
 end
 
 function KN_set_compcon_name(kc, indexCompCon, ccName)
-    ccall((:KN_set_compcon_name, libknitro), Cint, (KN_context_ptr, Cint, Ptr{Cchar}), kc, indexCompCon, ccName)
+    @ccall libknitro.KN_set_compcon_name(
+        kc::KN_context_ptr,
+        indexCompCon::Cint,
+        ccName::Ptr{Cchar},
+    )::Cint
 end
 
 function KN_set_obj_name(kc, objName)
-    ccall((:KN_set_obj_name, libknitro), Cint, (KN_context_ptr, Ptr{Cchar}), kc, objName)
+    @ccall libknitro.KN_set_obj_name(kc::KN_context_ptr, objName::Ptr{Cchar})::Cint
 end
 
 function KN_get_var_names(kc, nV, indexVars, nBufferSize, xNames)
-    ccall((:KN_get_var_names, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, KNINT, Ptr{Ptr{Cchar}}), kc, nV, indexVars, nBufferSize, xNames)
+    @ccall libknitro.KN_get_var_names(
+        kc::KN_context_ptr,
+        nV::KNINT,
+        indexVars::Ptr{KNINT},
+        nBufferSize::KNINT,
+        xNames::Ptr{Ptr{Cchar}},
+    )::Cint
 end
 
 function KN_get_var_names_all(kc, nBufferSize, xNames)
-    ccall((:KN_get_var_names_all, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{Ptr{Cchar}}), kc, nBufferSize, xNames)
+    @ccall libknitro.KN_get_var_names_all(
+        kc::KN_context_ptr,
+        nBufferSize::KNINT,
+        xNames::Ptr{Ptr{Cchar}},
+    )::Cint
 end
 
 function KN_get_var_name(kc, indexVars, nBufferSize, xName)
-    ccall((:KN_get_var_name, libknitro), Cint, (KN_context_ptr, KNINT, KNINT, Ptr{Cchar}), kc, indexVars, nBufferSize, xName)
+    @ccall libknitro.KN_get_var_name(
+        kc::KN_context_ptr,
+        indexVars::KNINT,
+        nBufferSize::KNINT,
+        xName::Ptr{Cchar},
+    )::Cint
 end
 
 function KN_get_con_names(kc, nC, indexCons, nBufferSize, cNames)
-    ccall((:KN_get_con_names, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, KNINT, Ptr{Ptr{Cchar}}), kc, nC, indexCons, nBufferSize, cNames)
+    @ccall libknitro.KN_get_con_names(
+        kc::KN_context_ptr,
+        nC::KNINT,
+        indexCons::Ptr{KNINT},
+        nBufferSize::KNINT,
+        cNames::Ptr{Ptr{Cchar}},
+    )::Cint
 end
 
 function KN_get_con_names_all(kc, nBufferSize, cNames)
-    ccall((:KN_get_con_names_all, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{Ptr{Cchar}}), kc, nBufferSize, cNames)
+    @ccall libknitro.KN_get_con_names_all(
+        kc::KN_context_ptr,
+        nBufferSize::KNINT,
+        cNames::Ptr{Ptr{Cchar}},
+    )::Cint
 end
 
 function KN_get_con_name(kc, indexCons, nBufferSize, cName)
-    ccall((:KN_get_con_name, libknitro), Cint, (KN_context_ptr, KNINT, KNINT, Ptr{Cchar}), kc, indexCons, nBufferSize, cName)
+    @ccall libknitro.KN_get_con_name(
+        kc::KN_context_ptr,
+        indexCons::KNINT,
+        nBufferSize::KNINT,
+        cName::Ptr{Cchar},
+    )::Cint
 end
 
 function KN_set_var_honorbnds(kc, nV, indexVars, xHonorBnds)
-    ccall((:KN_set_var_honorbnds, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cint}), kc, nV, indexVars, xHonorBnds)
+    @ccall libknitro.KN_set_var_honorbnds(
+        kc::KN_context_ptr,
+        nV::KNINT,
+        indexVars::Ptr{KNINT},
+        xHonorBnds::Ptr{Cint},
+    )::Cint
 end
 
 function KN_set_var_honorbnds_all(kc, xHonorBnds)
-    ccall((:KN_set_var_honorbnds_all, libknitro), Cint, (KN_context_ptr, Ptr{Cint}), kc, xHonorBnds)
+    @ccall libknitro.KN_set_var_honorbnds_all(
+        kc::KN_context_ptr,
+        xHonorBnds::Ptr{Cint},
+    )::Cint
 end
 
 function KN_set_var_honorbnd(kc, indexVar, xHonorBnd)
-    ccall((:KN_set_var_honorbnd, libknitro), Cint, (KN_context_ptr, KNINT, Cint), kc, indexVar, xHonorBnd)
+    @ccall libknitro.KN_set_var_honorbnd(
+        kc::KN_context_ptr,
+        indexVar::KNINT,
+        xHonorBnd::Cint,
+    )::Cint
 end
 
 function KN_set_con_honorbnds(kc, nC, indexCons, cHonorBnds)
-    ccall((:KN_set_con_honorbnds, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cint}), kc, nC, indexCons, cHonorBnds)
+    @ccall libknitro.KN_set_con_honorbnds(
+        kc::KN_context_ptr,
+        nC::KNINT,
+        indexCons::Ptr{KNINT},
+        cHonorBnds::Ptr{Cint},
+    )::Cint
 end
 
 function KN_set_con_honorbnds_all(kc, cHonorBnds)
-    ccall((:KN_set_con_honorbnds_all, libknitro), Cint, (KN_context_ptr, Ptr{Cint}), kc, cHonorBnds)
+    @ccall libknitro.KN_set_con_honorbnds_all(
+        kc::KN_context_ptr,
+        cHonorBnds::Ptr{Cint},
+    )::Cint
 end
 
 function KN_set_con_honorbnd(kc, indexCon, cHonorBnd)
-    ccall((:KN_set_con_honorbnd, libknitro), Cint, (KN_context_ptr, KNINT, Cint), kc, indexCon, cHonorBnd)
+    @ccall libknitro.KN_set_con_honorbnd(
+        kc::KN_context_ptr,
+        indexCon::KNINT,
+        cHonorBnd::Cint,
+    )::Cint
 end
 
 function KN_set_mip_var_primal_init_values(kc, nV, indexVars, xInitVals)
-    ccall((:KN_set_mip_var_primal_init_values, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nV, indexVars, xInitVals)
+    @ccall libknitro.KN_set_mip_var_primal_init_values(
+        kc::KN_context_ptr,
+        nV::KNINT,
+        indexVars::Ptr{KNINT},
+        xInitVals::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_mip_var_primal_init_values_all(kc, xInitVals)
-    ccall((:KN_set_mip_var_primal_init_values_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, xInitVals)
+    @ccall libknitro.KN_set_mip_var_primal_init_values_all(
+        kc::KN_context_ptr,
+        xInitVals::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_set_mip_var_primal_init_value(kc, indexVar, xInitVal)
-    ccall((:KN_set_mip_var_primal_init_value, libknitro), Cint, (KN_context_ptr, KNINT, Cdouble), kc, indexVar, xInitVal)
+    @ccall libknitro.KN_set_mip_var_primal_init_value(
+        kc::KN_context_ptr,
+        indexVar::KNINT,
+        xInitVal::Cdouble,
+    )::Cint
 end
 
 function KN_set_mip_branching_priorities(kc, nV, indexVars, xPriorities)
-    ccall((:KN_set_mip_branching_priorities, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cint}), kc, nV, indexVars, xPriorities)
+    @ccall libknitro.KN_set_mip_branching_priorities(
+        kc::KN_context_ptr,
+        nV::KNINT,
+        indexVars::Ptr{KNINT},
+        xPriorities::Ptr{Cint},
+    )::Cint
 end
 
 function KN_set_mip_branching_priorities_all(kc, xPriorities)
-    ccall((:KN_set_mip_branching_priorities_all, libknitro), Cint, (KN_context_ptr, Ptr{Cint}), kc, xPriorities)
+    @ccall libknitro.KN_set_mip_branching_priorities_all(
+        kc::KN_context_ptr,
+        xPriorities::Ptr{Cint},
+    )::Cint
 end
 
 function KN_set_mip_branching_priority(kc, indexVar, xPriority)
-    ccall((:KN_set_mip_branching_priority, libknitro), Cint, (KN_context_ptr, KNINT, Cint), kc, indexVar, xPriority)
+    @ccall libknitro.KN_set_mip_branching_priority(
+        kc::KN_context_ptr,
+        indexVar::KNINT,
+        xPriority::Cint,
+    )::Cint
 end
 
 function KN_set_mip_intvar_strategies(kc, nV, indexVars, xStrategies)
-    ccall((:KN_set_mip_intvar_strategies, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cint}), kc, nV, indexVars, xStrategies)
+    @ccall libknitro.KN_set_mip_intvar_strategies(
+        kc::KN_context_ptr,
+        nV::KNINT,
+        indexVars::Ptr{KNINT},
+        xStrategies::Ptr{Cint},
+    )::Cint
 end
 
 function KN_set_mip_intvar_strategies_all(kc, xStrategies)
-    ccall((:KN_set_mip_intvar_strategies_all, libknitro), Cint, (KN_context_ptr, Ptr{Cint}), kc, xStrategies)
+    @ccall libknitro.KN_set_mip_intvar_strategies_all(
+        kc::KN_context_ptr,
+        xStrategies::Ptr{Cint},
+    )::Cint
 end
 
 function KN_set_mip_intvar_strategy(kc, indexVar, xStrategy)
-    ccall((:KN_set_mip_intvar_strategy, libknitro), Cint, (KN_context_ptr, KNINT, Cint), kc, indexVar, xStrategy)
+    @ccall libknitro.KN_set_mip_intvar_strategy(
+        kc::KN_context_ptr,
+        indexVar::KNINT,
+        xStrategy::Cint,
+    )::Cint
 end
 
 function KN_solve(kc)
-    ccall((:KN_solve, libknitro), Cint, (KN_context_ptr,), kc)
+    @ccall libknitro.KN_solve(kc::KN_context_ptr)::Cint
 end
 
 function KN_update(kc)
-    ccall((:KN_update, libknitro), Cint, (KN_context_ptr,), kc)
+    @ccall libknitro.KN_update(kc::KN_context_ptr)::Cint
 end
 
 function KN_get_number_vars(kc, nV)
-    ccall((:KN_get_number_vars, libknitro), Cint, (KN_context_ptr, Ptr{KNINT}), kc, nV)
+    @ccall libknitro.KN_get_number_vars(kc::KN_context_ptr, nV::Ptr{KNINT})::Cint
 end
 
 function KN_get_number_cons(kc, nC)
-    ccall((:KN_get_number_cons, libknitro), Cint, (KN_context_ptr, Ptr{KNINT}), kc, nC)
+    @ccall libknitro.KN_get_number_cons(kc::KN_context_ptr, nC::Ptr{KNINT})::Cint
 end
 
 function KN_get_number_compcons(kc, nCC)
-    ccall((:KN_get_number_compcons, libknitro), Cint, (KN_context_ptr, Ptr{KNINT}), kc, nCC)
+    @ccall libknitro.KN_get_number_compcons(kc::KN_context_ptr, nCC::Ptr{KNINT})::Cint
 end
 
 function KN_get_number_rsds(kc, nR)
-    ccall((:KN_get_number_rsds, libknitro), Cint, (KN_context_ptr, Ptr{KNINT}), kc, nR)
+    @ccall libknitro.KN_get_number_rsds(kc::KN_context_ptr, nR::Ptr{KNINT})::Cint
 end
 
 function KN_get_number_FC_evals(kc, numFCevals)
-    ccall((:KN_get_number_FC_evals, libknitro), Cint, (KN_context_ptr, Ptr{Cint}), kc, numFCevals)
+    @ccall libknitro.KN_get_number_FC_evals(kc::KN_context_ptr, numFCevals::Ptr{Cint})::Cint
 end
 
 function KN_get_number_GA_evals(kc, numGAevals)
-    ccall((:KN_get_number_GA_evals, libknitro), Cint, (KN_context_ptr, Ptr{Cint}), kc, numGAevals)
+    @ccall libknitro.KN_get_number_GA_evals(kc::KN_context_ptr, numGAevals::Ptr{Cint})::Cint
 end
 
 function KN_get_number_H_evals(kc, numHevals)
-    ccall((:KN_get_number_H_evals, libknitro), Cint, (KN_context_ptr, Ptr{Cint}), kc, numHevals)
+    @ccall libknitro.KN_get_number_H_evals(kc::KN_context_ptr, numHevals::Ptr{Cint})::Cint
 end
 
 function KN_get_number_HV_evals(kc, numHVevals)
-    ccall((:KN_get_number_HV_evals, libknitro), Cint, (KN_context_ptr, Ptr{Cint}), kc, numHVevals)
+    @ccall libknitro.KN_get_number_HV_evals(kc::KN_context_ptr, numHVevals::Ptr{Cint})::Cint
 end
 
 function KN_get_solve_time_cpu(kc, time)
-    ccall((:KN_get_solve_time_cpu, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, time)
+    @ccall libknitro.KN_get_solve_time_cpu(kc::KN_context_ptr, time::Ptr{Cdouble})::Cint
 end
 
 function KN_get_solve_time_real(kc, time)
-    ccall((:KN_get_solve_time_real, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, time)
+    @ccall libknitro.KN_get_solve_time_real(kc::KN_context_ptr, time::Ptr{Cdouble})::Cint
 end
 
 function KN_get_solution(kc, status, obj, x, lambda)
-    ccall((:KN_get_solution, libknitro), Cint, (KN_context_ptr, Ptr{Cint}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}), kc, status, obj, x, lambda)
+    @ccall libknitro.KN_get_solution(
+        kc::KN_context_ptr,
+        status::Ptr{Cint},
+        obj::Ptr{Cdouble},
+        x::Ptr{Cdouble},
+        lambda::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_obj_value(kc, obj)
-    ccall((:KN_get_obj_value, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, obj)
+    @ccall libknitro.KN_get_obj_value(kc::KN_context_ptr, obj::Ptr{Cdouble})::Cint
 end
 
 function KN_get_obj_type(kc, objType)
-    ccall((:KN_get_obj_type, libknitro), Cint, (KN_context_ptr, Ptr{Cint}), kc, objType)
+    @ccall libknitro.KN_get_obj_type(kc::KN_context_ptr, objType::Ptr{Cint})::Cint
 end
 
 function KN_get_var_primal_values(kc, nV, indexVars, x)
-    ccall((:KN_get_var_primal_values, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nV, indexVars, x)
+    @ccall libknitro.KN_get_var_primal_values(
+        kc::KN_context_ptr,
+        nV::KNINT,
+        indexVars::Ptr{KNINT},
+        x::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_var_primal_values_all(kc, x)
-    ccall((:KN_get_var_primal_values_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, x)
+    @ccall libknitro.KN_get_var_primal_values_all(kc::KN_context_ptr, x::Ptr{Cdouble})::Cint
 end
 
 function KN_get_var_primal_value(kc, indexVar, x)
-    ccall((:KN_get_var_primal_value, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{Cdouble}), kc, indexVar, x)
+    @ccall libknitro.KN_get_var_primal_value(
+        kc::KN_context_ptr,
+        indexVar::KNINT,
+        x::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_var_dual_values(kc, nV, indexVars, lambda)
-    ccall((:KN_get_var_dual_values, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nV, indexVars, lambda)
+    @ccall libknitro.KN_get_var_dual_values(
+        kc::KN_context_ptr,
+        nV::KNINT,
+        indexVars::Ptr{KNINT},
+        lambda::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_var_dual_values_all(kc, lambda)
-    ccall((:KN_get_var_dual_values_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, lambda)
+    @ccall libknitro.KN_get_var_dual_values_all(
+        kc::KN_context_ptr,
+        lambda::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_var_dual_value(kc, indexVar, lambda)
-    ccall((:KN_get_var_dual_value, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{Cdouble}), kc, indexVar, lambda)
+    @ccall libknitro.KN_get_var_dual_value(
+        kc::KN_context_ptr,
+        indexVar::KNINT,
+        lambda::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_con_dual_values(kc, nC, indexCons, lambda)
-    ccall((:KN_get_con_dual_values, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nC, indexCons, lambda)
+    @ccall libknitro.KN_get_con_dual_values(
+        kc::KN_context_ptr,
+        nC::KNINT,
+        indexCons::Ptr{KNINT},
+        lambda::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_con_dual_values_all(kc, lambda)
-    ccall((:KN_get_con_dual_values_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, lambda)
+    @ccall libknitro.KN_get_con_dual_values_all(
+        kc::KN_context_ptr,
+        lambda::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_con_dual_value(kc, indexCons, lambda)
-    ccall((:KN_get_con_dual_value, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{Cdouble}), kc, indexCons, lambda)
+    @ccall libknitro.KN_get_con_dual_value(
+        kc::KN_context_ptr,
+        indexCons::KNINT,
+        lambda::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_con_values(kc, nC, indexCons, c)
-    ccall((:KN_get_con_values, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nC, indexCons, c)
+    @ccall libknitro.KN_get_con_values(
+        kc::KN_context_ptr,
+        nC::KNINT,
+        indexCons::Ptr{KNINT},
+        c::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_con_values_all(kc, c)
-    ccall((:KN_get_con_values_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, c)
+    @ccall libknitro.KN_get_con_values_all(kc::KN_context_ptr, c::Ptr{Cdouble})::Cint
 end
 
 function KN_get_con_value(kc, indexCon, c)
-    ccall((:KN_get_con_value, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{Cdouble}), kc, indexCon, c)
+    @ccall libknitro.KN_get_con_value(
+        kc::KN_context_ptr,
+        indexCon::KNINT,
+        c::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_con_types(kc, nC, indexCons, cTypes)
-    ccall((:KN_get_con_types, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cint}), kc, nC, indexCons, cTypes)
+    @ccall libknitro.KN_get_con_types(
+        kc::KN_context_ptr,
+        nC::KNINT,
+        indexCons::Ptr{KNINT},
+        cTypes::Ptr{Cint},
+    )::Cint
 end
 
 function KN_get_con_types_all(kc, cTypes)
-    ccall((:KN_get_con_types_all, libknitro), Cint, (KN_context_ptr, Ptr{Cint}), kc, cTypes)
+    @ccall libknitro.KN_get_con_types_all(kc::KN_context_ptr, cTypes::Ptr{Cint})::Cint
 end
 
 function KN_get_con_type(kc, indexCon, cType)
-    ccall((:KN_get_con_type, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{Cint}), kc, indexCon, cType)
+    @ccall libknitro.KN_get_con_type(
+        kc::KN_context_ptr,
+        indexCon::KNINT,
+        cType::Ptr{Cint},
+    )::Cint
 end
 
 function KN_get_rsd_values(kc, nR, indexRsds, r)
-    ccall((:KN_get_rsd_values, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, nR, indexRsds, r)
+    @ccall libknitro.KN_get_rsd_values(
+        kc::KN_context_ptr,
+        nR::KNINT,
+        indexRsds::Ptr{KNINT},
+        r::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_rsd_values_all(kc, r)
-    ccall((:KN_get_rsd_values_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, r)
+    @ccall libknitro.KN_get_rsd_values_all(kc::KN_context_ptr, r::Ptr{Cdouble})::Cint
 end
 
 function KN_get_rsd_value(kc, indexRsd, r)
-    ccall((:KN_get_rsd_value, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{Cdouble}), kc, indexRsd, r)
+    @ccall libknitro.KN_get_rsd_value(
+        kc::KN_context_ptr,
+        indexRsd::KNINT,
+        r::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_var_viols(kc, nV, indexVars, bndInfeas, intInfeas, viols)
-    ccall((:KN_get_var_viols, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{KNINT}, Ptr{KNINT}, Ptr{Cdouble}), kc, nV, indexVars, bndInfeas, intInfeas, viols)
+    @ccall libknitro.KN_get_var_viols(
+        kc::KN_context_ptr,
+        nV::KNINT,
+        indexVars::Ptr{KNINT},
+        bndInfeas::Ptr{KNINT},
+        intInfeas::Ptr{KNINT},
+        viols::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_var_viols_all(kc, bndInfeas, intInfeas, viols)
-    ccall((:KN_get_var_viols_all, libknitro), Cint, (KN_context_ptr, Ptr{KNINT}, Ptr{KNINT}, Ptr{Cdouble}), kc, bndInfeas, intInfeas, viols)
+    @ccall libknitro.KN_get_var_viols_all(
+        kc::KN_context_ptr,
+        bndInfeas::Ptr{KNINT},
+        intInfeas::Ptr{KNINT},
+        viols::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_var_viol(kc, indexVar, bndInfeas, intInfeas, viol)
-    ccall((:KN_get_var_viol, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{KNINT}, Ptr{Cdouble}), kc, indexVar, bndInfeas, intInfeas, viol)
+    @ccall libknitro.KN_get_var_viol(
+        kc::KN_context_ptr,
+        indexVar::KNINT,
+        bndInfeas::Ptr{KNINT},
+        intInfeas::Ptr{KNINT},
+        viol::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_con_viols(kc, nC, indexCons, infeas, viols)
-    ccall((:KN_get_con_viols, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{KNINT}, Ptr{Cdouble}), kc, nC, indexCons, infeas, viols)
+    @ccall libknitro.KN_get_con_viols(
+        kc::KN_context_ptr,
+        nC::KNINT,
+        indexCons::Ptr{KNINT},
+        infeas::Ptr{KNINT},
+        viols::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_con_viols_all(kc, infeas, viols)
-    ccall((:KN_get_con_viols_all, libknitro), Cint, (KN_context_ptr, Ptr{KNINT}, Ptr{Cdouble}), kc, infeas, viols)
+    @ccall libknitro.KN_get_con_viols_all(
+        kc::KN_context_ptr,
+        infeas::Ptr{KNINT},
+        viols::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_con_viol(kc, indexCon, infeas, viol)
-    ccall((:KN_get_con_viol, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, indexCon, infeas, viol)
+    @ccall libknitro.KN_get_con_viol(
+        kc::KN_context_ptr,
+        indexCon::KNINT,
+        infeas::Ptr{KNINT},
+        viol::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_presolve_error(kc, component, index, error, viol)
-    ccall((:KN_get_presolve_error, libknitro), Cint, (KN_context_ptr, Ptr{KNINT}, Ptr{KNINT}, Ptr{KNINT}, Ptr{Cdouble}), kc, component, index, error, viol)
+    @ccall libknitro.KN_get_presolve_error(
+        kc::KN_context_ptr,
+        component::Ptr{KNINT},
+        index::Ptr{KNINT},
+        error::Ptr{KNINT},
+        viol::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_number_iters(kc, numIters)
-    ccall((:KN_get_number_iters, libknitro), Cint, (KN_context_ptr, Ptr{Cint}), kc, numIters)
+    @ccall libknitro.KN_get_number_iters(kc::KN_context_ptr, numIters::Ptr{Cint})::Cint
 end
 
 function KN_get_number_cg_iters(kc, numCGiters)
-    ccall((:KN_get_number_cg_iters, libknitro), Cint, (KN_context_ptr, Ptr{Cint}), kc, numCGiters)
+    @ccall libknitro.KN_get_number_cg_iters(kc::KN_context_ptr, numCGiters::Ptr{Cint})::Cint
 end
 
 function KN_get_abs_feas_error(kc, absFeasError)
-    ccall((:KN_get_abs_feas_error, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, absFeasError)
+    @ccall libknitro.KN_get_abs_feas_error(
+        kc::KN_context_ptr,
+        absFeasError::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_rel_feas_error(kc, relFeasError)
-    ccall((:KN_get_rel_feas_error, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, relFeasError)
+    @ccall libknitro.KN_get_rel_feas_error(
+        kc::KN_context_ptr,
+        relFeasError::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_abs_opt_error(kc, absOptError)
-    ccall((:KN_get_abs_opt_error, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, absOptError)
+    @ccall libknitro.KN_get_abs_opt_error(
+        kc::KN_context_ptr,
+        absOptError::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_rel_opt_error(kc, relOptError)
-    ccall((:KN_get_rel_opt_error, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, relOptError)
+    @ccall libknitro.KN_get_rel_opt_error(
+        kc::KN_context_ptr,
+        relOptError::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_objgrad_nnz(kc, nnz)
-    ccall((:KN_get_objgrad_nnz, libknitro), Cint, (KN_context_ptr, Ptr{KNINT}), kc, nnz)
+    @ccall libknitro.KN_get_objgrad_nnz(kc::KN_context_ptr, nnz::Ptr{KNINT})::Cint
 end
 
 function KN_get_objgrad_values(kc, indexVars, objGrad)
-    ccall((:KN_get_objgrad_values, libknitro), Cint, (KN_context_ptr, Ptr{KNINT}, Ptr{Cdouble}), kc, indexVars, objGrad)
+    @ccall libknitro.KN_get_objgrad_values(
+        kc::KN_context_ptr,
+        indexVars::Ptr{KNINT},
+        objGrad::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_objgrad_values_all(kc, objGrad)
-    ccall((:KN_get_objgrad_values_all, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, objGrad)
+    @ccall libknitro.KN_get_objgrad_values_all(
+        kc::KN_context_ptr,
+        objGrad::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_jacobian_nnz(kc, nnz)
-    ccall((:KN_get_jacobian_nnz, libknitro), Cint, (KN_context_ptr, Ptr{KNLONG}), kc, nnz)
+    @ccall libknitro.KN_get_jacobian_nnz(kc::KN_context_ptr, nnz::Ptr{KNLONG})::Cint
 end
 
 function KN_get_jacobian_values(kc, indexCons, indexVars, jac)
-    ccall((:KN_get_jacobian_values, libknitro), Cint, (KN_context_ptr, Ptr{KNINT}, Ptr{KNINT}, Ptr{Cdouble}), kc, indexCons, indexVars, jac)
+    @ccall libknitro.KN_get_jacobian_values(
+        kc::KN_context_ptr,
+        indexCons::Ptr{KNINT},
+        indexVars::Ptr{KNINT},
+        jac::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_jacobian_nnz_one(kc, indexCon, nnz)
-    ccall((:KN_get_jacobian_nnz_one, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}), kc, indexCon, nnz)
+    @ccall libknitro.KN_get_jacobian_nnz_one(
+        kc::KN_context_ptr,
+        indexCon::KNINT,
+        nnz::Ptr{KNINT},
+    )::Cint
 end
 
 function KN_get_jacobian_values_one(kc, indexCon, indexVars, jac)
-    ccall((:KN_get_jacobian_values_one, libknitro), Cint, (KN_context_ptr, KNINT, Ptr{KNINT}, Ptr{Cdouble}), kc, indexCon, indexVars, jac)
+    @ccall libknitro.KN_get_jacobian_values_one(
+        kc::KN_context_ptr,
+        indexCon::KNINT,
+        indexVars::Ptr{KNINT},
+        jac::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_rsd_jacobian_nnz(kc, nnz)
-    ccall((:KN_get_rsd_jacobian_nnz, libknitro), Cint, (KN_context_ptr, Ptr{KNLONG}), kc, nnz)
+    @ccall libknitro.KN_get_rsd_jacobian_nnz(kc::KN_context_ptr, nnz::Ptr{KNLONG})::Cint
 end
 
 function KN_get_rsd_jacobian_values(kc, indexRsds, indexVars, rsdJac)
-    ccall((:KN_get_rsd_jacobian_values, libknitro), Cint, (KN_context_ptr, Ptr{KNINT}, Ptr{KNINT}, Ptr{Cdouble}), kc, indexRsds, indexVars, rsdJac)
+    @ccall libknitro.KN_get_rsd_jacobian_values(
+        kc::KN_context_ptr,
+        indexRsds::Ptr{KNINT},
+        indexVars::Ptr{KNINT},
+        rsdJac::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_hessian_nnz(kc, nnz)
-    ccall((:KN_get_hessian_nnz, libknitro), Cint, (KN_context_ptr, Ptr{KNLONG}), kc, nnz)
+    @ccall libknitro.KN_get_hessian_nnz(kc::KN_context_ptr, nnz::Ptr{KNLONG})::Cint
 end
 
 function KN_get_hessian_values(kc, indexVars1, indexVars2, hess)
-    ccall((:KN_get_hessian_values, libknitro), Cint, (KN_context_ptr, Ptr{KNINT}, Ptr{KNINT}, Ptr{Cdouble}), kc, indexVars1, indexVars2, hess)
+    @ccall libknitro.KN_get_hessian_values(
+        kc::KN_context_ptr,
+        indexVars1::Ptr{KNINT},
+        indexVars2::Ptr{KNINT},
+        hess::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_mip_number_nodes(kc, numNodes)
-    ccall((:KN_get_mip_number_nodes, libknitro), Cint, (KN_context_ptr, Ptr{Cint}), kc, numNodes)
+    @ccall libknitro.KN_get_mip_number_nodes(kc::KN_context_ptr, numNodes::Ptr{Cint})::Cint
 end
 
 function KN_get_mip_number_solves(kc, numSolves)
-    ccall((:KN_get_mip_number_solves, libknitro), Cint, (KN_context_ptr, Ptr{Cint}), kc, numSolves)
+    @ccall libknitro.KN_get_mip_number_solves(
+        kc::KN_context_ptr,
+        numSolves::Ptr{Cint},
+    )::Cint
 end
 
 function KN_get_mip_abs_gap(kc, absGap)
-    ccall((:KN_get_mip_abs_gap, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, absGap)
+    @ccall libknitro.KN_get_mip_abs_gap(kc::KN_context_ptr, absGap::Ptr{Cdouble})::Cint
 end
 
 function KN_get_mip_rel_gap(kc, relGap)
-    ccall((:KN_get_mip_rel_gap, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, relGap)
+    @ccall libknitro.KN_get_mip_rel_gap(kc::KN_context_ptr, relGap::Ptr{Cdouble})::Cint
 end
 
 function KN_get_mip_incumbent_obj(kc, incumbentObj)
-    ccall((:KN_get_mip_incumbent_obj, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, incumbentObj)
+    @ccall libknitro.KN_get_mip_incumbent_obj(
+        kc::KN_context_ptr,
+        incumbentObj::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_mip_relaxation_bnd(kc, relaxBound)
-    ccall((:KN_get_mip_relaxation_bnd, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, relaxBound)
+    @ccall libknitro.KN_get_mip_relaxation_bnd(
+        kc::KN_context_ptr,
+        relaxBound::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_mip_lastnode_obj(kc, lastNodeObj)
-    ccall((:KN_get_mip_lastnode_obj, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, lastNodeObj)
+    @ccall libknitro.KN_get_mip_lastnode_obj(
+        kc::KN_context_ptr,
+        lastNodeObj::Ptr{Cdouble},
+    )::Cint
 end
 
 function KN_get_mip_incumbent_x(kc, x)
-    ccall((:KN_get_mip_incumbent_x, libknitro), Cint, (KN_context_ptr, Ptr{Cdouble}), kc, x)
+    @ccall libknitro.KN_get_mip_incumbent_x(kc::KN_context_ptr, x::Ptr{Cdouble})::Cint
 end
 
 const TRUE = 1
@@ -2326,6 +3388,26 @@ const KN_PARAM_LINSOLVER_SCALING = 1156
 const KN_LINSOLVER_SCALING_NONE = 0
 
 const KN_LINSOLVER_SCALING_ALWAYS = 1
+
+const KN_LINSOLVER_SCALING_DYNAMIC = 2
+
+const KN_PARAM_INITPT_STRATEGY = 1158
+
+const KN_INITPT_STRATEGY_AUTO = -1
+
+const KN_INITPT_STRATEGY_BASIC = 1
+
+const KN_INITPT_STRATEGY_ADVANCED = 2
+
+const KN_PARAM_EVAL_COST = 1159
+
+const KN_EVAL_COST_UNSPECIFIED = 0
+
+const KN_EVAL_COST_INEXPENSIVE = 1
+
+const KN_EVAL_COST_EXPENSIVE = 2
+
+const KN_PARAM_MS_TERMINATERULE_TOL = 1160
 
 const KN_PARAM_MIP_METHOD = 2001
 
