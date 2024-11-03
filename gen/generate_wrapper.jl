@@ -1,4 +1,6 @@
+using Clang
 using Clang.Generators
+using JuliaFormatter
 
 cd(@__DIR__)
 
@@ -13,3 +15,6 @@ push!(args, "-I$HEADER_BASE")
 
 ctx = create_context(headers, args, options)
 build!(ctx)
+
+path = options["general"]["output_file_path"]
+format_file(path, YASStyle())

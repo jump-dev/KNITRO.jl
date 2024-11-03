@@ -35,7 +35,7 @@ end
 
 function knitro_version()
     buffer = zeros(Cchar, 15)
-    ccall((:KTR_get_release, libknitro), Cint, (Cint, Ptr{Cchar}), 15, buffer)
+    @ccall libknitro.KTR_get_release(15::Cint, buffer::Ptr{Cchar})::Cint
     version_string = GC.@preserve(buffer, unsafe_string(pointer(buffer)))
     return VersionNumber(split(version_string, " ")[2])
 end

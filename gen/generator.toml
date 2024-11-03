@@ -7,6 +7,7 @@ prologue_file_path = "./prologue.jl"
 
 [codegen]
 opaque_as_mutable_struct = false
+use_ccall_macro = true
 
 [codegen.macro]
 macro_mode = "basic"
