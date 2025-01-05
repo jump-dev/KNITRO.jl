@@ -1,6 +1,6 @@
 # KNITRO.jl
 
-[![Build Status](https://github.com/jump-dev/KNITRO.jl/workflows/CI/badge.svg)](https://github.com/jump-dev/KNITRO.jl/actions?query=workflow%3ACI)
+[![Build Status](https://github.com/jump-dev/KNITRO.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/jump-dev/KNITRO.jl/actions?query=workflow%3ACI)
 [![codecov](https://codecov.io/gh/jump-dev/KNITRO.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/jump-dev/KNITRO.jl)
 
 [KNITRO.jl](https://github.com/jump-dev/KNITRO.jl) is a wrapper for the
