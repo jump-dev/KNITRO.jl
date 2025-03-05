@@ -65,7 +65,7 @@ model_1 = Model(() -> KNITRO.Optimizer(; license_manager = manager))
 model_2 = Model(() -> KNITRO.Optimizer(; license_manager = manager))
 ```
 
-To relese the license manager, do `KNITRO.KN_release_license(manager)`.
+To release the license manager, do `KNITRO.KN_release_license(manager)`.
 
 ## Use with AMPL
 
