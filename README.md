@@ -11,9 +11,6 @@ It has two components:
  - a thin wrapper around the [C API](https://www.artelys.com/tools/knitro_doc/3_referenceManual/callableLibraryAPI.html)
  - an interface to [MathOptInterface](https://github.com/jump-dev/MathOptInterface.jl).
 
-**KNITRO.jl v0.14.0 introduced a number of breaking changes to the low-level C
-API. See the Low-level wrapper section for details.**
-
 ## Affiliation
 
 This wrapper is maintained by the JuMP community with help from Artelys.
@@ -67,6 +64,8 @@ manager = KNITRO.LMcontext()
 model_1 = Model(() -> KNITRO.Optimizer(; license_manager = manager))
 model_2 = Model(() -> KNITRO.Optimizer(; license_manager = manager))
 ```
+
+To relese the license manager, do `KNITRO.KN_release_license(manager)`.
 
 ## Use with AMPL
 
