@@ -8,6 +8,9 @@ using Test
 
 const KN_VERBOSE = false
 
+# Before proceeding, check that KNITRO is installed correctly.
+@test KNITRO.has_knitro()
+
 @testset "Test C API" begin
     include("C_wrapper.jl")
 end
