@@ -22,21 +22,21 @@ function runtests()
 end
 
 function test_MOI_Test_cached()
-    second_order_exclude = String[
-        "test_conic_GeometricMeanCone_VectorAffineFunction",
-        "test_conic_GeometricMeanCone_VectorAffineFunction_2",
-        "test_conic_GeometricMeanCone_VectorOfVariables",
-        "test_conic_GeometricMeanCone_VectorOfVariables_2",
-        "test_conic_RotatedSecondOrderCone_INFEASIBLE_2",
-        "test_conic_RotatedSecondOrderCone_VectorAffineFunction",
-        "test_conic_RotatedSecondOrderCone_VectorOfVariables",
-        "test_conic_RotatedSecondOrderCone_out_of_order",
-        "test_conic_SecondOrderCone_Nonpositives",
-        "test_conic_SecondOrderCone_Nonnegatives",
-        "test_conic_SecondOrderCone_VectorAffineFunction",
-        "test_conic_SecondOrderCone_VectorOfVariables",
-        "test_conic_SecondOrderCone_out_of_order",
-        "test_constraint_PrimalStart_DualStart_SecondOrderCone",
+    second_order_exclude = [
+        r"^test_conic_GeometricMeanCone_VectorAffineFunction$",
+        r"^test_conic_GeometricMeanCone_VectorAffineFunction_2$",
+        r"^test_conic_GeometricMeanCone_VectorOfVariables$",
+        r"^test_conic_GeometricMeanCone_VectorOfVariables_2$",
+        r"^test_conic_RotatedSecondOrderCone_INFEASIBLE_2$",
+        r"^test_conic_RotatedSecondOrderCone_VectorAffineFunction$",
+        r"^test_conic_RotatedSecondOrderCone_VectorOfVariables$",
+        r"^test_conic_RotatedSecondOrderCone_out_of_order$",
+        r"^test_conic_SecondOrderCone_Nonpositives$",
+        r"^test_conic_SecondOrderCone_Nonnegatives$",
+        r"^test_conic_SecondOrderCone_VectorAffineFunction$",
+        r"^test_conic_SecondOrderCone_VectorOfVariables$",
+        r"^test_conic_SecondOrderCone_out_of_order$",
+        r"^test_constraint_PrimalStart_DualStart_SecondOrderCone$",
     ]
     model =
         MOI.instantiate(KNITRO.Optimizer; with_bridge_type=Float64, with_cache_type=Float64)
@@ -51,19 +51,21 @@ function test_MOI_Test_cached()
     MOI.Test.runtests(
         model,
         config;
-        exclude=String[
+        exclude=Union{String,Regex}[
             # TODO(odow): this test is flakey.
-            "test_cpsat_ReifiedAllDifferent",
+            r"^test_cpsat_ReifiedAllDifferent$",
+            # TODO(odow): investigate issue with bridges
+            r"^test_basic_VectorNonlinearFunction_GeometricMeanCone$",
             # Returns OTHER_ERROR, which is also reasonable.
-            "test_conic_empty_matrix",
+            r"^test_conic_empty_matrix$",
             # Uses the ZerosBridge and ConstraintDual
-            "test_conic_linear_VectorOfVariables_2",
+            r"^test_conic_linear_VectorOfVariables_2$",
             # Returns ITERATION_LIMIT instead of DUAL_INFEASIBLE, which is okay.
-            "test_linear_DUAL_INFEASIBLE",
+            r"^test_linear_DUAL_INFEASIBLE$",
             # Incorrect ObjectiveBound with an LP, but that's understandable.
-            "test_solve_ObjectiveBound_MAX_SENSE_LP",
+            r"^test_solve_ObjectiveBound_MAX_SENSE_LP$",
             # KNITRO doesn't support INFEASIBILITY_CERTIFICATE results.
-            "test_solve_DualStatus_INFEASIBILITY_CERTIFICATE_",
+            r"^test_solve_DualStatus_INFEASIBILITY_CERTIFICATE_$",
             # ConstraintDual not supported for SecondOrderCone
             second_order_exclude...,
         ],
