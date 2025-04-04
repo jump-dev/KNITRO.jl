@@ -17,13 +17,13 @@ jobs:
       - uses: julia-actions/cache@v1
       - shell: bash
         env:
-          ARTELYS_LIC_JUMP_DEV: ${{ secrets.ARTELYS_LIC_8326_JUMP_DEV_2023_11_02 }}
+          SECRET_KNITRO_LICENSE: ${{ secrets.KNITRO_LICENSE }}
         run: |
-          echo "$ARTELYS_LIC_JUMP_DEV" > ~/artelys_lic.txt        
+          echo "$SECRET_KNITRO_LICENSE" > ~/artelys_lic.txt        
       - name: "run_minlptests"
         env:
-          SECRET_KNITRO_URL: ${{ secrets.SECRET_KNITRO_URL }}
-          SECRET_KNITRO_LIBIOMP5: ${{ secrets.SECRET_KNITRO_LIBIOMP5 }}
+          SECRET_KNITRO_URL: ${{ secrets.KNITRO_URL }}
+          SECRET_KNITRO_LIBIOMP5: ${{ secrets.KNITRO_LIBIOMP5 }}
         shell: julia --color=yes {0}
         run: |
           path = joinpath(ENV["GITHUB_WORKSPACE"], "test", "MINLPTests")
