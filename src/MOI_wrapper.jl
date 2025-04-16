@@ -994,10 +994,17 @@ function MOI.add_constraint(
     _add_complementarity_constraint!(
         model.complementarity_cache,
         indv[1:n_comp],
-        indv[n_comp+1:end],
+        indv[(n_comp+1):end],
         comp_type,
     )
     return MOI.ConstraintIndex{typeof(func),typeof(set)}(n_comp_cons)
+end
+
+function MOI.get(
+    model::Optimizer,
+    ::MOI.NumberOfConstraints{MOI.VectorOfVariables,MOI.Complements},
+)
+    return model.complementarity_cache.n
 end
 
 # MOI.NLPBlock
@@ -1089,10 +1096,6 @@ function MOI.set(
     func::F,
 ) where {F<:Union{MOI.VariableIndex,MOI.ScalarAffineFunction,MOI.ScalarQuadraticFunction}}
     _throw_if_solved(model, attr)
-    if model.nlp_data !== nothing && model.nlp_data.has_objective
-        @warn("Objective is already specified in NLPBlockData.")
-        return
-    end
     _throw_if_not_valid(model, func)
     model.objective = func
     return
@@ -1266,7 +1269,7 @@ function MOI.optimize!(model::Optimizer)
                     evalResult.hess,
                     evalRequest.x,
                     evalRequest.sigma,
-                    view(evalRequest.lambda, offset+1:num_cons),
+                    view(evalRequest.lambda, (offset+1):num_cons),
                 )
                 return 0
             end
@@ -1295,7 +1298,7 @@ function MOI.optimize!(model::Optimizer)
                     evalRequest.x,
                     evalRequest.vec,
                     evalRequest.sigma,
-                    view(evalRequest.lambda, offset+1:num_cons),
+                    view(evalRequest.lambda, (offset+1):num_cons),
                 )
                 return 0
             end
@@ -1321,84 +1324,97 @@ function MOI.get(model::Optimizer, ::MOI.RawStatusString)
     return string(statusP[])
 end
 
+function _interpret_return_code(code)
+    if code == KN_RC_OPTIMAL_OR_SATISFACTORY
+        return MOI.LOCALLY_SOLVED, MOI.FEASIBLE_POINT, MOI.FEASIBLE_POINT
+    elseif code == KN_RC_NEAR_OPT
+        return MOI.ALMOST_OPTIMAL, MOI.FEASIBLE_POINT, MOI.FEASIBLE_POINT
+    elseif -199 <= code <= -101
+        return MOI.SLOW_PROGRESS, MOI.FEASIBLE_POINT, MOI.FEASIBLE_POINT
+    elseif -299 <= code <= -200
+        return MOI.LOCALLY_INFEASIBLE, MOI.INFEASIBLE_POINT, MOI.UNKNOWN_RESULT_STATUS
+    elseif code == KN_RC_UNBOUNDED
+    elseif code == KN_RC_UNBOUNDED_OR_INFEAS
+    elseif code == KN_RC_ITER_LIMIT_FEAS
+        return MOI.ITERATION_LIMIT, MOI.FEASIBLE_POINT, MOI.UNKNOWN_RESULT_STATUS
+    elseif code == KN_RC_TIME_LIMIT_FEAS
+        return MOI.TIME_LIMIT, MOI.FEASIBLE_POINT, MOI.UNKNOWN_RESULT_STATUS
+    elseif -499 <= code <= -400
+    end
+    return MOI.OTHER_ERROR, MOI.UNKNOWN_RESULT_STATUS, MOI.UNKNOWN_RESULT_STATUS
+end
+
 # Refer to KNITRO manual for solver status:
 # https://www.artelys.com/tools/knitro_doc/3_referenceManual/returnCodes.html#returncodes
 const _KN_TO_MOI_RETURN_STATUS = Dict{Int,MOI.TerminationStatusCode}(
-    0 => MOI.LOCALLY_SOLVED,
-    -100 => MOI.ALMOST_OPTIMAL,
-    -101 => MOI.SLOW_PROGRESS,
-    -102 => MOI.SLOW_PROGRESS,
-    -103 => MOI.SLOW_PROGRESS,
-    -200 => MOI.LOCALLY_INFEASIBLE,
-    -201 => MOI.LOCALLY_INFEASIBLE,
-    -202 => MOI.LOCALLY_INFEASIBLE,
-    -203 => MOI.LOCALLY_INFEASIBLE,
-    -204 => MOI.LOCALLY_INFEASIBLE,
-    -205 => MOI.LOCALLY_INFEASIBLE,
-    -300 => MOI.DUAL_INFEASIBLE,
-    -301 => MOI.DUAL_INFEASIBLE,
-    -400 => MOI.ITERATION_LIMIT,
-    -401 => MOI.TIME_LIMIT,
-    -402 => MOI.OTHER_LIMIT,
-    -403 => MOI.OTHER_LIMIT,
-    -404 => MOI.OTHER_LIMIT,
-    -405 => MOI.OTHER_LIMIT,
-    -406 => MOI.NODE_LIMIT,
-    -410 => MOI.ITERATION_LIMIT,
-    -411 => MOI.TIME_LIMIT,
-    -412 => MOI.INFEASIBLE,
-    -413 => MOI.INFEASIBLE,
-    -414 => MOI.OTHER_LIMIT,
-    -415 => MOI.OTHER_LIMIT,
-    -416 => MOI.NODE_LIMIT,
-    -500 => MOI.INVALID_MODEL,
-    -501 => MOI.NUMERICAL_ERROR,
-    -502 => MOI.INVALID_MODEL,
-    -503 => MOI.MEMORY_LIMIT,
-    -504 => MOI.INTERRUPTED,
-    -505 => MOI.OTHER_ERROR,
-    -506 => MOI.OTHER_ERROR,
-    -507 => MOI.OTHER_ERROR,
-    -508 => MOI.OTHER_ERROR,
-    -509 => MOI.OTHER_ERROR,
-    -510 => MOI.OTHER_ERROR,
-    -511 => MOI.OTHER_ERROR,
-    -512 => MOI.OTHER_ERROR,
-    -513 => MOI.OTHER_ERROR,
-    -514 => MOI.OTHER_ERROR,
-    -515 => MOI.OTHER_ERROR,
-    -516 => MOI.OTHER_ERROR,
-    -517 => MOI.OTHER_ERROR,
-    -518 => MOI.OTHER_ERROR,
-    -519 => MOI.OTHER_ERROR,
-    -519 => MOI.OTHER_ERROR,
-    -520 => MOI.OTHER_ERROR,
-    -521 => MOI.OTHER_ERROR,
-    -522 => MOI.OTHER_ERROR,
-    -523 => MOI.OTHER_ERROR,
-    -524 => MOI.OTHER_ERROR,
-    -525 => MOI.OTHER_ERROR,
-    -526 => MOI.OTHER_ERROR,
-    -527 => MOI.OTHER_ERROR,
-    -528 => MOI.OTHER_ERROR,
-    -529 => MOI.OTHER_ERROR,
-    -530 => MOI.OTHER_ERROR,
-    -531 => MOI.OTHER_ERROR,
-    -532 => MOI.OTHER_ERROR,
-    -600 => MOI.OTHER_ERROR,
+    KN_RC_OPTIMAL_OR_SATISFACTORY => MOI.LOCALLY_SOLVED,
+    KN_RC_NEAR_OPT => MOI.ALMOST_OPTIMAL,
+    # slow progress
+    KN_RC_FEAS_XTOL => MOI.SLOW_PROGRESS,
+    KN_RC_FEAS_NO_IMPROVE => MOI.SLOW_PROGRESS,
+    KN_RC_FEAS_FTOL => MOI.SLOW_PROGRESS,
+    # infeasible
+    KN_RC_INFEASIBLE => MOI.LOCALLY_INFEASIBLE,
+    KN_RC_INFEAS_XTOL => MOI.LOCALLY_INFEASIBLE,
+    KN_RC_INFEAS_NO_IMPROVE => MOI.LOCALLY_INFEASIBLE,
+    KN_RC_INFEAS_MULTISTART => MOI.LOCALLY_INFEASIBLE,
+    KN_RC_INFEAS_CON_BOUNDS => MOI.LOCALLY_INFEASIBLE,
+    KN_RC_INFEAS_VAR_BOUNDS => MOI.LOCALLY_INFEASIBLE,
+    # unbounded
+    KN_RC_UNBOUNDED => MOI.DUAL_INFEASIBLE,
+    KN_RC_UNBOUNDED_OR_INFEAS => MOI.DUAL_INFEASIBLE,
+    # feasible limits
+    KN_RC_ITER_LIMIT_FEAS => MOI.ITERATION_LIMIT,
+    KN_RC_TIME_LIMIT_FEAS => MOI.TIME_LIMIT,
+    KN_RC_FEVAL_LIMIT_FEAS => MOI.OTHER_LIMIT,
+    KN_RC_MIP_EXH_FEAS => MOI.LOCALLY_SOLVED,
+    KN_RC_MIP_TERM_FEAS => MOI.SOLUTION_LIMIT,
+    KN_RC_MIP_SOLVE_LIMIT_FEAS => MOI.OTHER_LIMIT,
+    KN_RC_MIP_NODE_LIMIT_FEAS => MOI.NODE_LIMIT,
+    # infeasible limits
+    KN_RC_ITER_LIMIT_INFEAS => MOI.ITERATION_LIMIT,
+    KN_RC_TIME_LIMIT_INFEAS => MOI.TIME_LIMIT,
+    KN_RC_FEVAL_LIMIT_INFEAS => MOI.OTHER_LIMIT,
+    KN_RC_MIP_EXH_INFEAS => MOI.OTHER_LIMIT,
+    KN_RC_MIP_SOLVE_LIMIT_INFEAS => MOI.OTHER_LIMIT,
+    KN_RC_MIP_NODE_LIMIT_INFEAS => MOI.OTHER_LIMIT,
+    # errors
+    KN_RC_CALLBACK_ERR => MOI.INVALID_MODEL,
+    KN_RC_LP_SOLVER_ERR => MOI.NUMERICAL_ERROR,
+    KN_RC_EVAL_ERR => MOI.INVALID_MODEL,
+    KN_RC_OUT_OF_MEMORY => MOI.MEMORY_LIMIT,
+    KN_RC_USER_TERMINATION => MOI.INTERRUPTED,
 )
 
 function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
     if model.number_solved == 0
         return MOI.OPTIMIZE_NOT_CALLED
     end
-    status, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
-    @_checked KN_get_solution(model.inner, status, obj, C_NULL, C_NULL)
-    return get(_KN_TO_MOI_RETURN_STATUS, status[], MOI.OTHER_ERROR)
+    statusP, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
+    @_checked KN_get_solution(model.inner, statusP, obj, C_NULL, C_NULL)
+    return get(_KN_TO_MOI_RETURN_STATUS, statusP[], MOI.OTHER_ERROR)
 end
 
 function MOI.get(model::Optimizer, ::MOI.ResultCount)
     return model.number_solved >= 1 ? 1 : 0
+end
+
+function _status_to_primal_status_code(status)
+    if status == 0
+        return MOI.FEASIBLE_POINT
+    elseif -199 <= status <= -100
+        return MOI.FEASIBLE_POINT
+    elseif -299 <= status <= -200
+        return MOI.INFEASIBLE_POINT
+    elseif -399 <= status <= -300
+        return MOI.UNKNOWN_RESULT_STATUS
+    elseif -409 <= status <= -400
+        return MOI.FEASIBLE_POINT
+    elseif -499 <= status <= -410
+        return MOI.UNKNOWN_RESULT_STATUS
+    end
+    @assert -599 <= status <= -500
+    return MOI.UNKNOWN_RESULT_STATUS
 end
 
 function MOI.get(model::Optimizer, attr::MOI.PrimalStatus)
@@ -1407,25 +1423,23 @@ function MOI.get(model::Optimizer, attr::MOI.PrimalStatus)
     end
     statusP, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
     @_checked KN_get_solution(model.inner, statusP, obj, C_NULL, C_NULL)
-    status = statusP[]
+    return _status_to_primal_status_code(statusP[])
+end
+
+function _status_to_dual_status_code(status)
     if status == 0
         return MOI.FEASIBLE_POINT
-    elseif -109 <= status <= -100
+    elseif -199 <= status <= -100
         return MOI.FEASIBLE_POINT
-    elseif -209 <= status <= -200
-        return MOI.INFEASIBLE_POINT
-        # TODO(odow): we don't support returning certificates yet
-        # elseif status == -300
-        #     return MOI.INFEASIBILITY_CERTIFICATE
-    elseif -409 <= status <= -400
-        return MOI.FEASIBLE_POINT
-    elseif -419 <= status <= -410
-        return MOI.INFEASIBLE_POINT
-    elseif -599 <= status <= -500
+    elseif -299 <= status <= -200
         return MOI.UNKNOWN_RESULT_STATUS
-    else
+    elseif -399 <= status <= -300
+        return MOI.UNKNOWN_RESULT_STATUS
+    elseif -499 <= status <= -400
         return MOI.UNKNOWN_RESULT_STATUS
     end
+    @assert -599 <= status <= -500
+    return MOI.UNKNOWN_RESULT_STATUS
 end
 
 function MOI.get(model::Optimizer, attr::MOI.DualStatus)
@@ -1434,32 +1448,11 @@ function MOI.get(model::Optimizer, attr::MOI.DualStatus)
     end
     statusP, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
     @_checked KN_get_solution(model.inner, statusP, obj, C_NULL, C_NULL)
-    status = statusP[]
-    if status == 0
-        return MOI.FEASIBLE_POINT
-    elseif -109 <= status <= -100
-        return MOI.FEASIBLE_POINT
-        # elseif -209 <= status <= -200
-        #     return MOI.INFEASIBILITY_CERTIFICATE
-    elseif status == -300
-        return MOI.NO_SOLUTION
-    elseif -409 <= status <= -400
-        return MOI.FEASIBLE_POINT
-    elseif -419 <= status <= -410
-        return MOI.INFEASIBLE_POINT
-    elseif -599 <= status <= -500
-        return MOI.UNKNOWN_RESULT_STATUS
-    else
-        return MOI.UNKNOWN_RESULT_STATUS
-    end
+    return _status_to_dual_status_code(statusP[])
 end
 
 function MOI.get(model::Optimizer, obj::MOI.ObjectiveValue)
-    if model.number_solved == 0
-        error("ObjectiveValue not available.")
-    elseif obj.result_index != 1
-        throw(MOI.ResultIndexBoundsError{MOI.ObjectiveValue}(obj, 1))
-    end
+    MOI.check_result_index_bounds(model, attr)
     status, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
     @_checked KN_get_solution(model.inner, status, obj, C_NULL, C_NULL)
     return obj[]
@@ -1489,32 +1482,14 @@ function _get_dual(model::Optimizer, index::Integer)
 end
 
 function MOI.get(model::Optimizer, v::MOI.VariablePrimal, x::MOI.VariableIndex)
-    if model.number_solved == 0
-        error("VariablePrimal not available.")
-    elseif v.result_index > 1
-        throw(MOI.ResultIndexBoundsError{MOI.VariablePrimal}(v, 1))
-    end
+    MOI.check_result_index_bounds(model, attr)
     MOI.throw_if_not_valid(model, x)
     return _get_solution(model, x.value)
 end
 
-function _check_cons(model, ci, cp)
-    if model.number_solved == 0
-        error("Solve problem before accessing solution.")
-    elseif cp.result_index > 1
-        throw(MOI.ResultIndexBoundsError{typeof(cp)}(cp, 1))
-    end
-    p = Ref{Cint}()
-    @_checked KN_get_number_cons(model.inner, p)
-    if !(0 <= ci.value <= p[] - 1)
-        error("Invalid constraint index ", ci.value)
-    end
-    return
-end
-
 function MOI.get(
     model::Optimizer,
-    cp::MOI.ConstraintPrimal,
+    attr::MOI.ConstraintPrimal,
     ci::MOI.ConstraintIndex{S,T},
 ) where {
     S<:Union{MOI.ScalarAffineFunction{Float64},MOI.ScalarQuadraticFunction{Float64}},
@@ -1525,7 +1500,8 @@ function MOI.get(
         MOI.Interval{Float64},
     },
 }
-    _check_cons(model, ci, cp)
+    MOI.check_result_index_bounds(model, attr)
+    MOI.throw_if_not_valid(model, ci)
     indexCon = model.constraint_mapping[ci]
     p = Ref{Cdouble}(NaN)
     @_checked KN_get_con_value(model.inner, indexCon, p)
@@ -1542,17 +1518,13 @@ end
 
 function MOI.get(
     model::Optimizer,
-    cp::MOI.ConstraintPrimal,
+    attr::MOI.ConstraintPrimal,
     ci::MOI.ConstraintIndex{
         MOI.VariableIndex,
         <:Union{MOI.EqualTo{Float64},MOI.GreaterThan{Float64},MOI.LessThan{Float64}},
     },
 )
-    if model.number_solved == 0
-        error("ConstraintPrimal not available.")
-    elseif cp.result_index != 1
-        throw(MOI.ResultIndexBoundsError{MOI.ConstraintPrimal}(cp, 1))
-    end
+    MOI.check_result_index_bounds(model, attr)
     x = MOI.VariableIndex(ci.value)
     MOI.throw_if_not_valid(model, x)
     return _get_solution(model, x.value)
@@ -1563,7 +1535,7 @@ _sense_dual(model::Optimizer) = model.sense == MOI.MAX_SENSE ? 1.0 : -1.0
 
 function MOI.get(
     model::Optimizer,
-    cd::MOI.ConstraintDual,
+    attr::MOI.ConstraintDual,
     ci::MOI.ConstraintIndex{S,T},
 ) where {
     S<:Union{MOI.ScalarAffineFunction{Float64},MOI.ScalarQuadraticFunction{Float64}},
@@ -1574,7 +1546,8 @@ function MOI.get(
         MOI.Interval{Float64},
     },
 }
-    _check_cons(model, ci, cd)
+    MOI.check_result_index_bounds(model, attr)
+    MOI.throw_if_not_valid(model, ci)
     index = model.constraint_mapping[ci] + 1
     return _sense_dual(model) * _get_dual(model, index)
 end
@@ -1600,11 +1573,7 @@ function _reduced_cost(
     attr::MOI.ConstraintDual,
     ci::MOI.ConstraintIndex{MOI.VariableIndex,S},
 ) where {S}
-    if model.number_solved == 0
-        error("ConstraintDual not available.")
-    elseif attr.result_index != 1
-        throw(MOI.ResultIndexBoundsError{MOI.ConstraintDual}(attr, 1))
-    end
+    MOI.check_result_index_bounds(model, attr)
     x = MOI.VariableIndex(ci.value)
     MOI.throw_if_not_valid(model, x)
     p = Ref{Cint}()
@@ -1636,9 +1605,9 @@ function MOI.get(
     return _reduced_cost(model, attr, ci)
 end
 
-function MOI.get(model::Optimizer, ::MOI.NLPBlockDual)
+function MOI.get(model::Optimizer, attr::MOI.NLPBlockDual)
     if model.number_solved == 0
-        error("NLPBlockDual not available.")
+        throw(MOI.ResultIndexBoundsError(attr, 0))
     end
     return [_sense_dual(model) * _get_dual(model, i + 1) for i in model.nlp_index_cons]
 end
