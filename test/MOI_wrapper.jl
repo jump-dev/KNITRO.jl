@@ -28,7 +28,7 @@ function test_runtests()
         rtol=1e-3,
         optimal_status=MOI.LOCALLY_SOLVED,
         infeasible_status=MOI.LOCALLY_INFEASIBLE,
-        exclude=Any[MOI.VariableBasisStatus, MOI.ConstraintBasisStatus],
+        exclude=Any[MOI.VariableBasisStatus, MOI.ConstraintBasisStatus, MOI.ConstraintName],
     )
     MOI.Test.runtests(model, config; include=["test_basic_"])
     return

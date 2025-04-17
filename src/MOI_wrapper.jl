@@ -121,9 +121,6 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
         MOI.ScalarNonlinearFunction,
         Nothing,
     }
-    # Constraint counters.
-    number_zeroone_constraints::Int
-    number_integer_constraints::Int
     # Complementarity cache
     complementarity_cache::_ComplementarityCache
     # Constraint mappings.
@@ -155,8 +152,6 @@ function Optimizer(; license_manager::Union{LMcontext,Nothing}=nothing, kwargs..
         Cint[],
         MOI.FEASIBILITY_SENSE,
         nothing,
-        0,
-        0,
         _ComplementarityCache(),
         Dict{MOI.ConstraintIndex,Union{Cint,Vector{Cint}}}(),
         license_manager,
@@ -194,8 +189,6 @@ function MOI.empty!(model::Optimizer)
     MOI.empty!(model.nlp_model)
     model.sense = MOI.FEASIBILITY_SENSE
     model.objective = nothing
-    model.number_zeroone_constraints = 0
-    model.number_integer_constraints = 0
     model.complementarity_cache = _ComplementarityCache()
     model.constraint_mapping = Dict()
     model.license_manager = model.license_manager
@@ -215,8 +208,6 @@ function MOI.is_empty(model::Optimizer)
            model.sense == MOI.FEASIBILITY_SENSE &&
            model.number_solved == 0 &&
            isa(model.objective, Nothing) &&
-           model.number_zeroone_constraints == 0 &&
-           model.number_integer_constraints == 0 &&
            !_has_complementarity(model.complementarity_cache) &&
            !model.nlp_loaded
 end
@@ -346,6 +337,8 @@ function MOI.set(model::Optimizer, attr::MOI.UserDefinedFunction, args)
     return
 end
 
+# Variables
+
 MOI.get(model::Optimizer, ::MOI.NumberOfVariables) = length(model.variable_info)
 
 function MOI.get(model::Optimizer, ::MOI.ListOfVariableIndices)
@@ -447,17 +440,37 @@ end
 
 # MOI.NumberOfConstraints
 
-function MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.VariableIndex,MOI.ZeroOne})
-    return model.number_zeroone_constraints
+_get_F_S(::MOI.ConstraintIndex{F,S}) where {F,S} = (F, S)
+
+function MOI.get(model::Optimizer, ::MOI.ListOfConstraintTypesPresent)
+    ret = Tuple{Type,Type}[]
+    for k in keys(model.constraint_mapping)
+        F, S = _get_F_S(k)
+        if !((F, S) in ret)
+            push!(ret, (F, S))
+        end
+    end
+    return ret
 end
 
-function MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.VariableIndex,MOI.Integer})
-    return model.number_integer_constraints
+function MOI.get(model::Optimizer, ::MOI.ListOfConstraintIndices{F,S}) where {F,S}
+    ret = MOI.ConstraintIndex{F,S}[]
+    for k in keys(model.constraint_mapping)
+        if k isa MOI.ConstraintIndex{F,S}
+            push!(ret, k)
+        end
+    end
+    sort!(ret; by=x -> x.value)
+    return ret
 end
 
 function MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{F,S}) where {F,S}
     f = Base.Fix2(isa, MOI.ConstraintIndex{F,S})
     return count(f, keys(model.constraint_mapping); init=0)
+end
+
+function MOI.is_valid(model::Optimizer, ci::MOI.ConstraintIndex)
+    return haskey(model.constraint_mapping, ci)
 end
 
 ###
@@ -468,7 +481,11 @@ function MOI.is_valid(
     model::Optimizer,
     ci::MOI.ConstraintIndex{MOI.VariableIndex,MOI.LessThan{Float64}},
 )
-    return model.variable_info[ci.value].has_upper_bound
+    info = get(model.variable_info, ci.value, nothing)
+    if info === nothing
+        return false
+    end
+    return info.has_upper_bound
 end
 
 function MOI.add_constraint(
@@ -503,7 +520,11 @@ function MOI.is_valid(
     model::Optimizer,
     ci::MOI.ConstraintIndex{MOI.VariableIndex,MOI.GreaterThan{Float64}},
 )
-    return model.variable_info[ci.value].has_lower_bound
+    info = get(model.variable_info, ci.value, nothing)
+    if info === nothing
+        return false
+    end
+    return info.has_lower_bound
 end
 
 function MOI.add_constraint(
@@ -538,8 +559,11 @@ function MOI.is_valid(
     model::Optimizer,
     ci::MOI.ConstraintIndex{MOI.VariableIndex,MOI.Interval{Float64}},
 )
-    return model.variable_info[ci.value].has_lower_bound &&
-           model.variable_info[ci.value].has_upper_bound
+    info = get(model.variable_info, ci.value, nothing)
+    if info === nothing
+        return false
+    end
+    return info.has_lower_bound && info.has_upper_bound
 end
 
 function MOI.add_constraint(
@@ -577,7 +601,11 @@ function MOI.is_valid(
     model::Optimizer,
     ci::MOI.ConstraintIndex{MOI.VariableIndex,MOI.EqualTo{Float64}},
 )
-    return model.variable_info[ci.value].is_fixed
+    info = get(model.variable_info, ci.value, nothing)
+    if info === nothing
+        return false
+    end
+    return info.is_fixed
 end
 
 function MOI.add_constraint(
@@ -642,7 +670,6 @@ end
 
 function MOI.add_constraint(model::Optimizer, x::MOI.VariableIndex, ::MOI.ZeroOne)
     MOI.throw_if_not_valid(model, x)
-    model.number_zeroone_constraints += 1
     lb, ub = nothing, nothing
     p = Ref{Cdouble}(NaN)
     if model.variable_info[x.value].has_lower_bound
@@ -662,7 +689,9 @@ function MOI.add_constraint(model::Optimizer, x::MOI.VariableIndex, ::MOI.ZeroOn
     if ub !== nothing
         @_checked KN_set_var_upbnd(model.inner, _c_column(x), ub)
     end
-    return MOI.ConstraintIndex{MOI.VariableIndex,MOI.ZeroOne}(x.value)
+    ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.ZeroOne}(x.value)
+    model.constraint_mapping[ci] = convert(Cint, x.value)
+    return ci
 end
 
 ###
@@ -672,9 +701,10 @@ end
 function MOI.add_constraint(model::Optimizer, x::MOI.VariableIndex, set::MOI.Integer)
     _throw_if_solved(model, x, set)
     MOI.throw_if_not_valid(model, x)
-    model.number_integer_constraints += 1
     @_checked KN_set_var_type(model.inner, _c_column(x), KN_VARTYPE_INTEGER)
-    return MOI.ConstraintIndex{MOI.VariableIndex,MOI.Integer}(x.value)
+    ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.Integer}(x.value)
+    model.constraint_mapping[ci] = convert(Cint, x.value)
+    return ci
 end
 
 ###
@@ -997,14 +1027,9 @@ function MOI.add_constraint(
         indv[(n_comp+1):end],
         comp_type,
     )
-    return MOI.ConstraintIndex{typeof(func),typeof(set)}(n_comp_cons)
-end
-
-function MOI.get(
-    model::Optimizer,
-    ::MOI.NumberOfConstraints{MOI.VectorOfVariables,MOI.Complements},
-)
-    return model.complementarity_cache.n
+    ci = MOI.ConstraintIndex{typeof(func),typeof(set)}(n_comp_cons)
+    model.constraint_mapping[ci] = convert(Cint, n_comp_cons)
+    return ci
 end
 
 # MOI.NLPBlock
