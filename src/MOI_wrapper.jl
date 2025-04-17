@@ -84,13 +84,7 @@ function _add_complementarity_constraint!(
     index_vars_2::Vector{Cint},
     cc_types::Vector{Int},
 )
-    if !(length(index_vars_1) == length(index_vars_2) == length(cc_types))
-        error(
-            "Arrays `index_vars_1`, `index_vars_2` and `cc_types` should" *
-            " share the same length to specify a valid complementarity " *
-            "constraint.",
-        )
-    end
+    @assert length(index_vars_1) == length(index_vars_2) == length(cc_types)
     cache.n += 1
     append!(cache.index_comps_1, index_vars_1)
     append!(cache.index_comps_2, index_vars_2)
@@ -284,7 +278,7 @@ end
 # MOI.RawOptimizerAttribute
 
 function MOI.supports(model::Optimizer, attr::MOI.RawOptimizerAttribute)
-    if attr.name == "free"
+    if attr.name in ("option_file", "tuner_file", "free")
         return true
     end
     p = Ref{Cint}(0)
@@ -304,10 +298,13 @@ end
 function MOI.set(model::Optimizer, attr::MOI.RawOptimizerAttribute, value)
     if attr.name == "option_file"
         @_checked KN_load_param_file(model.inner, value)
+        return
     elseif attr.name == "tuner_file"
         @_checked KN_load_tuner_file(model.inner, value)
+        return
     elseif attr.name == "free"
         @_checked KN_free(model.inner)
+        return
     end
     pId = Ref{Cint}(0)
     ret = KN_get_param_id(model.inner, attr.name, pId)
@@ -495,9 +492,6 @@ function MOI.add_constraint(
 )
     _throw_if_solved(model, x, set)
     MOI.throw_if_not_valid(model, x)
-    if isnan(set.upper)
-        error("Invalid upper bound value $(set.upper).")
-    end
     if _has_upper_bound(model, x)
         error("Upper bound on variable $x already exists.")
     end
@@ -534,9 +528,6 @@ function MOI.add_constraint(
 )
     _throw_if_solved(model, x, set)
     MOI.throw_if_not_valid(model, x)
-    if isnan(set.lower)
-        error("Invalid lower bound value $(set.lower).")
-    end
     if _has_lower_bound(model, x)
         error("Lower bound on variable $x already exists.")
     end
@@ -573,9 +564,6 @@ function MOI.add_constraint(
 )
     _throw_if_solved(model, x, set)
     MOI.throw_if_not_valid(model, x)
-    if isnan(set.lower) || isnan(set.upper)
-        error("Invalid lower bound value $(set.lower).")
-    end
     if _has_lower_bound(model, x) || _has_upper_bound(model, x)
         error("Bounds on variable $x already exists.")
     end
@@ -615,9 +603,6 @@ function MOI.add_constraint(
 )
     _throw_if_solved(model, x, set)
     MOI.throw_if_not_valid(model, x)
-    if isnan(set.value)
-        error("Invalid fixed value $(set.value).")
-    end
     if _has_lower_bound(model, x)
         error("Variable $x has a lower bound. Cannot be fixed.")
     end
@@ -642,11 +627,8 @@ end
 function MOI.supports(
     ::Optimizer,
     ::MOI.ConstraintDualStart,
-    ::MOI.ConstraintIndex{
-        MOI.VariableIndex,
-        <:Union{MOI.EqualTo{Float64},MOI.GreaterThan{Float64},MOI.LessThan{Float64}},
-    },
-)
+    ::Type{MOI.ConstraintIndex{MOI.VariableIndex,S}},
+) where {S<:Union{MOI.EqualTo{Float64},MOI.GreaterThan{Float64},MOI.LessThan{Float64}}}
     return true
 end
 
@@ -659,8 +641,9 @@ function MOI.set(
     },
     value::Union{Real,Nothing},
 )
-    start = something(value, 0.0)
-    @_checked KN_set_var_dual_init_values(model.inner, ci.value, Cdouble(start))
+    start = convert(Cdouble, something(value, 0.0))
+    indexVars = [_c_column(MOI.VariableIndex(ci.value))]
+    @_checked KN_set_var_dual_init_values(model.inner, 1, indexVars, [start])
     return
 end
 
@@ -756,16 +739,15 @@ end
 function MOI.supports(
     ::Optimizer,
     ::MOI.ConstraintDualStart,
-    ::MOI.ConstraintIndex{
-        MOI.ScalarAffineFunction{Float64},
-        <:Union{
-            MOI.EqualTo{Float64},
-            MOI.GreaterThan{Float64},
-            MOI.LessThan{Float64},
-            MOI.Interval{Float64},
-        },
+    ::Type{MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64},S}},
+) where {
+    S<:Union{
+        MOI.EqualTo{Float64},
+        MOI.GreaterThan{Float64},
+        MOI.LessThan{Float64},
+        MOI.Interval{Float64},
     },
-)
+}
     return true
 end
 
@@ -783,8 +765,9 @@ function MOI.set(
     },
     value::Union{Real,Nothing},
 )
-    start = something(value, 0.0)
-    @_checked KN_set_con_dual_init_values(model.inner, ci.value, Cdouble(start))
+    start = convert(Cdouble, something(value, 0.0))
+    indexCons = KNINT[ci.value]
+    @_checked KN_set_con_dual_init_values(model.inner, 1, indexCons, [start])
     return
 end
 
@@ -838,16 +821,15 @@ end
 function MOI.supports(
     ::Optimizer,
     ::MOI.ConstraintDualStart,
-    ::MOI.ConstraintIndex{
-        MOI.ScalarQuadraticFunction{Float64},
-        <:Union{
-            MOI.EqualTo{Float64},
-            MOI.GreaterThan{Float64},
-            MOI.LessThan{Float64},
-            MOI.Interval{Float64},
-        },
+    ::Type{MOI.ConstraintIndex{MOI.ScalarQuadraticFunction{Float64},S}},
+) where {
+    S<:Union{
+        MOI.EqualTo{Float64},
+        MOI.GreaterThan{Float64},
+        MOI.LessThan{Float64},
+        MOI.Interval{Float64},
     },
-)
+}
     return true
 end
 
@@ -865,8 +847,9 @@ function MOI.set(
     },
     value::Union{Real,Nothing},
 )
-    start = something(value, 0.0)
-    @_checked KN_set_con_dual_init_values(model.inner, ci.value, Cdouble(start))
+    start = convert(Cdouble, something(value, 0.0))
+    indexCons = KNINT[ci.value]
+    @_checked KN_set_con_dual_init_values(model.inner, 1, indexCons, [start])
     return
 end
 
@@ -1347,26 +1330,6 @@ function MOI.get(model::Optimizer, ::MOI.RawStatusString)
     statusP, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
     @_checked KN_get_solution(model.inner, statusP, obj, C_NULL, C_NULL)
     return string(statusP[])
-end
-
-function _interpret_return_code(code)
-    if code == KN_RC_OPTIMAL_OR_SATISFACTORY
-        return MOI.LOCALLY_SOLVED, MOI.FEASIBLE_POINT, MOI.FEASIBLE_POINT
-    elseif code == KN_RC_NEAR_OPT
-        return MOI.ALMOST_OPTIMAL, MOI.FEASIBLE_POINT, MOI.FEASIBLE_POINT
-    elseif -199 <= code <= -101
-        return MOI.SLOW_PROGRESS, MOI.FEASIBLE_POINT, MOI.FEASIBLE_POINT
-    elseif -299 <= code <= -200
-        return MOI.LOCALLY_INFEASIBLE, MOI.INFEASIBLE_POINT, MOI.UNKNOWN_RESULT_STATUS
-    elseif code == KN_RC_UNBOUNDED
-    elseif code == KN_RC_UNBOUNDED_OR_INFEAS
-    elseif code == KN_RC_ITER_LIMIT_FEAS
-        return MOI.ITERATION_LIMIT, MOI.FEASIBLE_POINT, MOI.UNKNOWN_RESULT_STATUS
-    elseif code == KN_RC_TIME_LIMIT_FEAS
-        return MOI.TIME_LIMIT, MOI.FEASIBLE_POINT, MOI.UNKNOWN_RESULT_STATUS
-    elseif -499 <= code <= -400
-    end
-    return MOI.OTHER_ERROR, MOI.UNKNOWN_RESULT_STATUS, MOI.UNKNOWN_RESULT_STATUS
 end
 
 # Refer to KNITRO manual for solver status:

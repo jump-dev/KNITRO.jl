@@ -258,6 +258,96 @@ function test_RelativeGap()
     return
 end
 
+function test_NumberOfVariales()
+    model = KNITRO.Optimizer()
+    @test MOI.get(model, MOI.NumberOfVariables()) == 0
+    x = MOI.add_variable(model)
+    @test MOI.get(model, MOI.NumberOfVariables()) == 1
+    y = MOI.add_variables(model, 2)
+    @test MOI.get(model, MOI.NumberOfVariables()) == 3
+    return
+end
+
+function test_RawOptimizerParameter_free()
+    model = KNITRO.Optimizer()
+    @test MOI.supports(model, MOI.RawOptimizerAttribute("free"))
+    @test model.inner.env.ptr_env != C_NULL
+    MOI.set(model, MOI.RawOptimizerAttribute("free"), true)
+    @test model.inner.env.ptr_env == C_NULL
+    return
+end
+
+function test_RawOptimizerParameter_option_file()
+    model = KNITRO.Optimizer()
+    @test MOI.supports(model, MOI.RawOptimizerAttribute("option_file"))
+    dir = mktempdir()
+    filename = joinpath(dir, "option_file")
+    write(filename, "outlev 1")
+    MOI.set(model, MOI.RawOptimizerAttribute("option_file"), filename)
+    valueP = Ref{Cint}()
+    KN_get_int_param(model.inner, KN_PARAM_OUTLEV, valueP)
+    @test valueP[] == 1
+    return
+end
+
+function test_RawOptimizerParameter_tuner_file()
+    model = KNITRO.Optimizer()
+    @test MOI.supports(model, MOI.RawOptimizerAttribute("tuner_file"))
+    dir = mktempdir()
+    filename = joinpath(dir, "tuner_file")
+    write(filename, "algorithm")
+    MOI.set(model, MOI.RawOptimizerAttribute("tuner_file"), filename)
+    valueP = Ref{Cint}()
+    KN_get_int_param(model.inner, KN_PARAM_OUTLEV, valueP)
+    @test valueP[] == 1
+    return
+end
+
+function test_VariableName()
+    model = KNITRO.Optimizer()
+    x = MOI.add_variable(model)
+    @test MOI.supports(model, MOI.VariableName(), MOI.VariableIndex)
+    @test MOI.get(model, MOI.VariableName(), x) == ""
+    MOI.set(model, MOI.VariableName(), x, "x")
+    @test MOI.get(model, MOI.VariableName(), x) == "x"
+    return
+end
+
+function test_ConstraintDualStart()
+    model = KNITRO.Optimizer()
+    x = MOI.add_variable(model)
+    for f in (x, 1.0 * x, 1.0 * x * x)
+        c = MOI.add_constraint(model, f, MOI.LessThan(1.0))
+        @test MOI.supports(model, MOI.ConstraintDualStart(), typeof(c))
+        # Just test that this doesn't error.
+        MOI.set(model, MOI.ConstraintDualStart(), c, nothing)
+        MOI.set(model, MOI.ConstraintDualStart(), c, 1.0)
+    end
+    return
+end
+
+function test_error_kwargs()
+    @test_throws(
+        ErrorException(
+            "Unsupported keyword arguments passed to `Optimizer`. Set attributes instead",
+        ),
+        KNITRO.Optimizer(; outlev = 1),
+    )
+    return
+end
+
+function test_lm_context()
+    lm = KNITRO.LMcontext()
+    @test isempty(lm.linked_models)
+    model = KNITRO.Optimizer(; license_manager = lm)
+    @test length(lm.linked_models) == 1
+    @test model.inner in lm.linked_models
+    MOI.empty!(model)
+    @test length(lm.linked_models) == 2
+    @test model.inner in lm.linked_models
+    return
+end
+
 end
 
 TestMOIWrapper.runtests()
