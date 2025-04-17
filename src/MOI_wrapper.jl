@@ -1451,7 +1451,7 @@ function MOI.get(model::Optimizer, attr::MOI.DualStatus)
     return _status_to_dual_status_code(statusP[])
 end
 
-function MOI.get(model::Optimizer, obj::MOI.ObjectiveValue)
+function MOI.get(model::Optimizer, attr::MOI.ObjectiveValue)
     MOI.check_result_index_bounds(model, attr)
     status, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
     @_checked KN_get_solution(model.inner, status, obj, C_NULL, C_NULL)
