@@ -331,7 +331,7 @@ function test_error_kwargs()
         ErrorException(
             "Unsupported keyword arguments passed to `Optimizer`. Set attributes instead",
         ),
-        KNITRO.Optimizer(; outlev = 1),
+        KNITRO.Optimizer(; outlev=1),
     )
     return
 end
@@ -339,7 +339,7 @@ end
 function test_lm_context()
     lm = KNITRO.LMcontext()
     @test isempty(lm.linked_models)
-    model = KNITRO.Optimizer(; license_manager = lm)
+    model = KNITRO.Optimizer(; license_manager=lm)
     @test length(lm.linked_models) == 1
     @test model.inner in lm.linked_models
     MOI.empty!(model)
