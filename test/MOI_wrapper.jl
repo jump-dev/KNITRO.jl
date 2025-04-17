@@ -79,6 +79,8 @@ function test_MOI_Test_cached()
             r"^test_solve_ObjectiveBound_MAX_SENSE_LP$",
             # KNITRO doesn't support INFEASIBILITY_CERTIFICATE results.
             r"^test_solve_DualStatus_INFEASIBILITY_CERTIFICATE_$",
+            # Cannot get ConstraintDualStart
+            r"^test_model_ModelFilter_AbstractConstraintAttribute$",
             # ConstraintDual not supported for SecondOrderCone
             second_order_exclude...,
         ],
@@ -285,7 +287,7 @@ function test_RawOptimizerParameter_option_file()
     write(filename, "outlev 1")
     MOI.set(model, MOI.RawOptimizerAttribute("option_file"), filename)
     valueP = Ref{Cint}()
-    KN_get_int_param(model.inner, KN_PARAM_OUTLEV, valueP)
+    KNITRO.KN_get_int_param(model.inner, KN_PARAM_OUTLEV, valueP)
     @test valueP[] == 1
     return
 end
@@ -298,7 +300,7 @@ function test_RawOptimizerParameter_tuner_file()
     write(filename, "algorithm")
     MOI.set(model, MOI.RawOptimizerAttribute("tuner_file"), filename)
     valueP = Ref{Cint}()
-    KN_get_int_param(model.inner, KN_PARAM_OUTLEV, valueP)
+    KNITRO.KN_get_int_param(model.inner, KN_PARAM_OUTLEV, valueP)
     @test valueP[] == 1
     return
 end
