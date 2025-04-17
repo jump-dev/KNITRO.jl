@@ -1481,7 +1481,7 @@ function _get_dual(model::Optimizer, index::Integer)
     return model.lambda[index]
 end
 
-function MOI.get(model::Optimizer, v::MOI.VariablePrimal, x::MOI.VariableIndex)
+function MOI.get(model::Optimizer, attr::MOI.VariablePrimal, x::MOI.VariableIndex)
     MOI.check_result_index_bounds(model, attr)
     MOI.throw_if_not_valid(model, x)
     return _get_solution(model, x.value)
