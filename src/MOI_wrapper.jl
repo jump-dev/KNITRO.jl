@@ -84,13 +84,7 @@ function _add_complementarity_constraint!(
     index_vars_2::Vector{Cint},
     cc_types::Vector{Int},
 )
-    if !(length(index_vars_1) == length(index_vars_2) == length(cc_types))
-        error(
-            "Arrays `index_vars_1`, `index_vars_2` and `cc_types` should" *
-            " share the same length to specify a valid complementarity " *
-            "constraint.",
-        )
-    end
+    @assert length(index_vars_1) == length(index_vars_2) == length(cc_types)
     cache.n += 1
     append!(cache.index_comps_1, index_vars_1)
     append!(cache.index_comps_2, index_vars_2)
@@ -121,9 +115,6 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
         MOI.ScalarNonlinearFunction,
         Nothing,
     }
-    # Constraint counters.
-    number_zeroone_constraints::Int
-    number_integer_constraints::Int
     # Complementarity cache
     complementarity_cache::_ComplementarityCache
     # Constraint mappings.
@@ -155,8 +146,6 @@ function Optimizer(; license_manager::Union{LMcontext,Nothing}=nothing, kwargs..
         Cint[],
         MOI.FEASIBILITY_SENSE,
         nothing,
-        0,
-        0,
         _ComplementarityCache(),
         Dict{MOI.ConstraintIndex,Union{Cint,Vector{Cint}}}(),
         license_manager,
@@ -194,8 +183,6 @@ function MOI.empty!(model::Optimizer)
     MOI.empty!(model.nlp_model)
     model.sense = MOI.FEASIBILITY_SENSE
     model.objective = nothing
-    model.number_zeroone_constraints = 0
-    model.number_integer_constraints = 0
     model.complementarity_cache = _ComplementarityCache()
     model.constraint_mapping = Dict()
     model.license_manager = model.license_manager
@@ -215,8 +202,6 @@ function MOI.is_empty(model::Optimizer)
            model.sense == MOI.FEASIBILITY_SENSE &&
            model.number_solved == 0 &&
            isa(model.objective, Nothing) &&
-           model.number_zeroone_constraints == 0 &&
-           model.number_integer_constraints == 0 &&
            !_has_complementarity(model.complementarity_cache) &&
            !model.nlp_loaded
 end
@@ -293,7 +278,7 @@ end
 # MOI.RawOptimizerAttribute
 
 function MOI.supports(model::Optimizer, attr::MOI.RawOptimizerAttribute)
-    if attr.name == "free"
+    if attr.name in ("option_file", "tuner_file", "free")
         return true
     end
     p = Ref{Cint}(0)
@@ -313,10 +298,13 @@ end
 function MOI.set(model::Optimizer, attr::MOI.RawOptimizerAttribute, value)
     if attr.name == "option_file"
         @_checked KN_load_param_file(model.inner, value)
+        return
     elseif attr.name == "tuner_file"
         @_checked KN_load_tuner_file(model.inner, value)
+        return
     elseif attr.name == "free"
         @_checked KN_free(model.inner)
+        return
     end
     pId = Ref{Cint}(0)
     ret = KN_get_param_id(model.inner, attr.name, pId)
@@ -345,6 +333,8 @@ function MOI.set(model::Optimizer, attr::MOI.UserDefinedFunction, args)
     MOI.Nonlinear.register_operator(model.nlp_model, attr.name, attr.arity, args...)
     return
 end
+
+# Variables
 
 MOI.get(model::Optimizer, ::MOI.NumberOfVariables) = length(model.variable_info)
 
@@ -447,17 +437,37 @@ end
 
 # MOI.NumberOfConstraints
 
-function MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.VariableIndex,MOI.ZeroOne})
-    return model.number_zeroone_constraints
+_get_F_S(::MOI.ConstraintIndex{F,S}) where {F,S} = (F, S)
+
+function MOI.get(model::Optimizer, ::MOI.ListOfConstraintTypesPresent)
+    ret = Tuple{Type,Type}[]
+    for k in keys(model.constraint_mapping)
+        F, S = _get_F_S(k)
+        if !((F, S) in ret)
+            push!(ret, (F, S))
+        end
+    end
+    return ret
 end
 
-function MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{MOI.VariableIndex,MOI.Integer})
-    return model.number_integer_constraints
+function MOI.get(model::Optimizer, ::MOI.ListOfConstraintIndices{F,S}) where {F,S}
+    ret = MOI.ConstraintIndex{F,S}[]
+    for k in keys(model.constraint_mapping)
+        if k isa MOI.ConstraintIndex{F,S}
+            push!(ret, k)
+        end
+    end
+    sort!(ret; by=x -> x.value)
+    return ret
 end
 
 function MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{F,S}) where {F,S}
     f = Base.Fix2(isa, MOI.ConstraintIndex{F,S})
     return count(f, keys(model.constraint_mapping); init=0)
+end
+
+function MOI.is_valid(model::Optimizer, ci::MOI.ConstraintIndex)
+    return haskey(model.constraint_mapping, ci)
 end
 
 ###
@@ -468,7 +478,11 @@ function MOI.is_valid(
     model::Optimizer,
     ci::MOI.ConstraintIndex{MOI.VariableIndex,MOI.LessThan{Float64}},
 )
-    return model.variable_info[ci.value].has_upper_bound
+    info = get(model.variable_info, ci.value, nothing)
+    if info === nothing
+        return false
+    end
+    return info.has_upper_bound
 end
 
 function MOI.add_constraint(
@@ -478,9 +492,6 @@ function MOI.add_constraint(
 )
     _throw_if_solved(model, x, set)
     MOI.throw_if_not_valid(model, x)
-    if isnan(set.upper)
-        error("Invalid upper bound value $(set.upper).")
-    end
     if _has_upper_bound(model, x)
         error("Upper bound on variable $x already exists.")
     end
@@ -503,7 +514,11 @@ function MOI.is_valid(
     model::Optimizer,
     ci::MOI.ConstraintIndex{MOI.VariableIndex,MOI.GreaterThan{Float64}},
 )
-    return model.variable_info[ci.value].has_lower_bound
+    info = get(model.variable_info, ci.value, nothing)
+    if info === nothing
+        return false
+    end
+    return info.has_lower_bound
 end
 
 function MOI.add_constraint(
@@ -513,9 +528,6 @@ function MOI.add_constraint(
 )
     _throw_if_solved(model, x, set)
     MOI.throw_if_not_valid(model, x)
-    if isnan(set.lower)
-        error("Invalid lower bound value $(set.lower).")
-    end
     if _has_lower_bound(model, x)
         error("Lower bound on variable $x already exists.")
     end
@@ -538,8 +550,11 @@ function MOI.is_valid(
     model::Optimizer,
     ci::MOI.ConstraintIndex{MOI.VariableIndex,MOI.Interval{Float64}},
 )
-    return model.variable_info[ci.value].has_lower_bound &&
-           model.variable_info[ci.value].has_upper_bound
+    info = get(model.variable_info, ci.value, nothing)
+    if info === nothing
+        return false
+    end
+    return info.has_lower_bound && info.has_upper_bound
 end
 
 function MOI.add_constraint(
@@ -549,9 +564,6 @@ function MOI.add_constraint(
 )
     _throw_if_solved(model, x, set)
     MOI.throw_if_not_valid(model, x)
-    if isnan(set.lower) || isnan(set.upper)
-        error("Invalid lower bound value $(set.lower).")
-    end
     if _has_lower_bound(model, x) || _has_upper_bound(model, x)
         error("Bounds on variable $x already exists.")
     end
@@ -577,7 +589,11 @@ function MOI.is_valid(
     model::Optimizer,
     ci::MOI.ConstraintIndex{MOI.VariableIndex,MOI.EqualTo{Float64}},
 )
-    return model.variable_info[ci.value].is_fixed
+    info = get(model.variable_info, ci.value, nothing)
+    if info === nothing
+        return false
+    end
+    return info.is_fixed
 end
 
 function MOI.add_constraint(
@@ -587,9 +603,6 @@ function MOI.add_constraint(
 )
     _throw_if_solved(model, x, set)
     MOI.throw_if_not_valid(model, x)
-    if isnan(set.value)
-        error("Invalid fixed value $(set.value).")
-    end
     if _has_lower_bound(model, x)
         error("Variable $x has a lower bound. Cannot be fixed.")
     end
@@ -614,11 +627,8 @@ end
 function MOI.supports(
     ::Optimizer,
     ::MOI.ConstraintDualStart,
-    ::MOI.ConstraintIndex{
-        MOI.VariableIndex,
-        <:Union{MOI.EqualTo{Float64},MOI.GreaterThan{Float64},MOI.LessThan{Float64}},
-    },
-)
+    ::Type{MOI.ConstraintIndex{MOI.VariableIndex,S}},
+) where {S<:Union{MOI.EqualTo{Float64},MOI.GreaterThan{Float64},MOI.LessThan{Float64}}}
     return true
 end
 
@@ -631,8 +641,9 @@ function MOI.set(
     },
     value::Union{Real,Nothing},
 )
-    start = something(value, 0.0)
-    @_checked KN_set_var_dual_init_values(model.inner, ci.value, Cdouble(start))
+    start = convert(Cdouble, something(value, 0.0))
+    indexVars = [_c_column(MOI.VariableIndex(ci.value))]
+    @_checked KN_set_var_dual_init_values(model.inner, 1, indexVars, [start])
     return
 end
 
@@ -642,7 +653,6 @@ end
 
 function MOI.add_constraint(model::Optimizer, x::MOI.VariableIndex, ::MOI.ZeroOne)
     MOI.throw_if_not_valid(model, x)
-    model.number_zeroone_constraints += 1
     lb, ub = nothing, nothing
     p = Ref{Cdouble}(NaN)
     if model.variable_info[x.value].has_lower_bound
@@ -662,7 +672,9 @@ function MOI.add_constraint(model::Optimizer, x::MOI.VariableIndex, ::MOI.ZeroOn
     if ub !== nothing
         @_checked KN_set_var_upbnd(model.inner, _c_column(x), ub)
     end
-    return MOI.ConstraintIndex{MOI.VariableIndex,MOI.ZeroOne}(x.value)
+    ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.ZeroOne}(x.value)
+    model.constraint_mapping[ci] = convert(Cint, x.value)
+    return ci
 end
 
 ###
@@ -672,9 +684,10 @@ end
 function MOI.add_constraint(model::Optimizer, x::MOI.VariableIndex, set::MOI.Integer)
     _throw_if_solved(model, x, set)
     MOI.throw_if_not_valid(model, x)
-    model.number_integer_constraints += 1
     @_checked KN_set_var_type(model.inner, _c_column(x), KN_VARTYPE_INTEGER)
-    return MOI.ConstraintIndex{MOI.VariableIndex,MOI.Integer}(x.value)
+    ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.Integer}(x.value)
+    model.constraint_mapping[ci] = convert(Cint, x.value)
+    return ci
 end
 
 ###
@@ -726,16 +739,15 @@ end
 function MOI.supports(
     ::Optimizer,
     ::MOI.ConstraintDualStart,
-    ::MOI.ConstraintIndex{
-        MOI.ScalarAffineFunction{Float64},
-        <:Union{
-            MOI.EqualTo{Float64},
-            MOI.GreaterThan{Float64},
-            MOI.LessThan{Float64},
-            MOI.Interval{Float64},
-        },
+    ::Type{MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64},S}},
+) where {
+    S<:Union{
+        MOI.EqualTo{Float64},
+        MOI.GreaterThan{Float64},
+        MOI.LessThan{Float64},
+        MOI.Interval{Float64},
     },
-)
+}
     return true
 end
 
@@ -753,8 +765,9 @@ function MOI.set(
     },
     value::Union{Real,Nothing},
 )
-    start = something(value, 0.0)
-    @_checked KN_set_con_dual_init_values(model.inner, ci.value, Cdouble(start))
+    start = convert(Cdouble, something(value, 0.0))
+    indexCons = KNINT[ci.value]
+    @_checked KN_set_con_dual_init_values(model.inner, 1, indexCons, [start])
     return
 end
 
@@ -808,16 +821,15 @@ end
 function MOI.supports(
     ::Optimizer,
     ::MOI.ConstraintDualStart,
-    ::MOI.ConstraintIndex{
-        MOI.ScalarQuadraticFunction{Float64},
-        <:Union{
-            MOI.EqualTo{Float64},
-            MOI.GreaterThan{Float64},
-            MOI.LessThan{Float64},
-            MOI.Interval{Float64},
-        },
+    ::Type{MOI.ConstraintIndex{MOI.ScalarQuadraticFunction{Float64},S}},
+) where {
+    S<:Union{
+        MOI.EqualTo{Float64},
+        MOI.GreaterThan{Float64},
+        MOI.LessThan{Float64},
+        MOI.Interval{Float64},
     },
-)
+}
     return true
 end
 
@@ -835,8 +847,9 @@ function MOI.set(
     },
     value::Union{Real,Nothing},
 )
-    start = something(value, 0.0)
-    @_checked KN_set_con_dual_init_values(model.inner, ci.value, Cdouble(start))
+    start = convert(Cdouble, something(value, 0.0))
+    indexCons = KNINT[ci.value]
+    @_checked KN_set_con_dual_init_values(model.inner, 1, indexCons, [start])
     return
 end
 
@@ -994,10 +1007,12 @@ function MOI.add_constraint(
     _add_complementarity_constraint!(
         model.complementarity_cache,
         indv[1:n_comp],
-        indv[n_comp+1:end],
+        indv[(n_comp+1):end],
         comp_type,
     )
-    return MOI.ConstraintIndex{typeof(func),typeof(set)}(n_comp_cons)
+    ci = MOI.ConstraintIndex{typeof(func),typeof(set)}(n_comp_cons)
+    model.constraint_mapping[ci] = convert(Cint, n_comp_cons)
+    return ci
 end
 
 # MOI.NLPBlock
@@ -1089,10 +1104,6 @@ function MOI.set(
     func::F,
 ) where {F<:Union{MOI.VariableIndex,MOI.ScalarAffineFunction,MOI.ScalarQuadraticFunction}}
     _throw_if_solved(model, attr)
-    if model.nlp_data !== nothing && model.nlp_data.has_objective
-        @warn("Objective is already specified in NLPBlockData.")
-        return
-    end
     _throw_if_not_valid(model, func)
     model.objective = func
     return
@@ -1266,7 +1277,7 @@ function MOI.optimize!(model::Optimizer)
                     evalResult.hess,
                     evalRequest.x,
                     evalRequest.sigma,
-                    view(evalRequest.lambda, offset+1:num_cons),
+                    view(evalRequest.lambda, (offset+1):num_cons),
                 )
                 return 0
             end
@@ -1295,7 +1306,7 @@ function MOI.optimize!(model::Optimizer)
                     evalRequest.x,
                     evalRequest.vec,
                     evalRequest.sigma,
-                    view(evalRequest.lambda, offset+1:num_cons),
+                    view(evalRequest.lambda, (offset+1):num_cons),
                 )
                 return 0
             end
@@ -1324,81 +1335,74 @@ end
 # Refer to KNITRO manual for solver status:
 # https://www.artelys.com/tools/knitro_doc/3_referenceManual/returnCodes.html#returncodes
 const _KN_TO_MOI_RETURN_STATUS = Dict{Int,MOI.TerminationStatusCode}(
-    0 => MOI.LOCALLY_SOLVED,
-    -100 => MOI.ALMOST_OPTIMAL,
-    -101 => MOI.SLOW_PROGRESS,
-    -102 => MOI.SLOW_PROGRESS,
-    -103 => MOI.SLOW_PROGRESS,
-    -200 => MOI.LOCALLY_INFEASIBLE,
-    -201 => MOI.LOCALLY_INFEASIBLE,
-    -202 => MOI.LOCALLY_INFEASIBLE,
-    -203 => MOI.LOCALLY_INFEASIBLE,
-    -204 => MOI.LOCALLY_INFEASIBLE,
-    -205 => MOI.LOCALLY_INFEASIBLE,
-    -300 => MOI.DUAL_INFEASIBLE,
-    -301 => MOI.DUAL_INFEASIBLE,
-    -400 => MOI.ITERATION_LIMIT,
-    -401 => MOI.TIME_LIMIT,
-    -402 => MOI.OTHER_LIMIT,
-    -403 => MOI.OTHER_LIMIT,
-    -404 => MOI.OTHER_LIMIT,
-    -405 => MOI.OTHER_LIMIT,
-    -406 => MOI.NODE_LIMIT,
-    -410 => MOI.ITERATION_LIMIT,
-    -411 => MOI.TIME_LIMIT,
-    -412 => MOI.INFEASIBLE,
-    -413 => MOI.INFEASIBLE,
-    -414 => MOI.OTHER_LIMIT,
-    -415 => MOI.OTHER_LIMIT,
-    -416 => MOI.NODE_LIMIT,
-    -500 => MOI.INVALID_MODEL,
-    -501 => MOI.NUMERICAL_ERROR,
-    -502 => MOI.INVALID_MODEL,
-    -503 => MOI.MEMORY_LIMIT,
-    -504 => MOI.INTERRUPTED,
-    -505 => MOI.OTHER_ERROR,
-    -506 => MOI.OTHER_ERROR,
-    -507 => MOI.OTHER_ERROR,
-    -508 => MOI.OTHER_ERROR,
-    -509 => MOI.OTHER_ERROR,
-    -510 => MOI.OTHER_ERROR,
-    -511 => MOI.OTHER_ERROR,
-    -512 => MOI.OTHER_ERROR,
-    -513 => MOI.OTHER_ERROR,
-    -514 => MOI.OTHER_ERROR,
-    -515 => MOI.OTHER_ERROR,
-    -516 => MOI.OTHER_ERROR,
-    -517 => MOI.OTHER_ERROR,
-    -518 => MOI.OTHER_ERROR,
-    -519 => MOI.OTHER_ERROR,
-    -519 => MOI.OTHER_ERROR,
-    -520 => MOI.OTHER_ERROR,
-    -521 => MOI.OTHER_ERROR,
-    -522 => MOI.OTHER_ERROR,
-    -523 => MOI.OTHER_ERROR,
-    -524 => MOI.OTHER_ERROR,
-    -525 => MOI.OTHER_ERROR,
-    -526 => MOI.OTHER_ERROR,
-    -527 => MOI.OTHER_ERROR,
-    -528 => MOI.OTHER_ERROR,
-    -529 => MOI.OTHER_ERROR,
-    -530 => MOI.OTHER_ERROR,
-    -531 => MOI.OTHER_ERROR,
-    -532 => MOI.OTHER_ERROR,
-    -600 => MOI.OTHER_ERROR,
+    KN_RC_OPTIMAL_OR_SATISFACTORY => MOI.LOCALLY_SOLVED,
+    KN_RC_NEAR_OPT => MOI.ALMOST_OPTIMAL,
+    # slow progress
+    KN_RC_FEAS_XTOL => MOI.SLOW_PROGRESS,
+    KN_RC_FEAS_NO_IMPROVE => MOI.SLOW_PROGRESS,
+    KN_RC_FEAS_FTOL => MOI.SLOW_PROGRESS,
+    # infeasible
+    KN_RC_INFEASIBLE => MOI.LOCALLY_INFEASIBLE,
+    KN_RC_INFEAS_XTOL => MOI.LOCALLY_INFEASIBLE,
+    KN_RC_INFEAS_NO_IMPROVE => MOI.LOCALLY_INFEASIBLE,
+    KN_RC_INFEAS_MULTISTART => MOI.LOCALLY_INFEASIBLE,
+    KN_RC_INFEAS_CON_BOUNDS => MOI.LOCALLY_INFEASIBLE,
+    KN_RC_INFEAS_VAR_BOUNDS => MOI.LOCALLY_INFEASIBLE,
+    # unbounded
+    KN_RC_UNBOUNDED => MOI.DUAL_INFEASIBLE,
+    KN_RC_UNBOUNDED_OR_INFEAS => MOI.DUAL_INFEASIBLE,
+    # feasible limits
+    KN_RC_ITER_LIMIT_FEAS => MOI.ITERATION_LIMIT,
+    KN_RC_TIME_LIMIT_FEAS => MOI.TIME_LIMIT,
+    KN_RC_FEVAL_LIMIT_FEAS => MOI.OTHER_LIMIT,
+    KN_RC_MIP_EXH_FEAS => MOI.LOCALLY_SOLVED,
+    KN_RC_MIP_TERM_FEAS => MOI.SOLUTION_LIMIT,
+    KN_RC_MIP_SOLVE_LIMIT_FEAS => MOI.OTHER_LIMIT,
+    KN_RC_MIP_NODE_LIMIT_FEAS => MOI.NODE_LIMIT,
+    # infeasible limits
+    KN_RC_ITER_LIMIT_INFEAS => MOI.ITERATION_LIMIT,
+    KN_RC_TIME_LIMIT_INFEAS => MOI.TIME_LIMIT,
+    KN_RC_FEVAL_LIMIT_INFEAS => MOI.OTHER_LIMIT,
+    KN_RC_MIP_EXH_INFEAS => MOI.OTHER_LIMIT,
+    KN_RC_MIP_SOLVE_LIMIT_INFEAS => MOI.OTHER_LIMIT,
+    KN_RC_MIP_NODE_LIMIT_INFEAS => MOI.OTHER_LIMIT,
+    # errors
+    KN_RC_CALLBACK_ERR => MOI.INVALID_MODEL,
+    KN_RC_LP_SOLVER_ERR => MOI.NUMERICAL_ERROR,
+    KN_RC_EVAL_ERR => MOI.INVALID_MODEL,
+    KN_RC_OUT_OF_MEMORY => MOI.MEMORY_LIMIT,
+    KN_RC_USER_TERMINATION => MOI.INTERRUPTED,
 )
 
 function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
     if model.number_solved == 0
         return MOI.OPTIMIZE_NOT_CALLED
     end
-    status, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
-    @_checked KN_get_solution(model.inner, status, obj, C_NULL, C_NULL)
-    return get(_KN_TO_MOI_RETURN_STATUS, status[], MOI.OTHER_ERROR)
+    statusP, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
+    @_checked KN_get_solution(model.inner, statusP, obj, C_NULL, C_NULL)
+    return get(_KN_TO_MOI_RETURN_STATUS, statusP[], MOI.OTHER_ERROR)
 end
 
 function MOI.get(model::Optimizer, ::MOI.ResultCount)
     return model.number_solved >= 1 ? 1 : 0
+end
+
+function _status_to_primal_status_code(status)
+    if status == 0
+        return MOI.FEASIBLE_POINT
+    elseif -199 <= status <= -100
+        return MOI.FEASIBLE_POINT
+    elseif -299 <= status <= -200
+        return MOI.INFEASIBLE_POINT
+    elseif -399 <= status <= -300
+        return MOI.UNKNOWN_RESULT_STATUS
+    elseif -409 <= status <= -400
+        return MOI.FEASIBLE_POINT
+    elseif -499 <= status <= -410
+        return MOI.UNKNOWN_RESULT_STATUS
+    end
+    @assert -599 <= status <= -500
+    return MOI.UNKNOWN_RESULT_STATUS
 end
 
 function MOI.get(model::Optimizer, attr::MOI.PrimalStatus)
@@ -1407,25 +1411,23 @@ function MOI.get(model::Optimizer, attr::MOI.PrimalStatus)
     end
     statusP, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
     @_checked KN_get_solution(model.inner, statusP, obj, C_NULL, C_NULL)
-    status = statusP[]
+    return _status_to_primal_status_code(statusP[])
+end
+
+function _status_to_dual_status_code(status)
     if status == 0
         return MOI.FEASIBLE_POINT
-    elseif -109 <= status <= -100
+    elseif -199 <= status <= -100
         return MOI.FEASIBLE_POINT
-    elseif -209 <= status <= -200
-        return MOI.INFEASIBLE_POINT
-        # TODO(odow): we don't support returning certificates yet
-        # elseif status == -300
-        #     return MOI.INFEASIBILITY_CERTIFICATE
-    elseif -409 <= status <= -400
-        return MOI.FEASIBLE_POINT
-    elseif -419 <= status <= -410
-        return MOI.INFEASIBLE_POINT
-    elseif -599 <= status <= -500
+    elseif -299 <= status <= -200
         return MOI.UNKNOWN_RESULT_STATUS
-    else
+    elseif -399 <= status <= -300
+        return MOI.UNKNOWN_RESULT_STATUS
+    elseif -499 <= status <= -400
         return MOI.UNKNOWN_RESULT_STATUS
     end
+    @assert -599 <= status <= -500
+    return MOI.UNKNOWN_RESULT_STATUS
 end
 
 function MOI.get(model::Optimizer, attr::MOI.DualStatus)
@@ -1434,32 +1436,11 @@ function MOI.get(model::Optimizer, attr::MOI.DualStatus)
     end
     statusP, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
     @_checked KN_get_solution(model.inner, statusP, obj, C_NULL, C_NULL)
-    status = statusP[]
-    if status == 0
-        return MOI.FEASIBLE_POINT
-    elseif -109 <= status <= -100
-        return MOI.FEASIBLE_POINT
-        # elseif -209 <= status <= -200
-        #     return MOI.INFEASIBILITY_CERTIFICATE
-    elseif status == -300
-        return MOI.NO_SOLUTION
-    elseif -409 <= status <= -400
-        return MOI.FEASIBLE_POINT
-    elseif -419 <= status <= -410
-        return MOI.INFEASIBLE_POINT
-    elseif -599 <= status <= -500
-        return MOI.UNKNOWN_RESULT_STATUS
-    else
-        return MOI.UNKNOWN_RESULT_STATUS
-    end
+    return _status_to_dual_status_code(statusP[])
 end
 
-function MOI.get(model::Optimizer, obj::MOI.ObjectiveValue)
-    if model.number_solved == 0
-        error("ObjectiveValue not available.")
-    elseif obj.result_index != 1
-        throw(MOI.ResultIndexBoundsError{MOI.ObjectiveValue}(obj, 1))
-    end
+function MOI.get(model::Optimizer, attr::MOI.ObjectiveValue)
+    MOI.check_result_index_bounds(model, attr)
     status, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
     @_checked KN_get_solution(model.inner, status, obj, C_NULL, C_NULL)
     return obj[]
@@ -1488,33 +1469,15 @@ function _get_dual(model::Optimizer, index::Integer)
     return model.lambda[index]
 end
 
-function MOI.get(model::Optimizer, v::MOI.VariablePrimal, x::MOI.VariableIndex)
-    if model.number_solved == 0
-        error("VariablePrimal not available.")
-    elseif v.result_index > 1
-        throw(MOI.ResultIndexBoundsError{MOI.VariablePrimal}(v, 1))
-    end
+function MOI.get(model::Optimizer, attr::MOI.VariablePrimal, x::MOI.VariableIndex)
+    MOI.check_result_index_bounds(model, attr)
     MOI.throw_if_not_valid(model, x)
     return _get_solution(model, x.value)
 end
 
-function _check_cons(model, ci, cp)
-    if model.number_solved == 0
-        error("Solve problem before accessing solution.")
-    elseif cp.result_index > 1
-        throw(MOI.ResultIndexBoundsError{typeof(cp)}(cp, 1))
-    end
-    p = Ref{Cint}()
-    @_checked KN_get_number_cons(model.inner, p)
-    if !(0 <= ci.value <= p[] - 1)
-        error("Invalid constraint index ", ci.value)
-    end
-    return
-end
-
 function MOI.get(
     model::Optimizer,
-    cp::MOI.ConstraintPrimal,
+    attr::MOI.ConstraintPrimal,
     ci::MOI.ConstraintIndex{S,T},
 ) where {
     S<:Union{MOI.ScalarAffineFunction{Float64},MOI.ScalarQuadraticFunction{Float64}},
@@ -1525,7 +1488,8 @@ function MOI.get(
         MOI.Interval{Float64},
     },
 }
-    _check_cons(model, ci, cp)
+    MOI.check_result_index_bounds(model, attr)
+    MOI.throw_if_not_valid(model, ci)
     indexCon = model.constraint_mapping[ci]
     p = Ref{Cdouble}(NaN)
     @_checked KN_get_con_value(model.inner, indexCon, p)
@@ -1542,17 +1506,13 @@ end
 
 function MOI.get(
     model::Optimizer,
-    cp::MOI.ConstraintPrimal,
+    attr::MOI.ConstraintPrimal,
     ci::MOI.ConstraintIndex{
         MOI.VariableIndex,
         <:Union{MOI.EqualTo{Float64},MOI.GreaterThan{Float64},MOI.LessThan{Float64}},
     },
 )
-    if model.number_solved == 0
-        error("ConstraintPrimal not available.")
-    elseif cp.result_index != 1
-        throw(MOI.ResultIndexBoundsError{MOI.ConstraintPrimal}(cp, 1))
-    end
+    MOI.check_result_index_bounds(model, attr)
     x = MOI.VariableIndex(ci.value)
     MOI.throw_if_not_valid(model, x)
     return _get_solution(model, x.value)
@@ -1563,7 +1523,7 @@ _sense_dual(model::Optimizer) = model.sense == MOI.MAX_SENSE ? 1.0 : -1.0
 
 function MOI.get(
     model::Optimizer,
-    cd::MOI.ConstraintDual,
+    attr::MOI.ConstraintDual,
     ci::MOI.ConstraintIndex{S,T},
 ) where {
     S<:Union{MOI.ScalarAffineFunction{Float64},MOI.ScalarQuadraticFunction{Float64}},
@@ -1574,7 +1534,8 @@ function MOI.get(
         MOI.Interval{Float64},
     },
 }
-    _check_cons(model, ci, cd)
+    MOI.check_result_index_bounds(model, attr)
+    MOI.throw_if_not_valid(model, ci)
     index = model.constraint_mapping[ci] + 1
     return _sense_dual(model) * _get_dual(model, index)
 end
@@ -1600,11 +1561,7 @@ function _reduced_cost(
     attr::MOI.ConstraintDual,
     ci::MOI.ConstraintIndex{MOI.VariableIndex,S},
 ) where {S}
-    if model.number_solved == 0
-        error("ConstraintDual not available.")
-    elseif attr.result_index != 1
-        throw(MOI.ResultIndexBoundsError{MOI.ConstraintDual}(attr, 1))
-    end
+    MOI.check_result_index_bounds(model, attr)
     x = MOI.VariableIndex(ci.value)
     MOI.throw_if_not_valid(model, x)
     p = Ref{Cint}()
@@ -1636,9 +1593,9 @@ function MOI.get(
     return _reduced_cost(model, attr, ci)
 end
 
-function MOI.get(model::Optimizer, ::MOI.NLPBlockDual)
+function MOI.get(model::Optimizer, attr::MOI.NLPBlockDual)
     if model.number_solved == 0
-        error("NLPBlockDual not available.")
+        throw(MOI.ResultIndexBoundsError(attr, 0))
     end
     return [_sense_dual(model) * _get_dual(model, i + 1) for i in model.nlp_index_cons]
 end

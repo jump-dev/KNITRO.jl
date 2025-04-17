@@ -21,6 +21,19 @@ function runtests()
     return
 end
 
+function test_runtests()
+    model = MOI.instantiate(KNITRO.Optimizer)
+    config = MOI.Test.Config(
+        atol=1e-3,
+        rtol=1e-3,
+        optimal_status=MOI.LOCALLY_SOLVED,
+        infeasible_status=MOI.LOCALLY_INFEASIBLE,
+        exclude=Any[MOI.VariableBasisStatus, MOI.ConstraintBasisStatus, MOI.ConstraintName],
+    )
+    MOI.Test.runtests(model, config; include=["test_basic_"])
+    return
+end
+
 function test_MOI_Test_cached()
     second_order_exclude = [
         r"^test_conic_GeometricMeanCone_VectorAffineFunction$",
@@ -66,6 +79,8 @@ function test_MOI_Test_cached()
             r"^test_solve_ObjectiveBound_MAX_SENSE_LP$",
             # KNITRO doesn't support INFEASIBILITY_CERTIFICATE results.
             r"^test_solve_DualStatus_INFEASIBILITY_CERTIFICATE_$",
+            # Cannot get ConstraintDualStart
+            r"^test_model_ModelFilter_AbstractConstraintAttribute$",
             # ConstraintDual not supported for SecondOrderCone
             second_order_exclude...,
         ],
@@ -139,6 +154,196 @@ function test_outname()
     @test isfile("new_name.log")
     @test occursin("Artelys", read("new_name.log", String))
     rm("new_name.log")
+    return
+end
+
+function test_objective_sense()
+    model = KNITRO.Optimizer()
+    @test MOI.supports(model, MOI.ObjectiveSense())
+    for sense in (MOI.MIN_SENSE, MOI.MAX_SENSE)
+        MOI.set(model, MOI.ObjectiveSense(), sense)
+        @test MOI.get(model, MOI.ObjectiveSense()) == sense
+    end
+    return
+end
+
+function test_get_objective_function()
+    model = KNITRO.Optimizer()
+    x = MOI.add_variable(model)
+    MOI.set(model, MOI.ObjectiveSense(), MOI.MIN_SENSE)
+    for f in (
+        x,
+        1.0 * x + 2.0,
+        1.0 * x * x + 2.0 * x + 3.0,
+        MOI.ScalarNonlinearFunction(:log, Any[x]),
+    )
+        MOI.set(model, MOI.ObjectiveFunction{typeof(f)}(), f)
+        @test isapprox(MOI.get(model, MOI.ObjectiveFunction{typeof(f)}()), f)
+    end
+    return
+end
+
+function test_status_to_primal_status_code()
+    for (status, code) in [
+        0 => MOI.FEASIBLE_POINT,
+        -100 => MOI.FEASIBLE_POINT,
+        -199 => MOI.FEASIBLE_POINT,
+        -200 => MOI.INFEASIBLE_POINT,
+        -299 => MOI.INFEASIBLE_POINT,
+        -300 => MOI.UNKNOWN_RESULT_STATUS,
+        -301 => MOI.UNKNOWN_RESULT_STATUS,
+        -399 => MOI.UNKNOWN_RESULT_STATUS,
+        -400 => MOI.FEASIBLE_POINT,
+        -409 => MOI.FEASIBLE_POINT,
+        -410 => MOI.UNKNOWN_RESULT_STATUS,
+        -499 => MOI.UNKNOWN_RESULT_STATUS,
+        -500 => MOI.UNKNOWN_RESULT_STATUS,
+        -599 => MOI.UNKNOWN_RESULT_STATUS,
+    ]
+        @test KNITRO._status_to_primal_status_code(status) == code
+    end
+    for status in [1, 100, 200, 300, 400]
+        @test_throws AssertionError KNITRO._status_to_primal_status_code(status)
+    end
+    return
+end
+
+function test_status_to_dual_status_code()
+    for (status, code) in [
+        0 => MOI.FEASIBLE_POINT,
+        -100 => MOI.FEASIBLE_POINT,
+        -199 => MOI.FEASIBLE_POINT,
+        -200 => MOI.UNKNOWN_RESULT_STATUS,
+        -299 => MOI.UNKNOWN_RESULT_STATUS,
+        -300 => MOI.UNKNOWN_RESULT_STATUS,
+        -301 => MOI.UNKNOWN_RESULT_STATUS,
+        -399 => MOI.UNKNOWN_RESULT_STATUS,
+        -400 => MOI.UNKNOWN_RESULT_STATUS,
+        -409 => MOI.UNKNOWN_RESULT_STATUS,
+        -410 => MOI.UNKNOWN_RESULT_STATUS,
+        -499 => MOI.UNKNOWN_RESULT_STATUS,
+        -500 => MOI.UNKNOWN_RESULT_STATUS,
+        -599 => MOI.UNKNOWN_RESULT_STATUS,
+    ]
+        @test KNITRO._status_to_dual_status_code(status) == code
+    end
+    for status in [1, 100, 200, 300, 400]
+        @test_throws AssertionError KNITRO._status_to_dual_status_code(status)
+    end
+    return
+end
+
+function test_NLPBlockDual_error()
+    model = KNITRO.Optimizer()
+    @test_throws(
+        MOI.ResultIndexBoundsError(MOI.NLPBlockDual(), 0),
+        MOI.get(model, MOI.NLPBlockDual()),
+    )
+    return
+end
+
+function test_NodeCount()
+    model = KNITRO.Optimizer()
+    @test MOI.get(model, MOI.NodeCount()) === Int64(0)
+    return
+end
+
+function test_BarrierIterations()
+    model = KNITRO.Optimizer()
+    @test MOI.get(model, MOI.BarrierIterations()) === Int64(0)
+    return
+end
+
+function test_RelativeGap()
+    model = KNITRO.Optimizer()
+    @test MOI.get(model, MOI.RelativeGap()) === 0.0
+    return
+end
+
+function test_NumberOfVariales()
+    model = KNITRO.Optimizer()
+    @test MOI.get(model, MOI.NumberOfVariables()) == 0
+    x = MOI.add_variable(model)
+    @test MOI.get(model, MOI.NumberOfVariables()) == 1
+    y = MOI.add_variables(model, 2)
+    @test MOI.get(model, MOI.NumberOfVariables()) == 3
+    return
+end
+
+function test_RawOptimizerParameter_free()
+    model = KNITRO.Optimizer()
+    @test MOI.supports(model, MOI.RawOptimizerAttribute("free"))
+    @test model.inner.env.ptr_env != C_NULL
+    MOI.set(model, MOI.RawOptimizerAttribute("free"), true)
+    @test model.inner.env.ptr_env == C_NULL
+    return
+end
+
+function test_RawOptimizerParameter_option_file()
+    model = KNITRO.Optimizer()
+    @test MOI.supports(model, MOI.RawOptimizerAttribute("option_file"))
+    dir = mktempdir()
+    filename = joinpath(dir, "option_file")
+    write(filename, "outlev 1")
+    MOI.set(model, MOI.RawOptimizerAttribute("option_file"), filename)
+    valueP = Ref{Cint}()
+    KNITRO.KN_get_int_param(model.inner, KNITRO.KN_PARAM_OUTLEV, valueP)
+    @test valueP[] == 1
+    return
+end
+
+function test_RawOptimizerParameter_tuner_file()
+    model = KNITRO.Optimizer()
+    @test MOI.supports(model, MOI.RawOptimizerAttribute("tuner_file"))
+    dir = mktempdir()
+    filename = joinpath(dir, "tuner_file")
+    write(filename, "algorithm")
+    MOI.set(model, MOI.RawOptimizerAttribute("tuner_file"), filename)
+    return
+end
+
+function test_VariableName()
+    model = KNITRO.Optimizer()
+    x = MOI.add_variable(model)
+    @test MOI.supports(model, MOI.VariableName(), MOI.VariableIndex)
+    @test MOI.get(model, MOI.VariableName(), x) == ""
+    MOI.set(model, MOI.VariableName(), x, "x")
+    @test MOI.get(model, MOI.VariableName(), x) == "x"
+    return
+end
+
+function test_ConstraintDualStart()
+    model = KNITRO.Optimizer()
+    x = MOI.add_variable(model)
+    for f in (x, 1.0 * x, 1.0 * x * x)
+        c = MOI.add_constraint(model, f, MOI.LessThan(1.0))
+        @test MOI.supports(model, MOI.ConstraintDualStart(), typeof(c))
+        # Just test that this doesn't error.
+        MOI.set(model, MOI.ConstraintDualStart(), c, nothing)
+        MOI.set(model, MOI.ConstraintDualStart(), c, 1.0)
+    end
+    return
+end
+
+function test_error_kwargs()
+    @test_throws(
+        ErrorException(
+            "Unsupported keyword arguments passed to `Optimizer`. Set attributes instead",
+        ),
+        KNITRO.Optimizer(; outlev=1),
+    )
+    return
+end
+
+function test_lm_context()
+    lm = KNITRO.LMcontext()
+    @test isempty(lm.linked_models)
+    model = KNITRO.Optimizer(; license_manager=lm)
+    @test length(lm.linked_models) == 1
+    @test model.inner in lm.linked_models
+    MOI.empty!(model)
+    @test length(lm.linked_models) == 2
+    @test model.inner in lm.linked_models
     return
 end
 
