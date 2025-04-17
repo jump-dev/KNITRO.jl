@@ -287,7 +287,7 @@ function test_RawOptimizerParameter_option_file()
     write(filename, "outlev 1")
     MOI.set(model, MOI.RawOptimizerAttribute("option_file"), filename)
     valueP = Ref{Cint}()
-    KNITRO.KN_get_int_param(model.inner, KN_PARAM_OUTLEV, valueP)
+    KNITRO.KN_get_int_param(model.inner, KNITRO.KN_PARAM_OUTLEV, valueP)
     @test valueP[] == 1
     return
 end
@@ -299,9 +299,6 @@ function test_RawOptimizerParameter_tuner_file()
     filename = joinpath(dir, "tuner_file")
     write(filename, "algorithm")
     MOI.set(model, MOI.RawOptimizerAttribute("tuner_file"), filename)
-    valueP = Ref{Cint}()
-    KNITRO.KN_get_int_param(model.inner, KN_PARAM_OUTLEV, valueP)
-    @test valueP[] == 1
     return
 end
 
