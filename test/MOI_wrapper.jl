@@ -184,6 +184,7 @@ function test_get_objective_function()
 end
 
 function test_status_to_primal_status_code()
+    ext = Base.get_extension(KNITRO, :KNITROMathOptInterfaceExt)
     for (status, code) in [
         0 => MOI.FEASIBLE_POINT,
         -100 => MOI.FEASIBLE_POINT,
@@ -200,15 +201,16 @@ function test_status_to_primal_status_code()
         -500 => MOI.UNKNOWN_RESULT_STATUS,
         -599 => MOI.UNKNOWN_RESULT_STATUS,
     ]
-        @test KNITRO._status_to_primal_status_code(status) == code
+        @test ext._status_to_primal_status_code(status) == code
     end
     for status in [1, 100, 200, 300, 400]
-        @test_throws AssertionError KNITRO._status_to_primal_status_code(status)
+        @test_throws AssertionError ext._status_to_primal_status_code(status)
     end
     return
 end
 
 function test_status_to_dual_status_code()
+    ext = Base.get_extension(KNITRO, :KNITROMathOptInterfaceExt)
     for (status, code) in [
         0 => MOI.FEASIBLE_POINT,
         -100 => MOI.FEASIBLE_POINT,
@@ -225,10 +227,10 @@ function test_status_to_dual_status_code()
         -500 => MOI.UNKNOWN_RESULT_STATUS,
         -599 => MOI.UNKNOWN_RESULT_STATUS,
     ]
-        @test KNITRO._status_to_dual_status_code(status) == code
+        @test ext._status_to_dual_status_code(status) == code
     end
     for status in [1, 100, 200, 300, 400]
-        @test_throws AssertionError KNITRO._status_to_dual_status_code(status)
+        @test_throws AssertionError ext._status_to_dual_status_code(status)
     end
     return
 end

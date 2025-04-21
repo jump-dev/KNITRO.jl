@@ -6,7 +6,6 @@
 module KNITRO
 
 import Libdl
-import MathOptInterface as MOI
 
 const _DEPS_FILE = joinpath(dirname(@__FILE__), "..", "deps", "deps.jl")
 if isfile(_DEPS_FILE)
@@ -43,7 +42,6 @@ end
 
 include("libknitro.jl")
 include("C_wrapper.jl")
-include("MOI_wrapper.jl")
 
 # KNITRO exports all `KN_XXX` symbols. If you don't want all of these symbols in
 # your environment, then use `import KNITRO` instead of `using KNITRO`.
