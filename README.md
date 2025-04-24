@@ -67,6 +67,35 @@ model_2 = Model(() -> KNITRO.Optimizer(; license_manager = manager))
 
 To release the license manager, do `KNITRO.KN_release_license(manager)`.
 
+### Type stability
+
+KNITRO.jl v0.14.7 moved the `KNITRO.Optimizer` object to a package extension. As
+a consequence, `KNITRO.Optimizer` is now type unstable, and it will be inferred
+as `KNITRO.Optimizer()::Any`.
+
+In most cases, this should not impact performance. If it does, there are two
+work-arounds.
+
+First, you can use a function barrier:
+```julia
+using JuMP, KNITRO
+function main(optimizer::T) where {T}
+   model = Model(optimizer)
+   return
+end
+main(KNITRO.Optimizer)
+```
+Although the outer `KNITRO.Optimizer` is type unstable, the `optimizer` inside
+`main` will be properly inferred.
+
+Second, you may explicitly get and use the extension module:
+```julia
+using JuMP, KNITRO
+const KNITROMathOptInterfaceExt =
+   Base.get_extension(KNITRO, :KNITROMathOptInterfaceExt)
+model = Model(KNITROMathOptInterfaceExt.Optimizer)
+```
+
 ## Use with AMPL
 
 To use KNITRO with [AmplNLWriter.jl](https://github.com/jump-dev/AmplNLWriter.jl),
