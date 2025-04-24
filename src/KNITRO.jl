@@ -50,4 +50,7 @@ for name in filter(s -> startswith("$s", "KN_"), names(@__MODULE__; all=true))
     @eval export $name
 end
 
+# For the MOI extension
+global Optimizer
+
 end
