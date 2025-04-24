@@ -9,9 +9,7 @@ import KNITRO
 import MathOptInterface as MOI
 
 function __init__()
-    @eval KNITRO begin
-        const Optimizer = $Optimizer
-    end
+    setglobal!(KNITRO, :Optimizer, Optimizer)
     return
 end
 
