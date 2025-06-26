@@ -137,7 +137,11 @@ end
     options = joinpath(dirname(@__FILE__), "..", "examples", "test_knitro.opt")
     tuner1 = joinpath(dirname(@__FILE__), "..", "examples", "tuner-fixed.opt")
     tuner2 = joinpath(dirname(@__FILE__), "..", "examples", "tuner-explore.opt")
-    KN_set_int_param_by_name(kc, "nlp_algorithm", 0)
+    if KNITRO.knitro_version() >= v"15.0"
+        KN_set_int_param_by_name(kc, "nlp_algorithm", 0)
+    else
+        KN_set_int_param_by_name(kc, "algorithm", 0)
+    end
     KN_set_char_param_by_name(kc, "cplexlibname", ".")
     KN_set_double_param_by_name(kc, "xtol", 1e-15)
     KN_set_int_param(kc, KN_PARAM_ALG, KN_ALG_BAR_DIRECT)
@@ -145,7 +149,11 @@ end
     KN_set_double_param(kc, KN_PARAM_XTOL, 1e-15)
 
     pCint = Ref{Cint}()
-    KN_get_int_param_by_name(kc, "nlp_algorithm", pCint)
+    if KNITRO.knitro_version() >= v"15.0"
+        KN_get_int_param_by_name(kc, "nlp_algorithm", pCint)
+    else
+        KN_get_int_param_by_name(kc, "algorithm", pCint)
+    end
     @test pCint[] == KN_ALG_BAR_DIRECT
     pCdouble = Ref{Cdouble}()
     KN_get_double_param_by_name(kc, "xtol", pCdouble)
