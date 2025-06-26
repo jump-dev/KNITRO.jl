@@ -166,7 +166,7 @@ end
     KN_get_num_param_values(kc, KN_PARAM_XTOL, pCint)
     @test pCint[] == 0
     KN_get_param_value_doc(kc, KN_PARAM_GRADOPT, 1, tmp, 1024)
-    @test _to_string(tmp) == "exact"
+    @test _to_string(tmp) == "1 (exact): User supplies exact first derivatives"
     KN_get_param_id(kc, "xtol", pCint)
     @test pCint[] == KN_PARAM_XTOL
 
