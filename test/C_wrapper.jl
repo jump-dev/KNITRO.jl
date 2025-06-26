@@ -507,7 +507,7 @@ end
     KN_set_obj_name(kc, "myobj")
     # Set feasibility tolerances
     KN_set_var_feastols_all(kc, [0.1, 0.001, 0.1])
-    KN_set_con_feastols_all(kc, [0.1])
+    KN_set_con_feastols_all(kc, [1e-4])
     KN_set_compcon_feastols_all(kc, [0.1])
     # Set finite differences step size
     KN_set_cb_relstepsizes_all(kc, cb, [0.1, 0.001, 0.1])
