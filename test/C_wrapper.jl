@@ -889,6 +889,9 @@ end
         KN_set_var_primal_init_value(kc, x, 0.8)
     end
 
+    # x2 >= 0
+    KN_set_var_lobnd(kc, 2, 0.0)
+
     # Add the constraints and set the rhs and coefficients
     KN_add_cons(kc, 3, zeros(Cint, 3))
     KN_set_con_eqbnds_all(kc, [1.0, 0.0, 0.0])
