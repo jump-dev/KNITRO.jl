@@ -889,7 +889,7 @@ end
         KN_set_var_primal_init_value(kc, x, 0.8)
     end
 
-    # x2 >= 0
+    # x2 >= 0. This constraint is added to avoid symmetric solutions.
     KN_set_var_lobnd(kc, 2, 0.0)
 
     # Add the constraints and set the rhs and coefficients
