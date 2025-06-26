@@ -265,6 +265,10 @@ end
     # Restart with new variable bounds
     KN_set_var_lobnds_all(kc, Float64[0.0, 0, 0])
     KN_set_var_upbnds_all(kc, Float64[2.0, 2, 2])
+
+    # Set tolerances to 1e-10
+    KN_set_double_param_by_name(kc, "feastol", 1e-10)
+    KN_set_double_param_by_name(kc, "opttol", 1e-8)
     status = KN_solve(kc)
     @test status == 0
 
