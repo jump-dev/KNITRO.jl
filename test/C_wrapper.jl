@@ -160,7 +160,7 @@ end
     @test _to_string(tmp) == "xtol"
     KN_get_param_doc(kc, KN_PARAM_XTOL, tmp, 1024)
     @test _to_string(tmp) ==
-          "# Step size tolerance used for terminating the optimization.\n"
+          "Step size tolerance used for terminating the optimization.\n"
     KN_get_param_type(kc, KN_PARAM_XTOL, pCint)
     @test pCint[] == KN_PARAMTYPE_FLOAT
     KN_get_num_param_values(kc, KN_PARAM_XTOL, pCint)
