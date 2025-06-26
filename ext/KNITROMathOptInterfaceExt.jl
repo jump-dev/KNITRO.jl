@@ -406,6 +406,12 @@ function _is_fixed(model::Optimizer, x::MOI.VariableIndex)
     return model.variable_info[x.value].is_fixed
 end
 
+function _is_binary(model::Optimizer, x::MOI.VariableIndex)
+    p = Ref{Cint}(0)
+    KNITRO.@_checked KNITRO.KN_get_var_type(model.inner, _c_column(x), p)
+    return p[] == KNITRO.KN_VARTYPE_BINARY
+end
+
 # MOI.VariablePrimalStart
 
 MOI.supports(::Optimizer, ::MOI.VariablePrimalStart, ::Type{MOI.VariableIndex}) = true
@@ -514,17 +520,34 @@ function MOI.add_constraint(
 )
     _throw_if_solved(model, x, set)
     MOI.throw_if_not_valid(model, x)
-    if _has_upper_bound(model, x)
-        error("Upper bound on variable $x already exists.")
+    if !_is_binary(model, x)
+        if _has_upper_bound(model, x)
+            error("Upper bound on variable $x already exists.")
+        end
+        if _is_fixed(model, x)
+            error("Variable $x is fixed. Cannot also set upper bound.")
+        end
+        ub = _clamp_inf(set.upper)
+        model.variable_info[x.value].has_upper_bound = true
+        KNITRO.@_checked KNITRO.KN_set_var_upbnd(model.inner, _c_column(x), ub)
+        ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.LessThan{Float64}}(x.value)
+        model.constraint_mapping[ci] = convert(Cint, x.value)
+    else
+        ub = _clamp_inf(set.upper)
+        p = Ref{Cint}(0)
+        KNITRO.@_checked KNITRO.KN_add_con(model.inner, p)
+        num_cons = p[]
+        KNITRO.@_checked KNITRO.KN_add_con_linear_struct_one(
+            model.inner,
+            1,
+            num_cons,
+            [_c_column(x)],
+            [1.0],
+        )
+        KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, num_cons, ub)
+        ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.LessThan{Float64}}(num_cons)
+        model.constraint_mapping[ci] = num_cons
     end
-    if _is_fixed(model, x)
-        error("Variable $x is fixed. Cannot also set upper bound.")
-    end
-    ub = _clamp_inf(set.upper)
-    model.variable_info[x.value].has_upper_bound = true
-    KNITRO.@_checked KNITRO.KN_set_var_upbnd(model.inner, _c_column(x), ub)
-    ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.LessThan{Float64}}(x.value)
-    model.constraint_mapping[ci] = convert(Cint, x.value)
     return ci
 end
 
@@ -550,17 +573,34 @@ function MOI.add_constraint(
 )
     _throw_if_solved(model, x, set)
     MOI.throw_if_not_valid(model, x)
-    if _has_lower_bound(model, x)
-        error("Lower bound on variable $x already exists.")
+    if !_is_binary(model, x)
+        if _has_lower_bound(model, x)
+            error("Lower bound on variable $x already exists.")
+        end
+        if _is_fixed(model, x)
+            error("Variable $x is fixed. Cannot also set lower bound.")
+        end
+        lb = _clamp_inf(set.lower)
+        model.variable_info[x.value].has_lower_bound = true
+        KNITRO.@_checked KNITRO.KN_set_var_lobnd(model.inner, _c_column(x), lb)
+        ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.GreaterThan{Float64}}(x.value)
+        model.constraint_mapping[ci] = convert(Cint, x.value)
+    else
+        lb = _clamp_inf(set.lower)
+        p = Ref{Cint}(0)
+        KNITRO.@_checked KNITRO.KN_add_con(model.inner, p)
+        num_cons = p[]
+        KNITRO.@_checked KNITRO.KN_add_con_linear_struct_one(
+            model.inner,
+            1,
+            num_cons,
+            [_c_column(x)],
+            [1.0],
+        )
+        KNITRO.@_checked KNITRO.KN_set_con_lobnd(model.inner, num_cons, lb)
+        ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.GreaterThan{Float64}}(num_cons)
+        model.constraint_mapping[ci] = num_cons
     end
-    if _is_fixed(model, x)
-        error("Variable $x is fixed. Cannot also set lower bound.")
-    end
-    lb = _clamp_inf(set.lower)
-    model.variable_info[x.value].has_lower_bound = true
-    KNITRO.@_checked KNITRO.KN_set_var_lobnd(model.inner, _c_column(x), lb)
-    ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.GreaterThan{Float64}}(x.value)
-    model.constraint_mapping[ci] = convert(Cint, x.value)
     return ci
 end
 
@@ -586,20 +626,39 @@ function MOI.add_constraint(
 )
     _throw_if_solved(model, x, set)
     MOI.throw_if_not_valid(model, x)
-    if _has_lower_bound(model, x) || _has_upper_bound(model, x)
-        error("Bounds on variable $x already exists.")
+    if !_is_binary(model, x)
+        if _has_lower_bound(model, x) || _has_upper_bound(model, x)
+            error("Bounds on variable $x already exists.")
+        end
+        if _is_fixed(model, x)
+            error("Variable $x is fixed. Cannot also set lower bound.")
+        end
+        lb = _clamp_inf(set.lower)
+        ub = _clamp_inf(set.upper)
+        model.variable_info[x.value].has_lower_bound = true
+        model.variable_info[x.value].has_upper_bound = true
+        KNITRO.@_checked KNITRO.KN_set_var_lobnd(model.inner, _c_column(x), lb)
+        KNITRO.@_checked KNITRO.KN_set_var_upbnd(model.inner, _c_column(x), ub)
+        ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.Interval{Float64}}(x.value)
+        model.constraint_mapping[ci] = convert(Cint, x.value)
+    else
+        lb = _clamp_inf(set.lower)
+        ub = _clamp_inf(set.upper)
+        p = Ref{Cint}(0)
+        KNITRO.@_checked KNITRO.KN_add_con(model.inner, p)
+        num_cons = p[]
+        KNITRO.@_checked KNITRO.KN_add_con_linear_struct_one(
+            model.inner,
+            1,
+            num_cons,
+            [_c_column(x)],
+            [1.0],
+        )
+        KNITRO.@_checked KNITRO.KN_set_con_lobnd(model.inner, num_cons, lb)
+        KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, num_cons, ub)
+        ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.Interval{Float64}}(num_cons)
+        model.constraint_mapping[ci] = num_cons
     end
-    if _is_fixed(model, x)
-        error("Variable $x is fixed. Cannot also set lower bound.")
-    end
-    lb = _clamp_inf(set.lower)
-    ub = _clamp_inf(set.upper)
-    model.variable_info[x.value].has_lower_bound = true
-    model.variable_info[x.value].has_upper_bound = true
-    KNITRO.@_checked KNITRO.KN_set_var_lobnd(model.inner, _c_column(x), lb)
-    KNITRO.@_checked KNITRO.KN_set_var_upbnd(model.inner, _c_column(x), ub)
-    ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.Interval{Float64}}(x.value)
-    model.constraint_mapping[ci] = convert(Cint, x.value)
     return ci
 end
 
@@ -690,13 +749,23 @@ function MOI.add_constraint(model::Optimizer, x::MOI.VariableIndex, ::MOI.ZeroOn
         _c_column(x),
         KNITRO.KN_VARTYPE_BINARY,
     )
-    # Calling `set_var_type` resets variable bounds in KNITRO. To fix, we need
-    # to restore them after calling `set_var_type`.
-    if lb !== nothing
-        KNITRO.@_checked KNITRO.KN_set_var_lobnd(model.inner, _c_column(x), lb)
-    end
-    if ub !== nothing
-        KNITRO.@_checked KNITRO.KN_set_var_upbnd(model.inner, _c_column(x), ub)
+    if lb !== nothing || ub !== nothing
+        q = Ref{Cint}(0)
+        KNITRO.@_checked KNITRO.KN_add_con(model.inner, q)
+        num_cons = q[]
+        KNITRO.@_checked KNITRO.KN_add_con_linear_struct_one(
+            model.inner,
+            1,
+            num_cons,
+            [_c_column(x)],
+            [1.0],
+        )
+        if lb !== nothing
+            KNITRO.@_checked KNITRO.KN_set_con_lobnd(model.inner, num_cons, lb)
+        end
+        if ub !== nothing
+            KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, num_cons, ub)
+        end
     end
     ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.ZeroOne}(x.value)
     model.constraint_mapping[ci] = convert(Cint, x.value)
@@ -924,34 +993,88 @@ function MOI.add_constraint(
     KNITRO.@_checked KNITRO.KN_add_con(model.inner, p)
     index_con = p[]
     rows, columns, coefficients = _canonical_vector_affine_reduction(func)
-    # Distinct two parts of secondordercone.
-    # First row corresponds to linear part of SOC.
-    linear_row_indices = rows .== 0
-    cone_indices = .!(linear_row_indices)
-    ## i) linear part
-    KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, index_con, func.constants[1])
+    index_vars = zeros(Cint, set.dimension)
+    KNITRO.@_checked KNITRO.KN_add_vars(model.inner, set.dimension, index_vars)
+    index_cons = zeros(Cint, set.dimension)
+    KNITRO.@_checked KNITRO.KN_add_cons(model.inner, set.dimension, index_cons)
+    for i in 1:set.dimension
+        KNITRO.@_checked KNITRO.KN_add_con_linear_struct_one(
+            model.inner,
+            1,
+            index_cons[i],
+            [index_vars[i]],
+            [1.0],
+        )
+        row = rows .== (i - 1)
+        KNITRO.@_checked KNITRO.KN_add_con_linear_struct_one(
+            model.inner,
+            sum(row),
+            index_cons[i],
+            columns[row],
+            -coefficients[row],
+        )
+        KNITRO.@_checked KNITRO.KN_set_con_eqbnd(
+            model.inner,
+            index_cons[i],
+            func.constants[i],
+        )
+    end
+    q = Ref{Cint}(0)
+    KNITRO.@_checked KNITRO.KN_add_con(model.inner, q)
+    index_con_nonneg = q[]
+    KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, index_con_nonneg, 0.0)
     KNITRO.@_checked KNITRO.KN_add_con_linear_struct_one(
         model.inner,
-        sum(linear_row_indices),
-        index_con,
-        columns[linear_row_indices],
-        -coefficients[linear_row_indices],
+        1,
+        index_con_nonneg,
+        [index_vars[1]],
+        [-1.0],
     )
-    ## ii) soc part
-    index_var_cone = columns[cone_indices]
-    nnz = length(index_var_cone)
-    KNITRO.@_checked KNITRO.KN_add_con_L2norm(
+    KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, index_con, 0.0)
+    KNITRO.@_checked KNITRO.KN_add_con_quadratic_struct_one(
         model.inner,
+        length(index_vars) - 1,
         index_con,
-        set.dimension - 1,
-        nnz,
-        # The rows are 0-indexed. But we additionally need to drop the first
-        # (linear) row from the matrix.
-        rows[cone_indices] .- Cint(1),
-        index_var_cone,
-        coefficients[cone_indices],
-        func.constants[2:end],
+        index_vars[2:end],
+        index_vars[2:end],
+        ones(Float64, length(index_vars) - 1),
     )
+    KNITRO.@_checked KNITRO.KN_add_con_quadratic_struct_one(
+        model.inner,
+        1,
+        index_con,
+        [index_vars[1]],
+        [index_vars[1]],
+        [-1.0],
+    )
+    # # Distinct two parts of secondordercone.
+    # # First row corresponds to linear part of SOC.
+    # linear_row_indices = rows .== 0
+    # cone_indices = .!(linear_row_indices)
+    # ## i) linear part
+    # KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, index_con, func.constants[1])
+    # KNITRO.@_checked KNITRO.KN_add_con_linear_struct_one(
+    #     model.inner,
+    #     sum(linear_row_indices),
+    #     index_con,
+    #     columns[linear_row_indices],
+    #     -coefficients[linear_row_indices],
+    # )
+    # ## ii) soc part
+    # index_var_cone = columns[cone_indices]
+    # nnz = length(index_var_cone)
+    # KNITRO.@_checked KNITRO.KN_add_con_L2norm(
+    #     model.inner,
+    #     index_con,
+    #     set.dimension - 1,
+    #     nnz,
+    #     # The rows are 0-indexed. But we additionally need to drop the first
+    #     # (linear) row from the matrix.
+    #     rows[cone_indices] .- Cint(1),
+    #     index_var_cone,
+    #     coefficients[cone_indices],
+    #     func.constants[2:end],
+    # )
     ci = MOI.ConstraintIndex{typeof(func),typeof(set)}(index_con)
     model.constraint_mapping[ci] = columns
     return ci
@@ -980,29 +1103,56 @@ function MOI.add_constraint(
     KNITRO.@_checked KNITRO.KN_add_con(model.inner, p)
     index_con = p[]
     indv = _c_column.(func.variables)
-    KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, index_con, 0.0)
+    q = Ref{Cint}(0)
+    KNITRO.@_checked KNITRO.KN_add_con(model.inner, q)
+    index_con_nonneg = q[]
+    KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, index_con_nonneg, 0.0)
     KNITRO.@_checked KNITRO.KN_add_con_linear_struct_one(
+        model.inner,
+        1,
+        index_con_nonneg,
+        [indv[1]],
+        [-1.0],
+    )
+    KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, index_con, 0.0)
+    KNITRO.@_checked KNITRO.KN_add_con_quadratic_struct_one(
+        model.inner,
+        length(indv) - 1,
+        index_con,
+        indv[2:end],
+        indv[2:end],
+        ones(Float64, length(indv) - 1),
+    )
+    KNITRO.@_checked KNITRO.KN_add_con_quadratic_struct_one(
         model.inner,
         1,
         index_con,
         [indv[1]],
+        [indv[1]],
         [-1.0],
     )
-    indexVars = indv[2:end]
-    nnz = length(indexVars)
-    indexCoords = Cint[i for i in 0:(nnz-1)]
-    coefs = ones(Float64, nnz)
-    constants = zeros(Float64, nnz)
-    KNITRO.@_checked KNITRO.KN_add_con_L2norm(
-        model.inner,
-        index_con,
-        nnz,
-        nnz,
-        indexCoords,
-        indexVars,
-        coefs,
-        constants,
-    )
+    # KNITRO.@_checked KNITRO.KN_add_con_linear_struct_one(
+    #     model.inner,
+    #     1,
+    #     index_con,
+    #     [indv[1]],
+    #     [-1.0],
+    # )
+    # indexVars = indv[2:end]
+    # nnz = length(indexVars)
+    # indexCoords = Cint[i for i in 0:(nnz-1)]
+    # coefs = ones(Float64, nnz)
+    # constants = zeros(Float64, nnz)
+    # KNITRO.@_checked KNITRO.KN_add_con_L2norm(
+    #     model.inner,
+    #     index_con,
+    #     nnz,
+    #     nnz,
+    #     indexCoords,
+    #     indexVars,
+    #     coefs,
+    #     constants,
+    # )
     ci = MOI.ConstraintIndex{typeof(func),typeof(set)}(index_con)
     model.constraint_mapping[ci] = indv
     return ci
