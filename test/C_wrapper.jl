@@ -167,14 +167,24 @@ end
     _to_string(x) = GC.@preserve(x, unsafe_string(pointer(x)))
     @test _to_string(tmp) == "xtol"
     KN_get_param_doc(kc, KN_PARAM_XTOL, tmp, 1024)
-    @test _to_string(tmp) ==
-          "Step size tolerance used for terminating the optimization.\n"
+    if KNITRO.knitro_version() >= v"15.0"
+        @test _to_string(tmp) ==
+              "Step size tolerance used for terminating the optimization.\n"
+    else
+        @test _to_string(tmp) ==
+              "# Step size tolerance used for terminating the optimization.\n"
+    end
+
     KN_get_param_type(kc, KN_PARAM_XTOL, pCint)
     @test pCint[] == KN_PARAMTYPE_FLOAT
     KN_get_num_param_values(kc, KN_PARAM_XTOL, pCint)
     @test pCint[] == 0
     KN_get_param_value_doc(kc, KN_PARAM_GRADOPT, 1, tmp, 1024)
-    @test _to_string(tmp) == "1 (exact): User supplies exact first derivatives"
+    if KNITRO.knitro_version() >= v"15.0"
+        @test _to_string(tmp) == "1 (exact): User supplies exact first derivatives"
+    else
+        @test _to_string(tmp) == "exact"
+    end
     KN_get_param_id(kc, "xtol", pCint)
     @test pCint[] == KN_PARAM_XTOL
 
