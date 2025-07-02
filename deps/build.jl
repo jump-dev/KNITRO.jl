@@ -51,8 +51,11 @@ const WHEELS = Dict(
 )
 
 function try_ci_installation()
+    cd(@__DIR__)
+    if isdir("wheel")
+        return  # Already exists. This can happen if CI has cached the directory
+    end
     if Sys.islinux()
-        cd(@__DIR__)
         mkdir("wheel")
         cd("wheel")
         run(`wget $(WHEELS["x86_64-linux-gnu"])`)
