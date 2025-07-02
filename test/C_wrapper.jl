@@ -137,7 +137,11 @@ end
     options = joinpath(dirname(@__FILE__), "..", "examples", "test_knitro.opt")
     tuner1 = joinpath(dirname(@__FILE__), "..", "examples", "tuner-fixed.opt")
     tuner2 = joinpath(dirname(@__FILE__), "..", "examples", "tuner-explore.opt")
-    KN_set_int_param_by_name(kc, "algorithm", 0)
+    if KNITRO.knitro_version() >= v"15.0"
+        KN_set_int_param_by_name(kc, "nlp_algorithm", 0)
+    else
+        KN_set_int_param_by_name(kc, "algorithm", 0)
+    end
     KN_set_char_param_by_name(kc, "cplexlibname", ".")
     KN_set_double_param_by_name(kc, "xtol", 1e-15)
     KN_set_int_param(kc, KN_PARAM_ALG, KN_ALG_BAR_DIRECT)
@@ -145,7 +149,11 @@ end
     KN_set_double_param(kc, KN_PARAM_XTOL, 1e-15)
 
     pCint = Ref{Cint}()
-    KN_get_int_param_by_name(kc, "algorithm", pCint)
+    if KNITRO.knitro_version() >= v"15.0"
+        KN_get_int_param_by_name(kc, "nlp_algorithm", pCint)
+    else
+        KN_get_int_param_by_name(kc, "algorithm", pCint)
+    end
     @test pCint[] == KN_ALG_BAR_DIRECT
     pCdouble = Ref{Cdouble}()
     KN_get_double_param_by_name(kc, "xtol", pCdouble)
@@ -159,14 +167,24 @@ end
     _to_string(x) = GC.@preserve(x, unsafe_string(pointer(x)))
     @test _to_string(tmp) == "xtol"
     KN_get_param_doc(kc, KN_PARAM_XTOL, tmp, 1024)
-    @test _to_string(tmp) ==
-          "# Step size tolerance used for terminating the optimization.\n"
+    if KNITRO.knitro_version() >= v"15.0"
+        @test _to_string(tmp) ==
+              "Step size tolerance used for terminating the optimization.\n"
+    else
+        @test _to_string(tmp) ==
+              "# Step size tolerance used for terminating the optimization.\n"
+    end
+
     KN_get_param_type(kc, KN_PARAM_XTOL, pCint)
     @test pCint[] == KN_PARAMTYPE_FLOAT
     KN_get_num_param_values(kc, KN_PARAM_XTOL, pCint)
     @test pCint[] == 0
     KN_get_param_value_doc(kc, KN_PARAM_GRADOPT, 1, tmp, 1024)
-    @test _to_string(tmp) == "exact"
+    if KNITRO.knitro_version() >= v"15.0"
+        @test _to_string(tmp) == "1 (exact): User supplies exact first derivatives"
+    else
+        @test _to_string(tmp) == "exact"
+    end
     KN_get_param_id(kc, "xtol", pCint)
     @test pCint[] == KN_PARAM_XTOL
 
@@ -257,6 +275,10 @@ end
     # Restart with new variable bounds
     KN_set_var_lobnds_all(kc, Float64[0.0, 0, 0])
     KN_set_var_upbnds_all(kc, Float64[2.0, 2, 2])
+
+    # Set tolerances to 1e-10
+    KN_set_double_param_by_name(kc, "feastol", 1e-10)
+    KN_set_double_param_by_name(kc, "opttol", 1e-8)
     status = KN_solve(kc)
     @test status == 0
 
@@ -499,7 +521,7 @@ end
     KN_set_obj_name(kc, "myobj")
     # Set feasibility tolerances
     KN_set_var_feastols_all(kc, [0.1, 0.001, 0.1])
-    KN_set_con_feastols_all(kc, [0.1])
+    KN_set_con_feastols_all(kc, [1e-4])
     KN_set_compcon_feastols_all(kc, [0.1])
     # Set finite differences step size
     KN_set_cb_relstepsizes_all(kc, cb, [0.1, 0.001, 0.1])
@@ -880,6 +902,9 @@ end
     for x in xIndices
         KN_set_var_primal_init_value(kc, x, 0.8)
     end
+
+    # x2 >= 0. This constraint is added to avoid symmetric solutions.
+    KN_set_var_lobnd(kc, 2, 0.0)
 
     # Add the constraints and set the rhs and coefficients
     KN_add_cons(kc, 3, zeros(Cint, 3))
