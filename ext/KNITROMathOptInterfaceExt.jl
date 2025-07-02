@@ -34,14 +34,14 @@ function _canonical_quadratic_reduction(f::MOI.ScalarQuadraticFunction)
     I = Cint[_c_column(term.variable_1) for term in f.quadratic_terms]
     J = Cint[_c_column(term.variable_2) for term in f.quadratic_terms]
     V = Cdouble[term.coefficient for term in f.quadratic_terms]
-    for i in 1:length(V)
+    for i in eachindex(V)
         if I[i] == J[i]
             V[i] /= 2
         elseif I[i] > J[i]
             I[i], J[i] = J[i], I[i]
         end
     end
-    return return length(I), I, J, V
+    return length(I), I, J, V
 end
 
 function _canonical_linear_reduction(terms::Vector{<:MOI.ScalarAffineTerm})
