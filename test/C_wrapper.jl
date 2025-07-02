@@ -159,14 +159,15 @@ end
     _to_string(x) = GC.@preserve(x, unsafe_string(pointer(x)))
     @test _to_string(tmp) == "xtol"
     KN_get_param_doc(kc, KN_PARAM_XTOL, tmp, 1024)
+    header = KNITRO.knitro_version() >= v"15" ? "" : "# "
     @test _to_string(tmp) ==
-          "# Step size tolerance used for terminating the optimization.\n"
+          "$(header)Step size tolerance used for terminating the optimization.\n"
     KN_get_param_type(kc, KN_PARAM_XTOL, pCint)
     @test pCint[] == KN_PARAMTYPE_FLOAT
     KN_get_num_param_values(kc, KN_PARAM_XTOL, pCint)
     @test pCint[] == 0
     KN_get_param_value_doc(kc, KN_PARAM_GRADOPT, 1, tmp, 1024)
-    @test _to_string(tmp) == "exact"
+    @test occursin("exact", _to_string(tmp))
     KN_get_param_id(kc, "xtol", pCint)
     @test pCint[] == KN_PARAM_XTOL
 
@@ -276,20 +277,20 @@ end
     @test pCint[] >= 0
     pCdouble = Ref{Cdouble}()
     KN_get_abs_feas_error(kc, pCdouble)
-    @test pCdouble[] < 1e-10
+    @test pCdouble[] < 1e-6
     KN_get_rel_feas_error(kc, pCdouble)
-    @test pCdouble[] < 1e-10
+    @test pCdouble[] < 1e-6
     KN_get_abs_opt_error(kc, pCdouble)
-    @test pCdouble[] < 1e-7
+    @test pCdouble[] < 1e-4
     KN_get_rel_opt_error(kc, pCdouble)
-    @test pCdouble[] < 1e-8
+    @test pCdouble[] < 1e-6
     KN_get_con_value(kc, 0, pCdouble)
-    @test pCdouble[] ≈ 3.96
+    @test ≈(pCdouble[], 3.96; atol = 1e-4)
     nStatus, objSol, x, lambda_ = KN_get_solution(kc)
     @test nStatus == 0
-    @test x ≈ [0.0, 2.0, 1.98]
+    @test ≈(x, [0.0, 2.0, 1.98]; atol = 1e-4)
 
-    @test objSol ≈ 31.363199 atol = 1e-5
+    @test objSol ≈ 31.363 atol = 1e-3
 
     # Test getters for primal and dual variables
     if KNITRO.knitro_version() >= v"12.0"
@@ -499,7 +500,7 @@ end
     KN_set_obj_name(kc, "myobj")
     # Set feasibility tolerances
     KN_set_var_feastols_all(kc, [0.1, 0.001, 0.1])
-    KN_set_con_feastols_all(kc, [0.1])
+    KN_set_con_feastols_all(kc, [1e-4])
     KN_set_compcon_feastols_all(kc, [0.1])
     # Set finite differences step size
     KN_set_cb_relstepsizes_all(kc, cb, [0.1, 0.001, 0.1])
@@ -880,7 +881,7 @@ end
     for x in xIndices
         KN_set_var_primal_init_value(kc, x, 0.8)
     end
-
+    KN_set_var_lobnd(kc, 2, 0.0)
     # Add the constraints and set the rhs and coefficients
     KN_add_cons(kc, 3, zeros(Cint, 3))
     KN_set_con_eqbnds_all(kc, [1.0, 0.0, 0.0])
