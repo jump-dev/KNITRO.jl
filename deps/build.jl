@@ -47,22 +47,20 @@ function try_local_installation()
 end
 
 const WHEELS = Dict(
-    "x86_64-linux-gnu" => "https://files.pythonhosted.org/packages/76/6e/ffe880b013ad244f0fd91940454e4f2bf16fa01e74c469e1b0fb75eda12a/knitro-15.0.0-py3-none-manylinux1_x86_64.whl",
+    "linux" => "https://files.pythonhosted.org/packages/76/6e/ffe880b013ad244f0fd91940454e4f2bf16fa01e74c469e1b0fb75eda12a/knitro-15.0.0-py3-none-manylinux1_x86_64.whl",
+    "windows" => "https://files.pythonhosted.org/packages/13/3f/54953373ee3b631640b33b5d4bdb0217bdb1f8514b9374b08348e098ea2a/knitro-15.0.0-py3-none-win_amd64.whl",
 )
 
 function try_ci_installation()
-    cd(@__DIR__)
-    if isdir("wheel")
-        return  # Already exists. This can happen if CI has cached the directory
+    ext, url = if Sys.islinux()
+        ".so", WHEELS["linux"]
+    elseif Sys.iswindows()
+        ".dll", WHEELS["windows"]
     end
-    if Sys.islinux()
-        mkdir("wheel")
-        cd("wheel")
-        run(`wget $(WHEELS["x86_64-linux-gnu"])`)
-        run(`unzip knitro-15.0.0-py3-none-manylinux1_x86_64.whl`)
-        filename = joinpath(@__DIR__, "wheel", "knitro", "lib", "libknitro.so")
-        write_depsfile("", filename)
-    end
+    run(`wget $url --output-file=knitro.whl`)
+    run(`unzip knitro.whl`)
+    filename = joinpath(@__DIR__, "knitro", "lib", "libknitro$(ext)")
+    write_depsfile("", filename)
     return
 end
 

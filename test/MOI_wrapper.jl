@@ -14,6 +14,7 @@ function runtests()
     for name in names(@__MODULE__; all=true)
         if startswith("$(name)", "test_")
             @testset "$(name)" begin
+                @show name
                 getfield(@__MODULE__, name)()
             end
         end
@@ -30,7 +31,7 @@ function test_runtests()
         infeasible_status=MOI.LOCALLY_INFEASIBLE,
         exclude=Any[MOI.VariableBasisStatus, MOI.ConstraintBasisStatus, MOI.ConstraintName],
     )
-    MOI.Test.runtests(model, config; include=["test_basic_"])
+    MOI.Test.runtests(model, config; include=["test_basic_"], verbose = true)
     return
 end
 
@@ -84,12 +85,13 @@ function test_MOI_Test_cached()
             # ConstraintDual not supported for SecondOrderCone
             second_order_exclude...,
         ],
+        verbose = true,
     )
     # Run the tests for second_order_exclude, this time excluding
     # `MOI.ConstraintDual` and `MOI.DualObjectiveValue`.
     push!(config.exclude, MOI.ConstraintDual)
     push!(config.exclude, MOI.DualObjectiveValue)
-    MOI.Test.runtests(model, config; include=second_order_exclude)
+    MOI.Test.runtests(model, config; include=second_order_exclude, verbose = true)
     return
 end
 
