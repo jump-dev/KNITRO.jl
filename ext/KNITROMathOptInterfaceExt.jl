@@ -993,88 +993,34 @@ function MOI.add_constraint(
     KNITRO.@_checked KNITRO.KN_add_con(model.inner, p)
     index_con = p[]
     rows, columns, coefficients = _canonical_vector_affine_reduction(func)
-    index_vars = zeros(Cint, set.dimension)
-    KNITRO.@_checked KNITRO.KN_add_vars(model.inner, set.dimension, index_vars)
-    index_cons = zeros(Cint, set.dimension)
-    KNITRO.@_checked KNITRO.KN_add_cons(model.inner, set.dimension, index_cons)
-    for i in 1:set.dimension
-        KNITRO.@_checked KNITRO.KN_add_con_linear_struct_one(
-            model.inner,
-            1,
-            index_cons[i],
-            [index_vars[i]],
-            [1.0],
-        )
-        row = rows .== (i - 1)
-        KNITRO.@_checked KNITRO.KN_add_con_linear_struct_one(
-            model.inner,
-            sum(row),
-            index_cons[i],
-            columns[row],
-            -coefficients[row],
-        )
-        KNITRO.@_checked KNITRO.KN_set_con_eqbnd(
-            model.inner,
-            index_cons[i],
-            func.constants[i],
-        )
-    end
-    q = Ref{Cint}(0)
-    KNITRO.@_checked KNITRO.KN_add_con(model.inner, q)
-    index_con_nonneg = q[]
-    KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, index_con_nonneg, 0.0)
+    # Distinct two parts of secondordercone.
+    # First row corresponds to linear part of SOC.
+    linear_row_indices = rows .== 0
+    cone_indices = .!(linear_row_indices)
+    ## i) linear part
+    KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, index_con, func.constants[1])
     KNITRO.@_checked KNITRO.KN_add_con_linear_struct_one(
         model.inner,
-        1,
-        index_con_nonneg,
-        [index_vars[1]],
-        [-1.0],
-    )
-    KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, index_con, 0.0)
-    KNITRO.@_checked KNITRO.KN_add_con_quadratic_struct_one(
-        model.inner,
-        length(index_vars) - 1,
+        sum(linear_row_indices),
         index_con,
-        index_vars[2:end],
-        index_vars[2:end],
-        ones(Float64, length(index_vars) - 1),
+        columns[linear_row_indices],
+        -coefficients[linear_row_indices],
     )
-    KNITRO.@_checked KNITRO.KN_add_con_quadratic_struct_one(
+    ## ii) soc part
+    index_var_cone = columns[cone_indices]
+    nnz = length(index_var_cone)
+    KNITRO.@_checked KNITRO.KN_add_con_L2norm(
         model.inner,
-        1,
         index_con,
-        [index_vars[1]],
-        [index_vars[1]],
-        [-1.0],
+        set.dimension - 1,
+        nnz,
+        # The rows are 0-indexed. But we additionally need to drop the first
+        # (linear) row from the matrix.
+        rows[cone_indices] .- Cint(1),
+        index_var_cone,
+        coefficients[cone_indices],
+        func.constants[2:end],
     )
-    # # Distinct two parts of secondordercone.
-    # # First row corresponds to linear part of SOC.
-    # linear_row_indices = rows .== 0
-    # cone_indices = .!(linear_row_indices)
-    # ## i) linear part
-    # KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, index_con, func.constants[1])
-    # KNITRO.@_checked KNITRO.KN_add_con_linear_struct_one(
-    #     model.inner,
-    #     sum(linear_row_indices),
-    #     index_con,
-    #     columns[linear_row_indices],
-    #     -coefficients[linear_row_indices],
-    # )
-    # ## ii) soc part
-    # index_var_cone = columns[cone_indices]
-    # nnz = length(index_var_cone)
-    # KNITRO.@_checked KNITRO.KN_add_con_L2norm(
-    #     model.inner,
-    #     index_con,
-    #     set.dimension - 1,
-    #     nnz,
-    #     # The rows are 0-indexed. But we additionally need to drop the first
-    #     # (linear) row from the matrix.
-    #     rows[cone_indices] .- Cint(1),
-    #     index_var_cone,
-    #     coefficients[cone_indices],
-    #     func.constants[2:end],
-    # )
     ci = MOI.ConstraintIndex{typeof(func),typeof(set)}(index_con)
     model.constraint_mapping[ci] = columns
     return ci
@@ -1103,56 +1049,29 @@ function MOI.add_constraint(
     KNITRO.@_checked KNITRO.KN_add_con(model.inner, p)
     index_con = p[]
     indv = _c_column.(func.variables)
-    q = Ref{Cint}(0)
-    KNITRO.@_checked KNITRO.KN_add_con(model.inner, q)
-    index_con_nonneg = q[]
-    KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, index_con_nonneg, 0.0)
+    KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, index_con, 0.0)
     KNITRO.@_checked KNITRO.KN_add_con_linear_struct_one(
         model.inner,
         1,
-        index_con_nonneg,
+        index_con,
         [indv[1]],
         [-1.0],
     )
-    KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, index_con, 0.0)
-    KNITRO.@_checked KNITRO.KN_add_con_quadratic_struct_one(
+    indexVars = indv[2:end]
+    nnz = length(indexVars)
+    indexCoords = Cint[i for i in 0:(nnz-1)]
+    coefs = ones(Float64, nnz)
+    constants = zeros(Float64, nnz)
+    KNITRO.@_checked KNITRO.KN_add_con_L2norm(
         model.inner,
-        length(indv) - 1,
         index_con,
-        indv[2:end],
-        indv[2:end],
-        ones(Float64, length(indv) - 1),
+        nnz,
+        nnz,
+        indexCoords,
+        indexVars,
+        coefs,
+        constants,
     )
-    KNITRO.@_checked KNITRO.KN_add_con_quadratic_struct_one(
-        model.inner,
-        1,
-        index_con,
-        [indv[1]],
-        [indv[1]],
-        [-1.0],
-    )
-    # KNITRO.@_checked KNITRO.KN_add_con_linear_struct_one(
-    #     model.inner,
-    #     1,
-    #     index_con,
-    #     [indv[1]],
-    #     [-1.0],
-    # )
-    # indexVars = indv[2:end]
-    # nnz = length(indexVars)
-    # indexCoords = Cint[i for i in 0:(nnz-1)]
-    # coefs = ones(Float64, nnz)
-    # constants = zeros(Float64, nnz)
-    # KNITRO.@_checked KNITRO.KN_add_con_L2norm(
-    #     model.inner,
-    #     index_con,
-    #     nnz,
-    #     nnz,
-    #     indexCoords,
-    #     indexVars,
-    #     coefs,
-    #     constants,
-    # )
     ci = MOI.ConstraintIndex{typeof(func),typeof(set)}(index_con)
     model.constraint_mapping[ci] = indv
     return ci
