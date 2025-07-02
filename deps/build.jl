@@ -57,8 +57,10 @@ function try_ci_installation()
     elseif Sys.iswindows()
         ".dll", WHEELS["windows"]
     end
-    run(`wget $url --output-file=knitro.whl`)
-    run(`unzip knitro.whl`)
+    if !isdir(joinpath(@__DIR__, "knitro"))
+        run(`wget $url --output-file=knitro.whl`)
+        run(`unzip knitro.whl`)
+    end
     filename = joinpath(@__DIR__, "knitro", "lib", "libknitro$(ext)")
     write_depsfile("", filename)
     return
