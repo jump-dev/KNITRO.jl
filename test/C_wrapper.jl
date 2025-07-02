@@ -285,10 +285,10 @@ end
     KN_get_rel_opt_error(kc, pCdouble)
     @test pCdouble[] < 1e-6
     KN_get_con_value(kc, 0, pCdouble)
-    @test ≈(pCdouble[], 3.96; atol = 1e-4)
+    @test ≈(pCdouble[], 3.96; atol=1e-4)
     nStatus, objSol, x, lambda_ = KN_get_solution(kc)
     @test nStatus == 0
-    @test ≈(x, [0.0, 2.0, 1.98]; atol = 1e-4)
+    @test ≈(x, [0.0, 2.0, 1.98]; atol=1e-4)
 
     @test objSol ≈ 31.363 atol = 1e-3
 
