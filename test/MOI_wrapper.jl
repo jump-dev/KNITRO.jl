@@ -349,6 +349,36 @@ function test_lm_context()
     return
 end
 
+function test_zero_one_with_bounds_after_add()
+    model = KNITRO.Optimizer()
+    MOI.set(model, MOI.Silent(), true)
+    x = MOI.add_variable(model)
+    MOI.add_constraint(model, x, MOI.ZeroOne())
+    MOI.add_constraint(model, x, MOI.GreaterThan(0.2))
+    MOI.add_constraint(model, x, MOI.LessThan(0.5))
+    MOI.set(model, MOI.ObjectiveSense(), MOI.MAX_SENSE)
+    f = 2.0 * x
+    MOI.set(model, MOI.ObjectiveFunction{typeof(f)}(), f)
+    MOI.optimize!(model)
+    @test MOI.get(model, MOI.TerminationStatus()) == MOI.LOCALLY_INFEASIBLE
+    return
+end
+
+function test_zero_one_with_bounds_before_add()
+    model = KNITRO.Optimizer()
+    MOI.set(model, MOI.Silent(), true)
+    x = MOI.add_variable(model)
+    MOI.add_constraint(model, x, MOI.GreaterThan(0.2))
+    MOI.add_constraint(model, x, MOI.LessThan(0.5))
+    MOI.add_constraint(model, x, MOI.ZeroOne())
+    MOI.set(model, MOI.ObjectiveSense(), MOI.MAX_SENSE)
+    f = 2.0 * x
+    MOI.set(model, MOI.ObjectiveFunction{typeof(f)}(), f)
+    MOI.optimize!(model)
+    @test MOI.get(model, MOI.TerminationStatus()) == MOI.LOCALLY_INFEASIBLE
+    return
+end
+
 end
 
 TestMOIWrapper.runtests()
