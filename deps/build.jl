@@ -58,7 +58,7 @@ function try_wheel_installation()
         ".dll", WHEELS["windows"]
     end
     if !isdir(joinpath(@__DIR__, "knitro"))
-        run(`wget -O knitro.whl $url`)
+        run(`curl --output knitro.whl $url`)
         run(`unzip knitro.whl`)
     end
     filename = joinpath(@__DIR__, "knitro", "lib", "libknitro$(ext)")
