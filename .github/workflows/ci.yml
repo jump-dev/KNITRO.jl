@@ -15,9 +15,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ['ubuntu-latest', 'windows-latest']
-        version: ['1.10', '1']
-        KNITRO_JL_WHL: ['false', 'true']
+        include:
+         # Julia v1.10, Linux, KNITRO@15
+         - version: '1.10'
+           os: 'ubuntu-latest'
+           KNITRO_JL_WHL: 'true'
+         # Julia v1, Linux, KNITRO@15
+         - version: '1'
+           os: 'ubuntu-latest'
+           KNITRO_JL_WHL: 'true'
+         # Julia v1, Windows, KNITRO@15
+         - version: '1'
+           os: 'windows-latest'
+           KNITRO_JL_WHL: 'true'
+         # Julia v1, Linux, KNITRO@14
+         - version: '1'
+           os: 'ubuntu-latest'
+           KNITRO_JL_WHL: 'false'
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
