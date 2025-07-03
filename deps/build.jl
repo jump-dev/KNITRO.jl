@@ -52,16 +52,16 @@ const WHEELS = Dict(
 )
 
 function try_wheel_installation()
-    ext, url = if Sys.islinux()
-        ".so", WHEELS["linux"]
+    libname, url = if Sys.islinux()
+        "libknitro.so", WHEELS["linux"]
     elseif Sys.iswindows()
-        ".dll", WHEELS["windows"]
+        "knitro.dll", WHEELS["windows"]
     end
     if !isdir(joinpath(@__DIR__, "knitro"))
         run(`curl --output knitro.whl $url`)
         run(`unzip knitro.whl`)
     end
-    filename = joinpath(@__DIR__, "knitro", "lib", "libknitro$(ext)")
+    filename = joinpath(@__DIR__, "knitro", "lib", libname)
     write_depsfile("", filename)
     return
 end
