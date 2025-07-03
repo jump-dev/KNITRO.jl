@@ -51,7 +51,7 @@ const WHEELS = Dict(
     "windows" => "https://files.pythonhosted.org/packages/13/3f/54953373ee3b631640b33b5d4bdb0217bdb1f8514b9374b08348e098ea2a/knitro-15.0.0-py3-none-win_amd64.whl",
 )
 
-function try_ci_installation()
+function try_wheel_installation()
     ext, url = if Sys.islinux()
         ".so", WHEELS["linux"]
     elseif Sys.iswindows()
@@ -66,8 +66,18 @@ function try_ci_installation()
     return
 end
 
-if get(ENV, "CI", "false") == "true"
-    try_ci_installation()
+function try_secret_installation()
+    local_filename = joinpath(@__DIR__, "libknitro.so")
+    download(ENV["SECRET_KNITRO_URL"], local_filename)
+    download(ENV["SECRET_KNITRO_LIBIOMP5"], joinpath(@__DIR__, "libiomp5.so"))
+    write_depsfile("", local_filename)
+    return
+end
+
+if get(ENV, "KNITRO_JL_WHL", "false") == "true"
+    try_wheel_installation()
+elseif get(ENV, "SECRET_KNITRO_URL", "") != ""
+    try_secret_installation()
 else
     try_local_installation()
 end
