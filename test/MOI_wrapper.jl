@@ -134,28 +134,29 @@ function test_get_nlp_block()
     return
 end
 
-function test_maxtime_cpu()
+function test_maxtime_real()
     model = KNITRO.Optimizer()
-    attr = MOI.RawOptimizerAttribute("mip_maxtimecpu")
+    attr = MOI.RawOptimizerAttribute("mip_maxtimereal")
     @test MOI.supports(model, attr)
-    MOI.set(model, attr, 30)
+    MOI.set(model, attr, 30.0)
     p = Ref{Cdouble}(0.0)
-    KNITRO.KN_get_double_param(model.inner, KNITRO.KN_PARAM_MIP_MAXTIMECPU, p)
+    KNITRO.KN_get_double_param(model.inner, KNITRO.KN_PARAM_MIP_MAXTIMEREAL, p)
     @test p[] == 30.0
     return
 end
 
 function test_outname()
+    dir = mktempdir()
+    filename = joinpath(dir, "new_name.log")
     model = KNITRO.Optimizer()
     attr = MOI.RawOptimizerAttribute("outname")
     @test MOI.supports(model, attr)
-    MOI.set(model, attr, "new_name.log")
+    MOI.set(model, attr, filename)
     MOI.set(model, MOI.RawOptimizerAttribute("outmode"), 1)
     MOI.add_variable(model)
     MOI.optimize!(model)
-    @test isfile("new_name.log")
-    @test occursin("Artelys", read("new_name.log", String))
-    rm("new_name.log")
+    @test isfile(filename)
+    @test occursin("Artelys", read(filename, String))
     return
 end
 
