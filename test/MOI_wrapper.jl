@@ -14,7 +14,7 @@ function runtests()
     for name in names(@__MODULE__; all=true)
         if startswith("$(name)", "test_")
             @testset "$(name)" begin
-                @show name
+                @info name
                 getfield(@__MODULE__, name)()
             end
         end
@@ -86,12 +86,19 @@ function test_MOI_Test_cached()
             second_order_exclude...,
         ],
         verbose=true,
+        warn_unsupported=true,
     )
     # Run the tests for second_order_exclude, this time excluding
     # `MOI.ConstraintDual` and `MOI.DualObjectiveValue`.
     push!(config.exclude, MOI.ConstraintDual)
     push!(config.exclude, MOI.DualObjectiveValue)
-    MOI.Test.runtests(model, config; include=second_order_exclude, verbose=true)
+    MOI.Test.runtests(
+        model,
+        config;
+        include=second_order_exclude,
+        verbose=true,
+        warn_unsupported=true,
+    )
     return
 end
 
