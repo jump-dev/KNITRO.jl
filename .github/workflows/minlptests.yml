@@ -22,6 +22,7 @@ jobs:
           echo "$SECRET_KNITRO_LICENSE" > ~/artelys_lic.txt        
       - name: "run_minlptests"
         env:
+          KNITRO_JL_WHL: "true"
           SECRET_KNITRO_URL: ${{ secrets.KNITRO_URL }}
           SECRET_KNITRO_LIBIOMP5: ${{ secrets.KNITRO_LIBIOMP5 }}
         shell: julia --color=yes {0}
