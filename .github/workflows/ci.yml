@@ -11,11 +11,27 @@ permissions:
 jobs:
   test:
     name: 'KNITRO'
-    runs-on: 'ubuntu-latest'
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        version: ['1.10', '1']
+        include:
+         # Julia v1.10, Linux, KNITRO@15
+         - version: '1.10'
+           os: 'ubuntu-latest'
+           KNITRO_JL_WHL: 'true'
+         # Julia v1, Linux, KNITRO@15
+         - version: '1'
+           os: 'ubuntu-latest'
+           KNITRO_JL_WHL: 'true'
+         # Julia v1, Windows, KNITRO@15
+         - version: '1'
+           os: 'windows-latest'
+           KNITRO_JL_WHL: 'true'
+         # Julia v1, Linux, KNITRO@14
+         - version: '1'
+           os: 'ubuntu-latest'
+           KNITRO_JL_WHL: 'false'
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
@@ -30,6 +46,7 @@ jobs:
           echo "$SECRET_KNITRO_LICENSE" > ~/artelys_lic.txt
       - uses: julia-actions/julia-buildpkg@v1
         env:
+          KNITRO_JL_WHL: ${{ matrix.KNITRO_JL_WHL }}
           SECRET_KNITRO_URL: ${{ secrets.KNITRO_URL }}
           SECRET_KNITRO_LIBIOMP5: ${{ secrets.KNITRO_LIBIOMP5 }}
       - uses: julia-actions/julia-runtest@v1
