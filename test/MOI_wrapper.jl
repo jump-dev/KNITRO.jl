@@ -41,7 +41,7 @@ function test_MOI_Test_cached()
         r"^test_conic_GeometricMeanCone_VectorAffineFunction_2$",
         r"^test_conic_GeometricMeanCone_VectorOfVariables$",
         r"^test_conic_GeometricMeanCone_VectorOfVariables_2$",
-        r"^test_conic_RotatedSecondOrderCone_INFEASIBLE_2$",
+        # r"^test_conic_RotatedSecondOrderCone_INFEASIBLE_2$",
         r"^test_conic_RotatedSecondOrderCone_VectorAffineFunction$",
         r"^test_conic_RotatedSecondOrderCone_VectorOfVariables$",
         r"^test_conic_RotatedSecondOrderCone_out_of_order$",
@@ -71,6 +71,7 @@ function test_MOI_Test_cached()
             # TODO(odow): Because we turned off presolve to work around a bug in
             # KNITRO@15, it can no longer detect primal/dual infeasibility.
             r"^test_conic_RotatedSecondOrderCone_INFEASIBLE$",
+            r"^test_conic_RotatedSecondOrderCone_INFEASIBLE_2$",
             r"^test_conic_SecondOrderCone_negative_post_bound_2$",
             r"^test_conic_SecondOrderCone_negative_post_bound_3$",
             r"^test_conic_SecondOrderCone_no_initial_bound$",
