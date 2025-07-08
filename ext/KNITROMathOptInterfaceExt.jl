@@ -131,6 +131,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     constraint_mapping::Dict{MOI.ConstraintIndex,Union{Cint,Vector{Cint}}}
     license_manager::Union{KNITRO.LMcontext,Nothing}
     options::Dict{String,Any}
+    binary_variables::Vector{MOI.VariableIndex}
     # Cache for the solution
     x::Vector{Float64}
     lambda::Vector{Float64}
@@ -160,6 +161,7 @@ function Optimizer(; license_manager::Union{KNITRO.LMcontext,Nothing}=nothing, k
         Dict{MOI.ConstraintIndex,Union{Cint,Vector{Cint}}}(),
         license_manager,
         Dict{String,Any}(),
+        MOI.VariableIndex[],
         Float64[],
         Float64[],
         nothing,
@@ -675,29 +677,12 @@ end
 
 function MOI.add_constraint(model::Optimizer, x::MOI.VariableIndex, ::MOI.ZeroOne)
     MOI.throw_if_not_valid(model, x)
-    lb, ub = nothing, nothing
-    p = Ref{Cdouble}(NaN)
-    if model.variable_info[x.value].has_lower_bound
-        KNITRO.@_checked KNITRO.KN_get_var_lobnd(model.inner, _c_column(x), p)
-        lb = max(0.0, p[])
-    end
-    if model.variable_info[x.value].has_upper_bound
-        KNITRO.@_checked KNITRO.KN_get_var_upbnd(model.inner, _c_column(x), p)
-        ub = min(1.0, p[])
-    end
     KNITRO.@_checked KNITRO.KN_set_var_type(
         model.inner,
         _c_column(x),
-        KNITRO.KN_VARTYPE_BINARY,
+        KNITRO.KN_VARTYPE_INTEGER,
     )
-    # Calling `set_var_type` resets variable bounds in KNITRO. To fix, we need
-    # to restore them after calling `set_var_type`.
-    if lb !== nothing
-        KNITRO.@_checked KNITRO.KN_set_var_lobnd(model.inner, _c_column(x), lb)
-    end
-    if ub !== nothing
-        KNITRO.@_checked KNITRO.KN_set_var_upbnd(model.inner, _c_column(x), ub)
-    end
+    push!(model.binary_variables, x)
     ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.ZeroOne}(x.value)
     model.constraint_mapping[ci] = convert(Cint, x.value)
     return ci
@@ -1398,7 +1383,19 @@ function MOI.optimize!(model::Optimizer)
            !isa(model.objective, MOI.ScalarNonlinearFunction)
         _add_objective(model, model.objective)
     end
+    # Update binary variable bounds
+    binary_cols = _c_column.(model.binary_variables)
+    nV = length(binary_cols)
+    lb, ub, tmp = zeros(Cdouble, nV), zeros(Cdouble, nV), zeros(Cdouble, nV)
+    KNITRO.@_checked KNITRO.KN_get_var_lobnds(model.inner, nV, binary_cols, lb)
+    KNITRO.@_checked KNITRO.KN_get_var_upbnds(model.inner, nV, binary_cols, ub)
+    tmp .= max.(lb, 0.0)
+    KNITRO.@_checked KNITRO.KN_set_var_lobnds(model.inner, nV, binary_cols, tmp)
+    tmp .= min.(ub, 1.0)
+    KNITRO.@_checked KNITRO.KN_set_var_upbnds(model.inner, nV, binary_cols, tmp)
     KNITRO.KN_solve(model.inner)
+    KNITRO.@_checked KNITRO.KN_set_var_lobnds(model.inner, nV, binary_cols, lb)
+    KNITRO.@_checked KNITRO.KN_set_var_upbnds(model.inner, nV, binary_cols, ub)
     model.number_solved += 1
     return
 end
