@@ -4,3 +4,4 @@ deps/lib*
 deps/artelys*
 deps/build.log
 test/*.mps
+deps/knitro*
