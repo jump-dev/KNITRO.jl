@@ -94,7 +94,20 @@ function test_MOI_Test_cached()
     # `MOI.ConstraintDual` and `MOI.DualObjectiveValue`.
     push!(config.exclude, MOI.ConstraintDual)
     push!(config.exclude, MOI.DualObjectiveValue)
-    MOI.Test.runtests(model, config; include=second_order_exclude, verbose=true)
+    MOI.Test.runtests(
+        model,
+        config;
+        include=second_order_exclude,
+        verbose=true,
+        exclude = [
+            # Bugs in KNITRO@15
+            r"^test_conic_SecondOrderCone_Nonpositives$",
+            r"^test_conic_SecondOrderCone_Nonnegatives$",
+            r"^test_conic_SecondOrderCone_VectorAffineFunction$",
+            r"^test_conic_SecondOrderCone_VectorOfVariables$",
+            r"^test_conic_SecondOrderCone_out_of_order$",
+        ],
+    )
     return
 end
 
