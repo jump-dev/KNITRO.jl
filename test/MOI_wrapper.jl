@@ -67,6 +67,14 @@ function test_MOI_Test_cached()
         model,
         config;
         exclude=Union{String,Regex}[
+            # TODO(odow): Because we turned off presolve to work around a bug in
+            # KNITRO@15, it can no longer detect primal/dual infeasibility.
+            r"^test_conic_RotatedSecondOrderCone_INFEASIBLE$",
+            r"^test_conic_SecondOrderCone_negative_post_bound_2$",
+            r"^test_conic_SecondOrderCone_negative_post_bound_3$",
+            r"^test_conic_SecondOrderCone_no_initial_bound$",
+            r"^test_linear_DUAL_INFEASIBLE_2$",
+            r"^test_solve_TerminationStatus_DUAL_INFEASIBLE$",
             # TODO(odow): investigate why these fail
             r"^test_zero_one_with_bounds_before_add$",
             r"^test_zero_one_with_bounds_after_add$",
@@ -80,7 +88,7 @@ function test_MOI_Test_cached()
             # Uses the ZerosBridge and ConstraintDual
             r"^test_conic_linear_VectorOfVariables_2$",
             # Returns ITERATION_LIMIT instead of DUAL_INFEASIBLE, which is okay.
-            r"test_conic_RotatedSecondOrderCone_INFEASIBLE$",
+
             r"^test_linear_DUAL_INFEASIBLE$",
             # Incorrect ObjectiveBound with an LP, but that's understandable.
             r"^test_solve_ObjectiveBound_MAX_SENSE_LP$",
