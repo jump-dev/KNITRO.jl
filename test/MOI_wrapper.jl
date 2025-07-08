@@ -14,7 +14,7 @@ function runtests()
     for name in names(@__MODULE__; all=true)
         if startswith("$(name)", "test_")
             @testset "$(name)" begin
-                @show name
+                @info name
                 getfield(@__MODULE__, name)()
             end
         end
@@ -54,7 +54,7 @@ function test_MOI_Test_cached()
     ]
     model =
         MOI.instantiate(KNITRO.Optimizer; with_bridge_type=Float64, with_cache_type=Float64)
-    # MOI.set(model, MOI.Silent(), true)
+    MOI.set(model, MOI.Silent(), true)
     config = MOI.Test.Config(
         atol=1e-3,
         rtol=1e-3,
@@ -66,6 +66,11 @@ function test_MOI_Test_cached()
         model,
         config;
         exclude=Union{String,Regex}[
+            # This test is repeated in:
+            # test_zero_one_with_bounds_before_add
+            # and
+            # test_zero_one_with_bounds_after_add
+            r"^test_constraint_ZeroOne_bounds_3$",
             # Upstream bug in KNITRO@15
             r"test_linear_integer_solve_twice$",
             # TODO(odow): this test is flakey.
@@ -90,24 +95,19 @@ function test_MOI_Test_cached()
         ],
         verbose=true,
     )
+    # KNITRO@15 has bugs in the presolve phase
+    MOI.set(model, MOI.RawOptimizerAttribute("presolve"), 0)
+    MOI.Test.runtests(
+        model,
+        config;
+        include=[r"^test_linear_integer_solve_twice$"],
+        verbose=true,
+    )
     # Run the tests for second_order_exclude, this time excluding
     # `MOI.ConstraintDual` and `MOI.DualObjectiveValue`.
     push!(config.exclude, MOI.ConstraintDual)
     push!(config.exclude, MOI.DualObjectiveValue)
-    MOI.Test.runtests(
-        model,
-        config;
-        include=second_order_exclude,
-        verbose=true,
-        exclude = [
-            # Bugs in KNITRO@15
-            r"^test_conic_SecondOrderCone_Nonpositives$",
-            r"^test_conic_SecondOrderCone_Nonnegatives$",
-            r"^test_conic_SecondOrderCone_VectorAffineFunction$",
-            r"^test_conic_SecondOrderCone_VectorOfVariables$",
-            r"^test_conic_SecondOrderCone_out_of_order$",
-        ],
-    )
+    MOI.Test.runtests(model, config; include=second_order_exclude, verbose=true)
     return
 end
 
