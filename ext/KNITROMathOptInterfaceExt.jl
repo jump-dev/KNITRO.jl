@@ -203,6 +203,7 @@ function MOI.empty!(model::Optimizer)
     end
     empty!(model.x)
     empty!(model.lambda)
+    empty!(model.binary_variables)
     MOI.set(model, MOI.TimeLimitSec(), model.time_limit_sec)
     return
 end
