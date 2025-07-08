@@ -66,6 +66,8 @@ function test_MOI_Test_cached()
         model,
         config;
         exclude=Union{String,Regex}[
+            # Upstream bug in KNITRO@15
+            r"test_linear_integer_solve_twice$",
             # TODO(odow): this test is flakey.
             r"^test_cpsat_ReifiedAllDifferent$",
             # TODO(odow): investigate issue with bridges
@@ -75,6 +77,7 @@ function test_MOI_Test_cached()
             # Uses the ZerosBridge and ConstraintDual
             r"^test_conic_linear_VectorOfVariables_2$",
             # Returns ITERATION_LIMIT instead of DUAL_INFEASIBLE, which is okay.
+            r"test_conic_RotatedSecondOrderCone_INFEASIBLE$",
             r"^test_linear_DUAL_INFEASIBLE$",
             # Incorrect ObjectiveBound with an LP, but that's understandable.
             r"^test_solve_ObjectiveBound_MAX_SENSE_LP$",
@@ -134,14 +137,12 @@ function test_get_nlp_block()
     return
 end
 
-function test_maxtime_real()
+function test_time_limit_sec()
     model = KNITRO.Optimizer()
-    attr = MOI.RawOptimizerAttribute("mip_maxtimereal")
+    attr = MOI.TimeLimitSec()
     @test MOI.supports(model, attr)
     MOI.set(model, attr, 30.0)
-    p = Ref{Cdouble}(0.0)
-    KNITRO.KN_get_double_param(model.inner, KNITRO.KN_PARAM_MIP_MAXTIMEREAL, p)
-    @test p[] == 30.0
+    @test MOI.get(model, attr) == 30.0
     return
 end
 
