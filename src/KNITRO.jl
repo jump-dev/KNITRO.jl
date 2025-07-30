@@ -5,6 +5,7 @@
 
 module KNITRO
 
+import KNITRO_jll
 import Libdl
 
 const _DEPS_FILE = joinpath(dirname(@__FILE__), "..", "deps", "deps.jl")
@@ -16,7 +17,21 @@ end
 
 has_knitro() = endswith(libknitro, Libdl.dlext)
 
+if isdefined(@__MODULE__, :libknitro)
+    # deps.jl must define a local installation.
+elseif KNITRO_jll.is_available()
+    import KNITRO_jll: libknitro
+else
+    error(
+        "Unsupported platform: Use a manual installation by setting " *
+        "`KNITRODIR`. See the README for details.",
+    )
+end
+
 function __init__()
+    if KNITRO_jll.is_available()
+        return
+    end
     libiomp5 = replace(libknitro, "libknitro" => "libiomp5")
     if isfile(libiomp5)
         Libdl.dlopen(libiomp5)

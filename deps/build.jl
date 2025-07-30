@@ -46,29 +46,6 @@ function try_local_installation()
     return
 end
 
-const WHEELS = Dict(
-    "linux" => "https://files.pythonhosted.org/packages/76/6e/ffe880b013ad244f0fd91940454e4f2bf16fa01e74c469e1b0fb75eda12a/knitro-15.0.0-py3-none-manylinux1_x86_64.whl",
-    "macos" => "https://files.pythonhosted.org/packages/76/66/936edcd2255055cf6c8a060d1beeb8ce543ef078dceb631caad22a20002a/knitro-15.0.0-py3-none-macosx_13_0_arm64.whl",
-    "windows" => "https://files.pythonhosted.org/packages/13/3f/54953373ee3b631640b33b5d4bdb0217bdb1f8514b9374b08348e098ea2a/knitro-15.0.0-py3-none-win_amd64.whl",
-)
-
-function try_wheel_installation()
-    libname, url = if Sys.islinux()
-        "libknitro.so", WHEELS["linux"]
-    elseif Sys.iswindows()
-        "knitro.dll", WHEELS["windows"]
-    elseif Sys.isapple()
-        "libknitro.dylib", WHEELS["macos"]
-    end
-    if !isdir(joinpath(@__DIR__, "knitro"))
-        run(`curl --output knitro.whl $url`)
-        run(`unzip knitro.whl`)
-    end
-    filename = joinpath(@__DIR__, "knitro", "lib", libname)
-    write_depsfile("", filename)
-    return
-end
-
 function try_secret_installation()
     local_filename = joinpath(@__DIR__, "libknitro.so")
     download(ENV["SECRET_KNITRO_URL"], local_filename)
@@ -77,9 +54,11 @@ function try_secret_installation()
     return
 end
 
-if get(ENV, "KNITRO_JL_WHL", "false") == "true"
-    try_wheel_installation()
-elseif get(ENV, "SECRET_KNITRO_URL", "") != ""
+if get(ENV, "USE_KNITRO_JLL", "false") == "true"
+    open(DEPS_FILE, "w") do io
+        println(io, "# No libknitro constant; we're using the Artifact.")
+    end
+if get(ENV, "SECRET_KNITRO_URL", "") != ""
     try_secret_installation()
 else
     try_local_installation()
