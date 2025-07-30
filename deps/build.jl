@@ -56,7 +56,7 @@ end
 
 if get(ENV, "USE_KNITRO_JLL", "false") == "true"
     open(DEPS_FILE, "w") do io
-        println(io, "# No libknitro constant; we're using the Artifact.")
+        return println(io, "# No libknitro constant; we're using the Artifact.")
     end
 elseif get(ENV, "SECRET_KNITRO_URL", "") != ""
     try_secret_installation()
