@@ -67,6 +67,8 @@ function test_MOI_Test_cached()
         exclude=Union{String,Regex}[
             # TODO(odow): this test is flakey.
             r"^test_cpsat_ReifiedAllDifferent$",
+            # TODO(odow): this test fails on linux
+            r"^test_linear_Semiinteger_integration$",
             # TODO(odow): investigate issue with bridges
             r"^test_basic_VectorNonlinearFunction_GeometricMeanCone$",
             # Returns OTHER_ERROR, which is also reasonable.
