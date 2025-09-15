@@ -364,7 +364,7 @@ function test_AAA_WINDOWS_DEBUG_quadratic_Integer_SecondOrderCone()
     MOI.add_constraint(model, 1.0 * x[1], MOI.EqualTo(1.0))
     MOI.add_constraint(model, MOI.VectorOfVariables(x), MOI.SecondOrderCone(3))
     MOI.optimize!(model)
-    @test ≈(MOI.get(model, MOI.ObjectiveValue()), -2, config)
+    @test ≈(MOI.get(model, MOI.ObjectiveValue()), -2; atol = 1e-5)
     return
 end
 
