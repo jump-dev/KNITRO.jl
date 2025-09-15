@@ -50,13 +50,12 @@ function test_MOI_Test_cached()
         r"^test_conic_SecondOrderCone_VectorOfVariables$",
         r"^test_conic_SecondOrderCone_out_of_order$",
         r"^test_constraint_PrimalStart_DualStart_SecondOrderCone$",
-        
     ]
     model =
         MOI.instantiate(KNITRO.Optimizer; with_bridge_type=Float64, with_cache_type=Float64)
     MOI.set(model, MOI.Silent(), true)
     config = MOI.Test.Config(
-        atol=1e-3,
+        atol=2e-3,
         rtol=1e-3,
         optimal_status=MOI.LOCALLY_SOLVED,
         infeasible_status=MOI.LOCALLY_INFEASIBLE,

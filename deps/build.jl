@@ -54,7 +54,7 @@ function try_secret_installation()
     return
 end
 
-if get(ENV, "USE_KNITRO_JLL", "false") == "true"
+if get(ENV, "KNITRO_JL_USE_KNITRO_JLL", "true") == "true"
     open(DEPS_FILE, "w") do io
         return println(io, "# No libknitro constant; we're using the Artifact.")
     end
