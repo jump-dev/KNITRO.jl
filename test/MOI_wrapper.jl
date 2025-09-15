@@ -354,6 +354,20 @@ function test_lm_context()
     return
 end
 
+function test_AAA_WINDOWS_DEBUG_quadratic_Integer_SecondOrderCone()
+    model = KNITRO.Optimizer()
+    x = MOI.add_variables(model, 3)
+    MOI.add_constraint.(model, x[2:3], MOI.ZeroOne())
+    f = -2.0 * x[2] - 1.0 * x[3]
+    MOI.set(model, MOI.ObjectiveSense(), MOI.MIN_SENSE)
+    MOI.set(model, MOI.ObjectiveFunction{typeof(f)}(), f)
+    MOI.add_constraint(model, 1.0 * x[1] == 1.0)
+    MOI.add_constraint(model, MOI.VectorOfVariables(x), MOI.SecondOrderCone(3))
+    MOI.optimize!(model)
+    @test ≈(MOI.get(model, MOI.ObjectiveValue()), -2, config)
+    return
+end
+
 end
 
 TestMOIWrapper.runtests()
