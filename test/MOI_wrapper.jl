@@ -62,11 +62,11 @@ function test_MOI_Test_cached()
         exclude=Any[MOI.VariableBasisStatus, MOI.ConstraintBasisStatus],
     )
     platform_dependent_exclude = Union{String,Regex}[]
-    if Sys.iswindows()
-        # TODO(odow): these fail only on Windows?
-        push!(platform_dependent_exclude, r"^test_linear_Semiinteger_integration$")
-        push!(platform_dependent_exclude, r"^test_quadratic_Integer_SecondOrderCone$")
-    end
+    # if Sys.iswindows()
+    #     # TODO(odow): these fail only on Windows?
+    #     push!(platform_dependent_exclude, r"^test_linear_Semiinteger_integration$")
+    #     push!(platform_dependent_exclude, r"^test_quadratic_Integer_SecondOrderCone$")
+    # end
     MOI.Test.runtests(
         model,
         config;
