@@ -27,23 +27,54 @@ The underlying solver is a closed-source commercial product for which you must
 
 ## Installation
 
-First, obtain a license and install a copy of KNITRO from
-[Artelys](https://www.artelys.com/knitro).
+Install KNITRO.jl as follows:
+```julia
+import Pkg
+Pkg.add("KNITRO")
+```
 
-Once installed, set the `KNITRODIR` environment variable to point to the directory
-of your KNITRO installation, so that the file `${KNITRODIR}/lib/libknitro` exists.
-Then run `Pkg.add("KNITRO")`. For example:
+In addition to installing the KNITRO.jl package, this will also download and
+install the KNITRO binaries from [KNITRO_jll.jl](https://github.com/jump-dev/KNITRO_jll.jl).
+**You do not need to install the KNITRO binaries separately.**
+
+To install a particular version of KNITRO, install the corresponding version of
+[KNITRO_jll.jl](https://github.com/jump-dev/KNITRO_jll.jl). For example:
+```julia
+import Pkg; Pkg.pkg"add KNITRO_jll@15.0.1"
+```
+
+### Manual installation
+
+This section explains how to opt-out of using the `KNITRO_jll` binaries.
+
+First, obtain a license and install a copy of KNITRO from [Artelys](https://www.artelys.com/knitro).
+
+Once installed, set the `KNITRODIR` environment variable to point to the
+directory of your KNITRO installation, so that the file
+`${KNITRODIR}/lib/libknitro` exists.
+
+Then, set the `KNITRO_JL_USE_KNITRO_JLL` environment variable to `"false"` and
+run `Pkg.add("KNITRO")`. For example:
 
 ```julia
 ENV["KNITRODIR"] = "/path/to/knitro"
+ENV["KNITRO_JL_USE_KNITRO_JLL"] = "false"
 import Pkg
 Pkg.add("KNITRO")
 using KNITRO
 KNITRO.has_knitro()  # true if installed correctly
 ```
 
-If `KNITRO.has_knitro()` returns `false` but you are confident that your paths
-are correct, try running `Pkg.build("KNITRO")` and restarting Julia.
+To change the location of a manual install, change the value of `KNITRODIR`,
+call `Pkg.build("KNITRO")`, and then restart Julia.
+
+To revert to the `KNITRO_jll` binaries, do:
+```julia
+ENV["KNITRO_JL_USE_KNITRO_JLL"] = "true"
+import Pkg
+Pkg.build("KNITRO")
+```
+then restart Julia.
 
 ## Use with JuMP
 

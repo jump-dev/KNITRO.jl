@@ -1,4 +1,9 @@
-using Libdl, Base.Sys
+# Copyright (c) 2016: Ng Yee Sian, Miles Lubin, other contributors
+#
+# Use of this source code is governed by an MIT-style license that can be found
+# in the LICENSE.md file or at https://opensource.org/licenses/MIT.
+
+import Libdl
 
 const DEPS_FILE = joinpath(dirname(@__FILE__), "deps.jl")
 
@@ -41,7 +46,7 @@ function try_local_installation()
     return
 end
 
-function try_ci_installation()
+function try_secret_installation()
     local_filename = joinpath(@__DIR__, "libknitro.so")
     download(ENV["SECRET_KNITRO_URL"], local_filename)
     download(ENV["SECRET_KNITRO_LIBIOMP5"], joinpath(@__DIR__, "libiomp5.so"))
@@ -49,8 +54,12 @@ function try_ci_installation()
     return
 end
 
-if get(ENV, "SECRET_KNITRO_URL", "") != ""
-    try_ci_installation()
+if get(ENV, "KNITRO_JL_USE_KNITRO_JLL", "true") == "true"
+    open(DEPS_FILE, "w") do io
+        return println(io, "# No libknitro constant; we're using the Artifact.")
+    end
+elseif get(ENV, "SECRET_KNITRO_URL", "") != ""
+    try_secret_installation()
 else
     try_local_installation()
 end

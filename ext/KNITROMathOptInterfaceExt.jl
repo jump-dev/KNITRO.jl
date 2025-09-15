@@ -276,20 +276,21 @@ function MOI.set(model::Optimizer, ::MOI.TimeLimitSec, value)
     model.time_limit_sec = value
     # By default, maxtime is set to 1e8 in Knitro.
     limit = something(value, 1e8)
-    # KNITRO does not have a single option to control the global time limit, so
-    # we set various options.
-    # MAXTIME_REAL is the base option, which applies if the problem is a NLP.
-    KNITRO.@_checked KNITRO.KN_set_double_param(
-        model.inner,
-        KNITRO.KN_PARAM_MAXTIMEREAL,
-        limit,
-    )
-    # MIP_MAXTIME_REAL applies if the problem is a MINLP
-    KNITRO.@_checked KNITRO.KN_set_double_param(
-        model.inner,
-        KNITRO.KN_PARAM_MIP_MAXTIMEREAL,
-        limit,
-    )
+    if KNITRO.knitro_version() >= v"15.0"
+        KNITRO.@_checked KNITRO.KN_set_double_param(
+            model.inner,
+            KNITRO.KN_PARAM_MAXTIME,
+            limit,
+        )
+    else
+        # KNITRO does not have a single option to control the global time limit,
+        # so we set various options.
+        # MAXTIME_REAL is the base option, which applies if the problem is a NLP.
+        # MIP_MAXTIME_REAL applies if the problem is a MINLP
+        for p in (KNITRO.KN_PARAM_MAXTIMEREAL, KNITRO.KN_PARAM_MIP_MAXTIMEREAL)
+            KNITRO.@_checked KNITRO.KN_set_double_param(model.inner, p, limit)
+        end
+    end
     return
 end
 
