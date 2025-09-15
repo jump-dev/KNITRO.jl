@@ -678,11 +678,12 @@ function MOI.add_constraint(model::Optimizer, x::MOI.VariableIndex, ::MOI.ZeroOn
     MOI.throw_if_not_valid(model, x)
     lb, ub = nothing, nothing
     p = Ref{Cdouble}(NaN)
-    if model.variable_info[x.value].has_lower_bound
+    info = model.variable_info[x.value]
+    if info.has_lower_bound || info.is_fixed
         KNITRO.@_checked KNITRO.KN_get_var_lobnd(model.inner, _c_column(x), p)
         lb = max(0.0, p[])
     end
-    if model.variable_info[x.value].has_upper_bound
+    if info.has_upper_bound || info.is_fixed
         KNITRO.@_checked KNITRO.KN_get_var_upbnd(model.inner, _c_column(x), p)
         ub = min(1.0, p[])
     end
