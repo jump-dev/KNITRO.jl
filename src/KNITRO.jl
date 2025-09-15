@@ -19,6 +19,21 @@ has_knitro() = endswith(libknitro, Libdl.dlext)
 
 if isdefined(@__MODULE__, :libknitro)
     # deps.jl must define a local installation.
+    function __init__()
+        libiomp5 = replace(libknitro, "libknitro" => "libiomp5")
+        if isfile(libiomp5)
+            Libdl.dlopen(libiomp5)
+        end
+        version = has_knitro() ? knitro_version() : v"0.0.0"
+        if version != v"0.0.0" && version < v"11.0"
+            error(
+                "You have installed version $version of Artelys " *
+                "Knitro, which is not supported by KNITRO.jl. We require a " *
+                "Knitro version greater than 11.0.",
+            )
+        end
+        return
+    end
 elseif KNITRO_jll.is_available()
     import KNITRO_jll: libknitro
 else
@@ -26,25 +41,6 @@ else
         "Unsupported platform: Use a manual installation by setting " *
         "`KNITRODIR`. See the README for details.",
     )
-end
-
-function __init__()
-    if KNITRO_jll.is_available()
-        return
-    end
-    libiomp5 = replace(libknitro, "libknitro" => "libiomp5")
-    if isfile(libiomp5)
-        Libdl.dlopen(libiomp5)
-    end
-    version = has_knitro() ? knitro_version() : v"0.0.0"
-    if version != v"0.0.0" && version < v"11.0"
-        error(
-            "You have installed version $version of Artelys " *
-            "Knitro, which is not supported by KNITRO.jl. We require a " *
-            "Knitro version greater than 11.0.",
-        )
-    end
-    return
 end
 
 function knitro_version()
