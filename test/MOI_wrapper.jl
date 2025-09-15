@@ -40,6 +40,7 @@ function test_MOI_Test_cached()
         r"^test_conic_GeometricMeanCone_VectorAffineFunction_2$",
         r"^test_conic_GeometricMeanCone_VectorOfVariables$",
         r"^test_conic_GeometricMeanCone_VectorOfVariables_2$",
+        r"^test_conic_RotatedSecondOrderCone_INFEASIBLE_2$",
         r"^test_conic_RotatedSecondOrderCone_VectorAffineFunction$",
         r"^test_conic_RotatedSecondOrderCone_VectorOfVariables$",
         r"^test_conic_RotatedSecondOrderCone_out_of_order$",
@@ -49,15 +50,7 @@ function test_MOI_Test_cached()
         r"^test_conic_SecondOrderCone_VectorOfVariables$",
         r"^test_conic_SecondOrderCone_out_of_order$",
         r"^test_constraint_PrimalStart_DualStart_SecondOrderCone$",
-        # TODO(odow): Because we turned off presolve to work around a bug in
-        # KNITRO@15, it can no longer detect primal/dual infeasibility.
-        r"^test_conic_RotatedSecondOrderCone_INFEASIBLE$",
-        r"^test_conic_RotatedSecondOrderCone_INFEASIBLE_2$",
-        r"^test_conic_SecondOrderCone_negative_post_bound_2$",
-        r"^test_conic_SecondOrderCone_negative_post_bound_3$",
-        r"^test_conic_SecondOrderCone_no_initial_bound$",
-        # r"^test_linear_DUAL_INFEASIBLE_2$",
-        # r"^test_solve_TerminationStatus_DUAL_INFEASIBLE$",
+        
     ]
     model =
         MOI.instantiate(KNITRO.Optimizer; with_bridge_type=Float64, with_cache_type=Float64)
@@ -73,10 +66,6 @@ function test_MOI_Test_cached()
         model,
         config;
         exclude=Union{String,Regex}[
-            # KNITRO@15 has a buggy implementation of bounded binary variables
-            r"^test_zero_one_with_bounds_before_add$",
-            r"^test_zero_one_with_bounds_after_add$",
-            r"^test_constraint_ZeroOne_bounds_3$",
             # TODO(odow): this test is flakey.
             r"^test_cpsat_ReifiedAllDifferent$",
             # TODO(odow): investigate issue with bridges
@@ -95,8 +84,6 @@ function test_MOI_Test_cached()
             second_order_exclude...,
         ],
     )
-    # KNITRO@15 has a buggy presolve for SOC problems
-    MOI.set(model, MOI.RawOptimizerAttribute("presolve"), 0)
     # Run the tests for second_order_exclude, this time excluding
     # `MOI.ConstraintDual` and `MOI.DualObjectiveValue`.
     push!(config.exclude, MOI.ConstraintDual)

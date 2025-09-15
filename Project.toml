@@ -14,7 +14,7 @@ MathOptInterface = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
 KNITROMathOptInterfaceExt = ["MathOptInterface"]
 
 [compat]
-KNITRO_jll = "15"
+KNITRO_jll = "15.0.1"
 Libdl = "1"
 MathOptInterface = "1.17"
 Printf = "1"
