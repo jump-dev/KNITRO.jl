@@ -361,7 +361,7 @@ function test_AAA_WINDOWS_DEBUG_quadratic_Integer_SecondOrderCone()
     f = -2.0 * x[2] - 1.0 * x[3]
     MOI.set(model, MOI.ObjectiveSense(), MOI.MIN_SENSE)
     MOI.set(model, MOI.ObjectiveFunction{typeof(f)}(), f)
-    MOI.add_constraint(model, 1.0 * x[1] == 1.0)
+    MOI.add_constraint(model, 1.0 * x[1], MOI.EqualTo(1.0))
     MOI.add_constraint(model, MOI.VectorOfVariables(x), MOI.SecondOrderCone(3))
     MOI.optimize!(model)
     @test ≈(MOI.get(model, MOI.ObjectiveValue()), -2, config)
