@@ -61,12 +61,6 @@ function test_MOI_Test_cached()
         infeasible_status=MOI.LOCALLY_INFEASIBLE,
         exclude=Any[MOI.VariableBasisStatus, MOI.ConstraintBasisStatus],
     )
-    platform_dependent_exclude = Union{String,Regex}[]
-    # if Sys.iswindows()
-    #     # TODO(odow): these fail only on Windows?
-    #     push!(platform_dependent_exclude, r"^test_linear_Semiinteger_integration$")
-    #     push!(platform_dependent_exclude, r"^test_quadratic_Integer_SecondOrderCone$")
-    # end
     MOI.Test.runtests(
         model,
         config;
@@ -85,8 +79,6 @@ function test_MOI_Test_cached()
             r"^test_solve_ObjectiveBound_MAX_SENSE_LP$",
             # Cannot get ConstraintDualStart
             r"^test_model_ModelFilter_AbstractConstraintAttribute$",
-            # See above
-            platform_dependent_exclude...,
             # ConstraintDual not supported for SecondOrderCone
             second_order_exclude...,
         ],
@@ -351,20 +343,6 @@ function test_lm_context()
     MOI.empty!(model)
     @test length(lm.linked_models) == 2
     @test model.inner in lm.linked_models
-    return
-end
-
-function test_AAA_WINDOWS_DEBUG_quadratic_Integer_SecondOrderCone()
-    model = KNITRO.Optimizer()
-    x = MOI.add_variables(model, 3)
-    MOI.add_constraint.(model, x[2:3], MOI.ZeroOne())
-    f = -2.0 * x[2] - 1.0 * x[3]
-    MOI.set(model, MOI.ObjectiveSense(), MOI.MIN_SENSE)
-    MOI.set(model, MOI.ObjectiveFunction{typeof(f)}(), f)
-    MOI.add_constraint(model, 1.0 * x[1], MOI.EqualTo(1.0))
-    MOI.add_constraint(model, MOI.VectorOfVariables(x), MOI.SecondOrderCone(3))
-    MOI.optimize!(model)
-    @test ≈(MOI.get(model, MOI.ObjectiveValue()), -2; atol = 1e-5)
     return
 end
 
