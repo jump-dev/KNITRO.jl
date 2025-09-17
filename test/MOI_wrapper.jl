@@ -65,8 +65,6 @@ function test_MOI_Test_cached()
         model,
         config;
         exclude=Union{String,Regex}[
-            # TODO(odow): this fails in Linux and Windows
-            r"^test_linear_Semiinteger_integration$",
             # This is an upstream issue in MOI with bridges and support
             # comparing VectorNonlinear and VectorQuadratic
             r"^test_basic_VectorNonlinearFunction_GeometricMeanCone$",
