@@ -369,6 +369,20 @@ function test_AAA_failure()
     return
 end
 
+function test_AAA_linear_Semicontinuous_integration()
+    model =
+        MOI.instantiate(KNITRO.Optimizer; with_bridge_type=Float64, with_cache_type=Float64)
+    config = MOI.Test.Config(
+        atol=2e-3,
+        rtol=1e-3,
+        optimal_status=MOI.LOCALLY_SOLVED,
+        infeasible_status=MOI.LOCALLY_INFEASIBLE,
+        exclude=Any[MOI.VariableBasisStatus, MOI.ConstraintBasisStatus],
+    )
+    MOI.Test.test_linear_Semicontinuous_integration(model, config)
+    return
+end
+
 end
 
 TestMOIWrapper.runtests()
