@@ -1567,29 +1567,26 @@ function MOI.get(model::Optimizer, attr::MOI.VariablePrimal, x::MOI.VariableInde
     return _get_solution(model, x.value)
 end
 
-# TODO(odow): enabling this causes a flakey failure on Windows and Linux
-# machines
-#
-# function MOI.get(
-#     model::Optimizer,
-#     attr::MOI.ConstraintPrimal,
-#     ci::MOI.ConstraintIndex{S,T},
-# ) where {
-#     S<:Union{MOI.ScalarAffineFunction{Float64},MOI.ScalarQuadraticFunction{Float64}},
-#     T<:Union{
-#         MOI.EqualTo{Float64},
-#         MOI.GreaterThan{Float64},
-#         MOI.LessThan{Float64},
-#         MOI.Interval{Float64},
-#     },
-# }
-#     MOI.check_result_index_bounds(model, attr)
-#     MOI.throw_if_not_valid(model, ci)
-#     indexCon = model.constraint_mapping[ci]
-#     p = Ref{Cdouble}(NaN)
-#     KNITRO.@_checked KNITRO.KN_get_con_value(model.inner, indexCon, p)
-#     return p[]
-# end
+function MOI.get(
+    model::Optimizer,
+    attr::MOI.ConstraintPrimal,
+    ci::MOI.ConstraintIndex{S,T},
+) where {
+    S<:Union{MOI.ScalarAffineFunction{Float64},MOI.ScalarQuadraticFunction{Float64}},
+    T<:Union{
+        MOI.EqualTo{Float64},
+        MOI.GreaterThan{Float64},
+        MOI.LessThan{Float64},
+        MOI.Interval{Float64},
+    },
+}
+    MOI.check_result_index_bounds(model, attr)
+    MOI.throw_if_not_valid(model, ci)
+    indexCon = model.constraint_mapping[ci]
+    p = Ref{Cdouble}(NaN)
+    KNITRO.@_checked KNITRO.KN_get_con_value(model.inner, indexCon, p)
+    return p[]
+end
 
 # function MOI.get(
 #     model::Optimizer,
