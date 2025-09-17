@@ -346,6 +346,29 @@ function test_lm_context()
     return
 end
 
+function test_AAA_failure()
+    model = MOI.instantiate(KNITRO.Optimizer; with_bridge_type=Float64, with_cache_type=Float64)
+    v = MOI.add_variables(model, 2)
+    MOI.add_constraint(model, v[1], MOI.Semicontinuous(2.0, 3.0))
+    vc2 = MOI.add_constraint(model, v[2], MOI.EqualTo(0.0))
+    c = MOI.add_constraint(model, 1.0 * v[1] - 1.0 * v[2], MOI.GreaterThan(0.0))
+    MOI.set(model, MOI.ObjectiveSense(), MOI.MIN_SENSE)
+    f = 1.0 * v[1]
+    MOI.set(model, MOI.ObjectiveFunction{typeof(f)}(), f)
+    MOI.optimize!(model)
+    @test isapprox(MOI.get(model, MOI.ConstraintPrimal(), c), 0.0; atol = 1e-5)
+    MOI.set(model, MOI.ConstraintSet(), vc2, MOI.EqualTo(1.0))
+    MOI.optimize!(model)
+    @test isapprox(MOI.get(model, MOI.ConstraintPrimal(), c), 1.0; atol = 1e-5)
+    MOI.set(model, MOI.ConstraintSet(), vc2, MOI.EqualTo(2.0))
+    MOI.optimize!(model)
+    @test isapprox(MOI.get(model, MOI.ConstraintPrimal(), c), 0.0; atol = 1e-5)
+    MOI.set(model, MOI.ConstraintSet(), vc2, MOI.EqualTo(2.5))
+    MOI.optimize!(model)
+    @test isapprox(MOI.get(model, MOI.ConstraintPrimal(), c), 0.0; atol = 1e-5)
+    return
+end
+
 end
 
 TestMOIWrapper.runtests()
