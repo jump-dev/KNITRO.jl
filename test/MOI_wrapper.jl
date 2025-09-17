@@ -65,11 +65,8 @@ function test_MOI_Test_cached()
         model,
         config;
         exclude=Union{String,Regex}[
-            # TODO(odow): this test is flakey.
-            r"^test_cpsat_ReifiedAllDifferent$",
-            # TODO(odow): this test fails on linux
-            r"^test_linear_Semiinteger_integration$",
-            # TODO(odow): investigate issue with bridges
+            # This is an upstream issue in MOI with bridges and support
+            # comparing VectorNonlinear and VectorQuadratic
             r"^test_basic_VectorNonlinearFunction_GeometricMeanCone$",
             # Returns OTHER_ERROR, which is also reasonable.
             r"^test_conic_empty_matrix$",

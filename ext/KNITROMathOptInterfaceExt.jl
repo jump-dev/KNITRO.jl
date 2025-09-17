@@ -676,13 +676,18 @@ end
 
 function MOI.add_constraint(model::Optimizer, x::MOI.VariableIndex, ::MOI.ZeroOne)
     MOI.throw_if_not_valid(model, x)
-    lb, ub = nothing, nothing
+    fx, lb, ub = nothing, nothing, nothing
     p = Ref{Cdouble}(NaN)
-    if model.variable_info[x.value].has_lower_bound
+    info = model.variable_info[x.value]
+    if info.is_fixed
+        KNITRO.@_checked KNITRO.KN_get_var_fxbnd(model.inner, _c_column(x), p)
+        fx = p[]
+    end
+    if info.has_lower_bound
         KNITRO.@_checked KNITRO.KN_get_var_lobnd(model.inner, _c_column(x), p)
         lb = max(0.0, p[])
     end
-    if model.variable_info[x.value].has_upper_bound
+    if info.has_upper_bound
         KNITRO.@_checked KNITRO.KN_get_var_upbnd(model.inner, _c_column(x), p)
         ub = min(1.0, p[])
     end
@@ -693,6 +698,9 @@ function MOI.add_constraint(model::Optimizer, x::MOI.VariableIndex, ::MOI.ZeroOn
     )
     # Calling `set_var_type` resets variable bounds in KNITRO. To fix, we need
     # to restore them after calling `set_var_type`.
+    if fx !== nothing
+        KNITRO.@_checked KNITRO.KN_set_var_fxbnd(model.inner, _c_column(x), fx)
+    end
     if lb !== nothing
         KNITRO.@_checked KNITRO.KN_set_var_lobnd(model.inner, _c_column(x), lb)
     end
@@ -1559,26 +1567,29 @@ function MOI.get(model::Optimizer, attr::MOI.VariablePrimal, x::MOI.VariableInde
     return _get_solution(model, x.value)
 end
 
-function MOI.get(
-    model::Optimizer,
-    attr::MOI.ConstraintPrimal,
-    ci::MOI.ConstraintIndex{S,T},
-) where {
-    S<:Union{MOI.ScalarAffineFunction{Float64},MOI.ScalarQuadraticFunction{Float64}},
-    T<:Union{
-        MOI.EqualTo{Float64},
-        MOI.GreaterThan{Float64},
-        MOI.LessThan{Float64},
-        MOI.Interval{Float64},
-    },
-}
-    MOI.check_result_index_bounds(model, attr)
-    MOI.throw_if_not_valid(model, ci)
-    indexCon = model.constraint_mapping[ci]
-    p = Ref{Cdouble}(NaN)
-    KNITRO.@_checked KNITRO.KN_get_con_value(model.inner, indexCon, p)
-    return p[]
-end
+# TODO(odow): enabling this causes a flakey failure on Windows and Linux
+# machines
+#
+# function MOI.get(
+#     model::Optimizer,
+#     attr::MOI.ConstraintPrimal,
+#     ci::MOI.ConstraintIndex{S,T},
+# ) where {
+#     S<:Union{MOI.ScalarAffineFunction{Float64},MOI.ScalarQuadraticFunction{Float64}},
+#     T<:Union{
+#         MOI.EqualTo{Float64},
+#         MOI.GreaterThan{Float64},
+#         MOI.LessThan{Float64},
+#         MOI.Interval{Float64},
+#     },
+# }
+#     MOI.check_result_index_bounds(model, attr)
+#     MOI.throw_if_not_valid(model, ci)
+#     indexCon = model.constraint_mapping[ci]
+#     p = Ref{Cdouble}(NaN)
+#     KNITRO.@_checked KNITRO.KN_get_con_value(model.inner, indexCon, p)
+#     return p[]
+# end
 
 # function MOI.get(
 #     model::Optimizer,
