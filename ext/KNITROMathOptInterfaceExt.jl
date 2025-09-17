@@ -743,6 +743,10 @@ function MOI.add_constraint(
         MOI.Interval{Float64},
     },
 )
+    F, S = typeof(func), typeof(set)
+    if !iszero(func.constant)
+        throw(MOI.ScalarFunctionConstantNotZero{F,S}(func.constant))
+    end
     _throw_if_solved(model, func, set)
     _throw_if_not_valid(model, func)
     # Add a single constraint in KNITRO.
@@ -752,19 +756,19 @@ function MOI.add_constraint(
     # Add bound to constraint.
     if isa(set, MOI.LessThan{Float64})
         val = _clamp_inf(set.upper)
-        KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, num_cons, val - func.constant)
+        KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, num_cons, val)
     elseif isa(set, MOI.GreaterThan{Float64})
         val = _clamp_inf(set.lower)
-        KNITRO.@_checked KNITRO.KN_set_con_lobnd(model.inner, num_cons, val - func.constant)
+        KNITRO.@_checked KNITRO.KN_set_con_lobnd(model.inner, num_cons, val)
     elseif isa(set, MOI.EqualTo{Float64})
         val = _clamp_inf(set.value)
-        KNITRO.@_checked KNITRO.KN_set_con_eqbnd(model.inner, num_cons, val - func.constant)
+        KNITRO.@_checked KNITRO.KN_set_con_eqbnd(model.inner, num_cons, val)
     else
         @assert set isa MOI.Interval{Float64}
         # Add upper bound.
         lb, ub = _clamp_inf(set.lower), _clamp_inf(set.upper)
-        KNITRO.@_checked KNITRO.KN_set_con_lobnd(model.inner, num_cons, lb - func.constant)
-        KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, num_cons, ub - func.constant)
+        KNITRO.@_checked KNITRO.KN_set_con_lobnd(model.inner, num_cons, lb)
+        KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, num_cons, ub)
     end
     nnz, columns, coefficients = _canonical_linear_reduction(func)
     KNITRO.@_checked(
@@ -776,7 +780,7 @@ function MOI.add_constraint(
             coefficients,
         ),
     )
-    ci = MOI.ConstraintIndex{typeof(func),typeof(set)}(num_cons)
+    ci = MOI.ConstraintIndex{F,S}(num_cons)
     model.constraint_mapping[ci] = num_cons
     return ci
 end
@@ -830,6 +834,10 @@ function MOI.add_constraint(
         MOI.Interval{Float64},
     },
 )
+    if !iszero(func.constant)
+        F, S = typeof(func), typeof(set)
+        throw(MOI.ScalarFunctionConstantNotZero{F,S}(func.constant))
+    end
     _throw_if_solved(model, func, set)
     _throw_if_not_valid(model, func)
     # We add a constraint in KNITRO.
@@ -839,18 +847,18 @@ function MOI.add_constraint(
     # Add upper bound.
     if isa(set, MOI.LessThan{Float64})
         val = _clamp_inf(set.upper)
-        KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, num_cons, val - func.constant)
+        KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, num_cons, val)
     elseif isa(set, MOI.GreaterThan{Float64})
         val = _clamp_inf(set.lower)
-        KNITRO.@_checked KNITRO.KN_set_con_lobnd(model.inner, num_cons, val - func.constant)
+        KNITRO.@_checked KNITRO.KN_set_con_lobnd(model.inner, num_cons, val)
     elseif isa(set, MOI.EqualTo{Float64})
         val = _clamp_inf(set.value)
-        KNITRO.@_checked KNITRO.KN_set_con_eqbnd(model.inner, num_cons, val - func.constant)
+        KNITRO.@_checked KNITRO.KN_set_con_eqbnd(model.inner, num_cons, val)
     elseif isa(set, MOI.Interval{Float64})
         lb = _clamp_inf(set.lower)
         ub = _clamp_inf(set.upper)
-        KNITRO.@_checked KNITRO.KN_set_con_lobnd(model.inner, num_cons, lb - func.constant)
-        KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, num_cons, ub - func.constant)
+        KNITRO.@_checked KNITRO.KN_set_con_lobnd(model.inner, num_cons, lb)
+        KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, num_cons, ub)
     end
     nnz, columns, coefficients = _canonical_linear_reduction(func)
     KNITRO.@_checked(
