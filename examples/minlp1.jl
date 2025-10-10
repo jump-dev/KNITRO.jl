@@ -163,7 +163,7 @@ function example_minlp1(; verbose=true)
 
     # Illustrate how to override default options.
     KNITRO.KN_set_int_param_by_name(kc, "mip_method", KNITRO.KN_MIP_METHOD_BB)
-    KNITRO.KN_set_int_param_by_name(kc, "algorithm", KNITRO.KN_ALG_ACT_CG)
+    KNITRO.KN_set_int_param_by_name(kc, "nlp_algorithm", KNITRO.KN_ALG_ACT_CG)
     KNITRO.KN_set_int_param_by_name(kc, "outmode", KNITRO.KN_OUTMODE_SCREEN)
     KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_OUTLEV, KNITRO.KN_OUTLEV_ALL)
     KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_MIP_OUTINTERVAL, 1)

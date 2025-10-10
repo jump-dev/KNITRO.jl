@@ -8,7 +8,7 @@
 # explored (only for options that have a finite number of 
 # integer values). 
 
-algorithm
+nlp_algorithm
 bar_directinterval 0 1 10
 bar_murule
 linsolver_pivottol 1e-8 1e-14
