@@ -361,10 +361,10 @@ function test_complements_twice()
     MOI.set(model, MOI.ObjectiveFunction{typeof(f)}(), f)
     MOI.optimize!(model)
     x_val = MOI.get(model, MOI.VariablePrimal(), x)
-    @test isapprox(x_val, [0, 1, 0, 1]; atol = 1e-5)
+    @test isapprox(x_val, [0, 1, 0, 1]; atol=1e-5)
     MOI.optimize!(model)
     x_val = MOI.get(model, MOI.VariablePrimal(), x)
-    @test isapprox(x_val, [0, 1, 0, 1]; atol = 1e-5)
+    @test isapprox(x_val, [0, 1, 0, 1]; atol=1e-5)
     return
 end
 
