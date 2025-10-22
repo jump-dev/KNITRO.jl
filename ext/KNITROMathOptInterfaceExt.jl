@@ -78,30 +78,6 @@ mutable struct _VariableInfo
     _VariableInfo() = new(false, false, false, "")
 end
 
-mutable struct _ComplementarityCache
-    n::Int
-    index_comps_1::Vector{Cint}
-    index_comps_2::Vector{Cint}
-    cc_types::Vector{Cint}
-    _ComplementarityCache() = new(0, Cint[], Cint[], Cint[])
-end
-
-_has_complementarity(cache::_ComplementarityCache) = cache.n >= 1
-
-function _add_complementarity_constraint!(
-    cache::_ComplementarityCache,
-    index_vars_1::Vector{Cint},
-    index_vars_2::Vector{Cint},
-    cc_types::Vector{Int},
-)
-    @assert length(index_vars_1) == length(index_vars_2) == length(cc_types)
-    cache.n += 1
-    append!(cache.index_comps_1, index_vars_1)
-    append!(cache.index_comps_2, index_vars_2)
-    append!(cache.cc_types, cc_types)
-    return
-end
-
 mutable struct Optimizer <: MOI.AbstractOptimizer
     inner::KNITRO.Model
     # We only keep in memory some information about variables
@@ -125,8 +101,6 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
         MOI.ScalarNonlinearFunction,
         Nothing,
     }
-    # Complementarity cache
-    complementarity_cache::_ComplementarityCache
     # Constraint mappings.
     constraint_mapping::Dict{MOI.ConstraintIndex,Union{Cint,Vector{Cint}}}
     license_manager::Union{KNITRO.LMcontext,Nothing}
@@ -154,7 +128,6 @@ function Optimizer(; license_manager::Union{KNITRO.LMcontext,Nothing}=nothing, k
         Cint[],
         MOI.FEASIBILITY_SENSE,
         nothing,
-        _ComplementarityCache(),
         Dict{MOI.ConstraintIndex,Union{Cint,Vector{Cint}}}(),
         license_manager,
         Dict{String,Any}(),
@@ -193,7 +166,6 @@ function MOI.empty!(model::Optimizer)
     MOI.empty!(model.nlp_model)
     model.sense = MOI.FEASIBILITY_SENSE
     model.objective = nothing
-    model.complementarity_cache = _ComplementarityCache()
     model.constraint_mapping = Dict()
     model.license_manager = model.license_manager
     for (name, value) in model.options
@@ -212,7 +184,6 @@ function MOI.is_empty(model::Optimizer)
            model.sense == MOI.FEASIBILITY_SENSE &&
            model.number_solved == 0 &&
            isa(model.objective, Nothing) &&
-           !_has_complementarity(model.complementarity_cache) &&
            !model.nlp_loaded
 end
 
@@ -1029,30 +1000,24 @@ function MOI.supports_constraint(
     return true
 end
 
-# Complementarity constraints (x_1 complements x_2), with x_1 and x_2
-# being two variables of the problem.
 function MOI.add_constraint(
     model::Optimizer,
     func::MOI.VectorOfVariables,
     set::MOI.Complements,
 )
     _throw_if_solved(model, func, set)
-    indv = _c_column.(func.variables)
-    # Number of complementarity in Knitro is half the dimension of the MOI set
-    n_comp = div(set.dimension, 2)
-    # Currently, only complementarity constraints between two variables
-    # are supported.
-    comp_type = fill(KNITRO.KN_CCTYPE_VARVAR, n_comp)
-    # Number of complementarity constraint previously added
-    n_comp_cons = model.complementarity_cache.n
-    _add_complementarity_constraint!(
-        model.complementarity_cache,
-        indv[1:n_comp],
-        indv[(n_comp+1):end],
-        comp_type,
+    N = div(set.dimension, 2)
+    indexCompCon = zeros(Cint, N)
+    KNITRO.@_checked KNITRO.KN_add_compcons(
+        model,
+        N,
+        fill(KNITRO.KN_CCTYPE_VARVAR, N),
+        _c_column.(func.variables[1:N]),
+        _c_column.(func.variables[(N+1):end]),
+        indexCompCon,
     )
-    ci = MOI.ConstraintIndex{typeof(func),typeof(set)}(n_comp_cons)
-    model.constraint_mapping[ci] = convert(Cint, n_comp_cons)
+    ci = MOI.ConstraintIndex{typeof(func),typeof(set)}(first(indexCompCon))
+    model.constraint_mapping[ci] = indexCompCon
     return ci
 end
 
@@ -1180,15 +1145,6 @@ end
 function MOI.optimize!(model::Optimizer)
     KNITRO.@_checked KNITRO.KN_set_int_param_by_name(model, "datacheck", 0)
     KNITRO.@_checked KNITRO.KN_set_int_param_by_name(model, "hessian_no_f", 1)
-    if _has_complementarity(model.complementarity_cache)
-        KNITRO.@_checked KNITRO.KN_set_compcons(
-            model,
-            length(model.complementarity_cache.cc_types),
-            model.complementarity_cache.cc_types,
-            model.complementarity_cache.index_comps_1,
-            model.complementarity_cache.index_comps_2,
-        )
-    end
     if !MOI.is_empty(model.nlp_model) && !model.nlp_loaded
         vars = MOI.get(model, MOI.ListOfVariableIndices())
         backend = MOI.Nonlinear.SparseReverseMode()

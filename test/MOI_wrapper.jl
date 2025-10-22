@@ -350,6 +350,24 @@ function test_lm_context()
     return
 end
 
+function test_complements_twice()
+    model = KNITRO.Optimizer()
+    x = MOI.add_variables(model, 4)
+    MOI.add_constraint.(model, x, MOI.Interval(0.0, 1.0))
+    MOI.add_constraint(model, MOI.VectorOfVariables(x[1:2]), MOI.Complements(2))
+    MOI.add_constraint(model, MOI.VectorOfVariables(x[3:4]), MOI.Complements(2))
+    MOI.set(model, MOI.ObjectiveSense(), MOI.MAX_SENSE)
+    f = (1.0:4.0)' * x
+    MOI.set(model, MOI.ObjectiveFunction{typeof(f)}(), f)
+    MOI.optimize!(model)
+    x_val = MOI.get(model, MOI.VariablePrimal(), x)
+    @test isapprox(x_val, [0, 1, 0, 1]; atol = 1e-5)
+    MOI.optimize!(model)
+    x_val = MOI.get(model, MOI.VariablePrimal(), x)
+    @test isapprox(x_val, [0, 1, 0, 1]; atol = 1e-5)
+    return
+end
+
 end
 
 TestMOIWrapper.runtests()
