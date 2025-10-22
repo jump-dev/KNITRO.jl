@@ -164,6 +164,12 @@ function Optimizer(; license_manager::Union{KNITRO.LMcontext,Nothing}=nothing, k
     )
 end
 
+Base.cconvert(::Type{Ptr{Cvoid}}, model::Optimizer) = model
+
+function Base.unsafe_convert(::Type{Ptr{Cvoid}}, model::Optimizer)
+    return Base.unsafe_convert(Ptr{Cvoid}, model.inner)
+end
+
 function Base.show(io::IO, model::Optimizer)
     println(io, "A MathOptInterface model with backend:")
     println(io, model.inner)
@@ -248,7 +254,7 @@ MOI.supports(model::Optimizer, ::MOI.Silent) = true
 
 function MOI.get(model::Optimizer, ::MOI.Silent)
     p = Ref{Cint}(-1)
-    KNITRO.@_checked KNITRO.KN_get_int_param_by_name(model.inner, "outlev", p)
+    KNITRO.@_checked KNITRO.KN_get_int_param_by_name(model, "outlev", p)
     return p[] == 0
 end
 
@@ -256,7 +262,7 @@ function MOI.set(model::Optimizer, ::MOI.Silent, value)
     # Default outlev is KNITRO.KN_OUTLEV_ITER_10.
     outlev = value ? KNITRO.KN_OUTLEV_NONE : KNITRO.KN_OUTLEV_ITER_10
     model.options["outlev"] = outlev
-    KNITRO.@_checked KNITRO.KN_set_int_param(model.inner, KNITRO.KN_PARAM_OUTLEV, outlev)
+    KNITRO.@_checked KNITRO.KN_set_int_param(model, KNITRO.KN_PARAM_OUTLEV, outlev)
     return
 end
 
@@ -271,18 +277,14 @@ function MOI.set(model::Optimizer, ::MOI.TimeLimitSec, value)
     # By default, maxtime is set to 1e8 in Knitro.
     limit = something(value, 1e8)
     if KNITRO.knitro_version() >= v"15.0"
-        KNITRO.@_checked KNITRO.KN_set_double_param(
-            model.inner,
-            KNITRO.KN_PARAM_MAXTIME,
-            limit,
-        )
+        KNITRO.@_checked KNITRO.KN_set_double_param(model, KNITRO.KN_PARAM_MAXTIME, limit)
     else
         # KNITRO does not have a single option to control the global time limit,
         # so we set various options.
         # MAXTIME_REAL is the base option, which applies if the problem is a NLP.
         # MIP_MAXTIME_REAL applies if the problem is a MINLP
         for p in (KNITRO.KN_PARAM_MAXTIMEREAL, KNITRO.KN_PARAM_MIP_MAXTIMEREAL)
-            KNITRO.@_checked KNITRO.KN_set_double_param(model.inner, p, limit)
+            KNITRO.@_checked KNITRO.KN_set_double_param(model, p, limit)
         end
     end
     return
@@ -295,7 +297,7 @@ function MOI.supports(model::Optimizer, attr::MOI.RawOptimizerAttribute)
         return true
     end
     p = Ref{Cint}(0)
-    ret = KNITRO.KN_get_param_id(model.inner, attr.name, p)
+    ret = KNITRO.KN_get_param_id(model, attr.name, p)
     return ret != KNITRO.KN_RC_BAD_PARAMINPUT && p[] > 0
 end
 
@@ -310,29 +312,29 @@ end
 
 function MOI.set(model::Optimizer, attr::MOI.RawOptimizerAttribute, value)
     if attr.name == "option_file"
-        KNITRO.@_checked KNITRO.KN_load_param_file(model.inner, value)
+        KNITRO.@_checked KNITRO.KN_load_param_file(model, value)
         return
     elseif attr.name == "tuner_file"
-        KNITRO.@_checked KNITRO.KN_load_tuner_file(model.inner, value)
+        KNITRO.@_checked KNITRO.KN_load_tuner_file(model, value)
         return
     elseif attr.name == "free"
         KNITRO.@_checked KNITRO.KN_free(model.inner)
         return
     end
     pId = Ref{Cint}(0)
-    ret = KNITRO.KN_get_param_id(model.inner, attr.name, pId)
+    ret = KNITRO.KN_get_param_id(model, attr.name, pId)
     if ret == KNITRO.KN_RC_BAD_PARAMINPUT || pId[] <= 0
         throw(MOI.UnsupportedAttribute(attr))
     end
     pType = Ref{Cint}()
-    KNITRO.@_checked KNITRO.KN_get_param_type(model.inner, pId[], pType)
+    KNITRO.@_checked KNITRO.KN_get_param_type(model, pId[], pType)
     if pType[] == KNITRO.KN_PARAMTYPE_INTEGER
-        KNITRO.@_checked KNITRO.KN_set_int_param(model.inner, pId[], value)
+        KNITRO.@_checked KNITRO.KN_set_int_param(model, pId[], value)
     elseif pType[] == KNITRO.KN_PARAMTYPE_FLOAT
-        KNITRO.@_checked KNITRO.KN_set_double_param(model.inner, pId[], value)
+        KNITRO.@_checked KNITRO.KN_set_double_param(model, pId[], value)
     else
         @assert pType[] == KNITRO.KN_PARAMTYPE_STRING
-        KNITRO.@_checked KNITRO.KN_set_char_param(model.inner, pId[], value)
+        KNITRO.@_checked KNITRO.KN_set_char_param(model, pId[], value)
     end
     model.options[attr.name] = value
     return
@@ -359,7 +361,7 @@ function MOI.add_variable(model::Optimizer)
     _throw_if_solved(model, MOI.VariableIndex)
     push!(model.variable_info, _VariableInfo())
     pindex = Ref{Cint}(0)
-    KNITRO.@_checked KNITRO.KN_add_var(model.inner, pindex)
+    KNITRO.@_checked KNITRO.KN_add_var(model, pindex)
     return MOI.VariableIndex(length(model.variable_info))
 end
 
@@ -414,7 +416,7 @@ function MOI.set(
     MOI.throw_if_not_valid(model, x)
     start = something(value, 0.0)
     KNITRO.@_checked KNITRO.KN_set_var_primal_init_value(
-        model.inner,
+        model,
         _c_column(x),
         Cdouble(start),
     )
@@ -517,7 +519,7 @@ function MOI.add_constraint(
     end
     ub = _clamp_inf(set.upper)
     model.variable_info[x.value].has_upper_bound = true
-    KNITRO.@_checked KNITRO.KN_set_var_upbnd(model.inner, _c_column(x), ub)
+    KNITRO.@_checked KNITRO.KN_set_var_upbnd(model, _c_column(x), ub)
     ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.LessThan{Float64}}(x.value)
     model.constraint_mapping[ci] = convert(Cint, x.value)
     return ci
@@ -553,7 +555,7 @@ function MOI.add_constraint(
     end
     lb = _clamp_inf(set.lower)
     model.variable_info[x.value].has_lower_bound = true
-    KNITRO.@_checked KNITRO.KN_set_var_lobnd(model.inner, _c_column(x), lb)
+    KNITRO.@_checked KNITRO.KN_set_var_lobnd(model, _c_column(x), lb)
     ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.GreaterThan{Float64}}(x.value)
     model.constraint_mapping[ci] = convert(Cint, x.value)
     return ci
@@ -591,8 +593,8 @@ function MOI.add_constraint(
     ub = _clamp_inf(set.upper)
     model.variable_info[x.value].has_lower_bound = true
     model.variable_info[x.value].has_upper_bound = true
-    KNITRO.@_checked KNITRO.KN_set_var_lobnd(model.inner, _c_column(x), lb)
-    KNITRO.@_checked KNITRO.KN_set_var_upbnd(model.inner, _c_column(x), ub)
+    KNITRO.@_checked KNITRO.KN_set_var_lobnd(model, _c_column(x), lb)
+    KNITRO.@_checked KNITRO.KN_set_var_upbnd(model, _c_column(x), ub)
     ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.Interval{Float64}}(x.value)
     model.constraint_mapping[ci] = convert(Cint, x.value)
     return ci
@@ -631,7 +633,7 @@ function MOI.add_constraint(
     end
     eqv = _clamp_inf(set.value)
     model.variable_info[x.value].is_fixed = true
-    KNITRO.@_checked KNITRO.KN_set_var_fxbnd(model.inner, _c_column(x), eqv)
+    KNITRO.@_checked KNITRO.KN_set_var_fxbnd(model, _c_column(x), eqv)
     ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.EqualTo{Float64}}(x.value)
     model.constraint_mapping[ci] = convert(Cint, x.value)
     return ci
@@ -660,7 +662,7 @@ function MOI.set(
 )
     start = convert(Cdouble, something(value, 0.0))
     indexVars = [_c_column(MOI.VariableIndex(ci.value))]
-    KNITRO.@_checked KNITRO.KN_set_var_dual_init_values(model.inner, 1, indexVars, [start])
+    KNITRO.@_checked KNITRO.KN_set_var_dual_init_values(model, 1, indexVars, [start])
     return
 end
 
@@ -674,32 +676,28 @@ function MOI.add_constraint(model::Optimizer, x::MOI.VariableIndex, ::MOI.ZeroOn
     p = Ref{Cdouble}(NaN)
     info = model.variable_info[x.value]
     if info.is_fixed
-        KNITRO.@_checked KNITRO.KN_get_var_fxbnd(model.inner, _c_column(x), p)
+        KNITRO.@_checked KNITRO.KN_get_var_fxbnd(model, _c_column(x), p)
         fx = p[]
     end
     if info.has_lower_bound
-        KNITRO.@_checked KNITRO.KN_get_var_lobnd(model.inner, _c_column(x), p)
+        KNITRO.@_checked KNITRO.KN_get_var_lobnd(model, _c_column(x), p)
         lb = max(0.0, p[])
     end
     if info.has_upper_bound
-        KNITRO.@_checked KNITRO.KN_get_var_upbnd(model.inner, _c_column(x), p)
+        KNITRO.@_checked KNITRO.KN_get_var_upbnd(model, _c_column(x), p)
         ub = min(1.0, p[])
     end
-    KNITRO.@_checked KNITRO.KN_set_var_type(
-        model.inner,
-        _c_column(x),
-        KNITRO.KN_VARTYPE_BINARY,
-    )
+    KNITRO.@_checked KNITRO.KN_set_var_type(model, _c_column(x), KNITRO.KN_VARTYPE_BINARY)
     # Calling `set_var_type` resets variable bounds in KNITRO. To fix, we need
     # to restore them after calling `set_var_type`.
     if fx !== nothing
-        KNITRO.@_checked KNITRO.KN_set_var_fxbnd(model.inner, _c_column(x), fx)
+        KNITRO.@_checked KNITRO.KN_set_var_fxbnd(model, _c_column(x), fx)
     end
     if lb !== nothing
-        KNITRO.@_checked KNITRO.KN_set_var_lobnd(model.inner, _c_column(x), lb)
+        KNITRO.@_checked KNITRO.KN_set_var_lobnd(model, _c_column(x), lb)
     end
     if ub !== nothing
-        KNITRO.@_checked KNITRO.KN_set_var_upbnd(model.inner, _c_column(x), ub)
+        KNITRO.@_checked KNITRO.KN_set_var_upbnd(model, _c_column(x), ub)
     end
     ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.ZeroOne}(x.value)
     model.constraint_mapping[ci] = convert(Cint, x.value)
@@ -713,11 +711,7 @@ end
 function MOI.add_constraint(model::Optimizer, x::MOI.VariableIndex, set::MOI.Integer)
     _throw_if_solved(model, x, set)
     MOI.throw_if_not_valid(model, x)
-    KNITRO.@_checked KNITRO.KN_set_var_type(
-        model.inner,
-        _c_column(x),
-        KNITRO.KN_VARTYPE_INTEGER,
-    )
+    KNITRO.@_checked KNITRO.KN_set_var_type(model, _c_column(x), KNITRO.KN_VARTYPE_INTEGER)
     ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.Integer}(x.value)
     model.constraint_mapping[ci] = convert(Cint, x.value)
     return ci
@@ -745,34 +739,28 @@ function MOI.add_constraint(
     _throw_if_not_valid(model, func)
     # Add a single constraint in KNITRO.
     p = Ref{Cint}(0)
-    KNITRO.@_checked KNITRO.KN_add_con(model.inner, p)
+    KNITRO.@_checked KNITRO.KN_add_con(model, p)
     num_cons = p[]
     # Add bound to constraint.
     if isa(set, MOI.LessThan{Float64})
         val = _clamp_inf(set.upper)
-        KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, num_cons, val)
+        KNITRO.@_checked KNITRO.KN_set_con_upbnd(model, num_cons, val)
     elseif isa(set, MOI.GreaterThan{Float64})
         val = _clamp_inf(set.lower)
-        KNITRO.@_checked KNITRO.KN_set_con_lobnd(model.inner, num_cons, val)
+        KNITRO.@_checked KNITRO.KN_set_con_lobnd(model, num_cons, val)
     elseif isa(set, MOI.EqualTo{Float64})
         val = _clamp_inf(set.value)
-        KNITRO.@_checked KNITRO.KN_set_con_eqbnd(model.inner, num_cons, val)
+        KNITRO.@_checked KNITRO.KN_set_con_eqbnd(model, num_cons, val)
     else
         @assert set isa MOI.Interval{Float64}
         # Add upper bound.
         lb, ub = _clamp_inf(set.lower), _clamp_inf(set.upper)
-        KNITRO.@_checked KNITRO.KN_set_con_lobnd(model.inner, num_cons, lb)
-        KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, num_cons, ub)
+        KNITRO.@_checked KNITRO.KN_set_con_lobnd(model, num_cons, lb)
+        KNITRO.@_checked KNITRO.KN_set_con_upbnd(model, num_cons, ub)
     end
     nnz, columns, coefficients = _canonical_linear_reduction(func)
     KNITRO.@_checked(
-        KNITRO.KN_add_con_linear_struct_one(
-            model.inner,
-            nnz,
-            num_cons,
-            columns,
-            coefficients,
-        ),
+        KNITRO.KN_add_con_linear_struct_one(model, nnz, num_cons, columns, coefficients),
     )
     ci = MOI.ConstraintIndex{F,S}(num_cons)
     model.constraint_mapping[ci] = num_cons
@@ -810,7 +798,7 @@ function MOI.set(
 )
     start = convert(Cdouble, something(value, 0.0))
     indexCons = KNITRO.KNINT[ci.value]
-    KNITRO.@_checked KNITRO.KN_set_con_dual_init_values(model.inner, 1, indexCons, [start])
+    KNITRO.@_checked KNITRO.KN_set_con_dual_init_values(model, 1, indexCons, [start])
     return
 end
 
@@ -836,43 +824,30 @@ function MOI.add_constraint(
     _throw_if_not_valid(model, func)
     # We add a constraint in KNITRO.
     p = Ref{Cint}(0)
-    KNITRO.@_checked KNITRO.KN_add_con(model.inner, p)
+    KNITRO.@_checked KNITRO.KN_add_con(model, p)
     num_cons = p[]
     # Add upper bound.
     if isa(set, MOI.LessThan{Float64})
         val = _clamp_inf(set.upper)
-        KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, num_cons, val)
+        KNITRO.@_checked KNITRO.KN_set_con_upbnd(model, num_cons, val)
     elseif isa(set, MOI.GreaterThan{Float64})
         val = _clamp_inf(set.lower)
-        KNITRO.@_checked KNITRO.KN_set_con_lobnd(model.inner, num_cons, val)
+        KNITRO.@_checked KNITRO.KN_set_con_lobnd(model, num_cons, val)
     elseif isa(set, MOI.EqualTo{Float64})
         val = _clamp_inf(set.value)
-        KNITRO.@_checked KNITRO.KN_set_con_eqbnd(model.inner, num_cons, val)
+        KNITRO.@_checked KNITRO.KN_set_con_eqbnd(model, num_cons, val)
     elseif isa(set, MOI.Interval{Float64})
         lb = _clamp_inf(set.lower)
         ub = _clamp_inf(set.upper)
-        KNITRO.@_checked KNITRO.KN_set_con_lobnd(model.inner, num_cons, lb)
-        KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, num_cons, ub)
+        KNITRO.@_checked KNITRO.KN_set_con_lobnd(model, num_cons, lb)
+        KNITRO.@_checked KNITRO.KN_set_con_upbnd(model, num_cons, ub)
     end
     nnz, columns, coefficients = _canonical_linear_reduction(func)
     KNITRO.@_checked(
-        KNITRO.KN_add_con_linear_struct_one(
-            model.inner,
-            nnz,
-            num_cons,
-            columns,
-            coefficients,
-        ),
+        KNITRO.KN_add_con_linear_struct_one(model, nnz, num_cons, columns, coefficients),
     )
     nnz, I, J, V = _canonical_quadratic_reduction(func)
-    KNITRO.@_checked KNITRO.KN_add_con_quadratic_struct_one(
-        model.inner,
-        nnz,
-        num_cons,
-        I,
-        J,
-        V,
-    )
+    KNITRO.@_checked KNITRO.KN_add_con_quadratic_struct_one(model, nnz, num_cons, I, J, V)
     ci = MOI.ConstraintIndex{typeof(func),typeof(set)}(num_cons)
     model.constraint_mapping[ci] = num_cons
     return ci
@@ -909,7 +884,7 @@ function MOI.set(
 )
     start = convert(Cdouble, something(value, 0.0))
     indexCons = KNITRO.KNINT[ci.value]
-    KNITRO.@_checked KNITRO.KN_set_con_dual_init_values(model.inner, 1, indexCons, [start])
+    KNITRO.@_checked KNITRO.KN_set_con_dual_init_values(model, 1, indexCons, [start])
     return
 end
 
@@ -932,7 +907,7 @@ function MOI.add_constraint(
 )
     _throw_if_solved(model, func, set)
     p = Ref{Cint}(0)
-    KNITRO.@_checked KNITRO.KN_add_con(model.inner, p)
+    KNITRO.@_checked KNITRO.KN_add_con(model, p)
     index_con = p[]
     rows, columns, coefficients = _canonical_vector_affine_reduction(func)
     # Distinct two parts of secondordercone.
@@ -940,9 +915,9 @@ function MOI.add_constraint(
     linear_row_indices = rows .== 0
     cone_indices = .!(linear_row_indices)
     ## i) linear part
-    KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, index_con, func.constants[1])
+    KNITRO.@_checked KNITRO.KN_set_con_upbnd(model, index_con, func.constants[1])
     KNITRO.@_checked KNITRO.KN_add_con_linear_struct_one(
-        model.inner,
+        model,
         sum(linear_row_indices),
         index_con,
         columns[linear_row_indices],
@@ -952,7 +927,7 @@ function MOI.add_constraint(
     index_var_cone = columns[cone_indices]
     nnz = length(index_var_cone)
     KNITRO.@_checked KNITRO.KN_add_con_L2norm(
-        model.inner,
+        model,
         index_con,
         set.dimension - 1,
         nnz,
@@ -988,12 +963,12 @@ function MOI.add_constraint(
     _throw_if_solved(model, func, set)
     # Add constraints inside KNITRO.
     p = Ref{Cint}(0)
-    KNITRO.@_checked KNITRO.KN_add_con(model.inner, p)
+    KNITRO.@_checked KNITRO.KN_add_con(model, p)
     index_con = p[]
     indv = _c_column.(func.variables)
-    KNITRO.@_checked KNITRO.KN_set_con_upbnd(model.inner, index_con, 0.0)
+    KNITRO.@_checked KNITRO.KN_set_con_upbnd(model, index_con, 0.0)
     KNITRO.@_checked KNITRO.KN_add_con_linear_struct_one(
-        model.inner,
+        model,
         1,
         index_con,
         [indv[1]],
@@ -1005,7 +980,7 @@ function MOI.add_constraint(
     coefs = ones(Float64, nnz)
     constants = zeros(Float64, nnz)
     KNITRO.@_checked KNITRO.KN_add_con_L2norm(
-        model.inner,
+        model,
         index_con,
         nnz,
         nnz,
@@ -1099,7 +1074,7 @@ MOI.supports(::Optimizer, ::MOI.NLPBlockDualStart) = true
 
 function MOI.set(model::Optimizer, ::MOI.NLPBlockDualStart, values)
     KNITRO.@_checked KNITRO.KN_set_con_dual_init_values(
-        model.inner,
+        model,
         length(model.nlp_index_cons),
         model.nlp_index_cons,
         values,
@@ -1117,9 +1092,9 @@ function MOI.set(model::Optimizer, attr::MOI.ObjectiveSense, sense::MOI.Optimiza
     _throw_if_solved(model, attr)
     model.sense = sense
     if model.sense == MOI.MAX_SENSE
-        KNITRO.@_checked KNITRO.KN_set_obj_goal(model.inner, KNITRO.KN_OBJGOAL_MAXIMIZE)
+        KNITRO.@_checked KNITRO.KN_set_obj_goal(model, KNITRO.KN_OBJGOAL_MAXIMIZE)
     elseif model.sense == MOI.MIN_SENSE
-        KNITRO.@_checked KNITRO.KN_set_obj_goal(model.inner, KNITRO.KN_OBJGOAL_MINIMIZE)
+        KNITRO.@_checked KNITRO.KN_set_obj_goal(model, KNITRO.KN_OBJGOAL_MINIMIZE)
     end
     return
 end
@@ -1142,34 +1117,24 @@ end
 
 function _add_objective(model::Optimizer, f::MOI.ScalarQuadraticFunction)
     nnz, I, J, V = _canonical_quadratic_reduction(f)
-    KNITRO.@_checked KNITRO.KN_add_obj_quadratic_struct(model.inner, nnz, I, J, V)
+    KNITRO.@_checked KNITRO.KN_add_obj_quadratic_struct(model, nnz, I, J, V)
     nnz, columns, coefficients = _canonical_linear_reduction(f)
-    KNITRO.@_checked KNITRO.KN_add_obj_linear_struct(
-        model.inner,
-        nnz,
-        columns,
-        coefficients,
-    )
-    KNITRO.@_checked KNITRO.KN_add_obj_constant(model.inner, f.constant)
+    KNITRO.@_checked KNITRO.KN_add_obj_linear_struct(model, nnz, columns, coefficients)
+    KNITRO.@_checked KNITRO.KN_add_obj_constant(model, f.constant)
     model.objective = nothing
     return
 end
 
 function _add_objective(model::Optimizer, f::MOI.ScalarAffineFunction)
     nnz, columns, coefficients = _canonical_linear_reduction(f)
-    KNITRO.@_checked KNITRO.KN_add_obj_linear_struct(
-        model.inner,
-        nnz,
-        columns,
-        coefficients,
-    )
-    KNITRO.@_checked KNITRO.KN_add_obj_constant(model.inner, f.constant)
+    KNITRO.@_checked KNITRO.KN_add_obj_linear_struct(model, nnz, columns, coefficients)
+    KNITRO.@_checked KNITRO.KN_add_obj_constant(model, f.constant)
     model.objective = nothing
     return
 end
 
 function _add_objective(model::Optimizer, f::MOI.VariableIndex)
-    KNITRO.@_checked KNITRO.KN_add_obj_linear_struct(model.inner, 1, [_c_column(f)], [1.0])
+    KNITRO.@_checked KNITRO.KN_add_obj_linear_struct(model, 1, [_c_column(f)], [1.0])
     model.objective = nothing
     return
 end
@@ -1213,11 +1178,11 @@ end
 # MOI.optimize!
 
 function MOI.optimize!(model::Optimizer)
-    KNITRO.@_checked KNITRO.KN_set_int_param_by_name(model.inner, "datacheck", 0)
-    KNITRO.@_checked KNITRO.KN_set_int_param_by_name(model.inner, "hessian_no_f", 1)
+    KNITRO.@_checked KNITRO.KN_set_int_param_by_name(model, "datacheck", 0)
+    KNITRO.@_checked KNITRO.KN_set_int_param_by_name(model, "hessian_no_f", 1)
     if _has_complementarity(model.complementarity_cache)
         KNITRO.@_checked KNITRO.KN_set_compcons(
-            model.inner,
+            model,
             length(model.complementarity_cache.cc_types),
             model.complementarity_cache.cc_types,
             model.complementarity_cache.index_comps_1,
@@ -1251,26 +1216,18 @@ function MOI.optimize!(model::Optimizer)
         MOI.initialize(model.nlp_data.evaluator, init_feat)
         # Load NLP structure inside Knitro.
         p = Ref{Cint}(0)
-        KNITRO.@_checked KNITRO.KN_get_number_cons(model.inner, p)
+        KNITRO.@_checked KNITRO.KN_get_number_cons(model, p)
         offset = p[]
         num_nlp_constraints = length(model.nlp_data.constraint_bounds)
         if num_nlp_constraints > 0
             nlp_rows = model.nlp_index_cons = zeros(Cint, num_nlp_constraints)
-            KNITRO.@_checked KNITRO.KN_add_cons(model.inner, num_nlp_constraints, nlp_rows)
+            KNITRO.@_checked KNITRO.KN_add_cons(model, num_nlp_constraints, nlp_rows)
             for (row, pair) in zip(nlp_rows, model.nlp_data.constraint_bounds)
-                KNITRO.@_checked KNITRO.KN_set_con_upbnd(
-                    model.inner,
-                    row,
-                    _clamp_inf(pair.upper),
-                )
-                KNITRO.@_checked KNITRO.KN_set_con_lobnd(
-                    model.inner,
-                    row,
-                    _clamp_inf(pair.lower),
-                )
+                KNITRO.@_checked KNITRO.KN_set_con_upbnd(model, row, _clamp_inf(pair.upper))
+                KNITRO.@_checked KNITRO.KN_set_con_lobnd(model, row, _clamp_inf(pair.lower))
             end
         end
-        KNITRO.@_checked KNITRO.KN_get_number_cons(model.inner, p)
+        KNITRO.@_checked KNITRO.KN_get_number_cons(model, p)
         num_cons = p[]
         # 1/ Definition of the callbacks
         # Objective callback (used both for objective and constraint evaluation).
@@ -1399,7 +1356,7 @@ function MOI.optimize!(model::Optimizer)
             KNITRO.@_checked KNITRO.KN_set_cb_hess(model.inner, cb, 0, eval_hv_cb)
             # Specify to Knitro that we are using Hessian-vector product.
             KNITRO.@_checked KNITRO.KN_set_int_param(
-                model.inner,
+                model,
                 KNITRO.KN_PARAM_HESSOPT,
                 KNITRO.KN_HESSOPT_PRODUCT,
             )
@@ -1416,7 +1373,7 @@ end
 
 function MOI.get(model::Optimizer, ::MOI.RawStatusString)
     statusP, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
-    KNITRO.@_checked KNITRO.KN_get_solution(model.inner, statusP, obj, C_NULL, C_NULL)
+    KNITRO.@_checked KNITRO.KN_get_solution(model, statusP, obj, C_NULL, C_NULL)
     return string(statusP[])
 end
 
@@ -1467,7 +1424,7 @@ function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
         return MOI.OPTIMIZE_NOT_CALLED
     end
     statusP, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
-    KNITRO.@_checked KNITRO.KN_get_solution(model.inner, statusP, obj, C_NULL, C_NULL)
+    KNITRO.@_checked KNITRO.KN_get_solution(model, statusP, obj, C_NULL, C_NULL)
     return get(_KN_TO_MOI_RETURN_STATUS, statusP[], MOI.OTHER_ERROR)
 end
 
@@ -1498,7 +1455,7 @@ function MOI.get(model::Optimizer, attr::MOI.PrimalStatus)
         return MOI.NO_SOLUTION
     end
     statusP, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
-    KNITRO.@_checked KNITRO.KN_get_solution(model.inner, statusP, obj, C_NULL, C_NULL)
+    KNITRO.@_checked KNITRO.KN_get_solution(model, statusP, obj, C_NULL, C_NULL)
     return _status_to_primal_status_code(statusP[])
 end
 
@@ -1523,24 +1480,24 @@ function MOI.get(model::Optimizer, attr::MOI.DualStatus)
         return MOI.NO_SOLUTION
     end
     statusP, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
-    KNITRO.@_checked KNITRO.KN_get_solution(model.inner, statusP, obj, C_NULL, C_NULL)
+    KNITRO.@_checked KNITRO.KN_get_solution(model, statusP, obj, C_NULL, C_NULL)
     return _status_to_dual_status_code(statusP[])
 end
 
 function MOI.get(model::Optimizer, attr::MOI.ObjectiveValue)
     MOI.check_result_index_bounds(model, attr)
     status, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
-    KNITRO.@_checked KNITRO.KN_get_solution(model.inner, status, obj, C_NULL, C_NULL)
+    KNITRO.@_checked KNITRO.KN_get_solution(model, status, obj, C_NULL, C_NULL)
     return obj[]
 end
 
 function _get_solution(model::Optimizer, index::Integer)
     if isempty(model.x)
         p = Ref{Cint}(0)
-        KNITRO.@_checked KNITRO.KN_get_number_vars(model.inner, p)
+        KNITRO.@_checked KNITRO.KN_get_number_vars(model, p)
         model.x = zeros(Cdouble, p[])
         status, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
-        KNITRO.@_checked KNITRO.KN_get_solution(model.inner, status, obj, model.x, C_NULL)
+        KNITRO.@_checked KNITRO.KN_get_solution(model, status, obj, model.x, C_NULL)
     end
     return model.x[index]
 end
@@ -1548,17 +1505,11 @@ end
 function _get_dual(model::Optimizer, index::Integer)
     if isempty(model.lambda)
         nx, nc = Ref{Cint}(0), Ref{Cint}(0)
-        KNITRO.@_checked KNITRO.KN_get_number_vars(model.inner, nx)
-        KNITRO.@_checked KNITRO.KN_get_number_cons(model.inner, nc)
+        KNITRO.@_checked KNITRO.KN_get_number_vars(model, nx)
+        KNITRO.@_checked KNITRO.KN_get_number_cons(model, nc)
         model.lambda = zeros(Cdouble, nx[] + nc[])
         status, obj = Ref{Cint}(0), Ref{Cdouble}(0.0)
-        KNITRO.@_checked KNITRO.KN_get_solution(
-            model.inner,
-            status,
-            obj,
-            C_NULL,
-            model.lambda,
-        )
+        KNITRO.@_checked KNITRO.KN_get_solution(model, status, obj, C_NULL, model.lambda)
     end
     return model.lambda[index]
 end
@@ -1588,7 +1539,7 @@ end
 #     MOI.throw_if_not_valid(model, ci)
 #     indexCon = model.constraint_mapping[ci]
 #     p = Ref{Cdouble}(NaN)
-#     KNITRO.@_checked KNITRO.KN_get_con_value(model.inner, indexCon, p)
+#     KNITRO.@_checked KNITRO.KN_get_con_value(model, indexCon, p)
 #     return p[]
 # end
 
@@ -1661,7 +1612,7 @@ function _reduced_cost(
     x = MOI.VariableIndex(ci.value)
     MOI.throw_if_not_valid(model, x)
     p = Ref{Cint}()
-    KNITRO.@_checked KNITRO.KN_get_number_cons(model.inner, p)
+    KNITRO.@_checked KNITRO.KN_get_number_cons(model, p)
     return _sense_dual(model) * _get_dual(model, x.value + p[])
 end
 
@@ -1699,32 +1650,32 @@ end
 function MOI.get(model::Optimizer, ::MOI.SolveTimeSec)
     p = Ref{Cdouble}(NaN)
     if KNITRO.knitro_version() >= v"12.0"
-        KNITRO.@_checked KNITRO.KN_get_solve_time_cpu(model.inner, p)
+        KNITRO.@_checked KNITRO.KN_get_solve_time_cpu(model, p)
     end
     return p[]
 end
 
 function MOI.get(model::Optimizer, ::MOI.NodeCount)::Int64
     p = Ref{Cint}(0)
-    KNITRO.@_checked KNITRO.KN_get_mip_number_nodes(model.inner, p)
+    KNITRO.@_checked KNITRO.KN_get_mip_number_nodes(model, p)
     return p[]
 end
 
 function MOI.get(model::Optimizer, ::MOI.BarrierIterations)::Int64
     p = Ref{Cint}(0)
-    KNITRO.@_checked KNITRO.KN_get_number_iters(model.inner, p)
+    KNITRO.@_checked KNITRO.KN_get_number_iters(model, p)
     return p[]
 end
 
 function MOI.get(model::Optimizer, ::MOI.RelativeGap)
     p = Ref{Cdouble}(NaN)
-    KNITRO.@_checked KNITRO.KN_get_mip_rel_gap(model.inner, p)
+    KNITRO.@_checked KNITRO.KN_get_mip_rel_gap(model, p)
     return p[]
 end
 
 function MOI.get(model::Optimizer, ::MOI.ObjectiveBound)
     p = Ref{Cdouble}(NaN)
-    KNITRO.@_checked KNITRO.KN_get_mip_relaxation_bnd(model.inner, p)
+    KNITRO.@_checked KNITRO.KN_get_mip_relaxation_bnd(model, p)
     return p[]
 end
 
