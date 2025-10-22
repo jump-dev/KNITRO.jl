@@ -137,17 +137,15 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     time_limit_sec::Union{Nothing,Float64}
 end
 
+_KN_new(::Nothing) = KNITRO.KN_new()
+_KN_new(lm::KNITRO.LMcontext) = KNITRO.KN_new_lm(lm)
+
 function Optimizer(; license_manager::Union{KNITRO.LMcontext,Nothing}=nothing, kwargs...)
     if !isempty(kwargs)
         error("Unsupported keyword arguments passed to `Optimizer`. Set attributes instead")
     end
-    kc = if isa(license_manager, KNITRO.LMcontext)
-        KNITRO.KN_new_lm(license_manager)
-    else
-        KNITRO.KN_new()
-    end
     return Optimizer(
-        kc,
+        _KN_new(license_manager),
         _VariableInfo[],
         0,
         false,
@@ -180,11 +178,7 @@ end
 
 function MOI.empty!(model::Optimizer)
     KNITRO.@_checked KNITRO.KN_free(model.inner)
-    model.inner = if isa(model.license_manager, KNITRO.LMcontext)
-        KNITRO.KN_new_lm(model.license_manager)
-    else
-        KNITRO.KN_new()
-    end
+    model.inner = _KN_new(model.license_manager)
     empty!(model.variable_info)
     model.number_solved = 0
     model.nlp_data = nothing
