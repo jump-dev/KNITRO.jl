@@ -202,10 +202,10 @@ end
 mutable struct EvalRequest
     evalRequestCode::Cint
     threadID::Cint
-    x::Array{Float64}
-    lambda::Array{Float64}
+    x::Vector{Float64}
+    lambda::Vector{Float64}
     sigma::Float64
-    vec::Array{Float64}
+    vec::Vector{Float64}
 
     function EvalRequest(::Ptr{Cvoid}, request::KN_eval_request, n::Int, m::Int)
         return new(
@@ -220,14 +220,14 @@ mutable struct EvalRequest
 end
 
 mutable struct EvalResult
-    obj::Array{Float64}
-    c::Array{Float64}
-    objGrad::Array{Float64}
-    jac::Array{Float64}
-    hess::Array{Float64}
-    hessVec::Array{Float64}
-    rsd::Array{Float64}
-    rsdJac::Array{Float64}
+    obj::Vector{Float64}
+    c::Vector{Float64}
+    objGrad::Vector{Float64}
+    jac::Vector{Float64}
+    hess::Vector{Float64}
+    hessVec::Vector{Float64}
+    rsd::Vector{Float64}
+    rsdJac::Vector{Float64}
 
     function EvalResult(
         kc::Ptr{Cvoid},
