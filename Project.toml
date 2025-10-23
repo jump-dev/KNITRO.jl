@@ -16,7 +16,7 @@ KNITROMathOptInterfaceExt = ["MathOptInterface"]
 [compat]
 KNITRO_jll = "15.0.1"
 Libdl = "1"
-MathOptInterface = "1.17"
+MathOptInterface = "1.46"
 Printf = "1"
 SparseArrays = "1"
 Test = "1"

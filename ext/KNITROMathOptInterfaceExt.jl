@@ -102,6 +102,20 @@ function _add_complementarity_constraint!(
     return
 end
 
+mutable struct _VectorNonlinearOracleCache
+    set::MOI.VectorNonlinearOracle{Float64}
+    x::Vector{Float64}
+    eval_f_timer::Float64
+    eval_jacobian_timer::Float64
+    eval_hessian_lagrangian_timer::Float64
+
+    function _VectorNonlinearOracleCache(
+        set::MOI.VectorNonlinearOracle{Float64},
+    )
+        return new(set, zeros(set.input_dimension), 0.0, 0.0, 0.0)
+    end
+end
+
 mutable struct Optimizer <: MOI.AbstractOptimizer
     inner::KNITRO.Model
     # We only keep in memory some information about variables
@@ -127,6 +141,9 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     }
     # Complementarity cache
     complementarity_cache::_ComplementarityCache
+    vector_nonlinear_oracle_constraints::Vector{
+        Tuple{MOI.VectorOfVariables,_VectorNonlinearOracleCache},
+    }
     # Constraint mappings.
     constraint_mapping::Dict{MOI.ConstraintIndex,Union{Cint,Vector{Cint}}}
     license_manager::Union{KNITRO.LMcontext,Nothing}
@@ -155,6 +172,7 @@ function Optimizer(; license_manager::Union{KNITRO.LMcontext,Nothing}=nothing, k
         MOI.FEASIBILITY_SENSE,
         nothing,
         _ComplementarityCache(),
+        Tuple{MOI.VectorOfVariables,_VectorNonlinearOracleCache}[],
         Dict{MOI.ConstraintIndex,Union{Cint,Vector{Cint}}}(),
         license_manager,
         Dict{String,Any}(),
@@ -194,6 +212,7 @@ function MOI.empty!(model::Optimizer)
     model.sense = MOI.FEASIBILITY_SENSE
     model.objective = nothing
     model.complementarity_cache = _ComplementarityCache()
+    empty!(model.vector_nonlinear_oracle_constraints)
     model.constraint_mapping = Dict()
     model.license_manager = model.license_manager
     for (name, value) in model.options
@@ -213,6 +232,7 @@ function MOI.is_empty(model::Optimizer)
            model.number_solved == 0 &&
            isa(model.objective, Nothing) &&
            !_has_complementarity(model.complementarity_cache) &&
+           isempty(model.vector_nonlinear_oracle_constraints) &&
            !model.nlp_loaded
 end
 
@@ -465,6 +485,9 @@ function MOI.get(model::Optimizer, ::MOI.ListOfConstraintTypesPresent)
         if !((F, S) in ret)
             push!(ret, (F, S))
         end
+    end
+    if !isempty(model.vector_nonlinear_oracle_constraints)
+        push!(ret, (MOI.VectorOfVariables, MOI.VectorNonlinearOracle{Float64}))
     end
     return ret
 end
@@ -1056,6 +1079,99 @@ function MOI.add_constraint(
     return ci
 end
 
+### MOI.VectorOfVariables in MOI.VectorNonlinearOracle{Float64}
+
+function MOI.supports_constraint(
+    ::Optimizer,
+    ::Type{MOI.VectorOfVariables},
+    ::Type{MOI.VectorNonlinearOracle{Float64}},
+)
+    return true
+end
+
+function MOI.is_valid(
+    model::Optimizer,
+    ci::MOI.ConstraintIndex{
+        MOI.VectorOfVariables,
+        MOI.VectorNonlinearOracle{Float64},
+    },
+)
+    return 1 <= ci.value <= length(model.vector_nonlinear_oracle_constraints)
+end
+
+function MOI.get(
+    model::Optimizer,
+    attr::MOI.ListOfConstraintIndices{F,S},
+) where {F<:MOI.VectorOfVariables,S<:MOI.VectorNonlinearOracle{Float64}}
+    n = length(model.vector_nonlinear_oracle_constraints)
+    return MOI.ConstraintIndex{F,S}.(1:n)
+end
+
+function MOI.get(
+    model::Optimizer,
+    attr::MOI.NumberOfConstraints{F,S},
+) where {F<:MOI.VectorOfVariables,S<:MOI.VectorNonlinearOracle{Float64}}
+    return length(model.vector_nonlinear_oracle_constraints)
+end
+
+function MOI.add_constraint(
+    model::Optimizer,
+    f::F,
+    s::S,
+) where {F<:MOI.VectorOfVariables,S<:MOI.VectorNonlinearOracle{Float64}}
+    cache = _VectorNonlinearOracleCache(s)
+    push!(model.vector_nonlinear_oracle_constraints, (f, cache))
+    n = length(model.vector_nonlinear_oracle_constraints)
+    return MOI.ConstraintIndex{F,S}(n)
+end
+
+# function row(
+#     model::Optimizer,
+#     ci::MOI.ConstraintIndex{F,S},
+# ) where {F<:MOI.VectorOfVariables,S<:MOI.VectorNonlinearOracle{Float64}}
+#     offset = length(model.qp_data)
+#     for i in 1:(ci.value-1)
+#         _, s = model.vector_nonlinear_oracle_constraints[i]
+#         offset += s.set.output_dimension
+#     end
+#     _, s = model.vector_nonlinear_oracle_constraints[ci.value]
+#     return offset .+ (1:s.set.output_dimension)
+# end
+
+function MOI.get(
+    model::Optimizer,
+    attr::MOI.ConstraintPrimal,
+    ci::MOI.ConstraintIndex{F,S},
+) where {F<:MOI.VectorOfVariables,S<:MOI.VectorNonlinearOracle{Float64}}
+    MOI.check_result_index_bounds(model, attr)
+    MOI.throw_if_not_valid(model, ci)
+    f, _ = model.vector_nonlinear_oracle_constraints[ci.value]
+    return MOI.get.(model, MOI.VariablePrimal(attr.result_index), f.variables)
+end
+
+# function MOI.get(
+#     model::Optimizer,
+#     attr::MOI.ConstraintDual,
+#     ci::MOI.ConstraintIndex{F,S},
+# ) where {F<:MOI.VectorOfVariables,S<:MOI.VectorNonlinearOracle{Float64}}
+#     MOI.check_result_index_bounds(model, attr)
+#     MOI.throw_if_not_valid(model, ci)
+#     sign = -_dual_multiplier(model)
+#     f, s = model.vector_nonlinear_oracle_constraints[ci.value]
+#     λ = model.inner.mult_g[row(model, ci)]
+#     J = Tuple{Int,Int}[]
+#     _jacobian_structure(J, 0, f, s)
+#     J_val = zeros(length(J))
+#     _eval_constraint_jacobian(J_val, 0, model.inner.x, f, s)
+#     dual = zeros(MOI.dimension(s.set))
+#     # dual = λ' * J(x)
+#     col_to_index = Dict(x.value => j for (j, x) in enumerate(f.variables))
+#     for ((row, col), J_rc) in zip(J, J_val)
+#         dual[col_to_index[col]] += sign * J_rc * λ[row]
+#     end
+#     return dual
+# end
+
 # MOI.NLPBlock
 
 MOI.supports(::Optimizer, ::MOI.NLPBlock) = true
@@ -1114,6 +1230,10 @@ function MOI.supports(
 )
     return true
 end
+
+_add_objective(::Optimizer, ::Nothing) = nothing
+# Handled separately
+_add_objective(::Optimizer, ::MOI.ScalarNonlinearFunction) = nothing
 
 function _add_objective(model::Optimizer, f::MOI.ScalarQuadraticFunction)
     nnz, I, J, V = _canonical_quadratic_reduction(f)
@@ -1177,9 +1297,7 @@ end
 
 # MOI.optimize!
 
-function MOI.optimize!(model::Optimizer)
-    KNITRO.@_checked KNITRO.KN_set_int_param_by_name(model, "datacheck", 0)
-    KNITRO.@_checked KNITRO.KN_set_int_param_by_name(model, "hessian_no_f", 1)
+function _setup_complementarity(model::Optimizer)
     if _has_complementarity(model.complementarity_cache)
         KNITRO.@_checked KNITRO.KN_set_compcons(
             model,
@@ -1189,11 +1307,26 @@ function MOI.optimize!(model::Optimizer)
             model.complementarity_cache.index_comps_2,
         )
     end
-    if !MOI.is_empty(model.nlp_model) && !model.nlp_loaded
-        vars = MOI.get(model, MOI.ListOfVariableIndices())
-        backend = MOI.Nonlinear.SparseReverseMode()
-        evaluator = MOI.Nonlinear.Evaluator(model.nlp_model, backend, vars)
-        model.nlp_data = MOI.NLPBlockData(evaluator)
+    return
+end
+
+function _setup_nlpmodel(model::Optimizer)
+    if MOI.is_empty(model.nlp_model)
+        return
+    end
+    vars = MOI.get(model, MOI.ListOfVariableIndices())
+    backend = MOI.Nonlinear.SparseReverseMode()
+    evaluator = MOI.Nonlinear.Evaluator(model.nlp_model, backend, vars)
+    model.nlp_data = MOI.NLPBlockData(evaluator)
+    return
+end
+
+function MOI.optimize!(model::Optimizer)
+    KNITRO.@_checked KNITRO.KN_set_int_param_by_name(model, "datacheck", 0)
+    KNITRO.@_checked KNITRO.KN_set_int_param_by_name(model, "hessian_no_f", 1)
+    _setup_complementarity(model)
+    if !model.nlp_loaded
+        _setup_nlpmodel(model)
     end
     if model.nlp_data !== nothing && !model.nlp_loaded
         features = MOI.features_available(model.nlp_data.evaluator)::Vector{Symbol}
@@ -1282,7 +1415,7 @@ function MOI.optimize!(model::Optimizer)
             cb = KNITRO.KN_add_objective_callback(model.inner, eval_f_cb)
         end
         # If a objective is specified in model.objective, load it.
-        if !has_nlp_objective && !isnothing(model.objective)
+        if !has_nlp_objective
             _add_objective(model, model.objective)
         end
         # 2.2/ Gradient & Jacobian
@@ -1362,8 +1495,7 @@ function MOI.optimize!(model::Optimizer)
             )
         end
         model.nlp_loaded = true
-    elseif !isa(model.objective, Nothing) &&
-           !isa(model.objective, MOI.ScalarNonlinearFunction)
+    else
         _add_objective(model, model.objective)
     end
     KNITRO.KN_solve(model.inner)
