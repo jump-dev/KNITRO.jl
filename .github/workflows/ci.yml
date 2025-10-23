@@ -10,7 +10,7 @@ permissions:
   contents: read
 jobs:
   test:
-    name: Julia ${{ matrix.version }}-${{ matrix.os }}-${{ matrix.arch }}-JLL:${{ matrix.KNITRO_JL_USE_KNITRO_JLL }}
+    name: Julia ${{ matrix.version }}-${{ matrix.os }}-${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
