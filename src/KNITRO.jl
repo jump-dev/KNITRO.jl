@@ -15,16 +15,14 @@ const _DEPS_FILE = joinpath(dirname(@__FILE__), "..", "deps", "deps.jl")
 if isfile(_DEPS_FILE)
     include(_DEPS_FILE)
 else
-    error(
-        """
-        KNITRO.jl is not installed correctly. Please run the following code and
-        then restart Julia:
-        ```
-        import Pkg
-        Pkg.build("KNITRO")
-        ```
-        """,
-    )
+    error("""
+          KNITRO.jl is not installed correctly. Please run the following code and
+          then restart Julia:
+          ```
+          import Pkg
+          Pkg.build("KNITRO")
+          ```
+          """)
 end
 
 @static if isdefined(@__MODULE__, :libknitro)
@@ -44,9 +42,9 @@ else
         import KNITRO_jll: libknitro
     else
         error(
-        "Unsupported platform: Use a manual installation by setting " *
-        "`KNITRO_JL_USE_KNITRO_JLL` to false. See the README for details.",
-    )
+            "Unsupported platform: Use a manual installation by setting " *
+            "`KNITRO_JL_USE_KNITRO_JLL` to false. See the README for details.",
+        )
     end
 end
 
