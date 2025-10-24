@@ -189,11 +189,7 @@ function example_tuner(; verbose=true)
         println(
             "Force Knitro multistart to run in parallel with 1 threads (instead of $nThreads).",
         )
-        if KNITRO.knitro_version() >= v"13.0"
-            KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_NUMTHREADS, 1)
-        else
-            KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_PAR_NUMTHREADS, 1)
-        end
+        KNITRO.KN_set_int_param(kc, KNITRO.KN_PARAM_NUMTHREADS, 1)
     end
 
     # Solve the problem.

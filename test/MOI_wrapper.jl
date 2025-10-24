@@ -296,11 +296,7 @@ function test_RawOptimizerParameter_tuner_file()
     @test MOI.supports(model, MOI.RawOptimizerAttribute("tuner_file"))
     dir = mktempdir()
     filename = joinpath(dir, "tuner_file")
-    if KNITRO.knitro_version() >= v"15"
-        write(filename, "nlp_algorithm")
-    else
-        write(filename, "algorithm")
-    end
+    write(filename, "nlp_algorithm")
     MOI.set(model, MOI.RawOptimizerAttribute("tuner_file"), filename)
     return
 end
