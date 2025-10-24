@@ -304,8 +304,4 @@ function example_nlp2resolve(; verbose=true)
     return KNITRO.KN_free(kc)
 end
 
-if KNITRO.knitro_version() >= v"12.4"
-    example_nlp2resolve(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)
-else
-    println("Example `nlp2resolve.jl` is only available with Knitro >= 12.4")
-end
+example_nlp2resolve(; verbose=isdefined(Main, :KN_VERBOSE) ? KN_VERBOSE : true)

@@ -95,35 +95,33 @@ function callback(name)
     return callbackFn
 end
 
-if KNITRO.knitro_version() >= v"12.1"
-    @testset "MPS reader/writer" begin
-        mps_name = joinpath(dirname(@__FILE__), "lp.mps")
-        mps_name_out = joinpath(dirname(@__FILE__), "lp2.mps")
-        open(mps_name, "w") do io
-            return write(io, MPS_PROBLEM)
-        end
-        kc = KN_new()
-        KN_load_mps_file(kc, mps_name)
-        KN_set_int_param_by_name(kc, "outlev", 0)
-        KN_write_mps_file(kc, mps_name_out)
-        status = KN_solve(kc)
-        obj = Ref{Cdouble}(0.0)
-        KN_get_solution(kc, Ref{Cint}(), obj, C_NULL, C_NULL)
-        KN_free(kc)
-        @test status == 0
-        @test isapprox(obj[], 250.0 / 3.0, rtol=1e-6)
-
-        # Resolve with dumped MPS file
-        kc = KN_new()
-        KN_load_mps_file(kc, mps_name_out)
-        KN_set_int_param_by_name(kc, "outlev", 0)
-        status = KN_solve(kc)
-        obj = Ref{Cdouble}(0.0)
-        KN_get_solution(kc, Ref{Cint}(), obj, C_NULL, C_NULL)
-        KN_free(kc)
-        @test status == 0
-        @test isapprox(obj[], 250.0 / 3.0, rtol=1e-6)
+@testset "MPS reader/writer" begin
+    mps_name = joinpath(dirname(@__FILE__), "lp.mps")
+    mps_name_out = joinpath(dirname(@__FILE__), "lp2.mps")
+    open(mps_name, "w") do io
+        return write(io, MPS_PROBLEM)
     end
+    kc = KN_new()
+    KN_load_mps_file(kc, mps_name)
+    KN_set_int_param_by_name(kc, "outlev", 0)
+    KN_write_mps_file(kc, mps_name_out)
+    status = KN_solve(kc)
+    obj = Ref{Cdouble}(0.0)
+    KN_get_solution(kc, Ref{Cint}(), obj, C_NULL, C_NULL)
+    KN_free(kc)
+    @test status == 0
+    @test isapprox(obj[], 250.0 / 3.0, rtol=1e-6)
+
+    # Resolve with dumped MPS file
+    kc = KN_new()
+    KN_load_mps_file(kc, mps_name_out)
+    KN_set_int_param_by_name(kc, "outlev", 0)
+    status = KN_solve(kc)
+    obj = Ref{Cdouble}(0.0)
+    KN_get_solution(kc, Ref{Cint}(), obj, C_NULL, C_NULL)
+    KN_free(kc)
+    @test status == 0
+    @test isapprox(obj[], 250.0 / 3.0, rtol=1e-6)
 end
 
 @testset "First problem" begin
@@ -137,11 +135,7 @@ end
     options = joinpath(dirname(@__FILE__), "..", "examples", "test_knitro.opt")
     tuner1 = joinpath(dirname(@__FILE__), "..", "examples", "tuner-fixed.opt")
     tuner2 = joinpath(dirname(@__FILE__), "..", "examples", "tuner-explore.opt")
-    param_alg_name = if KNITRO.knitro_version() >= v"15"
-        "nlp_algorithm"
-    else
-        "algorithm"
-    end
+    param_alg_name = "nlp_algorithm"
     KN_set_int_param_by_name(kc, param_alg_name, 0)
     KN_set_char_param_by_name(kc, "cplexlibname", ".")
     KN_set_double_param_by_name(kc, "xtol", 1e-15)
@@ -164,9 +158,7 @@ end
     _to_string(x) = GC.@preserve(x, unsafe_string(pointer(x)))
     @test _to_string(tmp) == "xtol"
     KN_get_param_doc(kc, KN_PARAM_XTOL, tmp, 1024)
-    header = KNITRO.knitro_version() >= v"15" ? "" : "# "
-    @test _to_string(tmp) ==
-          "$(header)Step size tolerance used for terminating the optimization.\n"
+    @test _to_string(tmp) == "Step size tolerance used for terminating the optimization.\n"
     KN_get_param_type(kc, KN_PARAM_XTOL, pCint)
     @test pCint[] == KN_PARAMTYPE_FLOAT
     KN_get_num_param_values(kc, KN_PARAM_XTOL, pCint)
@@ -212,21 +204,19 @@ end
     KN_set_con_upbnds_all(kc, [2 * 2 * 0.99])
 
     # Test getters.
-    if KNITRO.knitro_version() >= v"12.0"
-        xindex = Cint[0, 1, 2]
-        ret = zeros(Cdouble, 3)
-        KN_get_var_lobnds(kc, 3, xindex, ret)
-        @test ret == [0, 0.1, 0]
-        KN_get_var_upbnds(kc, 3, xindex, ret)
-        @test ret == [0.0, 2, 2]
+    xindex = Cint[0, 1, 2]
+    ret = zeros(Cdouble, 3)
+    KN_get_var_lobnds(kc, 3, xindex, ret)
+    @test ret == [0, 0.1, 0]
+    KN_get_var_upbnds(kc, 3, xindex, ret)
+    @test ret == [0.0, 2, 2]
 
-        cindex = Cint[0]
-        ret = zeros(Cdouble, 1)
-        KN_get_con_lobnds(kc, 1, cindex, ret)
-        @test ret == [0.1]
-        KN_get_con_upbnds(kc, 1, cindex, ret)
-        @test ret == [2 * 2 * 0.99]
-    end
+    cindex = Cint[0]
+    ret = zeros(Cdouble, 1)
+    KN_get_con_lobnds(kc, 1, cindex, ret)
+    @test ret == [0.1]
+    KN_get_con_upbnds(kc, 1, cindex, ret)
+    @test ret == [2 * 2 * 0.99]
 
     # Load quadratic structure x1*x2 for the constraint.
     KN_add_con_quadratic_struct(kc, 1, Cint[0], Cint[1], Cint[2], [1.0])
@@ -298,17 +288,15 @@ end
     @test objSol ≈ 31.363 atol = 1e-3
 
     # Test getters for primal and dual variables
-    if KNITRO.knitro_version() >= v"12.0"
-        xopt = zeros(Cdouble, 3)
-        KN_get_var_primal_values(kc, 3, Cint[0, 1, 2], xopt)
-        @test xopt == x
-        rc = zeros(Cdouble, 3)
-        KN_get_var_dual_values(kc, 3, Cint[0, 1, 2], rc)
-        @test rc == lambda_[2:4]
-        dual = zeros(Cdouble, 1)
-        KN_get_con_dual_values(kc, 1, Cint[0], dual)
-        @test dual == [lambda_[1]]
-    end
+    xopt = zeros(Cdouble, 3)
+    KN_get_var_primal_values(kc, 3, Cint[0, 1, 2], xopt)
+    @test xopt == x
+    rc = zeros(Cdouble, 3)
+    KN_get_var_dual_values(kc, 3, Cint[0, 1, 2], rc)
+    @test rc == lambda_[2:4]
+    dual = zeros(Cdouble, 1)
+    KN_get_con_dual_values(kc, 1, Cint[0], dual)
+    @test dual == [lambda_[1]]
 
     KN_free(kc)
 end
@@ -692,9 +680,6 @@ end
 end
 
 @testset "Knitro violation information" begin
-    if KNITRO.knitro_version() < v"12.4"
-        return 0
-    end
     #*------------------------------------------------------------------*
     #*     FUNCTION callbackEvalFC                                      *
     #*------------------------------------------------------------------*
@@ -790,9 +775,6 @@ end
 end
 
 @testset "Knitro structural manipulation" begin
-    if KNITRO.knitro_version() < v"12.4"
-        return 0
-    end
     #*------------------------------------------------------------------*
     #*     FUNCTION callbackEvalFC                                      *
     #*------------------------------------------------------------------*

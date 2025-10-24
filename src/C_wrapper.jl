@@ -157,14 +157,9 @@ function KN_solve(model::Model)
     # as we have trouble calling Julia code from multithreaded C
     # code. See issue #93 on https://github.com/jump-dev/KNITRO.jl.
     if !isempty(model.callbacks)
-        if knitro_version() >= v"13.0"
-            @_checked KN_set_int_param(model, KN_PARAM_MS_NUMTHREADS, 1)
-            @_checked KN_set_int_param(model, KN_PARAM_NUMTHREADS, 1)
-            @_checked KN_set_int_param(model, KN_PARAM_MIP_NUMTHREADS, 1)
-        else
-            @_checked KN_set_int_param_by_name(model, "par_numthreads", 1)
-            @_checked KN_set_int_param_by_name(model, "par_msnumthreads", 1)
-        end
+        @_checked KN_set_int_param(model, KN_PARAM_MS_NUMTHREADS, 1)
+        @_checked KN_set_int_param(model, KN_PARAM_NUMTHREADS, 1)
+        @_checked KN_set_int_param(model, KN_PARAM_MIP_NUMTHREADS, 1)
     end
     # For KN_solve, we do not return an error if ret is different of 0.
     return KN_solve(model.env)
