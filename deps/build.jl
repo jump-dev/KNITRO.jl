@@ -46,20 +46,10 @@ function try_local_installation()
     return
 end
 
-function try_secret_installation()
-    local_filename = joinpath(@__DIR__, "libknitro.so")
-    download(ENV["SECRET_KNITRO_URL"], local_filename)
-    download(ENV["SECRET_KNITRO_LIBIOMP5"], joinpath(@__DIR__, "libiomp5.so"))
-    write_depsfile("", local_filename)
-    return
-end
-
 if get(ENV, "KNITRO_JL_USE_KNITRO_JLL", "true") == "true"
     open(DEPS_FILE, "w") do io
         return println(io, "# No libknitro constant; we're using the Artifact.")
     end
-elseif get(ENV, "SECRET_KNITRO_URL", "") != ""
-    try_secret_installation()
 else
     try_local_installation()
 end
