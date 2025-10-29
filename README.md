@@ -185,6 +185,7 @@ List of supported constraint types:
  * [`MOI.VectorAffineFunction{Float64}`](@ref) in [`MOI.SecondOrderCone`](@ref)
  * [`MOI.VectorOfVariables`](@ref) in [`MOI.Complements`](@ref)
  * [`MOI.VectorOfVariables`](@ref) in [`MOI.SecondOrderCone`](@ref)
+ * [`MOI.VectorOfVariables`](@ref) in [`MOI.VectorNonlinearOracle{Float64}`](@ref)
 
 List of supported model attributes:
 
