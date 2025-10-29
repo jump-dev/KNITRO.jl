@@ -1040,8 +1040,8 @@ function MOI.add_constraint(
     rows = zeros(Cint, s.output_dimension)
     KNITRO.@_checked KNITRO.KN_add_cons(model, s.output_dimension, rows)
     for (r, l, u) in zip(rows, s.l, s.u)
-        KNITRO.@_checked KNITRO.KN_set_con_upbnd(model, r, _clamp_inf(l))
-        KNITRO.@_checked KNITRO.KN_set_con_lobnd(model, r, _clamp_inf(u))
+        KNITRO.@_checked KNITRO.KN_set_con_lobnd(model, r, _clamp_inf(l))
+        KNITRO.@_checked KNITRO.KN_set_con_upbnd(model, r, _clamp_inf(u))
     end
     KNITRO.@_checked KNITRO.KN_get_number_cons(model, p)
     num_cons = p[]

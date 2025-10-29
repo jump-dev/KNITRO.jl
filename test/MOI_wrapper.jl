@@ -372,6 +372,28 @@ function test_complements_twice()
     return
 end
 
+function test_vector_nonlinear_oracle()
+    set = MOI.VectorNonlinearOracle(;
+        dimension=2,
+        l=[1.0, 3.0],
+        u=[2.0, 3.5],
+        eval_f=(ret, x) -> (ret .= x .^ 2),
+        jacobian_structure=[(1, 1), (2, 2)],
+        eval_jacobian=(ret, x) -> (ret .= 2 .* x),
+    )
+    model = KNITRO.Optimizer()
+    MOI.set(model, MOI.Silent(), true)
+    x = MOI.add_variables(model, 2)
+    MOI.add_constraint.(model, x, MOI.GreaterThan(0.0))
+    MOI.add_constraint(model, MOI.VectorOfVariables(x), set)
+    MOI.optimize!(model)
+    @test MOI.get(model, MOI.TerminationStatus()) == MOI.LOCALLY_SOLVED
+    x_sol = MOI.get(model, MOI.VariablePrimal(), x)
+    atol = 1e-6
+    @test all(set.l .- atol .<= x_sol .^ 2 .<= set.u .+ atol)
+    return
+end
+
 end
 
 TestMOIWrapper.runtests()
