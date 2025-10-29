@@ -103,6 +103,9 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     }
     # Constraint mappings.
     constraint_mapping::Dict{MOI.ConstraintIndex,Union{Cint,Vector{Cint}}}
+    vector_nonlinear_oracle_constraints::Vector{
+        Tuple{MOI.VectorOfVariables,MOI.VectorNonlinearOracle{Float64}},
+    }
     license_manager::Union{KNITRO.LMcontext,Nothing}
     options::Dict{String,Any}
     # Cache for the solution
@@ -129,6 +132,7 @@ function Optimizer(; license_manager::Union{KNITRO.LMcontext,Nothing}=nothing, k
         MOI.FEASIBILITY_SENSE,
         nothing,
         Dict{MOI.ConstraintIndex,Union{Cint,Vector{Cint}}}(),
+        Tuple{MOI.VectorOfVariables,MOI.VectorNonlinearOracle{Float64}}[],
         license_manager,
         Dict{String,Any}(),
         Float64[],
@@ -167,6 +171,7 @@ function MOI.empty!(model::Optimizer)
     model.sense = MOI.FEASIBILITY_SENSE
     model.objective = nothing
     model.constraint_mapping = Dict()
+    empty!(model.vector_nonlinear_oracle_constraints)
     model.license_manager = model.license_manager
     for (name, value) in model.options
         MOI.set(model, MOI.RawOptimizerAttribute(name), value)
@@ -184,6 +189,7 @@ function MOI.is_empty(model::Optimizer)
            model.sense == MOI.FEASIBILITY_SENSE &&
            model.number_solved == 0 &&
            model.objective === nothing &&
+           isempty(model.vector_nonlinear_oracle_constraints) &&
            !model.nlp_loaded
 end
 
@@ -1010,6 +1016,105 @@ function MOI.add_constraint(
     ci = MOI.ConstraintIndex{typeof(func),typeof(set)}(first(indexCompCon))
     model.constraint_mapping[ci] = indexCompCon
     return ci
+end
+
+# MOI.VectorOfVariables-in-MOI.VectorNonlinearOracle
+
+function MOI.supports_constraint(
+    ::Optimizer,
+    ::Type{MOI.VectorOfVariables},
+    ::Type{MOI.VectorNonlinearOracle{Float64}},
+)
+    return true
+end
+
+function MOI.add_constraint(
+    model::Optimizer,
+    f::MOI.VectorOfVariables,
+    s::MOI.VectorNonlinearOracle{Float64},
+)
+    _throw_if_solved(model, f, s)
+    p = Ref{Cint}(0)
+    KNITRO.@_checked KNITRO.KN_get_number_cons(model, p)
+    offset = p[]
+    rows = zeros(Cint, s.output_dimension)
+    KNITRO.@_checked KNITRO.KN_add_cons(model, s.output_dimension, rows)
+    for (r, l, u) in zip(rows, s.l, s.u)
+        KNITRO.@_checked KNITRO.KN_set_con_upbnd(model, r, _clamp_inf(l))
+        KNITRO.@_checked KNITRO.KN_set_con_lobnd(model, r, _clamp_inf(u))
+    end
+    KNITRO.@_checked KNITRO.KN_get_number_cons(model, p)
+    num_cons = p[]
+    tmp_x = zeros(Cdouble, s.input_dimension)
+    function eval_f_cb(::Any, ::Any, evalRequest, evalResult, ::Any)
+        for i in 1:s.input_dimension
+            tmp_x[i] = evalRequest.x[f.variables[i].value]
+        end
+        s.eval_f(evalResult.c, tmp_x)
+        return 0
+    end
+    function eval_grad_cb(::Any, ::Any, evalRequest, evalResult, ::Any)
+        for i in 1:s.input_dimension
+            tmp_x[i] = evalRequest.x[f.variables[i].value]
+        end
+        s.eval_jacobian(evalResult.jac, tmp_x)
+        return 0
+    end
+    cb = KNITRO.KN_add_eval_callback(model.inner, false, rows, eval_f_cb)
+    KNITRO.@_checked KNITRO.KN_set_cb_grad(
+        model.inner,
+        cb,
+        eval_grad_cb;
+        nV=Cint(0),
+        jacIndexCons=Cint[i - 1 + offset for (i, _) in s.jacobian_structure],
+        jacIndexVars=Cint[f.variables[j].value - 1 for (_, j) in s.jacobian_structure],
+    )
+    if s.eval_hessian_lagrangian !== nothing
+        function eval_h_cb(::Any, ::Any, evalRequest, evalResult, ::Any)
+            for i in 1:s.input_dimension
+                tmp_x[i] = evalRequest.x[f.variables[i].value]
+            end
+            @show evalRequest.lambda
+            lambda = view(evalRequest.lambda, (offset+1):num_cons)
+            s.eval_hessian_lagrangian(evalResult.hess, tmp_x, lambda)
+            return 0
+        end
+        I = Cint[f.variables[i].value - 1 for (i, _) in s.hessian_lagrangian_structure]
+        J = Cint[f.variables[j].value - 1 for (_, j) in s.hessian_lagrangian_structure]
+        KNITRO.@_checked KNITRO.KN_set_cb_hess(
+            model.inner,
+            cb,
+            length(s.hessian_lagrangian_structure),
+            eval_h_cb;
+            hessIndexVars1=I,
+            hessIndexVars2=J,
+        )
+    end
+    push!(model.vector_nonlinear_oracle_constraints, (f, s))
+    ci = MOI.ConstraintIndex{typeof(f),typeof(s)}(
+        length(model.vector_nonlinear_oracle_constraints),
+    )
+    model.constraint_mapping[ci] = rows
+    return ci
+end
+
+function MOI.get(
+    model::Optimizer,
+    attr::MOI.ConstraintDual,
+    ci::MOI.ConstraintIndex{MOI.VectorOfVariables,MOI.VectorNonlinearOracle{Float64}},
+)
+    MOI.check_result_index_bounds(model, attr)
+    MOI.throw_if_not_valid(model, ci)
+    f, s = model.vector_nonlinear_oracle_constraints[ci.value]
+    J = zeros(length(s.jacobian_structure))
+    x = [MOI.get(model, MOI.VariablePrimal(), xi) for xi in f.variables]
+    s.eval_jacobian(J, x)
+    λ = [_sense_dual(model) * _get_dual(model, r + 1) for r in model.constraint_mapping[ci]]
+    dual = zeros(MOI.dimension(s))
+    for ((row, col), J_rc) in zip(s.jacobian_structure, J)
+        dual[col] += λ[row] * J_rc
+    end
+    return dual
 end
 
 # MOI.NLPBlock
