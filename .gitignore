@@ -5,3 +5,6 @@ deps/artelys*
 deps/build.log
 test/*.mps
 deps/knitro*
+
+# VSCode settings
+.vscode/

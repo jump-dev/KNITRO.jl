@@ -130,7 +130,16 @@ model = Model(KNITROMathOptInterfaceExt.Optimizer)
 ## Use with AMPL
 
 To use KNITRO with [AmplNLWriter.jl](https://github.com/jump-dev/AmplNLWriter.jl),
-use `KNITRO.amplexe`:
+use `KNITRO_jll.knitroampl`:
+
+```julia
+using JuMP
+import AmplNLWriter
+import KNITRO_jll
+model = Model(() -> AmplNLWriter.Optimizer(KNITRO_jll.knitroampl, ["outlev=3"]))
+```
+
+However, if you have installed KNITRO manually (see above), you will need to use `KNITRO.amplexe` instead:
 
 ```julia
 using JuMP
