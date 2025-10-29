@@ -374,12 +374,12 @@ end
 
 function test_vector_nonlinear_oracle()
     set = MOI.VectorNonlinearOracle(;
-        dimension = 5,
-        l = [1.0, 3.0],
-        u = [2.0, 3.5],
-        eval_f = (ret, x) -> (ret .= x .^2),
-        jacobian_structure = [(1, 1), (2, 2)],
-        eval_jacobian = (ret, x) -> (ret .= 2 .* x),
+        dimension=2,
+        l=[1.0, 3.0],
+        u=[2.0, 3.5],
+        eval_f=(ret, x) -> (ret .= x .^2),
+        jacobian_structure=[(1, 1), (2, 2)],
+        eval_jacobian=(ret, x) -> (ret .= 2 .* x),
     )
     model = KNITRO.Optimizer()
     MOI.set(model, MOI.Silent(), true)
@@ -391,7 +391,7 @@ function test_vector_nonlinear_oracle()
     @test MOI.get(model, MOI.TerminationStatus()) == MOI.LOCALLY_SOLVED
     x_sol = MOI.get(model, MOI.VariablePrimal(), x)
     atol = 1e-6
-    @test all(set.l .- atol .<= x_sol.^2 .<= set.u .+ atol)
+    @test all(set.l .- atol .<= x_sol .^ 2 .<= set.u .+ atol)
     return
 end
 
