@@ -218,19 +218,6 @@ As general rules when converting from Julia to C:
 
 Extensive examples using the C wrapper can be found in `examples/`.
 
-### Breaking changes
-
-KNITRO.jl v0.14.0 introduced a number of breaking changes to the low-level C
-API. The main changes were:
-
-1) removing Julia-specific functions like `KN_set_param`. Use the C API functions
-   like `KN_set_int_param` and `KN_set_double_param_by_name`.
-2) removing intermediate methods that tried to make the C API more Julia-like.
-   For example, we have removed the `KN_add_var` method that returned the index of
-   the variable. There is now only the method from the C API.
-
-If you have trouble updating, please open a GitHub issue.
-
 ## Multi-threading
 
 Due to limitations in the interaction between Julia and C, KNITRO.jl disables
