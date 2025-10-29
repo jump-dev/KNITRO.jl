@@ -1005,6 +1005,6 @@ end
 @testset "knitroampl" begin
     @test occursin(
         "AMPL/Knitro",
-        sprint(io -> run(pipeline(`$(KNITRO.amplexe()) -v`; stdout = io))),
+        sprint(io -> run(pipeline(`$(KNITRO.amplexe()) -v`; stdout=io))),
     )
 end
