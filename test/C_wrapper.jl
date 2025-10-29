@@ -1001,3 +1001,10 @@ end
     KN_free(model)
     @test sprint(show, model) == "KNITRO Problem: NULL\n"
 end
+
+@testset "knitroampl" begin
+    @test occursin(
+        "AMPL/Knitro",
+        sprint(io -> run(pipeline(`$(KNITRO.amplexe()) -v`; stdout = io))),
+    )
+end
