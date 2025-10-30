@@ -21,8 +21,14 @@ function runtests()
     return
 end
 
+MOI_lm = KNITRO.LMcontext()
+
+function MOI_optimizer()
+    return KNITRO.Optimizer(; license_manager=MOI_lm)
+end
+
 function test_runtests()
-    model = MOI.instantiate(KNITRO.Optimizer)
+    model = MOI.instantiate(MOI_optimizer)
     config = MOI.Test.Config(
         atol=1e-3,
         rtol=1e-3,
@@ -33,6 +39,7 @@ function test_runtests()
     MOI.Test.runtests(
         model,
         config;
+        verbose=true,
         include=["test_basic_"],
         # Upstream bug because @odow is a muppet
         exclude=["test_basic_VectorOfVariables_VectorNonlinearOracle"],
@@ -58,7 +65,7 @@ function test_MOI_Test_cached()
         r"^test_constraint_PrimalStart_DualStart_SecondOrderCone$",
     ]
     model =
-        MOI.instantiate(KNITRO.Optimizer; with_bridge_type=Float64, with_cache_type=Float64)
+        MOI.instantiate(MOI_optimizer; with_bridge_type=Float64, with_cache_type=Float64)
     MOI.set(model, MOI.Silent(), true)
     config = MOI.Test.Config(
         atol=2e-3,
@@ -70,6 +77,7 @@ function test_MOI_Test_cached()
     MOI.Test.runtests(
         model,
         config;
+        verbose=true,
         exclude=Union{String,Regex}[
             # Upstream bug because @odow is a muppet
             r"^test_basic_VectorOfVariables_VectorNonlinearOracle$",
@@ -95,7 +103,7 @@ function test_MOI_Test_cached()
     # `MOI.ConstraintDual` and `MOI.DualObjectiveValue`.
     push!(config.exclude, MOI.ConstraintDual)
     push!(config.exclude, MOI.DualObjectiveValue)
-    MOI.Test.runtests(model, config; include=second_order_exclude)
+    MOI.Test.runtests(model, config; verbose=true, include=second_order_exclude)
     return
 end
 
