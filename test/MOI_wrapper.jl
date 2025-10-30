@@ -24,9 +24,7 @@ function runtests()
 end
 
 function test_runtests()
-    model = MOI.instantiate(
-        () -> KNITRO.Optimizer(; license_manager=LICENSE_MANAGER),
-    )
+    model = MOI.instantiate(() -> KNITRO.Optimizer(; license_manager=LICENSE_MANAGER))
     config = MOI.Test.Config(
         atol=1e-3,
         rtol=1e-3,
