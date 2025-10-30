@@ -83,11 +83,8 @@ function test_MOI_Test_cached()
             r"^test_basic_VectorNonlinearFunction_GeometricMeanCone$",
             # Returns OTHER_ERROR, which is also reasonable.
             r"^test_conic_empty_matrix$",
-            # Uses the ZerosBridge and ConstraintDual
-            r"^test_conic_linear_VectorOfVariables_2$",
             # Returns ITERATION_LIMIT instead of DUAL_INFEASIBLE, which is okay.
             r"^test_conic_RotatedSecondOrderCone_INFEASIBLE$",
-            r"^test_linear_DUAL_INFEASIBLE$",
             # Incorrect ObjectiveBound with an LP, but that's understandable.
             r"^test_solve_ObjectiveBound_MAX_SENSE_LP$",
             # Cannot get ConstraintDualStart
