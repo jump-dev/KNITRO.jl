@@ -10,6 +10,8 @@ using Test
 import KNITRO
 import MathOptInterface as MOI
 
+const LICENSE_MANAGER = KNITRO.LMcontext()
+
 function runtests()
     for name in names(@__MODULE__; all=true)
         if startswith("$(name)", "test_")
@@ -22,7 +24,7 @@ function runtests()
 end
 
 function test_runtests()
-    model = MOI.instantiate(KNITRO.Optimizer)
+    model = MOI.instantiate(() -> KNITRO.Optimizer(; license_manager=LICENSE_MANAGER))
     config = MOI.Test.Config(
         atol=1e-3,
         rtol=1e-3,
@@ -57,8 +59,11 @@ function test_MOI_Test_cached()
         r"^test_conic_SecondOrderCone_out_of_order$",
         r"^test_constraint_PrimalStart_DualStart_SecondOrderCone$",
     ]
-    model =
-        MOI.instantiate(KNITRO.Optimizer; with_bridge_type=Float64, with_cache_type=Float64)
+    model = MOI.instantiate(
+        () -> KNITRO.Optimizer(; license_manager=LICENSE_MANAGER);
+        with_bridge_type=Float64,
+        with_cache_type=Float64,
+    )
     MOI.set(model, MOI.Silent(), true)
     config = MOI.Test.Config(
         atol=2e-3,
