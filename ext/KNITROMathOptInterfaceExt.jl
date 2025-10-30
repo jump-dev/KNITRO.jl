@@ -160,6 +160,9 @@ function MOI.copy_to(model::Optimizer, src::MOI.ModelLike)
 end
 
 function MOI.empty!(model::Optimizer)
+    if MOI.is_empty(model)
+        return
+    end
     KNITRO.@_checked KNITRO.KN_free(model.inner)
     model.inner = _KN_new(model.license_manager)
     empty!(model.variable_info)

@@ -349,6 +349,15 @@ function test_lm_context()
     @test length(lm.linked_models) == 1
     @test model.inner in lm.linked_models
     MOI.empty!(model)
+    # Since the model is already empty.
+    # No new model is created and the linked_models should
+    # remain the same.
+    @test length(lm.linked_models) == 1
+    @test model.inner in lm.linked_models
+    x = MOI.add_variable(model)
+    MOI.empty!(model)
+    # Now a new model is created, so linked_models should
+    # have two models.
     @test length(lm.linked_models) == 2
     @test model.inner in lm.linked_models
     return
