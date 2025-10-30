@@ -1077,7 +1077,6 @@ function MOI.add_constraint(
             for i in 1:s.input_dimension
                 tmp_x[i] = evalRequest.x[f.variables[i].value]
             end
-            @show evalRequest.lambda
             lambda = view(evalRequest.lambda, (offset+1):num_cons)
             s.eval_hessian_lagrangian(evalResult.hess, tmp_x, lambda)
             return 0
