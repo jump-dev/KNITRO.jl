@@ -73,6 +73,9 @@ function test_MOI_Test_cached()
         exclude=Union{String,Regex}[
             # Upstream bug because @odow is a muppet
             r"^test_basic_VectorOfVariables_VectorNonlinearOracle$",
+            # This is an upstream issue in MOI with bridges and support
+            # comparing VectorNonlinear and VectorQuadratic
+            r"^test_basic_VectorNonlinearFunction_GeometricMeanCone$",
             # Returns OTHER_ERROR, which is also reasonable.
             r"^test_conic_empty_matrix$",
             # Returns ITERATION_LIMIT instead of DUAL_INFEASIBLE, which is okay.
