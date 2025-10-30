@@ -10,9 +10,16 @@ using Test
 import KNITRO
 import MathOptInterface as MOI
 
+MOI_lm = KNITRO.LMcontext()
+
+function MOI_optimizer()
+    return KNITRO.Optimizer(; license_manager=MOI_lm)
+end
+
 function runtests()
     for name in names(@__MODULE__; all=true)
         if startswith("$(name)", "test_")
+            @info "Running $(name)..."
             @testset "$(name)" begin
                 getfield(@__MODULE__, name)()
             end
@@ -21,13 +28,7 @@ function runtests()
     return
 end
 
-MOI_lm = KNITRO.LMcontext()
-
-function MOI_optimizer()
-    return KNITRO.Optimizer(; license_manager=MOI_lm)
-end
-
-function test_runtests()
+function test_MOI_Test_basic()
     model = MOI.instantiate(MOI_optimizer)
     config = MOI.Test.Config(
         atol=1e-3,
@@ -79,18 +80,12 @@ function test_MOI_Test_cached()
         config;
         verbose=true,
         exclude=Union{String,Regex}[
-            # Upstream bug because @odow is a muppet
-            r"^test_basic_VectorOfVariables_VectorNonlinearOracle$",
-            # This is an upstream issue in MOI with bridges and support
-            # comparing VectorNonlinear and VectorQuadratic
-            r"^test_basic_VectorNonlinearFunction_GeometricMeanCone$",
+            # test_basic already run in previous test
+            "test_basic_",
             # Returns OTHER_ERROR, which is also reasonable.
             r"^test_conic_empty_matrix$",
-            # Uses the ZerosBridge and ConstraintDual
+            # Uses ConstraintDual
             r"^test_conic_linear_VectorOfVariables_2$",
-            # Returns ITERATION_LIMIT instead of DUAL_INFEASIBLE, which is okay.
-            r"^test_conic_RotatedSecondOrderCone_INFEASIBLE$",
-            r"^test_linear_DUAL_INFEASIBLE$",
             # Incorrect ObjectiveBound with an LP, but that's understandable.
             r"^test_solve_ObjectiveBound_MAX_SENSE_LP$",
             # Cannot get ConstraintDualStart
@@ -104,6 +99,12 @@ function test_MOI_Test_cached()
     push!(config.exclude, MOI.ConstraintDual)
     push!(config.exclude, MOI.DualObjectiveValue)
     MOI.Test.runtests(model, config; verbose=true, include=second_order_exclude)
+    MOI.Test.runtests(
+        model,
+        config;
+        verbose=true,
+        include=["test_conic_linear_VectorOfVariables_2"],
+    )
     return
 end
 
