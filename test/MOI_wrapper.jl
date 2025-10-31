@@ -405,6 +405,22 @@ function test_vector_nonlinear_oracle()
     return
 end
 
+function test_issue_370()
+    model = KNITRO.Optimizer()
+    MOI.empty!(model)
+    f = MOI.VectorAffineFunction(MOI.VectorAffineTerm{Float64}[], [1.0, 2.0])
+    try
+        MOI.add_constraint(model, f, MOI.SecondOrderCone(2))
+    catch
+    end
+    @test !MOI.is_empty(model)
+    MOI.empty!(model)
+    @test MOI.is_empty(model)
+    x = MOI.add_variable(model)
+    @test MOI.get(model, MOI.NumberOfVariables()) == 1
+    return
+end
+
 end
 
 TestMOIWrapper.runtests()
