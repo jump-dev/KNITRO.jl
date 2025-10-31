@@ -250,7 +250,7 @@ end
 
 # We support `MOI.TimeLimitSec` only in newer versions of KNITRO because we
 # require `KN_PARAM_MAXTIME`.
-MOI.supports(::Optimizer, ::MOI.TimeLimitSec) = knitro_version() >= v"15"
+MOI.supports(::Optimizer, ::MOI.TimeLimitSec) = KNITRO.knitro_version() >= v"15"
 
 MOI.get(model::Optimizer, ::MOI.TimeLimitSec) = model.time_limit_sec
 
@@ -1001,7 +1001,7 @@ function MOI.supports_constraint(
 )
     # We don't support complementarity constraints in older versions of KNITRO
     # because we require `KN_add_compcons`.
-    return knitro_version() >= v"15"
+    return KNITRO.knitro_version() >= v"15"
 end
 
 function MOI.add_constraint(
