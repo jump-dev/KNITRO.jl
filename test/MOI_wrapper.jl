@@ -408,7 +408,7 @@ end
 function test_issue_370()
     model = KNITRO.Optimizer()
     MOI.empty!(model)
-    f = MOI.VectorAffineFunction(MOI.VectorAffineTerm{Float64}[], [1.0, 2.0]),
+    f = MOI.VectorAffineFunction(MOI.VectorAffineTerm{Float64}[], [1.0, 2.0])
     try
         MOI.add_constraint(model, f, MOI.SecondOrderCone(2))
     catch
