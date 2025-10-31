@@ -185,15 +185,24 @@ function MOI.empty!(model::Optimizer)
     return
 end
 
+function _num_cons(model)
+    p = Ref{Cint}(0)
+    KNITRO.KN_get_number_cons(model, p)
+    return p[]
+end
+
 function MOI.is_empty(model::Optimizer)
     return isempty(model.variable_info) &&
+           model.number_solved == 0 &&
+           !model.nlp_loaded &&
            model.nlp_data === nothing &&
            MOI.is_empty(model.nlp_model) &&
+           isempty(model.nlp_index_cons) &&
            model.sense == MOI.FEASIBILITY_SENSE &&
-           model.number_solved == 0 &&
            model.objective === nothing &&
+           isempty(model.constraint_mapping) &&
            isempty(model.vector_nonlinear_oracle_constraints) &&
-           !model.nlp_loaded
+           _num_cons(model) == 0
 end
 
 function _throw_if_solved(model::Optimizer, attr::MOI.AbstractModelAttribute)
