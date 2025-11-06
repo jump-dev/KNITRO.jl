@@ -1003,8 +1003,15 @@ end
 end
 
 @testset "knitroampl" begin
-    @test occursin(
-        "AMPL/Knitro",
-        sprint(io -> run(pipeline(`$(KNITRO.amplexe()) -v`; stdout=io))),
-    )
+    if KNITRO.amplexe isa String
+        @test occursin(
+            "AMPL/Knitro",
+            sprint(io -> run(pipeline(`$(KNITRO.amplexe) -v`; stdout=io))),
+        )
+    else
+        @test occursin(
+            "AMPL/Knitro",
+            sprint(io -> run(pipeline(`$(KNITRO.amplexe()) -v`; stdout=io))),
+        )
+    end
 end

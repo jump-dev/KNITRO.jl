@@ -6,6 +6,8 @@
 using KNITRO
 using Test
 
+@info "Running tests with $(KNITRO.libknitro)"
+
 const KN_VERBOSE = false
 
 # Before proceeding, check that KNITRO is installed correctly.
