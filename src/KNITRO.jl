@@ -28,7 +28,7 @@ end
 @static if isdefined(@__MODULE__, :libknitro)
     # deps.jl must define a local installation.
     let version = has_knitro() ? knitro_version() : v"15.0.0"
-        if v"13" <= version < v"16"
+        if !(v"13" <= version < v"16")
             error(
                 "You have installed version $version of Artelys Knitro, " *
                 "which is not supported by KNITRO.jl. We require a version " *

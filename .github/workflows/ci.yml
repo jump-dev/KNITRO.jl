@@ -51,3 +51,31 @@ jobs:
         with:
           file: lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
+  test-local:
+    name: Test-local-install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1'
+          arch: 'x64'
+      - uses: julia-actions/cache@v1
+      - shell: bash
+        env:
+          SECRET_KNITRO_LICENSE: ${{ secrets.KNITRO_LICENSE }}
+        run: |
+          echo "$SECRET_KNITRO_LICENSE" > ~/artelys_lic.txt
+          cd deps
+          curl -L https://github.com/jump-dev/KNITRO_jll.jl/releases/download/v15.0.1-binary/x86_64-linux-gnu.tar.bz2 -o x86_64-linux-gnu.tar.bz2
+          tar -xjf x86_64-linux-gnu.tar.bz2
+      - uses: julia-actions/julia-buildpkg@v1
+        env:
+          KNITRO_JL_USE_KNITRO_JLL: false
+          KNITRODIR: "/home/runner/work/KNITRO.jl/KNITRO.jl/deps/knitro"
+      - uses: julia-actions/julia-runtest@v1
+      - uses: julia-actions/julia-processcoverage@v1
+      - uses: codecov/codecov-action@v4
+        with:
+          file: lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
