@@ -25,6 +25,24 @@ else
           """)
 end
 
+function __init__()
+    libiomp5 = replace(libknitro, "libknitro" => "libiomp5")
+    if isfile(libiomp5)
+        Libdl.dlopen(libiomp5)
+    end
+    return
+end
+
+has_knitro() = endswith(libknitro, Libdl.dlext)
+
+function knitro_version()
+    length = 15
+    release = zeros(Cchar, length)
+    @ccall libknitro.KN_get_release(length::Cint, release::Ptr{Cchar})::Cint
+    version_string = GC.@preserve(release, unsafe_string(pointer(release)))
+    return VersionNumber(split(version_string, " ")[2])
+end
+
 @static if isdefined(@__MODULE__, :libknitro)
     # deps.jl must define a local installation.
     let version = has_knitro() ? knitro_version() : v"15.0.0"
@@ -47,24 +65,6 @@ else
             "`KNITRO_JL_USE_KNITRO_JLL` to false. See the README for details.",
         )
     end
-end
-
-function __init__()
-    libiomp5 = replace(libknitro, "libknitro" => "libiomp5")
-    if isfile(libiomp5)
-        Libdl.dlopen(libiomp5)
-    end
-    return
-end
-
-has_knitro() = endswith(libknitro, Libdl.dlext)
-
-function knitro_version()
-    length = 15
-    release = zeros(Cchar, length)
-    KN_get_release(length, release)
-    version_string = GC.@preserve(release, unsafe_string(pointer(release)))
-    return VersionNumber(split(version_string, " ")[2])
 end
 
 include("libknitro.jl")
