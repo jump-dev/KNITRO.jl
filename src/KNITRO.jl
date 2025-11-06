@@ -15,16 +15,14 @@ const _DEPS_FILE = joinpath(dirname(@__FILE__), "..", "deps", "deps.jl")
 if isfile(_DEPS_FILE)
     include(_DEPS_FILE)
 else
-    error(
-        """
-        KNITRO.jl is not installed correctly. Please run the following code and
-        then restart Julia:
-        ```
-        import Pkg
-        Pkg.build("KNITRO")
-        ```
-        """
-    )
+    error("""
+          KNITRO.jl is not installed correctly. Please run the following code and
+          then restart Julia:
+          ```
+          import Pkg
+          Pkg.build("KNITRO")
+          ```
+          """)
 end
 
 has_knitro() = endswith(libknitro, Libdl.dlext)
