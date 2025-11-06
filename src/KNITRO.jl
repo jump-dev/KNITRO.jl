@@ -46,7 +46,7 @@ end
             error(
                 "You have installed version $version of Artelys Knitro, " *
                 "which is not supported by KNITRO.jl. We require a version " *
-                "in [13, 16)",
+                "in >=13, <16.",
             )
         end
     end
@@ -54,7 +54,7 @@ else
     import KNITRO_jll
     if KNITRO_jll.is_available()
         using KNITRO_jll: libknitro, knitroampl
-        const amplexe = knitroampl
+        const amplexe = knitroampl()
     else
         error(
             "Unsupported platform: Use a manual installation by setting " *
