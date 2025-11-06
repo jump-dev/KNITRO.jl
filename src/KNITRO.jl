@@ -54,7 +54,7 @@ else
     import KNITRO_jll
     if KNITRO_jll.is_available()
         using KNITRO_jll: libknitro, knitroampl
-        const amplexe = knitroampl()
+        const amplexe = knitroampl
     else
         error(
             "Unsupported platform: Use a manual installation by setting " *
