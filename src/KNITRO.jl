@@ -15,20 +15,34 @@ const _DEPS_FILE = joinpath(dirname(@__FILE__), "..", "deps", "deps.jl")
 if isfile(_DEPS_FILE)
     include(_DEPS_FILE)
 else
-    error("""
-          KNITRO.jl is not installed correctly. Please run the following code and
-          then restart Julia:
-          ```
-          import Pkg
-          Pkg.build("KNITRO")
-          ```
-          """)
+    error(
+        """
+        KNITRO.jl is not installed correctly. Please run the following code and
+        then restart Julia:
+        ```
+        import Pkg
+        Pkg.build("KNITRO")
+        ```
+        """
+    )
+end
+
+has_knitro() = endswith(libknitro, Libdl.dlext)
+
+include("libknitro.jl")
+
+function knitro_version()
+    length = 15
+    release = zeros(Cchar, length)
+    KN_get_release(length, release)
+    version_string = GC.@preserve(release, unsafe_string(pointer(release)))
+    return VersionNumber(split(version_string, " ")[2])
 end
 
 @static if isdefined(@__MODULE__, :libknitro)
     # deps.jl must define a local installation.
-    let version = has_knitro() ? knitro_version() : v"15.0.0"
-        if v"13" <= version < v"16"
+    let version = has_knitro() ? knitro_version() : v"12.0.0"
+        if !(v"13" <= version < v"16")
             error(
                 "You have installed version $version of Artelys Knitro, " *
                 "which is not supported by KNITRO.jl. We require a version " *
@@ -57,17 +71,6 @@ function __init__()
     return
 end
 
-has_knitro() = endswith(libknitro, Libdl.dlext)
-
-function knitro_version()
-    length = 15
-    release = zeros(Cchar, length)
-    KN_get_release(length, release)
-    version_string = GC.@preserve(release, unsafe_string(pointer(release)))
-    return VersionNumber(split(version_string, " ")[2])
-end
-
-include("libknitro.jl")
 include("C_wrapper.jl")
 
 # KNITRO exports all `KN_XXX` symbols. If you don't want all of these symbols in
