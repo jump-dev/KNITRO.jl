@@ -498,12 +498,21 @@ function MOI.add_constraint(
     if _is_fixed(model, x)
         error("Variable $x is fixed. Cannot also set upper bound.")
     end
-    ub = _clamp_inf(set.upper)
     model.variable_info[x.value].has_upper_bound = true
-    KNITRO.@_checked KNITRO.KN_set_var_upbnd(model, _c_column(x), ub)
     ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.LessThan{Float64}}(x.value)
     model.constraint_mapping[ci] = convert(Cint, x.value)
+    MOI.set(model, MOI.ConstraintSet(), ci, set)
     return ci
+end
+
+function MOI.set(
+    model::Optimizer,
+    ::MOI.ConstraintSet,
+    ci::MOI.ConstraintIndex{MOI.VariableIndex,MOI.LessThan{Float64}},
+    s::MOI.LessThan{Float64},
+)
+    KNITRO.@_checked KNITRO.KN_set_var_upbnd(model, ci.value - 1, _clamp_inf(s.upper))
+    return
 end
 
 ###
@@ -534,12 +543,21 @@ function MOI.add_constraint(
     if _is_fixed(model, x)
         error("Variable $x is fixed. Cannot also set lower bound.")
     end
-    lb = _clamp_inf(set.lower)
     model.variable_info[x.value].has_lower_bound = true
-    KNITRO.@_checked KNITRO.KN_set_var_lobnd(model, _c_column(x), lb)
     ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.GreaterThan{Float64}}(x.value)
     model.constraint_mapping[ci] = convert(Cint, x.value)
+    MOI.set(model, MOI.ConstraintSet(), ci, set)
     return ci
+end
+
+function MOI.set(
+    model::Optimizer,
+    ::MOI.ConstraintSet,
+    ci::MOI.ConstraintIndex{MOI.VariableIndex,MOI.GreaterThan{Float64}},
+    s::MOI.GreaterThan{Float64},
+)
+    KNITRO.@_checked KNITRO.KN_set_var_lobnd(model, ci.value - 1, _clamp_inf(s.lower))
+    return
 end
 
 ###
@@ -570,15 +588,23 @@ function MOI.add_constraint(
     if _is_fixed(model, x)
         error("Variable $x is fixed. Cannot also set lower bound.")
     end
-    lb = _clamp_inf(set.lower)
-    ub = _clamp_inf(set.upper)
     model.variable_info[x.value].has_lower_bound = true
     model.variable_info[x.value].has_upper_bound = true
-    KNITRO.@_checked KNITRO.KN_set_var_lobnd(model, _c_column(x), lb)
-    KNITRO.@_checked KNITRO.KN_set_var_upbnd(model, _c_column(x), ub)
     ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.Interval{Float64}}(x.value)
     model.constraint_mapping[ci] = convert(Cint, x.value)
+    MOI.set(model, MOI.ConstraintSet(), ci, set)
     return ci
+end
+
+function MOI.set(
+    model::Optimizer,
+    ::MOI.ConstraintSet,
+    ci::MOI.ConstraintIndex{MOI.VariableIndex,MOI.Interval{Float64}},
+    s::MOI.Interval{Float64},
+)
+    KNITRO.@_checked KNITRO.KN_set_var_lobnd(model, ci.value - 1, _clamp_inf(s.lower))
+    KNITRO.@_checked KNITRO.KN_set_var_upbnd(model, ci.value - 1, _clamp_inf(s.upper))
+    return
 end
 
 ###
@@ -612,12 +638,21 @@ function MOI.add_constraint(
     if _is_fixed(model, x)
         error("Variable $x is already fixed.")
     end
-    eqv = _clamp_inf(set.value)
     model.variable_info[x.value].is_fixed = true
-    KNITRO.@_checked KNITRO.KN_set_var_fxbnd(model, _c_column(x), eqv)
     ci = MOI.ConstraintIndex{MOI.VariableIndex,MOI.EqualTo{Float64}}(x.value)
     model.constraint_mapping[ci] = convert(Cint, x.value)
+    MOI.set(model, MOI.ConstraintSet(), ci, set)
     return ci
+end
+
+function MOI.set(
+    model::Optimizer,
+    ::MOI.ConstraintSet,
+    ci::MOI.ConstraintIndex{MOI.VariableIndex,MOI.EqualTo{Float64}},
+    s::MOI.EqualTo{Float64},
+)
+    KNITRO.@_checked KNITRO.KN_set_var_fxbnd(model, ci.value - 1, _clamp_inf(s.value))
+    return
 end
 
 ###
@@ -722,30 +757,60 @@ function MOI.add_constraint(
     p = Ref{Cint}(0)
     KNITRO.@_checked KNITRO.KN_add_con(model, p)
     num_cons = p[]
-    # Add bound to constraint.
-    if isa(set, MOI.LessThan{Float64})
-        val = _clamp_inf(set.upper)
-        KNITRO.@_checked KNITRO.KN_set_con_upbnd(model, num_cons, val)
-    elseif isa(set, MOI.GreaterThan{Float64})
-        val = _clamp_inf(set.lower)
-        KNITRO.@_checked KNITRO.KN_set_con_lobnd(model, num_cons, val)
-    elseif isa(set, MOI.EqualTo{Float64})
-        val = _clamp_inf(set.value)
-        KNITRO.@_checked KNITRO.KN_set_con_eqbnd(model, num_cons, val)
-    else
-        @assert set isa MOI.Interval{Float64}
-        # Add upper bound.
-        lb, ub = _clamp_inf(set.lower), _clamp_inf(set.upper)
-        KNITRO.@_checked KNITRO.KN_set_con_lobnd(model, num_cons, lb)
-        KNITRO.@_checked KNITRO.KN_set_con_upbnd(model, num_cons, ub)
-    end
+    ci = MOI.ConstraintIndex{F,S}(num_cons)
+    model.constraint_mapping[ci] = num_cons
+    MOI.set(model, MOI.ConstraintSet(), ci, set)
     nnz, columns, coefficients = _canonical_linear_reduction(func)
     KNITRO.@_checked(
         KNITRO.KN_add_con_linear_struct_one(model, nnz, num_cons, columns, coefficients),
     )
-    ci = MOI.ConstraintIndex{F,S}(num_cons)
-    model.constraint_mapping[ci] = num_cons
     return ci
+end
+
+function MOI.set(
+    model::Optimizer,
+    ::MOI.ConstraintSet,
+    ci::MOI.ConstraintIndex{F,MOI.GreaterThan{Float64}},
+    s::MOI.GreaterThan{Float64},
+) where {F<:Union{MOI.ScalarAffineFunction{Float64},MOI.ScalarQuadraticFunction{Float64}}}
+    num_cons = model.constraint_mapping[ci]
+    KNITRO.@_checked KNITRO.KN_set_con_lobnd(model, num_cons, _clamp_inf(s.lower))
+    return
+end
+
+function MOI.set(
+    model::Optimizer,
+    ::MOI.ConstraintSet,
+    ci::MOI.ConstraintIndex{F,MOI.LessThan{Float64}},
+    s::MOI.LessThan{Float64},
+) where {F<:Union{MOI.ScalarAffineFunction{Float64},MOI.ScalarQuadraticFunction{Float64}}}
+    num_cons = model.constraint_mapping[ci]
+    KNITRO.@_checked KNITRO.KN_set_con_upbnd(model, num_cons, _clamp_inf(s.upper))
+    return
+end
+
+function MOI.set(
+    model::Optimizer,
+    ::MOI.ConstraintSet,
+    ci::MOI.ConstraintIndex{F,MOI.Interval{Float64}},
+    s::MOI.Interval{Float64},
+) where {F<:Union{MOI.ScalarAffineFunction{Float64},MOI.ScalarQuadraticFunction{Float64}}}
+    num_cons = model.constraint_mapping[ci]
+    lb, ub = _clamp_inf(s.lower), _clamp_inf(s.upper)
+    KNITRO.@_checked KNITRO.KN_set_con_lobnd(model, num_cons, lb)
+    KNITRO.@_checked KNITRO.KN_set_con_upbnd(model, num_cons, ub)
+    return
+end
+
+function MOI.set(
+    model::Optimizer,
+    ::MOI.ConstraintSet,
+    ci::MOI.ConstraintIndex{F,MOI.EqualTo{Float64}},
+    s::MOI.EqualTo{Float64},
+) where {F<:Union{MOI.ScalarAffineFunction{Float64},MOI.ScalarQuadraticFunction{Float64}}}
+    num_cons = model.constraint_mapping[ci]
+    KNITRO.@_checked KNITRO.KN_set_con_eqbnd(model, num_cons, _clamp_inf(s.value))
+    return
 end
 
 function MOI.supports(
@@ -807,30 +872,15 @@ function MOI.add_constraint(
     p = Ref{Cint}(0)
     KNITRO.@_checked KNITRO.KN_add_con(model, p)
     num_cons = p[]
-    # Add upper bound.
-    if isa(set, MOI.LessThan{Float64})
-        val = _clamp_inf(set.upper)
-        KNITRO.@_checked KNITRO.KN_set_con_upbnd(model, num_cons, val)
-    elseif isa(set, MOI.GreaterThan{Float64})
-        val = _clamp_inf(set.lower)
-        KNITRO.@_checked KNITRO.KN_set_con_lobnd(model, num_cons, val)
-    elseif isa(set, MOI.EqualTo{Float64})
-        val = _clamp_inf(set.value)
-        KNITRO.@_checked KNITRO.KN_set_con_eqbnd(model, num_cons, val)
-    elseif isa(set, MOI.Interval{Float64})
-        lb = _clamp_inf(set.lower)
-        ub = _clamp_inf(set.upper)
-        KNITRO.@_checked KNITRO.KN_set_con_lobnd(model, num_cons, lb)
-        KNITRO.@_checked KNITRO.KN_set_con_upbnd(model, num_cons, ub)
-    end
+    ci = MOI.ConstraintIndex{typeof(func),typeof(set)}(num_cons)
+    model.constraint_mapping[ci] = num_cons
+    MOI.set(model, MOI.ConstraintSet(), ci, set)
     nnz, columns, coefficients = _canonical_linear_reduction(func)
     KNITRO.@_checked(
         KNITRO.KN_add_con_linear_struct_one(model, nnz, num_cons, columns, coefficients),
     )
     nnz, I, J, V = _canonical_quadratic_reduction(func)
     KNITRO.@_checked KNITRO.KN_add_con_quadratic_struct_one(model, nnz, num_cons, I, J, V)
-    ci = MOI.ConstraintIndex{typeof(func),typeof(set)}(num_cons)
-    model.constraint_mapping[ci] = num_cons
     return ci
 end
 
@@ -1397,6 +1447,8 @@ function MOI.optimize!(model::Optimizer)
         end
         model.nlp_loaded = true
     end
+    empty!(model.x)
+    empty!(model.lambda)
     KNITRO.KN_solve(model.inner)
     model.number_solved += 1
     return

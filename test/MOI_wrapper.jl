@@ -421,6 +421,79 @@ function test_issue_370()
     return
 end
 
+function test_issue_377_variable_index()
+    for ((set_1, value_1), (set_2, value_2), sense) in [
+        (MOI.GreaterThan(1.0) => 1.0, MOI.GreaterThan(2.0) => 2.0, MOI.MIN_SENSE),
+        (MOI.LessThan(1.0) => 1.0, MOI.LessThan(2.0) => 2.0, MOI.MAX_SENSE),
+        (MOI.EqualTo(1.0) => 1.0, MOI.EqualTo(2.0) => 2.0, MOI.MAX_SENSE),
+        (MOI.Interval(1.0, 2.0) => 1.0, MOI.Interval(2.0, 3.0) => 2.0, MOI.MIN_SENSE),
+        (MOI.Interval(1.0, 2.0) => 2.0, MOI.Interval(2.0, 3.0) => 3.0, MOI.MAX_SENSE),
+    ]
+        model = KNITRO.Optimizer(; license_manager=LICENSE_MANAGER)
+        MOI.set(model, MOI.Silent(), true)
+        x = MOI.add_variable(model)
+        MOI.set(model, MOI.ObjectiveSense(), sense)
+        f = 1.0 * x
+        MOI.set(model, MOI.ObjectiveFunction{typeof(f)}(), f)
+        c = MOI.add_constraint(model, x, set_1)
+        MOI.optimize!(model)
+        @test isapprox(MOI.get(model, MOI.VariablePrimal(), x), value_1; atol=1e-6)
+        MOI.set(model, MOI.ConstraintSet(), c, set_2)
+        MOI.optimize!(model)
+        @test isapprox(MOI.get(model, MOI.VariablePrimal(), x), value_2; atol=1e-6)
+    end
+    return
+end
+
+function test_issue_377_scalar_affine()
+    for ((set_1, value_1), (set_2, value_2), sense) in [
+        (MOI.GreaterThan(1.0) => 1.0, MOI.GreaterThan(2.0) => 2.0, MOI.MIN_SENSE),
+        (MOI.LessThan(1.0) => 1.0, MOI.LessThan(2.0) => 2.0, MOI.MAX_SENSE),
+        (MOI.EqualTo(1.0) => 1.0, MOI.EqualTo(2.0) => 2.0, MOI.MAX_SENSE),
+        (MOI.Interval(1.0, 2.0) => 1.0, MOI.Interval(2.0, 3.0) => 2.0, MOI.MIN_SENSE),
+        (MOI.Interval(1.0, 2.0) => 2.0, MOI.Interval(2.0, 3.0) => 3.0, MOI.MAX_SENSE),
+    ]
+        model = KNITRO.Optimizer(; license_manager=LICENSE_MANAGER)
+        MOI.set(model, MOI.Silent(), true)
+        x = MOI.add_variable(model)
+        MOI.set(model, MOI.ObjectiveSense(), sense)
+        f = 1.0 * x
+        MOI.set(model, MOI.ObjectiveFunction{typeof(f)}(), f)
+        c = MOI.add_constraint(model, 1.0 * x, set_1)
+        MOI.optimize!(model)
+        @test isapprox(MOI.get(model, MOI.VariablePrimal(), x), value_1; atol=1e-6)
+        MOI.set(model, MOI.ConstraintSet(), c, set_2)
+        MOI.optimize!(model)
+        @test isapprox(MOI.get(model, MOI.VariablePrimal(), x), value_2; atol=1e-6)
+    end
+    return
+end
+
+function test_issue_377_scalar_quadratic()
+    for ((set_1, value_1), (set_2, value_2), sense) in [
+        (MOI.GreaterThan(1.0) => 1.0, MOI.GreaterThan(2.0) => 2.0, MOI.MIN_SENSE),
+        (MOI.LessThan(1.0) => 1.0, MOI.LessThan(2.0) => 2.0, MOI.MAX_SENSE),
+        (MOI.EqualTo(1.0) => 1.0, MOI.EqualTo(2.0) => 2.0, MOI.MAX_SENSE),
+        (MOI.Interval(1.0, 2.0) => 1.0, MOI.Interval(2.0, 3.0) => 2.0, MOI.MIN_SENSE),
+        (MOI.Interval(1.0, 2.0) => 2.0, MOI.Interval(2.0, 3.0) => 3.0, MOI.MAX_SENSE),
+    ]
+        model = KNITRO.Optimizer(; license_manager=LICENSE_MANAGER)
+        MOI.set(model, MOI.Silent(), true)
+        x = MOI.add_variable(model)
+        MOI.add_constraint(model, x, MOI.GreaterThan(0.0))
+        MOI.set(model, MOI.ObjectiveSense(), sense)
+        f = 1.0 * x
+        MOI.set(model, MOI.ObjectiveFunction{typeof(f)}(), f)
+        c = MOI.add_constraint(model, 1.0 * x * x, set_1)
+        MOI.optimize!(model)
+        @test isapprox(MOI.get(model, MOI.VariablePrimal(), x), sqrt(value_1); atol=1e-6)
+        MOI.set(model, MOI.ConstraintSet(), c, set_2)
+        MOI.optimize!(model)
+        @test isapprox(MOI.get(model, MOI.VariablePrimal(), x), sqrt(value_2); atol=1e-6)
+    end
+    return
+end
+
 end
 
 TestMOIWrapper.runtests()
