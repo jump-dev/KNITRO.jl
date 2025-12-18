@@ -1189,7 +1189,9 @@ function MOI.get(
 )
     MOI.check_result_index_bounds(model, attr)
     MOI.throw_if_not_valid(model, ci)
-    return [_sense_dual(model) * _get_dual(model, r + 1) for r in model.constraint_mapping[ci]]
+    return [
+        _sense_dual(model) * _get_dual(model, r + 1) for r in model.constraint_mapping[ci]
+    ]
 end
 
 # MOI.NLPBlock
