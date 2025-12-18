@@ -70,8 +70,6 @@ function test_MOI_Test_cached()
         model,
         config;
         exclude=Union{String,Regex}[
-            # Needs Lagrange multipliers which are not supported.
-            r"^test_VectorNonlinearOracle_LagrangeMultipliers",
             # This is an upstream issue in MOI with bridges and support
             # comparing VectorNonlinear and VectorQuadratic
             r"^test_basic_VectorNonlinearFunction_GeometricMeanCone$",
