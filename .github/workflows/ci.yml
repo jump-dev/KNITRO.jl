@@ -67,7 +67,7 @@ jobs:
         run: |
           echo "$SECRET_KNITRO_LICENSE" > ~/artelys_lic.txt
           cd deps
-          curl -L https://github.com/jump-dev/KNITRO_jll.jl/releases/download/v15.0.1-binary/x86_64-linux-gnu.tar.bz2 -o x86_64-linux-gnu.tar.bz2
+          curl -L https://github.com/jump-dev/KNITRO_jll.jl/releases/download/v15.1.0-binary/x86_64-linux-gnu.tar.bz2 -o x86_64-linux-gnu.tar.bz2
           tar -xjf x86_64-linux-gnu.tar.bz2
       - uses: julia-actions/julia-buildpkg@v1
         env:

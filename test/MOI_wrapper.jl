@@ -32,13 +32,7 @@ function test_runtests()
         infeasible_status=MOI.LOCALLY_INFEASIBLE,
         exclude=Any[MOI.VariableBasisStatus, MOI.ConstraintBasisStatus, MOI.ConstraintName],
     )
-    MOI.Test.runtests(
-        model,
-        config;
-        include=["test_basic_"],
-        # Upstream bug because @odow is a muppet
-        exclude=["test_basic_VectorOfVariables_VectorNonlinearOracle"],
-    )
+    MOI.Test.runtests(model, config; include=["test_basic_"])
     return
 end
 
@@ -76,8 +70,6 @@ function test_MOI_Test_cached()
         model,
         config;
         exclude=Union{String,Regex}[
-            # Upstream bug because @odow is a muppet
-            r"^test_basic_VectorOfVariables_VectorNonlinearOracle$",
             # This is an upstream issue in MOI with bridges and support
             # comparing VectorNonlinear and VectorQuadratic
             r"^test_basic_VectorNonlinearFunction_GeometricMeanCone$",

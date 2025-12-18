@@ -869,6 +869,14 @@ function KN_del_con_linear_struct_one(kc, nnz, indexCon, indexVars)
     )::Cint
 end
 
+function KN_del_con_linear_struct_all(kc, nC, indexCons)
+    @ccall libknitro.KN_del_con_linear_struct_all(
+        kc::KN_context_ptr,
+        nC::KNINT,
+        indexCons::Ptr{KNINT},
+    )::Cint
+end
+
 function KN_del_con_linear_term(kc, indexCon, indexVar)
     @ccall libknitro.KN_del_con_linear_term(
         kc::KN_context_ptr,
@@ -1075,6 +1083,14 @@ function KN_read_problem(kc, filename, read_options)
         kc::KN_context_ptr,
         filename::Ptr{Cchar},
         read_options::Ptr{Cchar},
+    )::Cint
+end
+
+function KN_write_problem(kc, filename, write_options)
+    @ccall libknitro.KN_write_problem(
+        kc::KN_context_ptr,
+        filename::Ptr{Cchar},
+        write_options::Ptr{Cchar},
     )::Cint
 end
 
@@ -1809,6 +1825,14 @@ function KN_get_con_name(kc, indexCons, nBufferSize, cName)
     )::Cint
 end
 
+function KN_get_obj_name(kc, nBufferSize, objName)
+    @ccall libknitro.KN_get_obj_name(
+        kc::KN_context_ptr,
+        nBufferSize::KNINT,
+        objName::Ptr{Cchar},
+    )::Cint
+end
+
 function KN_set_var_honorbnds(kc, nV, indexVars, xHonorBnds)
     @ccall libknitro.KN_set_var_honorbnds(
         kc::KN_context_ptr,
@@ -2501,6 +2525,10 @@ const KN_RC_FEAS_XTOL = -101
 const KN_RC_FEAS_NO_IMPROVE = -102
 
 const KN_RC_FEAS_FTOL = -103
+
+const KN_RC_FEAS_BEST = -104
+
+const KN_RC_FEAS_MULTISTART = -105
 
 const KN_RC_INFEASIBLE = -200
 
@@ -3562,6 +3590,24 @@ const KN_PARAM_AL_INITPENALTY = 1171
 
 const KN_PARAM_AL_MAXPENALTY = 1172
 
+const KN_PARAM_PRESOLVEOP_PROBING = 1174
+
+const KN_PRESOLVEOP_PROBING_AUTO = -1
+
+const KN_PRESOLVEOP_PROBING_OFF = 0
+
+const KN_PRESOLVEOP_PROBING_LIGHT = 1
+
+const KN_PRESOLVEOP_PROBING_FULL = 2
+
+const KN_PARAM_PRESOLVEOP_CLIQUE_MERGING = 1176
+
+const KN_PRESOLVEOP_CLIQUE_MERGING_AUTO = -1
+
+const KN_PRESOLVEOP_CLIQUE_MERGING_OFF = 0
+
+const KN_PRESOLVEOP_CLIQUE_MERGING_ON = 1
+
 const KN_PARAM_MIP_METHOD = 2001
 
 const KN_MIP_METHOD_AUTO = 0
@@ -3991,6 +4037,14 @@ const KN_MIP_NODE_LPALG_PDLP = 4
 const KN_PARAM_MIP_CUTOFFABS = 2059
 
 const KN_PARAM_MIP_CUTOFFREL = 2060
+
+const KN_PARAM_MIP_HEUR_FIXPROPAGATE = 2061
+
+const KN_MIP_HEUR_FIXPROPAGATE_AUTO = -1
+
+const KN_MIP_HEUR_FIXPROPAGATE_OFF = 0
+
+const KN_MIP_HEUR_FIXPROPAGATE_ON = 1
 
 const KN_PARAM_PAR_NUMTHREADS = 3001
 

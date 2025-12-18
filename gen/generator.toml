@@ -1,9 +1,9 @@
 [general]
 library_name = "libknitro"
-output_file_path = "../src/libknitro.jl"
+output_file_path = "src/libknitro.jl"
 use_julia_native_enum_type = true
 use_deterministic_symbol = true
-prologue_file_path = "./prologue.jl"
+prologue_file_path = "gen/prologue.jl"
 
 [codegen]
 opaque_as_mutable_struct = false
