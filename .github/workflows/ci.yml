@@ -24,10 +24,14 @@ jobs:
          - version: '1'
            os: 'ubuntu-latest'
            arch: 'x64'
+         # Julia v1, Linux-aarch64, KNITRO@15
+         - version: '1'
+           os: ubuntu-24.04-arm
+           arch: arm64
          # Julia v1, macOS-aarch64, KNITRO@15
          - version: '1'
            os: macos-14
-           arch: aarch64
+           arch: arm64
          # Julia v1, Windows, KNITRO@15
          - version: '1'
            os: 'windows-latest'
