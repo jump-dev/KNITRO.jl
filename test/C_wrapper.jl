@@ -1092,8 +1092,7 @@ end
 
     types = zeros(Cint, 3)
     KN_get_var_types_all(kc, types)
-    @test types ==
-          Cint[KN_VARTYPE_CONTINUOUS, KN_VARTYPE_INTEGER, KN_VARTYPE_BINARY]
+    @test types == Cint[KN_VARTYPE_CONTINUOUS, KN_VARTYPE_INTEGER, KN_VARTYPE_BINARY]
 
     KN_free(kc)
 end
