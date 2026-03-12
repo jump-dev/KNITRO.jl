@@ -1015,3 +1015,347 @@ end
         )
     end
 end
+
+@testset "KN_set/get_var/con_lobnd/upbnd/fxbnd/eqbnd" begin
+    kc = KN_new()
+    KN_add_vars(kc, 3, zeros(Cint, 3))
+    KN_add_cons(kc, 2, zeros(Cint, 2))
+
+    KN_set_var_lobnd(kc, Cint(0), -1.5)
+    KN_set_var_upbnd(kc, Cint(0), 3.0)
+    lo = Ref{Cdouble}()
+    up = Ref{Cdouble}()
+    KN_get_var_lobnd(kc, Cint(0), lo)
+    KN_get_var_upbnd(kc, Cint(0), up)
+    @test lo[] == -1.5
+    @test up[] == 3.0
+
+    KN_set_var_fxbnd(kc, Cint(1), 2.0)
+    fx = Ref{Cdouble}()
+    KN_get_var_fxbnd(kc, Cint(1), fx)
+    @test fx[] == 2.0
+
+    KN_set_con_lobnd(kc, Cint(0), -5.0)
+    KN_set_con_upbnd(kc, Cint(0), 10.0)
+    clo = Ref{Cdouble}()
+    cup = Ref{Cdouble}()
+    KN_get_con_lobnd(kc, Cint(0), clo)
+    KN_get_con_upbnd(kc, Cint(0), cup)
+    @test clo[] == -5.0
+    @test cup[] == 10.0
+
+    KN_set_con_eqbnd(kc, Cint(1), 7.0)
+    ceq = Ref{Cdouble}()
+    KN_get_con_eqbnd(kc, Cint(1), ceq)
+    @test ceq[] == 7.0
+
+    KN_free(kc)
+end
+
+@testset "KN_get_var/con_lobnds/upbnds_all" begin
+    kc = KN_new()
+    KN_add_vars(kc, 3, zeros(Cint, 3))
+    KN_set_var_lobnds_all(kc, [1.0, 2.0, 3.0])
+    KN_set_var_upbnds_all(kc, [4.0, 5.0, 6.0])
+
+    lo = zeros(Cdouble, 3)
+    up = zeros(Cdouble, 3)
+    KN_get_var_lobnds_all(kc, lo)
+    KN_get_var_upbnds_all(kc, up)
+    @test lo == [1.0, 2.0, 3.0]
+    @test up == [4.0, 5.0, 6.0]
+
+    KN_add_cons(kc, 2, zeros(Cint, 2))
+    KN_set_con_lobnds_all(kc, [-1.0, -2.0])
+    KN_set_con_upbnds_all(kc, [10.0, 20.0])
+    clo = zeros(Cdouble, 2)
+    cup = zeros(Cdouble, 2)
+    KN_get_con_lobnds_all(kc, clo)
+    KN_get_con_upbnds_all(kc, cup)
+    @test clo == [-1.0, -2.0]
+    @test cup == [10.0, 20.0]
+
+    KN_free(kc)
+end
+
+@testset "KN_get_var_type and KN_get_var_types_all" begin
+    kc = KN_new()
+    KN_add_vars(kc, 3, zeros(Cint, 3))
+    KN_set_var_types_all(
+        kc,
+        Cint[KN_VARTYPE_CONTINUOUS, KN_VARTYPE_INTEGER, KN_VARTYPE_BINARY],
+    )
+
+    t = Ref{Cint}()
+    KN_get_var_type(kc, Cint(1), t)
+    @test t[] == KN_VARTYPE_INTEGER
+
+    types = zeros(Cint, 3)
+    KN_get_var_types_all(kc, types)
+    @test types ==
+          Cint[KN_VARTYPE_CONTINUOUS, KN_VARTYPE_INTEGER, KN_VARTYPE_BINARY]
+
+    KN_free(kc)
+end
+
+@testset "KN_add/chg/del_obj_linear and KN_add_con_linear_term" begin
+    kc = KN_new()
+    KN_set_int_param_by_name(kc, "outlev", 0)
+    KN_add_vars(kc, 3, zeros(Cint, 3))
+    KN_set_var_lobnds_all(kc, [0.0, 0.0, 0.0])
+    KN_set_var_upbnds_all(kc, [10.0, 10.0, 10.0])
+
+    KN_add_obj_linear_struct(kc, 2, Cint[0, 1], [5.0, 2.0])
+
+    KN_add_cons(kc, 1, zeros(Cint, 1))
+    KN_set_con_upbnds_all(kc, [5.0])
+    KN_add_con_linear_term(kc, Cint(0), Cint(0), 1.0)
+    KN_add_con_linear_term(kc, Cint(0), Cint(1), 1.0)
+
+    KN_set_obj_goal(kc, KN_OBJGOAL_MAXIMIZE)
+    status = KN_solve(kc)
+    @test status == 0
+    _, obj, _, _ = KN_get_solution(kc)
+    @test obj ≈ 25.0 atol = 1e-4
+
+    KN_set_int_param(kc, KN_PARAM_STRAT_WARM_START, KN_STRAT_WARM_START_YES)
+
+    KN_add_obj_linear_term(kc, Cint(2), 1.0)
+    KN_chg_obj_linear_term(kc, Cint(0), 3.0)
+    status = KN_solve(kc)
+    @test status == 0
+
+    KN_del_obj_linear_term(kc, Cint(2))
+    status = KN_solve(kc)
+    @test status == 0
+
+    KN_free(kc)
+end
+
+@testset "KN_add_obj_quadratic_struct" begin
+    kc = KN_new()
+    KN_set_int_param_by_name(kc, "outlev", 0)
+    KN_add_vars(kc, 2, zeros(Cint, 2))
+    KN_set_var_lobnds_all(kc, [-10.0, -10.0])
+    KN_set_var_upbnds_all(kc, [10.0, 10.0])
+    KN_set_var_primal_init_values_all(kc, [5.0, 5.0])
+
+    KN_add_obj_quadratic_struct(kc, 2, Cint[0, 1], Cint[0, 1], [1.0, 1.0])
+    KN_set_obj_goal(kc, KN_OBJGOAL_MINIMIZE)
+
+    status = KN_solve(kc)
+    @test status == 0
+    _, obj, x, _ = KN_get_solution(kc)
+    @test obj ≈ 0.0 atol = 1e-6
+    @test x ≈ [0.0, 0.0] atol = 1e-4
+
+    KN_free(kc)
+end
+
+@testset "KN_get_obj_value, KN_get_var/con_primal/dual_value, KN_get_solve_time" begin
+    kc = KN_new()
+    KN_set_int_param_by_name(kc, "outlev", 0)
+    KN_add_vars(kc, 2, zeros(Cint, 2))
+    KN_set_var_lobnds_all(kc, [0.0, 0.0])
+    KN_set_var_upbnds_all(kc, [10.0, 10.0])
+    KN_add_obj_linear_struct(kc, 2, Cint[0, 1], [1.0, 2.0])
+    KN_add_cons(kc, 1, zeros(Cint, 1))
+    KN_set_con_upbnds_all(kc, [6.0])
+    KN_add_con_linear_struct(kc, 2, Cint[0, 0], Cint[0, 1], [1.0, 1.0])
+    KN_set_obj_goal(kc, KN_OBJGOAL_MAXIMIZE)
+
+    status = KN_solve(kc)
+    @test status == 0
+
+    nv = Ref{Cint}()
+    nc = Ref{Cint}()
+    KN_get_number_vars(kc, nv)
+    KN_get_number_cons(kc, nc)
+    @test nv[] == 2
+    @test nc[] == 1
+
+    obj_ref = Ref{Cdouble}()
+    KN_get_obj_value(kc, obj_ref)
+    @test obj_ref[] ≈ 12.0 atol = 1e-4
+
+    x0 = Ref{Cdouble}()
+    KN_get_var_primal_value(kc, Cint(0), x0)
+    x1 = Ref{Cdouble}()
+    KN_get_var_primal_value(kc, Cint(1), x1)
+    @test x0[] ≈ 0.0 atol = 1e-4
+    @test x1[] ≈ 6.0 atol = 1e-4
+
+    d0 = Ref{Cdouble}()
+    KN_get_var_dual_value(kc, Cint(0), d0)
+    @test isfinite(d0[])
+
+    cd0 = Ref{Cdouble}()
+    KN_get_con_dual_value(kc, Cint(0), cd0)
+    @test isfinite(cd0[])
+
+    tcpu = Ref{Cdouble}()
+    treal = Ref{Cdouble}()
+    KN_get_solve_time_cpu(kc, tcpu)
+    KN_get_solve_time_real(kc, treal)
+    @test tcpu[] >= 0.0
+    @test treal[] >= 0.0
+
+    KN_free(kc)
+end
+
+@testset "KN_add/chg/del_con_constant" begin
+    kc = KN_new()
+    KN_set_int_param_by_name(kc, "outlev", 0)
+    KN_add_vars(kc, 1, zeros(Cint, 1))
+    KN_set_var_lobnds_all(kc, [0.0])
+    KN_set_var_upbnds_all(kc, [10.0])
+
+    KN_add_cons(kc, 2, zeros(Cint, 2))
+
+    KN_add_con_constant(kc, Cint(0), 5.0)
+    KN_add_con_constants_all(kc, [1.0, 2.0])
+    KN_chg_con_constant(kc, Cint(0), 3.0)
+    KN_del_con_constant(kc, Cint(1))
+
+    KN_free(kc)
+    @test true
+end
+
+@testset "KN_set_var_property and KN_set_var/con_honorbnd" begin
+    kc = KN_new()
+    KN_add_vars(kc, 2, zeros(Cint, 2))
+    KN_add_cons(kc, 1, zeros(Cint, 1))
+
+    KN_set_var_property(kc, Cint(0), KN_VAR_LINEAR)
+    KN_set_var_properties_all(kc, Cint[KN_VAR_LINEAR, KN_VAR_LINEAR])
+
+    KN_set_var_honorbnd(kc, Cint(0), KN_HONORBNDS_ALWAYS)
+    KN_set_con_honorbnd(kc, Cint(0), KN_HONORBNDS_ALWAYS)
+
+    KN_free(kc)
+    @test true
+end
+
+@testset "KN_set/get_var/con/obj_name" begin
+    kc = KN_new()
+    KN_add_vars(kc, 2, zeros(Cint, 2))
+    KN_add_cons(kc, 1, zeros(Cint, 1))
+
+    KN_set_var_names_all(kc, ["x1", "x2"])
+    KN_set_con_names_all(kc, ["c1"])
+    KN_set_obj_name(kc, "myobj")
+
+    buf = Vector{Cchar}(undef, 128)
+    _to_string(x) = GC.@preserve(x, unsafe_string(pointer(x)))
+
+    KN_get_var_name(kc, Cint(0), 128, buf)
+    @test _to_string(buf) == "x1"
+
+    KN_get_con_name(kc, Cint(0), 128, buf)
+    @test _to_string(buf) == "c1"
+
+    KN_get_obj_name(kc, 128, buf)
+    @test _to_string(buf) == "myobj"
+
+    KN_free(kc)
+end
+
+@testset "KN_get_mip_number_nodes/solves/gaps/relaxation_bnd" begin
+    kc = KN_new()
+    KN_set_int_param_by_name(kc, "outlev", 0)
+    KN_set_int_param_by_name(kc, "mip_numthreads", 1)
+    KN_set_int_param_by_name(kc, "hessopt", 2)
+    KN_set_int_param_by_name(kc, "gradopt", 2)
+    KN_add_vars(kc, 2, zeros(Cint, 2))
+    KN_set_var_lobnds_all(kc, [0.0, 0.0])
+    KN_set_var_upbnds_all(kc, [5.0, 5.0])
+    KN_set_var_types_all(kc, Cint[KN_VARTYPE_INTEGER, KN_VARTYPE_INTEGER])
+    KN_add_obj_linear_struct(kc, 2, Cint[0, 1], [1.0, 2.0])
+    KN_add_cons(kc, 1, zeros(Cint, 1))
+    KN_set_con_upbnds_all(kc, [7.0])
+    KN_add_con_linear_struct(kc, 2, Cint[0, 0], Cint[0, 1], [1.0, 1.0])
+    KN_set_obj_goal(kc, KN_OBJGOAL_MAXIMIZE)
+
+    status = KN_solve(kc)
+    @test status == 0 || status == KN_RC_MIP_EXH_FEAS
+
+    p = Ref{Cint}()
+    KN_get_mip_number_nodes(kc, p)
+    @test p[] >= 0
+    KN_get_mip_number_solves(kc, p)
+    @test p[] >= 0
+
+    gap = Ref{Cdouble}()
+    KN_get_mip_abs_gap(kc, gap)
+    @test gap[] >= 0.0
+    KN_get_mip_rel_gap(kc, gap)
+    @test gap[] >= 0.0
+    KN_get_mip_relaxation_bnd(kc, gap)
+    @test isfinite(gap[])
+
+    KN_free(kc)
+end
+
+@testset "KN_get_objgrad_nnz and KN_get_objgrad_values_all" begin
+    kc = KN_new()
+    KN_set_int_param_by_name(kc, "outlev", 0)
+    KN_add_vars(kc, 2, zeros(Cint, 2))
+    KN_set_var_lobnds_all(kc, [0.0, 0.0])
+    KN_set_var_upbnds_all(kc, [10.0, 10.0])
+    KN_add_obj_linear_struct(kc, 2, Cint[0, 1], [3.0, 5.0])
+    KN_add_cons(kc, 1, zeros(Cint, 1))
+    KN_set_con_upbnds_all(kc, [4.0])
+    KN_add_con_linear_struct(kc, 2, Cint[0, 0], Cint[0, 1], [1.0, 1.0])
+    KN_set_obj_goal(kc, KN_OBJGOAL_MAXIMIZE)
+
+    status = KN_solve(kc)
+    @test status == 0
+
+    nnz = Ref{Cint}()
+    KN_get_objgrad_nnz(kc, nnz)
+    @test nnz[] == 2
+
+    grad = zeros(Cdouble, 2)
+    KN_get_objgrad_values_all(kc, grad)
+    @test grad == [3.0, 5.0]
+
+    KN_free(kc)
+end
+
+@testset "KN_load/save_param_file and KN_load_tuner_file" begin
+    kc = KN_new()
+
+    options = joinpath(dirname(@__FILE__), "..", "examples", "knitro.opt")
+    KN_load_param_file(kc, options)
+
+    tmpfile = tempname() * ".opt"
+    KN_save_param_file(kc, tmpfile)
+    @test isfile(tmpfile)
+
+    kc2 = KN_new()
+    KN_load_param_file(kc2, tmpfile)
+    rm(tmpfile)
+
+    tuner = joinpath(dirname(@__FILE__), "..", "examples", "tuner-fixed.opt")
+    KN_load_tuner_file(kc, tuner)
+
+    KN_free(kc)
+    KN_free(kc2)
+    @test true
+end
+
+@testset "KN_get_obj_goal" begin
+    kc = KN_new()
+    KN_add_vars(kc, 1, zeros(Cint, 1))
+
+    KN_set_obj_goal(kc, KN_OBJGOAL_MAXIMIZE)
+    g = Ref{Cint}()
+    KN_get_obj_goal(kc, g)
+    @test g[] == KN_OBJGOAL_MAXIMIZE
+
+    KN_set_obj_goal(kc, KN_OBJGOAL_MINIMIZE)
+    KN_get_obj_goal(kc, g)
+    @test g[] == KN_OBJGOAL_MINIMIZE
+
+    KN_free(kc)
+end
