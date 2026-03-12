@@ -6,12 +6,14 @@
 macro _checked(expr)
     @assert Meta.isexpr(expr, :call)
     msg = "unexpected return code from $(expr.args[1]): "
-    code = quote
-        if (ret = $(esc(expr))) != 0
-            error($msg, ret)
+    ret = gensym()
+    code = Expr(:block, __source__, :($ret = $(esc(expr))))
+    return quote
+        $code
+        if $ret != 0
+            error($msg, $ret)
         end
     end
-    return Expr(:block, __source__, code)
 end
 
 mutable struct Env
