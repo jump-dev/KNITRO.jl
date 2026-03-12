@@ -1,7 +1,7 @@
 name = "KNITRO"
 uuid = "67920dd8-b58e-52a8-8622-53c4cffbe346"
-authors = ["Artelys", "jump-dev"]
 version = "1.2.0"
+authors = ["Artelys", "jump-dev"]
 
 [deps]
 KNITRO_jll = "0e6b36f8-8e90-4eb5-b54e-06f667ea875c"
@@ -28,4 +28,4 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["MathOptInterface", "Printf", "SparseArrays", "Test"]
+test = ["Printf", "SparseArrays", "Test"]
