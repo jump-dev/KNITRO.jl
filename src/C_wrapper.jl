@@ -3,15 +3,36 @@
 # Use of this source code is governed by an MIT-style license that can be found
 # in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
+"""
+    @_checked(expr)
+
+This macro evalutes a KNITRO function and errors if the return code is not `0`.
+
+Here's an example:
+```julia
+julia> @macroexpand KNITRO.@_checked KN_new()
+quote
+    #= REPL[13]:1 =#
+    if (var"#109#ret" = KN_new()) != 0
+        #= /Users/odow/git/jump-dev/KNITRO/src/C_wrapper.jl:11 =#
+        KNITRO.error("unexpected return code from KN_new: ", var"#109#ret")
+    end
+end
+```
+"""
 macro _checked(expr)
     @assert Meta.isexpr(expr, :call)
     msg = "unexpected return code from $(expr.args[1]): "
-    return quote
-        ret = $(esc(expr))
-        if ret != 0
-            error($msg * string(ret))
+    code = quote
+        if (ret = $(esc(expr))) != 0
+            error($msg, ret)
         end
     end
+    @assert code.args[1] isa LineNumberNode
+    # Replace the line number with __source__ for better line numbers in error
+    # messages and so that codecov gives accurate results.
+    code.args[1] = __source__
+    return code
 end
 
 mutable struct Env
