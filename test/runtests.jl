@@ -27,8 +27,12 @@ end
     end
 end
 
-@testset "Test MathOptInterface" begin
-    include("MOI_wrapper.jl")
+# Test the MathOptInterface wrapper, but only if the user
+# has not set the environment variable.
+if !haskey(ENV, "KNITRO_JL_SKIP_TEST_MOI")
+    @testset "Test MathOptInterface" begin
+        include("MOI_wrapper.jl")
+    end
 end
 
 @testset "Test C API License" begin
