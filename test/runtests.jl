@@ -9,12 +9,11 @@ import Test
 
 @info "Running tests with $(KNITRO.libknitro)"
 # Before proceeding, check that KNITRO is installed correctly.
-@test KNITRO.has_knitro()
+Test.@test KNITRO.has_knitro()
 
 is_test_file(f) = startswith(f, "test_") && endswith(f, ".jl")
 testsuite = Dict{String,Expr}(
-    file => :(include($file))
-    for (root, dirs, files) in walkdir(@__DIR__)
-    for file in joinpath.(root, filter(is_test_file, files))
+    file => :(include($file)) for (root, dirs, files) in walkdir(@__DIR__) for
+    file in joinpath.(root, filter(is_test_file, files))
 )
 ParallelTestRunner.runtests(KNITRO, ARGS; testsuite)
