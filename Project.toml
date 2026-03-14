@@ -17,15 +17,17 @@ KNITROMathOptInterfaceExt = ["MathOptInterface"]
 KNITRO_jll = "=15.0.1, =15.1.0"
 Libdl = "1"
 MathOptInterface = "1.46"
+ParallelTestRunner = "2.5.0"
 Printf = "1"
 SparseArrays = "1"
 Test = "1"
 julia = "1.10"
 
 [extras]
+ParallelTestRunner = "d3525ed8-44d0-4b2c-a655-542cee43accc"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["MathOptInterface", "Printf", "SparseArrays", "Test"]
+test = ["MathOptInterface", "ParallelTestRunner", "Printf", "SparseArrays", "Test"]
