@@ -27,8 +27,14 @@ end
     end
 end
 
-@testset "Test MathOptInterface" begin
-    include("MOI_wrapper.jl")
+# This ENV variable is used by Artelys in their upstream CI. See
+# https://github.com/jump-dev/KNITRO.jl/pull/387 for more details.
+if !haskey(ENV, "KNITRO_JL_SKIP_TEST_MOI")
+    @testset "Test MathOptInterface" begin
+        include("MOI_wrapper.jl")
+    end
+else
+    @info "Skipping MathOptInterface tests because KNITRO_JL_SKIP_TEST_MOI is set."
 end
 
 @testset "Test C API License" begin
