@@ -9,17 +9,17 @@ jobs:
     name: KNITRO
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: julia-actions/setup-julia@v2
         with:
           version: '1'
           arch: 'x64'
-      - uses: julia-actions/cache@v1
+      - uses: julia-actions/cache@v3
       - shell: bash
         env:
           SECRET_KNITRO_LICENSE: ${{ secrets.KNITRO_LICENSE }}
         run: |
-          echo "$SECRET_KNITRO_LICENSE" > ~/artelys_lic.txt        
+          echo "$SECRET_KNITRO_LICENSE" > ~/artelys_lic.txt
       - name: "run_minlptests"
         env:
           SECRET_KNITRO_URL: ${{ secrets.KNITRO_URL }}

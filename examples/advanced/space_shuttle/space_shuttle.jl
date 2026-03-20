@@ -146,7 +146,7 @@ end
 function cb_eval_fc_con_dyn(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
 
-    for i in 0:M-2
+    for i in 0:(M-2)
         ind_xᵢ = (1:nₓ) .+ i * nₓ
         ind_xⱼ = ind_xᵢ .+ nₓ
         ind_con = (1:6) .+ i * 6
@@ -164,7 +164,7 @@ function cb_eval_ga_con_dyn(kc, cb, evalRequest, evalResult, userParams)
     x = evalRequest.x
     jac_data = userParams
 
-    for i in 0:M-2
+    for i in 0:(M-2)
         ind_xᵢ = (1:nₓ) .+ i * nₓ
         ind_xⱼ = ind_xᵢ .+ nₓ
         ind_con = (1:6) .+ i * 6
@@ -180,7 +180,7 @@ function cb_eval_ga_con_dyn(kc, cb, evalRequest, evalResult, userParams)
         )
 
         aux_jac = i * jac_data.length_jac
-        ind_jac = aux_jac+1:aux_jac+jac_data.length_jac
+        ind_jac = (aux_jac+1):(aux_jac+jac_data.length_jac)
         evalResult.jac[ind_jac] = nonzeros(jac_data.jac_dyn)
     end
 
@@ -217,19 +217,14 @@ input = rand(15)
 jac_data = JacobianData(input=input)
 forwarddiff_color_jacobian!(jac_data.jac_dyn, dynamics_defects!, input, jac_data.jac_cache)
 
-jacIndexConsCB = Cint.(hcat([rowvals(jac_data.jac_dyn) .+ i * 6 for i in 0:N-1]...) .- 1)
-jacIndexVarsCB =
-    Cint.(
-        hcat(
-            [
-                vcat(
-                    [
-                        fill(j + i * nₓ, length(nzrange(jac_data.jac_dyn, j))) for j in 1:15
-                    ]...,
-                ) for i in 0:N-1
-            ]...,
-        ) .- 1,
-    )
+jacIndexConsCB = Cint.(hcat([rowvals(jac_data.jac_dyn) .+ i * 6 for i in 0:(N-1)]...) .- 1)
+jacIndexVarsCB = Cint.(
+    hcat(
+        [
+            vcat([fill(j + i * nₓ, length(nzrange(jac_data.jac_dyn, j))) for j in 1:15]...) for i in 0:(N-1)
+        ]...,
+    ) .- 1,
+)
 
 # Note: the code above this point formulates the problem, and implements
 # callbacks in a format compatible with Knitro's interface, but the
