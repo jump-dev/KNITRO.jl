@@ -125,7 +125,7 @@ KNITRO.KN_add_con_quadratic_struct_one(kc, 1, 0, Cint[0], Cint[1], [1.0])
 KNITRO.KN_add_con_linear_struct_one(kc, 1, 1, Cint[0], [1.0])
 
 # Add quadratic term x1^2 in the second constraint
-KNITRO.KN_add_con_quadratic_struct_one(kc, 1, 1, Cint[1], Cint[1], [1.0])#= cb = KNITRO.KN_add_eval_callback(kc, evalObj = True, funcCallback = callbackEvalF) =#
+KNITRO.KN_add_con_quadratic_struct_one(kc, 1, 1, Cint[1], Cint[1], [1.0]) #= cb = KNITRO.KN_add_eval_callback(kc, evalObj = True, funcCallback = callbackEvalF) =#
 
 # Add a callback function "callbackEvalF" to evaluate the nonlinear
 #(non-quadratic) objective.  Note that the linear and
