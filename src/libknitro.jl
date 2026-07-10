@@ -11,6 +11,12 @@ const KNLONG = Clonglong
 
 const KNBOOL = KNINT
 
+const KNExprId = KNLONG
+
+const KNVarId = KNINT
+
+const KNConId = KNINT
+
 const KN_context = Cvoid
 
 const KN_context_ptr = Ptr{KN_context}
@@ -224,6 +230,68 @@ function KN_write_param_desc_file(kc, filepath)
         kc::KN_context_ptr,
         filepath::Ptr{Cchar},
     )::Cint
+end
+
+function KN_get_int_attr(kc, attr_id, value)
+    @ccall libknitro.KN_get_int_attr(
+        kc::KN_context_ptr,
+        attr_id::Cint,
+        value::Ptr{Cint},
+    )::Cint
+end
+
+function KN_get_double_attr(kc, attr_id, value)
+    @ccall libknitro.KN_get_double_attr(
+        kc::KN_context_ptr,
+        attr_id::Cint,
+        value::Ptr{Cdouble},
+    )::Cint
+end
+
+function KN_get_longint_attr(kc, attr_id, value)
+    @ccall libknitro.KN_get_longint_attr(
+        kc::KN_context_ptr,
+        attr_id::Cint,
+        value::Ptr{KNLONG},
+    )::Cint
+end
+
+function KN_get_attr_name(kc, attr_id, attr_name, output_size)
+    @ccall libknitro.KN_get_attr_name(
+        kc::KN_context_ptr,
+        attr_id::Cint,
+        attr_name::Ptr{Cchar},
+        output_size::Csize_t,
+    )::Cint
+end
+
+function KN_get_attr_doc(kc, attr_id, description, output_size)
+    @ccall libknitro.KN_get_attr_doc(
+        kc::KN_context_ptr,
+        attr_id::Cint,
+        description::Ptr{Cchar},
+        output_size::Csize_t,
+    )::Cint
+end
+
+function KN_get_attr_type(kc, attr_id, attr_type)
+    @ccall libknitro.KN_get_attr_type(
+        kc::KN_context_ptr,
+        attr_id::Cint,
+        attr_type::Ptr{Cint},
+    )::Cint
+end
+
+function KN_get_attr_id(kc, name, attr_id)
+    @ccall libknitro.KN_get_attr_id(
+        kc::KN_context_ptr,
+        name::Ptr{Cchar},
+        attr_id::Ptr{Cint},
+    )::Cint
+end
+
+function KN_write_attr_desc_file(kc, filepath)
+    @ccall libknitro.KN_write_attr_desc_file(kc::KN_context_ptr, filepath::Ptr{Cchar})::Cint
 end
 
 function KN_add_vars(kc, nV, indexVars)
@@ -1039,6 +1107,1295 @@ function KN_add_con_L2norm(
     )::Cint
 end
 
+function KN_var_expr(kc, var, expr)
+    @ccall libknitro.KN_var_expr(
+        kc::Ptr{KN_context},
+        var::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_var_exprs(kc, n, vars, exprs)
+    @ccall libknitro.KN_var_exprs(
+        kc::Ptr{KN_context},
+        n::Csize_t,
+        vars::Ptr{KNVarId},
+        exprs::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_constant_expr(kc, constant, expr)
+    @ccall libknitro.KN_constant_expr(
+        kc::Ptr{KN_context},
+        constant::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_constant_exprs(kc, n, constants, exprs)
+    @ccall libknitro.KN_constant_exprs(
+        kc::Ptr{KN_context},
+        n::Csize_t,
+        constants::Ptr{Cdouble},
+        exprs::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_neg_expr(kc, operand, expr)
+    @ccall libknitro.KN_neg_expr(
+        kc::Ptr{KN_context},
+        operand::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_neg_expr_c(kc, operand, expr)
+    @ccall libknitro.KN_neg_expr_c(
+        kc::Ptr{KN_context},
+        operand::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_neg_expr_v(kc, operand, expr)
+    @ccall libknitro.KN_neg_expr_v(
+        kc::Ptr{KN_context},
+        operand::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_sign_expr(kc, operand, expr)
+    @ccall libknitro.KN_sign_expr(
+        kc::Ptr{KN_context},
+        operand::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_sign_expr_c(kc, operand, expr)
+    @ccall libknitro.KN_sign_expr_c(
+        kc::Ptr{KN_context},
+        operand::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_sign_expr_v(kc, operand, expr)
+    @ccall libknitro.KN_sign_expr_v(
+        kc::Ptr{KN_context},
+        operand::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_abs_expr(kc, operand, expr)
+    @ccall libknitro.KN_abs_expr(
+        kc::Ptr{KN_context},
+        operand::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_abs_expr_c(kc, operand, expr)
+    @ccall libknitro.KN_abs_expr_c(
+        kc::Ptr{KN_context},
+        operand::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_abs_expr_v(kc, operand, expr)
+    @ccall libknitro.KN_abs_expr_v(
+        kc::Ptr{KN_context},
+        operand::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_sqrt_expr(kc, operand, expr)
+    @ccall libknitro.KN_sqrt_expr(
+        kc::Ptr{KN_context},
+        operand::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_sqrt_expr_c(kc, operand, expr)
+    @ccall libknitro.KN_sqrt_expr_c(
+        kc::Ptr{KN_context},
+        operand::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_sqrt_expr_v(kc, operand, expr)
+    @ccall libknitro.KN_sqrt_expr_v(
+        kc::Ptr{KN_context},
+        operand::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_sin_expr(kc, operand, expr)
+    @ccall libknitro.KN_sin_expr(
+        kc::Ptr{KN_context},
+        operand::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_sin_expr_c(kc, operand, expr)
+    @ccall libknitro.KN_sin_expr_c(
+        kc::Ptr{KN_context},
+        operand::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_sin_expr_v(kc, operand, expr)
+    @ccall libknitro.KN_sin_expr_v(
+        kc::Ptr{KN_context},
+        operand::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_cos_expr(kc, operand, expr)
+    @ccall libknitro.KN_cos_expr(
+        kc::Ptr{KN_context},
+        operand::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_cos_expr_c(kc, operand, expr)
+    @ccall libknitro.KN_cos_expr_c(
+        kc::Ptr{KN_context},
+        operand::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_cos_expr_v(kc, operand, expr)
+    @ccall libknitro.KN_cos_expr_v(
+        kc::Ptr{KN_context},
+        operand::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_tan_expr(kc, operand, expr)
+    @ccall libknitro.KN_tan_expr(
+        kc::Ptr{KN_context},
+        operand::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_tan_expr_c(kc, operand, expr)
+    @ccall libknitro.KN_tan_expr_c(
+        kc::Ptr{KN_context},
+        operand::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_tan_expr_v(kc, operand, expr)
+    @ccall libknitro.KN_tan_expr_v(
+        kc::Ptr{KN_context},
+        operand::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_sinh_expr(kc, operand, expr)
+    @ccall libknitro.KN_sinh_expr(
+        kc::Ptr{KN_context},
+        operand::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_sinh_expr_c(kc, operand, expr)
+    @ccall libknitro.KN_sinh_expr_c(
+        kc::Ptr{KN_context},
+        operand::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_sinh_expr_v(kc, operand, expr)
+    @ccall libknitro.KN_sinh_expr_v(
+        kc::Ptr{KN_context},
+        operand::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_cosh_expr(kc, operand, expr)
+    @ccall libknitro.KN_cosh_expr(
+        kc::Ptr{KN_context},
+        operand::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_cosh_expr_c(kc, operand, expr)
+    @ccall libknitro.KN_cosh_expr_c(
+        kc::Ptr{KN_context},
+        operand::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_cosh_expr_v(kc, operand, expr)
+    @ccall libknitro.KN_cosh_expr_v(
+        kc::Ptr{KN_context},
+        operand::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_tanh_expr(kc, operand, expr)
+    @ccall libknitro.KN_tanh_expr(
+        kc::Ptr{KN_context},
+        operand::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_tanh_expr_c(kc, operand, expr)
+    @ccall libknitro.KN_tanh_expr_c(
+        kc::Ptr{KN_context},
+        operand::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_tanh_expr_v(kc, operand, expr)
+    @ccall libknitro.KN_tanh_expr_v(
+        kc::Ptr{KN_context},
+        operand::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_asin_expr(kc, operand, expr)
+    @ccall libknitro.KN_asin_expr(
+        kc::Ptr{KN_context},
+        operand::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_asin_expr_c(kc, operand, expr)
+    @ccall libknitro.KN_asin_expr_c(
+        kc::Ptr{KN_context},
+        operand::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_asin_expr_v(kc, operand, expr)
+    @ccall libknitro.KN_asin_expr_v(
+        kc::Ptr{KN_context},
+        operand::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_acos_expr(kc, operand, expr)
+    @ccall libknitro.KN_acos_expr(
+        kc::Ptr{KN_context},
+        operand::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_acos_expr_c(kc, operand, expr)
+    @ccall libknitro.KN_acos_expr_c(
+        kc::Ptr{KN_context},
+        operand::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_acos_expr_v(kc, operand, expr)
+    @ccall libknitro.KN_acos_expr_v(
+        kc::Ptr{KN_context},
+        operand::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_atan_expr(kc, operand, expr)
+    @ccall libknitro.KN_atan_expr(
+        kc::Ptr{KN_context},
+        operand::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_atan_expr_c(kc, operand, expr)
+    @ccall libknitro.KN_atan_expr_c(
+        kc::Ptr{KN_context},
+        operand::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_atan_expr_v(kc, operand, expr)
+    @ccall libknitro.KN_atan_expr_v(
+        kc::Ptr{KN_context},
+        operand::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_asinh_expr(kc, operand, expr)
+    @ccall libknitro.KN_asinh_expr(
+        kc::Ptr{KN_context},
+        operand::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_asinh_expr_c(kc, operand, expr)
+    @ccall libknitro.KN_asinh_expr_c(
+        kc::Ptr{KN_context},
+        operand::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_asinh_expr_v(kc, operand, expr)
+    @ccall libknitro.KN_asinh_expr_v(
+        kc::Ptr{KN_context},
+        operand::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_acosh_expr(kc, operand, expr)
+    @ccall libknitro.KN_acosh_expr(
+        kc::Ptr{KN_context},
+        operand::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_acosh_expr_c(kc, operand, expr)
+    @ccall libknitro.KN_acosh_expr_c(
+        kc::Ptr{KN_context},
+        operand::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_acosh_expr_v(kc, operand, expr)
+    @ccall libknitro.KN_acosh_expr_v(
+        kc::Ptr{KN_context},
+        operand::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_atanh_expr(kc, operand, expr)
+    @ccall libknitro.KN_atanh_expr(
+        kc::Ptr{KN_context},
+        operand::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_atanh_expr_c(kc, operand, expr)
+    @ccall libknitro.KN_atanh_expr_c(
+        kc::Ptr{KN_context},
+        operand::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_atanh_expr_v(kc, operand, expr)
+    @ccall libknitro.KN_atanh_expr_v(
+        kc::Ptr{KN_context},
+        operand::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_exp_expr(kc, operand, expr)
+    @ccall libknitro.KN_exp_expr(
+        kc::Ptr{KN_context},
+        operand::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_exp_expr_c(kc, operand, expr)
+    @ccall libknitro.KN_exp_expr_c(
+        kc::Ptr{KN_context},
+        operand::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_exp_expr_v(kc, operand, expr)
+    @ccall libknitro.KN_exp_expr_v(
+        kc::Ptr{KN_context},
+        operand::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_expm1_expr(kc, operand, expr)
+    @ccall libknitro.KN_expm1_expr(
+        kc::Ptr{KN_context},
+        operand::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_expm1_expr_c(kc, operand, expr)
+    @ccall libknitro.KN_expm1_expr_c(
+        kc::Ptr{KN_context},
+        operand::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_expm1_expr_v(kc, operand, expr)
+    @ccall libknitro.KN_expm1_expr_v(
+        kc::Ptr{KN_context},
+        operand::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_log_expr(kc, operand, expr)
+    @ccall libknitro.KN_log_expr(
+        kc::Ptr{KN_context},
+        operand::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_log_expr_c(kc, operand, expr)
+    @ccall libknitro.KN_log_expr_c(
+        kc::Ptr{KN_context},
+        operand::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_log_expr_v(kc, operand, expr)
+    @ccall libknitro.KN_log_expr_v(
+        kc::Ptr{KN_context},
+        operand::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_log1p_expr(kc, operand, expr)
+    @ccall libknitro.KN_log1p_expr(
+        kc::Ptr{KN_context},
+        operand::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_log1p_expr_c(kc, operand, expr)
+    @ccall libknitro.KN_log1p_expr_c(
+        kc::Ptr{KN_context},
+        operand::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_log1p_expr_v(kc, operand, expr)
+    @ccall libknitro.KN_log1p_expr_v(
+        kc::Ptr{KN_context},
+        operand::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_log10_expr(kc, operand, expr)
+    @ccall libknitro.KN_log10_expr(
+        kc::Ptr{KN_context},
+        operand::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_log10_expr_c(kc, operand, expr)
+    @ccall libknitro.KN_log10_expr_c(
+        kc::Ptr{KN_context},
+        operand::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_log10_expr_v(kc, operand, expr)
+    @ccall libknitro.KN_log10_expr_v(
+        kc::Ptr{KN_context},
+        operand::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_erf_expr(kc, operand, expr)
+    @ccall libknitro.KN_erf_expr(
+        kc::Ptr{KN_context},
+        operand::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_erf_expr_c(kc, operand, expr)
+    @ccall libknitro.KN_erf_expr_c(
+        kc::Ptr{KN_context},
+        operand::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_erf_expr_v(kc, operand, expr)
+    @ccall libknitro.KN_erf_expr_v(
+        kc::Ptr{KN_context},
+        operand::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_erfc_expr(kc, operand, expr)
+    @ccall libknitro.KN_erfc_expr(
+        kc::Ptr{KN_context},
+        operand::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_erfc_expr_c(kc, operand, expr)
+    @ccall libknitro.KN_erfc_expr_c(
+        kc::Ptr{KN_context},
+        operand::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_erfc_expr_v(kc, operand, expr)
+    @ccall libknitro.KN_erfc_expr_v(
+        kc::Ptr{KN_context},
+        operand::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_add_expr(kc, left, right, expr)
+    @ccall libknitro.KN_add_expr(
+        kc::Ptr{KN_context},
+        left::KNExprId,
+        right::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_add_expr_cc(kc, left, right, expr)
+    @ccall libknitro.KN_add_expr_cc(
+        kc::Ptr{KN_context},
+        left::Cdouble,
+        right::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_add_expr_vv(kc, left, right, expr)
+    @ccall libknitro.KN_add_expr_vv(
+        kc::Ptr{KN_context},
+        left::KNVarId,
+        right::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_add_expr_xc(kc, left, right, expr)
+    @ccall libknitro.KN_add_expr_xc(
+        kc::Ptr{KN_context},
+        left::KNExprId,
+        right::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_add_expr_xv(kc, left, right, expr)
+    @ccall libknitro.KN_add_expr_xv(
+        kc::Ptr{KN_context},
+        left::KNExprId,
+        right::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_add_expr_cx(kc, left, right, expr)
+    @ccall libknitro.KN_add_expr_cx(
+        kc::Ptr{KN_context},
+        left::Cdouble,
+        right::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_add_expr_cv(kc, left, right, expr)
+    @ccall libknitro.KN_add_expr_cv(
+        kc::Ptr{KN_context},
+        left::Cdouble,
+        right::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_add_expr_vx(kc, left, right, expr)
+    @ccall libknitro.KN_add_expr_vx(
+        kc::Ptr{KN_context},
+        left::KNVarId,
+        right::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_add_expr_vc(kc, left, right, expr)
+    @ccall libknitro.KN_add_expr_vc(
+        kc::Ptr{KN_context},
+        left::KNVarId,
+        right::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_mul_expr(kc, left, right, expr)
+    @ccall libknitro.KN_mul_expr(
+        kc::Ptr{KN_context},
+        left::KNExprId,
+        right::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_mul_expr_xc(kc, left, right, expr)
+    @ccall libknitro.KN_mul_expr_xc(
+        kc::Ptr{KN_context},
+        left::KNExprId,
+        right::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_mul_expr_cx(kc, left, right, expr)
+    @ccall libknitro.KN_mul_expr_cx(
+        kc::Ptr{KN_context},
+        left::Cdouble,
+        right::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_mul_expr_cc(kc, left, right, expr)
+    @ccall libknitro.KN_mul_expr_cc(
+        kc::Ptr{KN_context},
+        left::Cdouble,
+        right::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_mul_expr_vv(kc, left, right, expr)
+    @ccall libknitro.KN_mul_expr_vv(
+        kc::Ptr{KN_context},
+        left::KNVarId,
+        right::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_mul_expr_xv(kc, left, right, expr)
+    @ccall libknitro.KN_mul_expr_xv(
+        kc::Ptr{KN_context},
+        left::KNExprId,
+        right::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_mul_expr_vx(kc, left, right, expr)
+    @ccall libknitro.KN_mul_expr_vx(
+        kc::Ptr{KN_context},
+        left::KNVarId,
+        right::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_mul_expr_cv(kc, left, right, expr)
+    @ccall libknitro.KN_mul_expr_cv(
+        kc::Ptr{KN_context},
+        left::Cdouble,
+        right::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_mul_expr_vc(kc, left, right, expr)
+    @ccall libknitro.KN_mul_expr_vc(
+        kc::Ptr{KN_context},
+        left::KNVarId,
+        right::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_pow_expr(kc, base, exponent, expr)
+    @ccall libknitro.KN_pow_expr(
+        kc::Ptr{KN_context},
+        base::KNExprId,
+        exponent::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_pow_expr_xc(kc, base, exponent, expr)
+    @ccall libknitro.KN_pow_expr_xc(
+        kc::Ptr{KN_context},
+        base::KNExprId,
+        exponent::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_pow_expr_cx(kc, base, exponent, expr)
+    @ccall libknitro.KN_pow_expr_cx(
+        kc::Ptr{KN_context},
+        base::Cdouble,
+        exponent::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_pow_expr_cc(kc, base, exponent, expr)
+    @ccall libknitro.KN_pow_expr_cc(
+        kc::Ptr{KN_context},
+        base::Cdouble,
+        exponent::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_pow_expr_vv(kc, base, exponent, expr)
+    @ccall libknitro.KN_pow_expr_vv(
+        kc::Ptr{KN_context},
+        base::KNVarId,
+        exponent::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_pow_expr_xv(kc, base, exponent, expr)
+    @ccall libknitro.KN_pow_expr_xv(
+        kc::Ptr{KN_context},
+        base::KNExprId,
+        exponent::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_pow_expr_vx(kc, base, exponent, expr)
+    @ccall libknitro.KN_pow_expr_vx(
+        kc::Ptr{KN_context},
+        base::KNVarId,
+        exponent::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_pow_expr_cv(kc, base, exponent, expr)
+    @ccall libknitro.KN_pow_expr_cv(
+        kc::Ptr{KN_context},
+        base::Cdouble,
+        exponent::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_pow_expr_vc(kc, base, exponent, expr)
+    @ccall libknitro.KN_pow_expr_vc(
+        kc::Ptr{KN_context},
+        base::KNVarId,
+        exponent::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_sub_expr(kc, left, right, expr)
+    @ccall libknitro.KN_sub_expr(
+        kc::Ptr{KN_context},
+        left::KNExprId,
+        right::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_sub_expr_xc(kc, left, right, expr)
+    @ccall libknitro.KN_sub_expr_xc(
+        kc::Ptr{KN_context},
+        left::KNExprId,
+        right::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_sub_expr_cx(kc, left, right, expr)
+    @ccall libknitro.KN_sub_expr_cx(
+        kc::Ptr{KN_context},
+        left::Cdouble,
+        right::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_sub_expr_cc(kc, left, right, expr)
+    @ccall libknitro.KN_sub_expr_cc(
+        kc::Ptr{KN_context},
+        left::Cdouble,
+        right::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_sub_expr_vv(kc, left, right, expr)
+    @ccall libknitro.KN_sub_expr_vv(
+        kc::Ptr{KN_context},
+        left::KNVarId,
+        right::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_sub_expr_xv(kc, left, right, expr)
+    @ccall libknitro.KN_sub_expr_xv(
+        kc::Ptr{KN_context},
+        left::KNExprId,
+        right::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_sub_expr_vx(kc, left, right, expr)
+    @ccall libknitro.KN_sub_expr_vx(
+        kc::Ptr{KN_context},
+        left::KNVarId,
+        right::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_sub_expr_cv(kc, left, right, expr)
+    @ccall libknitro.KN_sub_expr_cv(
+        kc::Ptr{KN_context},
+        left::Cdouble,
+        right::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_sub_expr_vc(kc, left, right, expr)
+    @ccall libknitro.KN_sub_expr_vc(
+        kc::Ptr{KN_context},
+        left::KNVarId,
+        right::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_div_expr(kc, numerator, denominator, expr)
+    @ccall libknitro.KN_div_expr(
+        kc::Ptr{KN_context},
+        numerator::KNExprId,
+        denominator::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_div_expr_xc(kc, numerator, denominator, expr)
+    @ccall libknitro.KN_div_expr_xc(
+        kc::Ptr{KN_context},
+        numerator::KNExprId,
+        denominator::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_div_expr_cx(kc, numerator, denominator, expr)
+    @ccall libknitro.KN_div_expr_cx(
+        kc::Ptr{KN_context},
+        numerator::Cdouble,
+        denominator::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_div_expr_cc(kc, numerator, denominator, expr)
+    @ccall libknitro.KN_div_expr_cc(
+        kc::Ptr{KN_context},
+        numerator::Cdouble,
+        denominator::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_div_expr_vv(kc, numerator, denominator, expr)
+    @ccall libknitro.KN_div_expr_vv(
+        kc::Ptr{KN_context},
+        numerator::KNVarId,
+        denominator::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_div_expr_xv(kc, numerator, denominator, expr)
+    @ccall libknitro.KN_div_expr_xv(
+        kc::Ptr{KN_context},
+        numerator::KNExprId,
+        denominator::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_div_expr_vx(kc, numerator, denominator, expr)
+    @ccall libknitro.KN_div_expr_vx(
+        kc::Ptr{KN_context},
+        numerator::KNVarId,
+        denominator::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_div_expr_cv(kc, numerator, denominator, expr)
+    @ccall libknitro.KN_div_expr_cv(
+        kc::Ptr{KN_context},
+        numerator::Cdouble,
+        denominator::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_div_expr_vc(kc, numerator, denominator, expr)
+    @ccall libknitro.KN_div_expr_vc(
+        kc::Ptr{KN_context},
+        numerator::KNVarId,
+        denominator::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_atan2_expr(kc, left, right, expr)
+    @ccall libknitro.KN_atan2_expr(
+        kc::Ptr{KN_context},
+        left::KNExprId,
+        right::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_atan2_expr_xc(kc, left, right, expr)
+    @ccall libknitro.KN_atan2_expr_xc(
+        kc::Ptr{KN_context},
+        left::KNExprId,
+        right::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_atan2_expr_cx(kc, left, right, expr)
+    @ccall libknitro.KN_atan2_expr_cx(
+        kc::Ptr{KN_context},
+        left::Cdouble,
+        right::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_atan2_expr_cc(kc, left, right, expr)
+    @ccall libknitro.KN_atan2_expr_cc(
+        kc::Ptr{KN_context},
+        left::Cdouble,
+        right::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_atan2_expr_vv(kc, left, right, expr)
+    @ccall libknitro.KN_atan2_expr_vv(
+        kc::Ptr{KN_context},
+        left::KNVarId,
+        right::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_atan2_expr_xv(kc, left, right, expr)
+    @ccall libknitro.KN_atan2_expr_xv(
+        kc::Ptr{KN_context},
+        left::KNExprId,
+        right::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_atan2_expr_vx(kc, left, right, expr)
+    @ccall libknitro.KN_atan2_expr_vx(
+        kc::Ptr{KN_context},
+        left::KNVarId,
+        right::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_atan2_expr_cv(kc, left, right, expr)
+    @ccall libknitro.KN_atan2_expr_cv(
+        kc::Ptr{KN_context},
+        left::Cdouble,
+        right::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_atan2_expr_vc(kc, left, right, expr)
+    @ccall libknitro.KN_atan2_expr_vc(
+        kc::Ptr{KN_context},
+        left::KNVarId,
+        right::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_logb_expr(kc, operand, base, expr)
+    @ccall libknitro.KN_logb_expr(
+        kc::Ptr{KN_context},
+        operand::KNExprId,
+        base::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_logb_expr_xc(kc, operand, base, expr)
+    @ccall libknitro.KN_logb_expr_xc(
+        kc::Ptr{KN_context},
+        operand::KNExprId,
+        base::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_logb_expr_cx(kc, operand, base, expr)
+    @ccall libknitro.KN_logb_expr_cx(
+        kc::Ptr{KN_context},
+        operand::Cdouble,
+        base::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_logb_expr_cc(kc, operand, base, expr)
+    @ccall libknitro.KN_logb_expr_cc(
+        kc::Ptr{KN_context},
+        operand::Cdouble,
+        base::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_logb_expr_vv(kc, operand, base, expr)
+    @ccall libknitro.KN_logb_expr_vv(
+        kc::Ptr{KN_context},
+        operand::KNVarId,
+        base::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_logb_expr_xv(kc, operand, base, expr)
+    @ccall libknitro.KN_logb_expr_xv(
+        kc::Ptr{KN_context},
+        operand::KNExprId,
+        base::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_logb_expr_vx(kc, operand, base, expr)
+    @ccall libknitro.KN_logb_expr_vx(
+        kc::Ptr{KN_context},
+        operand::KNVarId,
+        base::KNExprId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_logb_expr_cv(kc, operand, base, expr)
+    @ccall libknitro.KN_logb_expr_cv(
+        kc::Ptr{KN_context},
+        operand::Cdouble,
+        base::KNVarId,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_logb_expr_vc(kc, operand, base, expr)
+    @ccall libknitro.KN_logb_expr_vc(
+        kc::Ptr{KN_context},
+        operand::KNVarId,
+        base::Cdouble,
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_nadd_expr(kc, n, operands, expr)
+    @ccall libknitro.KN_nadd_expr(
+        kc::Ptr{KN_context},
+        n::Csize_t,
+        operands::Ptr{KNExprId},
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_nadd_expr_v(kc, n, operands, expr)
+    @ccall libknitro.KN_nadd_expr_v(
+        kc::Ptr{KN_context},
+        n::Csize_t,
+        operands::Ptr{KNVarId},
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_nadd_expr_c(kc, n, operands, expr)
+    @ccall libknitro.KN_nadd_expr_c(
+        kc::Ptr{KN_context},
+        n::Csize_t,
+        operands::Ptr{Cdouble},
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_nadd_expr_xvc(kc, n_exprs, exprs, n_vars, vars, n_constants, constants, expr)
+    @ccall libknitro.KN_nadd_expr_xvc(
+        kc::Ptr{KN_context},
+        n_exprs::Csize_t,
+        exprs::Ptr{KNExprId},
+        n_vars::Csize_t,
+        vars::Ptr{KNVarId},
+        n_constants::Csize_t,
+        constants::Ptr{Cdouble},
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_nmul_expr(kc, n, operands, expr)
+    @ccall libknitro.KN_nmul_expr(
+        kc::Ptr{KN_context},
+        n::Csize_t,
+        operands::Ptr{KNExprId},
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_nmul_expr_v(kc, n, operands, expr)
+    @ccall libknitro.KN_nmul_expr_v(
+        kc::Ptr{KN_context},
+        n::Csize_t,
+        operands::Ptr{KNVarId},
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_nmul_expr_c(kc, n, operands, expr)
+    @ccall libknitro.KN_nmul_expr_c(
+        kc::Ptr{KN_context},
+        n::Csize_t,
+        operands::Ptr{Cdouble},
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_nmul_expr_xvc(kc, n_exprs, exprs, n_vars, vars, n_constants, constants, expr)
+    @ccall libknitro.KN_nmul_expr_xvc(
+        kc::Ptr{KN_context},
+        n_exprs::Csize_t,
+        exprs::Ptr{KNExprId},
+        n_vars::Csize_t,
+        vars::Ptr{KNVarId},
+        n_constants::Csize_t,
+        constants::Ptr{Cdouble},
+        expr::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_evaluate_expr(kc, expr, x, y)
+    @ccall libknitro.KN_evaluate_expr(
+        kc::Ptr{KN_context},
+        expr::KNExprId,
+        x::Ptr{Cdouble},
+        y::Ptr{Cdouble},
+    )::Cint
+end
+
+function KN_evaluate_exprs(kc, n, exprs, x, y)
+    @ccall libknitro.KN_evaluate_exprs(
+        kc::Ptr{KN_context},
+        n::Csize_t,
+        exprs::Ptr{KNExprId},
+        x::Ptr{Cdouble},
+        y::Ptr{Cdouble},
+    )::Cint
+end
+
+function KN_evaluate_exprs_all(kc, x, y)
+    @ccall libknitro.KN_evaluate_exprs_all(
+        kc::Ptr{KN_context},
+        x::Ptr{Cdouble},
+        y::Ptr{Cdouble},
+    )::Cint
+end
+
+function KN_add_con_expr(kc, con, expr)
+    @ccall libknitro.KN_add_con_expr(
+        kc::Ptr{KN_context},
+        con::KNConId,
+        expr::KNExprId,
+    )::Cint
+end
+
+function KN_add_con_exprs(kc, con, n, exprs)
+    @ccall libknitro.KN_add_con_exprs(
+        kc::Ptr{KN_context},
+        con::KNConId,
+        n::Csize_t,
+        exprs::Ptr{KNExprId},
+    )::Cint
+end
+
+function KN_add_obj_expr(kc, expr)
+    @ccall libknitro.KN_add_obj_expr(kc::Ptr{KN_context}, expr::KNExprId)::Cint
+end
+
+function KN_add_obj_exprs(kc, n, exprs)
+    @ccall libknitro.KN_add_obj_exprs(
+        kc::Ptr{KN_context},
+        n::Csize_t,
+        exprs::Ptr{KNExprId},
+    )::Cint
+end
+
 function KN_add_compcons(kc, nCC, ccTypes, indexComps1, indexComps2, indexCompCons)
     @ccall libknitro.KN_add_compcons(
         kc::KN_context_ptr,
@@ -1088,6 +2445,22 @@ end
 
 function KN_write_problem(kc, filename, write_options)
     @ccall libknitro.KN_write_problem(
+        kc::KN_context_ptr,
+        filename::Ptr{Cchar},
+        write_options::Ptr{Cchar},
+    )::Cint
+end
+
+function KN_read_solution(kc, filename, read_options)
+    @ccall libknitro.KN_read_solution(
+        kc::KN_context_ptr,
+        filename::Ptr{Cchar},
+        read_options::Ptr{Cchar},
+    )::Cint
+end
+
+function KN_write_solution(kc, filename, write_options)
+    @ccall libknitro.KN_write_solution(
         kc::KN_context_ptr,
         filename::Ptr{Cchar},
         write_options::Ptr{Cchar},
@@ -1689,10 +3062,10 @@ function KN_set_compcon_scalings_all(kc, ccScaleFactors)
     )::Cint
 end
 
-function KN_set_compcon_scaling(kc, indexCompCons, ccScaleFactor)
+function KN_set_compcon_scaling(kc, indexCompCon, ccScaleFactor)
     @ccall libknitro.KN_set_compcon_scaling(
         kc::KN_context_ptr,
-        indexCompCons::KNINT,
+        indexCompCon::KNINT,
         ccScaleFactor::Cdouble,
     )::Cint
 end
@@ -1714,10 +3087,10 @@ function KN_set_var_names_all(kc, xNames)
     @ccall libknitro.KN_set_var_names_all(kc::KN_context_ptr, xNames::Ptr{Ptr{Cchar}})::Cint
 end
 
-function KN_set_var_name(kc, indexVars, xName)
+function KN_set_var_name(kc, indexVar, xName)
     @ccall libknitro.KN_set_var_name(
         kc::KN_context_ptr,
-        indexVars::KNINT,
+        indexVar::KNINT,
         xName::Ptr{Cchar},
     )::Cint
 end
@@ -1762,7 +3135,7 @@ end
 function KN_set_compcon_name(kc, indexCompCon, ccName)
     @ccall libknitro.KN_set_compcon_name(
         kc::KN_context_ptr,
-        indexCompCon::Cint,
+        indexCompCon::KNINT,
         ccName::Ptr{Cchar},
     )::Cint
 end
@@ -1789,10 +3162,10 @@ function KN_get_var_names_all(kc, nBufferSize, xNames)
     )::Cint
 end
 
-function KN_get_var_name(kc, indexVars, nBufferSize, xName)
+function KN_get_var_name(kc, indexVar, nBufferSize, xName)
     @ccall libknitro.KN_get_var_name(
         kc::KN_context_ptr,
-        indexVars::KNINT,
+        indexVar::KNINT,
         nBufferSize::KNINT,
         xName::Ptr{Cchar},
     )::Cint
@@ -1816,10 +3189,10 @@ function KN_get_con_names_all(kc, nBufferSize, cNames)
     )::Cint
 end
 
-function KN_get_con_name(kc, indexCons, nBufferSize, cName)
+function KN_get_con_name(kc, indexCon, nBufferSize, cName)
     @ccall libknitro.KN_get_con_name(
         kc::KN_context_ptr,
-        indexCons::KNINT,
+        indexCon::KNINT,
         nBufferSize::KNINT,
         cName::Ptr{Cchar},
     )::Cint
@@ -2412,6 +3785,12 @@ const KN_PARAMTYPE_FLOAT = 1
 
 const KN_PARAMTYPE_STRING = 2
 
+const KN_ATTRTYPE_INT = 0
+
+const KN_ATTRTYPE_DOUBLE = 1
+
+const KN_ATTRTYPE_LONGINT = 2
+
 const KN_COMPONENT_VAR = 1
 
 const KN_COMPONENT_OBJ = 2
@@ -2635,6 +4014,8 @@ const KN_RC_BAD_OBJ_INDEX = -530
 const KN_RC_BAD_RESIDUAL = -531
 
 const KN_RC_BAD_RSD_INDEX = -532
+
+const KN_RC_BAD_EXPR_INDEX = -533
 
 const KN_RC_INTERNAL_ERROR = -600
 
@@ -3506,6 +4887,8 @@ const KN_PRESOLVEOP_SUBSTITUTION_ALL = 2
 
 const KN_PARAM_PRESOLVEOP_SUBSTITUTION_TOL = 1147
 
+const KN_PARAM_PRESOLVE_ZERO_TOL = 1148
+
 const KN_PARAM_MS_INITPT_CLUSTER = 1149
 
 const KN_MS_INITPT_CLUSTER_NONE = 0
@@ -3600,6 +4983,12 @@ const KN_PRESOLVEOP_PROBING_LIGHT = 1
 
 const KN_PRESOLVEOP_PROBING_FULL = 2
 
+const KN_PARAM_PRESOLVEOP_IMPLIED_MPEC = 1175
+
+const KN_PRESOLVEOP_IMPLIED_MPEC_NO = 0
+
+const KN_PRESOLVEOP_IMPLIED_MPEC_YES = 1
+
 const KN_PARAM_PRESOLVEOP_CLIQUE_MERGING = 1176
 
 const KN_PRESOLVEOP_CLIQUE_MERGING_AUTO = -1
@@ -3607,6 +4996,96 @@ const KN_PRESOLVEOP_CLIQUE_MERGING_AUTO = -1
 const KN_PRESOLVEOP_CLIQUE_MERGING_OFF = 0
 
 const KN_PRESOLVEOP_CLIQUE_MERGING_ON = 1
+
+const KN_PARAM_DETERMINISTIC = 1177
+
+const KN_DETERMINISTIC_NO = 0
+
+const KN_DETERMINISTIC_YES = 1
+
+const KN_PARAM_CONCURRENT_SOLVER = 1181
+
+const KN_CONCURRENT_SOLVER_AUTO = -1
+
+const KN_CONCURRENT_SOLVER_NO = 0
+
+const KN_CONCURRENT_SOLVER_YES = 1
+
+const KN_PARAM_CONCURRENT_NLPALG = 1182
+
+const KN_CONCURRENT_NLPALG_AUTO = -1
+
+const KN_CONCURRENT_NLPALG_BAR_DIRECT = 1
+
+const KN_CONCURRENT_NLPALG_BAR_CG = 2
+
+const KN_CONCURRENT_NLPALG_ACT_CG = 4
+
+const KN_CONCURRENT_NLPALG_ACT_SQP = 8
+
+const KN_CONCURRENT_NLPALG_AL = 16
+
+const KN_PARAM_CONCURRENT_LPALG = 1183
+
+const KN_CONCURRENT_LPALG_AUTO = -1
+
+const KN_CONCURRENT_LPALG_NLPALGORITHM = 0
+
+const KN_CONCURRENT_LPALG_PRIMALSIMPLEX = 1
+
+const KN_CONCURRENT_LPALG_DUALSIMPLEX = 2
+
+const KN_CONCURRENT_LPALG_BARRIER = 4
+
+const KN_CONCURRENT_LPALG_PDLP = 8
+
+const KN_PARAM_CONCURRENT_MAXSOLVES = 1184
+
+const KN_PARAM_CONCURRENT_OUTLOG = 1185
+
+const KN_CONCURRENT_OUTLOG_ALL = 1
+
+const KN_CONCURRENT_OUTLOG_OBJFEAS = 2
+
+const KN_CONCURRENT_OUTLOG_BEST = 3
+
+const KN_PARAM_FEASERR_LEVEL = 1187
+
+const KN_FEASERR_LEVEL_APPLICATION = 1
+
+const KN_FEASERR_LEVEL_INTERNAL = 2
+
+const KN_PARAM_MAXSTEPSIZE = 1188
+
+const KN_PARAM_MAXSTEPSIZE_MAXIT = 1189
+
+const KN_PARAM_SCALE_STRATEGY = 1190
+
+const KN_SCALE_STRATEGY_AUTO = 0
+
+const KN_SCALE_STRATEGY_CONS = 1
+
+const KN_SCALE_STRATEGY_VARS = 2
+
+const KN_SCALE_STRATEGY_OBJ = 4
+
+const KN_SCALE_STRATEGY_EQUILIBRATION = 8
+
+const KN_SCALE_STRATEGY_CURTISREID = 16
+
+const KN_SCALE_STRATEGY_RUIZ_POCK = 32
+
+const KN_SCALE_STRATEGY_GEOMETRIC_MEAN = 64
+
+const KN_SCALE_STRATEGY_BNDVARS = 128
+
+const KN_SCALE_STRATEGY_SCALEUP = 256
+
+const KN_SCALE_STRATEGY_POWEROFTWO = 512
+
+const KN_SCALE_STRATEGY_REPEAT = 1024
+
+const KN_SCALE_STRATEGY_DYNAMIC = 2048
 
 const KN_PARAM_MIP_METHOD = 2001
 
@@ -3754,6 +5233,8 @@ const KN_MIP_ROOTALG_ACT_SQP = 4
 
 const KN_MIP_ROOTALG_MULTI = 5
 
+const KN_MIP_ROOT_NLPALG_AL = 6
+
 const KN_PARAM_MIP_LPALG = 2019
 
 const KN_MIP_LPALG_AUTO = 0
@@ -3843,6 +5324,8 @@ const KN_MIP_NODE_NLPALG_ACT_SQP = 4
 const KN_MIP_NODEALG_ACT_SQP = 4
 
 const KN_MIP_NODEALG_MULTI = 5
+
+const KN_MIP_NODE_NLPALG_AL = 6
 
 const KN_PARAM_MIP_HEUR_TERMINATE = 2033
 
@@ -4063,3 +5546,63 @@ const KN_PARAM_PAR_MSNUMTHREADS = 3005
 const KN_PAR_MSNUMTHREADS_AUTO = 0
 
 const KN_PARAM_PAR_CONICNUMTHREADS = 3006
+
+const KN_ATTR_NUM_VARS = 100
+
+const KN_ATTR_NUM_CONS = 101
+
+const KN_ATTR_NUM_COMPCONS = 102
+
+const KN_ATTR_NUM_RSDS = 103
+
+const KN_ATTR_NUM_EXPRS = 104
+
+const KN_ATTR_OBJ_GOAL = 110
+
+const KN_ATTR_OBJ_TYPE = 111
+
+const KN_ATTR_NUM_ITERS = 120
+
+const KN_ATTR_NUM_CG_ITERS = 121
+
+const KN_ATTR_NUM_FC_EVALS = 122
+
+const KN_ATTR_NUM_GA_EVALS = 123
+
+const KN_ATTR_NUM_H_EVALS = 124
+
+const KN_ATTR_NUM_HV_EVALS = 125
+
+const KN_ATTR_MIP_NUM_NODES = 140
+
+const KN_ATTR_MIP_NUM_SOLVES = 141
+
+const KN_ATTR_OBJ_GRAD_NNZ = 200
+
+const KN_ATTR_JAC_NNZ = 201
+
+const KN_ATTR_HESS_NNZ = 202
+
+const KN_ATTR_OBJ_VALUE = 300
+
+const KN_ATTR_ABS_FEAS_ERROR = 301
+
+const KN_ATTR_REL_FEAS_ERROR = 302
+
+const KN_ATTR_ABS_OPT_ERROR = 303
+
+const KN_ATTR_REL_OPT_ERROR = 304
+
+const KN_ATTR_SOLVE_TIME_CPU = 310
+
+const KN_ATTR_SOLVE_TIME_REAL = 311
+
+const KN_ATTR_MIP_ABS_GAP = 340
+
+const KN_ATTR_MIP_REL_GAP = 341
+
+const KN_ATTR_MIP_INCUMBENT_OBJ = 342
+
+const KN_ATTR_MIP_RELAXATION_BND = 343
+
+const KN_ATTR_MIP_LASTNODE_OBJ = 344
