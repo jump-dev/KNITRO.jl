@@ -486,6 +486,44 @@ function test_issue_377_scalar_quadratic()
     return
 end
 
+function test_issue_399_a()
+    model = KNITRO.Optimizer()
+    MOI.set(model, MOI.Silent(), true)
+    x = MOI.add_variable(model)
+    c1 = MOI.add_constraint(model, 1.0 * x, MOI.GreaterThan(0.0))
+    g = MOI.ScalarNonlinearFunction(:+, Any[x])
+    c2 = MOI.add_constraint(model, g, MOI.EqualTo(2.0))
+    MOI.set(model, MOI.ObjectiveSense(), MOI.MAX_SENSE)
+    f = 1.0 * x
+    MOI.set(model, MOI.ObjectiveFunction{typeof(f)}(), f)
+    MOI.optimize!(model)
+    @test ≈(MOI.get(model, MOI.ConstraintDual(), c1), 0; atol = 1e-6)
+    @test ≈(MOI.get(model, MOI.ConstraintDual(), c2), -1.0; atol = 1e-6)
+    return
+end
+
+function test_issue_399_b()
+    model = KNITRO.Optimizer()
+    MOI.set(model, MOI.Silent(), true)
+    x = MOI.add_variable(model)
+    y = MOI.add_variable(model)
+    c1 = MOI.add_constraint(model, 1.0 * x, MOI.GreaterThan(2.0))
+    g = MOI.ScalarNonlinearFunction(
+        :-,
+        Any[y, MOI.ScalarNonlinearFunction(:exp, Any[x])],
+    )
+    c2 = MOI.add_constraint(model, g, MOI.GreaterThan(0.0))
+    c3 = MOI.add_constraint(model, 1.0 * x * x, MOI.LessThan(16.0))
+    MOI.set(model, MOI.ObjectiveSense(), MOI.MIN_SENSE)
+    f = 2.0 * y
+    MOI.set(model, MOI.ObjectiveFunction{typeof(f)}(), f)
+    MOI.optimize!(model)
+    @test ≈(MOI.get(model, MOI.ConstraintDual(), c1), 2 * exp(2); atol = 1e-6)
+    @test ≈(MOI.get(model, MOI.ConstraintDual(), c2), 2.0; atol = 1e-6)
+    @test ≈(MOI.get(model, MOI.ConstraintDual(), c3), 0; atol = 1e-6)
+    return
+end
+
 end
 
 TestMOIWrapper.runtests()

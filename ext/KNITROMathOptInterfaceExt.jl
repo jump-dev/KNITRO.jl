@@ -1685,7 +1685,8 @@ function MOI.get(
     ::MOI.ConstraintDual,
     ci::MOI.ConstraintIndex{MOI.ScalarNonlinearFunction},
 )
-    return _sense_dual(model) * _get_dual(model, ci.value)
+    index = model.nlp_index_cons[ci.value] + 1
+    return _sense_dual(model) * _get_dual(model, index)
 end
 
 # function MOI.get(
