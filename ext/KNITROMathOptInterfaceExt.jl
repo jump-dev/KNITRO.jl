@@ -106,6 +106,13 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     vector_nonlinear_oracle_constraints::Vector{
         Tuple{MOI.VectorOfVariables,MOI.VectorNonlinearOracle{Float64}},
     }
+    # Store the original function of each SecondOrderCone constraint so that
+    # we can evaluate it at the current solution to compute `ConstraintDual`
+    # and `ConstraintPrimal`.
+    soc_constraints::Dict{
+        MOI.ConstraintIndex,
+        Union{MOI.VectorAffineFunction{Float64},MOI.VectorOfVariables},
+    }
     license_manager::Union{KNITRO.LMcontext,Nothing}
     options::Dict{String,Any}
     # Cache for the solution
@@ -133,6 +140,10 @@ function Optimizer(; license_manager::Union{KNITRO.LMcontext,Nothing}=nothing, k
         nothing,
         Dict{MOI.ConstraintIndex,Union{Cint,Vector{Cint}}}(),
         Tuple{MOI.VectorOfVariables,MOI.VectorNonlinearOracle{Float64}}[],
+        Dict{
+            MOI.ConstraintIndex,
+            Union{MOI.VectorAffineFunction{Float64},MOI.VectorOfVariables},
+        }(),
         license_manager,
         Dict{String,Any}(),
         Float64[],
@@ -175,6 +186,7 @@ function MOI.empty!(model::Optimizer)
     model.objective = nothing
     model.constraint_mapping = Dict()
     empty!(model.vector_nonlinear_oracle_constraints)
+    empty!(model.soc_constraints)
     model.license_manager = model.license_manager
     for (name, value) in model.options
         MOI.set(model, MOI.RawOptimizerAttribute(name), value)
@@ -202,6 +214,7 @@ function MOI.is_empty(model::Optimizer)
            model.objective === nothing &&
            isempty(model.constraint_mapping) &&
            isempty(model.vector_nonlinear_oracle_constraints) &&
+           isempty(model.soc_constraints) &&
            _num_cons(model) == 0
 end
 
@@ -971,6 +984,7 @@ function MOI.add_constraint(
     )
     ci = MOI.ConstraintIndex{typeof(func),typeof(set)}(index_con)
     model.constraint_mapping[ci] = columns
+    model.soc_constraints[ci] = func
     return ci
 end
 
@@ -1022,6 +1036,7 @@ function MOI.add_constraint(
     )
     ci = MOI.ConstraintIndex{typeof(func),typeof(set)}(index_con)
     model.constraint_mapping[ci] = indv
+    model.soc_constraints[ci] = func
     return ci
 end
 
@@ -1586,6 +1601,8 @@ function MOI.get(model::Optimizer, attr::MOI.ObjectiveValue)
     return obj[]
 end
 
+_get_solution(model::Optimizer, x::MOI.VariableIndex) = _get_solution(model, x.value)
+
 function _get_solution(model::Optimizer, index::Integer)
     if isempty(model.x)
         p = Ref{Cint}(0)
@@ -1612,7 +1629,7 @@ end
 function MOI.get(model::Optimizer, attr::MOI.VariablePrimal, x::MOI.VariableIndex)
     MOI.check_result_index_bounds(model, attr)
     MOI.throw_if_not_valid(model, x)
-    return _get_solution(model, x.value)
+    return _get_solution(model, x)
 end
 
 function MOI.get(
@@ -1636,13 +1653,28 @@ function MOI.get(
     return p[]
 end
 
-# function MOI.get(
-#     model::Optimizer,
-#     cp::MOI.ConstraintPrimal,
-#     ci::MOI.ConstraintIndex{S,MOI.SecondOrderCone},
-# ) where {S<:Union{MOI.VectorAffineFunction{Float64},MOI.VectorOfVariables}}
-#     return # Not supported
-# end
+function _eval_soc_function(model::Optimizer, f::MOI.VectorAffineFunction{Float64})
+    ret = copy(f.constants)
+    for term in f.terms
+        x_term =  _get_solution(model, term.scalar_term.variable)
+        ret[term.output_index] += term.scalar_term.coefficient * x_term
+    end
+    return ret
+end
+
+function _eval_soc_function(model::Optimizer, f::MOI.VectorOfVariables)
+    return _get_solution.(model, f.variables)
+end
+
+function MOI.get(
+    model::Optimizer,
+    attr::MOI.ConstraintPrimal,
+    ci::MOI.ConstraintIndex{S,MOI.SecondOrderCone},
+) where {S<:Union{MOI.VectorAffineFunction{Float64},MOI.VectorOfVariables}}
+    MOI.check_result_index_bounds(model, attr)
+    MOI.throw_if_not_valid(model, ci)
+    return _eval_soc_function(model, model.soc_constraints[ci])
+end
 
 function MOI.get(
     model::Optimizer,
@@ -1655,7 +1687,7 @@ function MOI.get(
     MOI.check_result_index_bounds(model, attr)
     x = MOI.VariableIndex(ci.value)
     MOI.throw_if_not_valid(model, x)
-    return _get_solution(model, x.value)
+    return _get_solution(model, x)
 end
 
 # KNITRO's dual sign depends on optimization sense.
@@ -1689,13 +1721,31 @@ function MOI.get(
     return _sense_dual(model) * _get_dual(model, index)
 end
 
-# function MOI.get(
-#     model::Optimizer,
-#     cd::MOI.ConstraintDual,
-#     ci::MOI.ConstraintIndex{S,MOI.SecondOrderCone},
-# ) where {S<:Union{MOI.VectorAffineFunction{Float64},MOI.VectorOfVariables}}
-#     return  # Not supported.
-# end
+function MOI.get(
+    model::Optimizer,
+    attr::MOI.ConstraintDual,
+    ci::MOI.ConstraintIndex{S,MOI.SecondOrderCone},
+) where {S<:Union{MOI.VectorAffineFunction{Float64},MOI.VectorOfVariables}}
+    MOI.check_result_index_bounds(model, attr)
+    MOI.throw_if_not_valid(model, ci)
+    # KNITRO represents `(t, u) in SecondOrderCone` as the single scalar
+    # constraint `-t + ||u||_2 <= 0`, so `ci.value` is the row of this
+    # scalar constraint, and there is a single scalar multiplier `d` for
+    # it, with the same MOI sign convention as any other `<=`-type row.
+    # We recover the conic dual `y = (y_1, y_2:end)` from `d` using
+    #   y_1 = -d,  y_2:end = d * u / norm(u).
+    f = _eval_soc_function(model, model.soc_constraints[ci])
+    norm_u = sqrt(sum(abs2, f[2:end]))
+    d = _sense_dual(model) * _get_dual(model, ci.value + 1)
+    dual = zeros(length(f))
+    dual[1] = -d
+    if !iszero(norm_u)
+        for i in 2:length(f)
+            dual[i] = d * f[i] / norm_u
+        end
+    end
+    return dual
+end
 
 function _reduced_cost(
     model,

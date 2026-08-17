@@ -37,22 +37,6 @@ function test_runtests()
 end
 
 function test_MOI_Test_cached()
-    second_order_exclude = [
-        r"^test_conic_GeometricMeanCone_VectorAffineFunction$",
-        r"^test_conic_GeometricMeanCone_VectorAffineFunction_2$",
-        r"^test_conic_GeometricMeanCone_VectorOfVariables$",
-        r"^test_conic_GeometricMeanCone_VectorOfVariables_2$",
-        r"^test_conic_RotatedSecondOrderCone_INFEASIBLE_2$",
-        r"^test_conic_RotatedSecondOrderCone_VectorAffineFunction$",
-        r"^test_conic_RotatedSecondOrderCone_VectorOfVariables$",
-        r"^test_conic_RotatedSecondOrderCone_out_of_order$",
-        r"^test_conic_SecondOrderCone_Nonpositives$",
-        r"^test_conic_SecondOrderCone_Nonnegatives$",
-        r"^test_conic_SecondOrderCone_VectorAffineFunction$",
-        r"^test_conic_SecondOrderCone_VectorOfVariables$",
-        r"^test_conic_SecondOrderCone_out_of_order$",
-        r"^test_constraint_PrimalStart_DualStart_SecondOrderCone$",
-    ]
     model = MOI.instantiate(
         () -> KNITRO.Optimizer(; license_manager=LICENSE_MANAGER);
         with_bridge_type=Float64,
@@ -81,15 +65,8 @@ function test_MOI_Test_cached()
             r"^test_solve_ObjectiveBound_MAX_SENSE_LP$",
             # Cannot get ConstraintDualStart
             r"^test_model_ModelFilter_AbstractConstraintAttribute$",
-            # ConstraintDual not supported for SecondOrderCone
-            second_order_exclude...,
         ],
     )
-    # Run the tests for second_order_exclude, this time excluding
-    # `MOI.ConstraintDual` and `MOI.DualObjectiveValue`.
-    push!(config.exclude, MOI.ConstraintDual)
-    push!(config.exclude, MOI.DualObjectiveValue)
-    MOI.Test.runtests(model, config; include=second_order_exclude)
     return
 end
 
