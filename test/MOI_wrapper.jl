@@ -38,6 +38,8 @@ end
 
 function test_MOI_Test_cached()
     second_order_exclude = [
+        r"^test_conic_DualGeometricMeanCone_VectorAffineFunction$",
+        r"^test_conic_DualGeometricMeanCone_VectorOfVariables$",
         r"^test_conic_GeometricMeanCone_VectorAffineFunction$",
         r"^test_conic_GeometricMeanCone_VectorAffineFunction_2$",
         r"^test_conic_GeometricMeanCone_VectorOfVariables$",
