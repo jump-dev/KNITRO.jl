@@ -980,6 +980,13 @@ end
     # Remove the constant in the objective
     KN_del_obj_constant(kc)
 
+    # The modified problem converges to x0 = x2 = 0, stationary for the restored
+    # problem too, so a warm start from it is free to stay there. Re-solve cold.
+    KN_set_int_param(kc, KN_PARAM_STRAT_WARM_START, KN_STRAT_WARM_START_NO)
+    for x in xIndices
+        KN_set_var_primal_init_value(kc, x, 0.8)
+    end
+
     nStatus = KN_solve(kc)
     nStatus, objSol, x, lambda_ = KN_get_solution(kc)
 
